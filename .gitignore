@@ -1,0 +1,8 @@
+*.exe
+*.pdb
+# # *.lib
+# *.dll
+
+.build/
+.vscode/
+imgui.ini
