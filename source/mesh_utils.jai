@@ -129,3 +129,20 @@ to_Mesh :: (shape : Polygon_Soup) -> Mesh, bool #must {
     return result, false;
 }
 
+
+to_Mesh :: (m : par_shapes_mesh) -> Mesh {
+    using result : Mesh;
+
+    geometry_format = .TRIANGLES;
+    array_copy(*positions, m.points);
+    array_copy(*normals, m.normals);
+
+    array_reserve(*indices, m.triangles.count * 3);
+    memcpy(indices.data, m.triangles.data, m.triangles.count * size_of(m.Triangle));
+    indices.count = m.triangles.count * 3;
+
+    // @Incomplete tcoords
+
+    return result;
+}
+
