@@ -37,12 +37,69 @@ main :: () {
 
     gl_version_major, gl_version_minor = gl_get_version();
     print ("OpenGL %.%\n", gl_version_major, gl_version_minor);
+    init_camera();
+
+    // Prepare VAO for text quads.
+    {
+        glGenVertexArrays(1, *app.text_vao);
+        glGenBuffers(1, *app.text_vbo);
+        glBindVertexArray(app.text_vao);
+        glBindBuffer(GL_ARRAY_BUFFER, app.text_vbo);
+        glBufferData(GL_ARRAY_BUFFER, size_of(GLfloat) * 6 * 4, null, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * size_of(GLfloat), xx 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    {
+        vert :: #run read_entire_file("source/shaders/text.vert");
+        frag :: #run read_entire_file("source/shaders/text.frag");
+        app.text_program = get_shader_program(vert, frag);
+    }
+
+    {
+        vert :: #run read_entire_file("source/shaders/mesh.vert");
+        frag :: #run read_entire_file("source/shaders/mesh.frag");
+        app.mesh_program = get_shader_program(vert, frag);
+        glGenVertexArrays(1, *app.mesh_vao);
+    }
+
+    {
+        vert :: #run read_entire_file("source/shaders/normals.vert");
+        geom :: #run read_entire_file("source/shaders/normals.geom");
+        frag :: #run read_entire_file("source/shaders/normals.frag");
+        app.normals_program = get_shader_program(vert, frag, geom);
+        glGenVertexArrays(1, *app.normals_vao);
+    }
+
+    {
+        vert :: #run read_entire_file("source/shaders/aabb.vert");
+        frag :: #run read_entire_file("source/shaders/aabb.frag");
+        app.aabb_program = get_shader_program(vert, frag);
+        glGenVertexArrays(1, *app.aabb_vao);
+    }
+
+    {
+        vert :: #run read_entire_file("source/shaders/background.vert");
+        frag :: #run read_entire_file("source/shaders/background.frag");
+        app.background_program = get_shader_program(vert, frag);
+        glGenVertexArrays(1, *app.background_vao);
+    }
+
+    TRIAD_AXIS_LENGTH :: 1;
+    triad := make_axes_triad(TRIAD_AXIS_LENGTH);
+
+    init_font();
+    // init_commands();
+    init_keymap();
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
     ImGui_Impl_CreateContext();
     assert(ctx != null, "must call create context");
     ImGui.SetCurrentContext(ctx);
+
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
@@ -61,11 +118,23 @@ main :: () {
         ImGui_ImplSDL2_NewFrame(app.window);
         ImGui.NewFrame();
 
+        if app.show_ui {
+            // show_global_settings_ui(*triad);
+            show_item_list_ui();
+            show_camera_controls();
+            show_help_ui();
+
+        }
+
         io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+        render_background();
+        update_camera(1);
+        render_entities();
 
         ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
 
@@ -111,9 +180,63 @@ handle_events :: () {
             case SDL_WINDOWEVENT;
             case SDL_KEYDOWN; 
             case SDL_KEYUP; 
-            case SDL_DROPFILE; 
+            case SDL_DROPFILE; {
+                // @Leak event.drop.file should be free'd using SDL_free
+                dropped := to_string(event.drop.file);
+                found, found_index := find_entity_with_max_generation_index(dropped);
+                if found {
+                    if #complete app.settings.duplicate_file_behaviour == {
+                        case .IGNORE;
+
+                            log("Skipped file: '%' (already loaded)\n", dropped);
+
+                        case .OVERWRITE;
+
+                            // Only affects the entity with maximum generation index
+                            entity := load_entity_from_file(dropped);
+                            if entity {
+                                entity.generation_index = found.generation_index;
+                                entity.display_info = found.display_info;
+                                deinit(found);
+                                app.entities[found_index] = entity;
+                            }
+
+                        case .APPEND;
+                            entity := load_entity_from_file(dropped);
+                            if entity {
+                                entity.generation_index = found.generation_index + 1;
+                                array_add(*app.entities, entity);
+                            }
+                    }
+                } else {
+                    entity := load_entity_from_file(dropped);
+                    if entity {
+                        array_add(*app.entities, entity);
+                    }
+                }
+
+                if app.settings.fit_to_screen_on_file_drop_event {
+                    fit_scene_on_screen();
+                }
+            }
         }
     }
+}
+
+// Returns the entity having the given `fully_pathed_filename` with maximum generation index, or null if no such entity exists
+find_entity_with_max_generation_index :: (fully_pathed_filename : string) -> *Entity, int
+{
+    entity_index := -1;
+    max_generation_index := -1;
+    max_generation_index_entity : *Entity;
+    for app.entities {
+        if it.fully_pathed_filename == fully_pathed_filename && it.generation_index > max_generation_index {
+            max_generation_index = it.generation_index;
+            max_generation_index_entity = it;
+            entity_index = it_index;
+        }
+    }
+    return max_generation_index_entity, entity_index;
 }
 
 #scope_file
