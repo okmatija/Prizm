@@ -107,6 +107,8 @@ main :: () {
 
     ImGui.StyleColorsDark();
 
+    load_from_command_line();
+
     // Main loop
     while !app.closing_application {
         handle_events();
@@ -136,7 +138,7 @@ main :: () {
         update_camera(1);
         render_entities();
 
-        ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+        // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
 
         // Rendering
         ImGui.Render();
@@ -166,6 +168,62 @@ main :: () {
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
+}
+
+load_one_file :: (filename : string) {
+    found, _ := find_entity_with_max_generation_index(filename);
+    if found {
+        if #complete app.settings.duplicate_file_behaviour == {
+            case .OVERWRITE; #through;
+            case .IGNORE;
+                // When loading files from the command line .OVERWRITE and .IGNORE have the same behaviour
+                log("Skipped file: '%' (already loaded)\n", filename);
+            case .APPEND;
+                entity := load_entity_from_file(filename);
+                if entity {
+                    entity.generation_index = found.generation_index + 1;
+                    array_add(*app.entities, entity);
+                }
+        }
+    } else {
+        entity := load_entity_from_file(filename);
+        if entity {
+            array_add(*app.entities, entity);
+        }
+    }
+}
+
+load_from_command_line :: () {
+    args := get_command_line_arguments();
+    defer array_free(args);
+    for 1..args.count-1 {
+
+        // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
+        pattern := args[it];
+        path_overwrite_separators(pattern, #char "/");
+
+        if find_index_of_any_from_left(pattern, "*?[-]") != -1 {
+            files := file_list(".", recursive=true, follow_symlinks=false);
+            defer array_free(files);
+            for _file, file_index : files {
+
+                // @Cleanup This is really annoying. file_list gives different results on windows/linux
+#if OS == .WINDOWS {
+                // Trim the leading ./
+                file := _file;
+                file.data += 2;
+                file.count -= 2;
+}
+
+                if wildcard_match(file, pattern) {
+                    load_one_file(file);
+                }
+            }
+        } else {
+            load_one_file(pattern);
+        }
+    }
+    fit_scene_on_screen();
 }
 
 handle_events :: () {
