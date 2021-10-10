@@ -162,6 +162,7 @@ ImGui :: #import "jai-imgui"(LINK_STATIC=true);
 #load "edge.jai";
 #load "mesh.jai";
 #load "axes.jai";
+#load "selection_mode.jai";
 #load "numeric.jai";
 #load "geometric_operations.jai";
 #load "io_obj.jai";
