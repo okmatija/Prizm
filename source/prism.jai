@@ -243,8 +243,53 @@ handle_events :: () {
                 app.closing_application = true;
             }
             case SDL_WINDOWEVENT;
-            case SDL_KEYDOWN; 
-            case SDL_KEYUP; 
+                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
+
+                    width_scale  := cast(float) event.window.data1 / app.current_window_width;
+                    height_scale := cast(float) event.window.data2 / app.current_window_height;
+
+                    camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
+                    camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
+                    app.camera.right  -= camera_delta_rl;
+                    app.camera.left   += camera_delta_rl;
+                    app.camera.top    -= camera_delta_tb;
+                    app.camera.bottom += camera_delta_tb;
+
+                    app.current_window_width  = event.window.data1;
+                    app.current_window_height = event.window.data2;
+                }
+            case SDL_KEYDOWN; {
+
+                for app.keymap_keydown.mappings {
+                    if to_sdl_keycode(it.key_code) == event.key.keysym.sym {
+                        if io().KeyShift == it.modifier_flags.shift_pressed   &&
+                           io().KeyCtrl  == it.modifier_flags.control_pressed &&
+                           io().KeyAlt   == it.modifier_flags.alt_pressed {
+                            if io().WantCaptureKeyboard && !it.override_WantCaptureKeyboard {
+                                continue;
+                            }
+                            app.keymap_keydown.procs[it.proc_info_index].proc();
+                            break;
+                        }
+                    }
+                }
+            }
+            case SDL_KEYUP; {
+
+                for app.keymap.mappings {
+                    if to_sdl_keycode(it.key_code) == event.key.keysym.sym {
+                        if io().KeyShift == it.modifier_flags.shift_pressed   &&
+                           io().KeyCtrl  == it.modifier_flags.control_pressed &&
+                           io().KeyAlt   == it.modifier_flags.alt_pressed {
+                            if io().WantCaptureKeyboard && !it.override_WantCaptureKeyboard {
+                                continue;
+                            }
+                            app.keymap.procs[it.proc_info_index].proc();
+                            break;
+                        }
+                    }
+                }
+            }
             case SDL_DROPFILE; {
                 // @Leak event.drop.file should be free'd using SDL_free
                 dropped := to_string(event.drop.file);
@@ -302,6 +347,31 @@ find_entity_with_max_generation_index :: (fully_pathed_filename : string) -> *En
         }
     }
     return max_generation_index_entity, entity_index;
+}
+
+to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
+    if key_code >= 32 return xx key_code;
+
+    special_key_code : Special_Key_Code = xx key_code;
+    if #complete special_key_code == {
+        case Special_Key_Code.ESCAPE; return SDLK_ESCAPE;
+        case Special_Key_Code.ENTER;  return SDLK_RETURN;
+        case Special_Key_Code.TAB;    return SDLK_TAB;
+        case Special_Key_Code.DELETE; return SDLK_DELETE;
+        case Special_Key_Code.F1;     return SDLK_F1;
+        case Special_Key_Code.F2;     return SDLK_F2;
+        case Special_Key_Code.F3;     return SDLK_F3;
+        case Special_Key_Code.F4;     return SDLK_F4;
+        case Special_Key_Code.F5;     return SDLK_F5;
+        case Special_Key_Code.F6;     return SDLK_F6;
+        case Special_Key_Code.F7;     return SDLK_F7;
+        case Special_Key_Code.F8;     return SDLK_F8;
+        case Special_Key_Code.F9;     return SDLK_F9;
+        case Special_Key_Code.F10;    return SDLK_F10;
+        case Special_Key_Code.F11;    return SDLK_F11;
+        case Special_Key_Code.F12;    return SDLK_F12;
+    }
+    return SDLK_UNKNOWN;
 }
 
 #scope_file
