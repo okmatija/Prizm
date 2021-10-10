@@ -119,7 +119,7 @@ main :: () {
         ImGui.NewFrame();
 
         if app.show_ui {
-            // show_global_settings_ui(*triad);
+            show_global_settings_ui(*triad);
             show_item_list_ui();
             show_camera_controls();
             show_help_ui();
