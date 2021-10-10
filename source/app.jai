@@ -142,7 +142,6 @@ clamp_user_settings :: ()
 #import "GL";
 #import "Deep_Copy";
 #import "Time";
-#import "Text_File_Handler";
 #import "Hash";
 #import "Hash_Table";
 #import "freetype255";
@@ -159,6 +158,8 @@ ImGui :: #import "jai-imgui"(LINK_STATIC=true);
 #load "axes.jai";
 #load "numeric.jai";
 #load "geometric_operations.jai";
+#load "io_obj.jai";
+#load "io_wkt.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";
 #load "font.jai";
@@ -169,7 +170,9 @@ ImGui :: #import "jai-imgui"(LINK_STATIC=true);
 #load "ui.jai";
 #load "shapes.jai";
 #load "keymap.jai";
-#load "settings.jai";
+#load "lexer.jai";
+#load "parser.jai";
+
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
 #run compiler_set_type_info_flags(ImGui, .NO_SIZE_COMPLAINT);
