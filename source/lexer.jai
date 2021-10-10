@@ -6,10 +6,13 @@ Token :: struct {
     Type :: enum u32 {
         UNINITIALIZED;
         IDENTIFIER :: 256;
-        INTEGER;
-        FLOAT;
         SQSTRING;
         DQSTRING;
+
+         // These represent positive numbers only!
+         // Negative numbers must be parsed by finding a preceeding #char "-" token
+        INTEGER;
+        FLOAT;
 
         EOF;
     }
