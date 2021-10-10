@@ -1,3 +1,5 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 
 show_global_settings_ui :: (world_axes : *Axes_Triad)

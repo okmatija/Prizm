@@ -1,3 +1,5 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
 load_wkt :: (filename : string) -> *Entity {
 
     log("Loading file '%'... ", filename);
