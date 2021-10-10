@@ -39,6 +39,8 @@ App :: struct {
     show_ui := true;
     show_global_settings_ui := false;
     show_help_ui := false;
+    show_console_ui := false;
+
     selection_display_info : Display_Info; // UI will edit this value and apply it to all selected entities
     selection_display_info.points_visible = false;
     selection_display_info.normals_visible = false;
@@ -66,6 +68,7 @@ App :: struct {
     checkbox_sweep_mode_state_to_set := false;
 
     camera : Camera;
+    console : Console;
     entities : [..]*Entity;
 
     vertex_label_style : Vertex_Label_Style;
@@ -180,6 +183,8 @@ ImGui :: #import "jai-imgui"(LINK_STATIC=true);
 #load "inspector.jai";
 #load "lexer.jai";
 #load "parser.jai";
+#load "console.jai";
+#load "commands.jai";
 
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);

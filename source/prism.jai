@@ -91,7 +91,7 @@ main :: () {
     triad := make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_font();
-    // init_commands();
+    init_commands();
     init_keymap();
 
     // Setup Dear ImGui context
@@ -125,7 +125,8 @@ main :: () {
             show_item_list_ui();
             show_camera_controls();
             show_help_ui();
-
+            console_draw();
+            // inspect("Debug", *app.camera, true);
         }
 
         io :: () -> *ImGui.IO {return ImGui.GetIO(); }

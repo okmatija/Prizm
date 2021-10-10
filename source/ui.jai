@@ -95,7 +95,7 @@ show_item_list_ui :: () {
         }
 
         // // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
-        if /*app.show_console_ui ||*/ app.user_selection.is_visible {
+        if app.show_console_ui || app.user_selection.is_visible {
             ImGui.SameLine();
             label := to_c_string(tprint("#%", it_index));
             if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
