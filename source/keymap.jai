@@ -97,7 +97,7 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, toggle_show_help_ui, "Toggle help UI",  xx #char "h");
     add_key(*app.keymap_keydown, toggle_show_global_settings_ui, "Toggle settings UI",  xx #char "h", .{shift_pressed=true});
     add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`");
-    // add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", .{control_pressed=true}, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", .{control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "m");
 
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
@@ -165,7 +165,7 @@ quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
 toggle_show_global_settings_ui :: () { app.show_global_settings_ui = !app.show_global_settings_ui; }
 toggle_show_help_ui            :: () { app.show_ui, app.show_help_ui    = true, !app.show_help_ui; }
-// toggle_show_console_ui         :: () { app.show_ui, app.show_console_ui = true, !app.show_console_ui; }
+toggle_show_console_ui         :: () { app.show_ui, app.show_console_ui = true, !app.show_console_ui; }
 toggle_selection_mode          :: () { app.user_selection.is_visible = !app.user_selection.is_visible; }
 rotate_look_direction_5_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -5); }
 rotate_look_direction_5_ccw    :: () { rotate_look_direction(camera_rotation_axis(),   5); }
