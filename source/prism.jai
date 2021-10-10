@@ -137,6 +137,13 @@ main :: () {
         render_background();
         update_camera(1);
         render_entities();
+        if app.user_selection.is_visible {
+            do_selection_mode();
+        }
+        if triad.visible {
+            render_axes_triad(*triad);
+        }
+
 
         // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
 
