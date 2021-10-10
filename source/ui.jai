@@ -65,7 +65,7 @@ show_item_list_ui :: () {
         // Toggle visibility and set color
         ImGui.SameLine();
         was_visible := it.is_visible;
-        // visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
+        visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
         // Show_Tooltip("Visible");
 
         if !was_visible && it.is_visible {
@@ -75,7 +75,7 @@ show_item_list_ui :: () {
             }
         }
 
-        any_visibility_changed = any_visibility_changed ;//|| visibility_changed;
+        any_visibility_changed = any_visibility_changed || visibility_changed;
         ImGui.SameLine();
         if it.display_info.display_mode == .NORMALS {
             ImGui.TextDisabled("NR.");
@@ -95,18 +95,18 @@ show_item_list_ui :: () {
         }
 
         // // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
-        // if app.show_console_ui || app.user_selection.is_visible {
-        //     ImGui.SameLine();
-        //     label := to_c_string(tprint("#%", it_index));
-        //     if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-        //         ImGui.Text(label);
-        //         Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
-        //     } else {
-        //         ImGui.TextDisabled(label);
-        //         Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
-        //     }
-        //     ImGui.SameLine();
-        // }
+        if /*app.show_console_ui ||*/ app.user_selection.is_visible {
+            ImGui.SameLine();
+            label := to_c_string(tprint("#%", it_index));
+            if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
+                ImGui.Text(label);
+                Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
+            } else {
+                ImGui.TextDisabled(label);
+                Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
+            }
+            ImGui.SameLine();
+        }
 
         // Write filename
         ImGui.SameLine();
@@ -836,7 +836,7 @@ combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
     return changed;
 }
 
-/*
+
 // Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
 checkbox_press_or_sweep_to_toggle :: (state : *bool, hovered : *bool, label : *u8) -> bool {
 
@@ -905,7 +905,7 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, hovered : *bool, label : *u
 
     return old_state != <<state;
 }
-*/
+
 
 // @Incomplete add a delay before popup
 Show_Tooltip :: (description : string) #expand {
