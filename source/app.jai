@@ -177,6 +177,7 @@ ImGui :: #import "jai-imgui"(LINK_STATIC=true);
 #load "ui.jai";
 #load "shapes.jai";
 #load "keymap.jai";
+#load "inspector.jai";
 #load "lexer.jai";
 #load "parser.jai";
 

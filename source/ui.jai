@@ -28,8 +28,8 @@ show_global_settings_ui :: (world_axes : *Axes_Triad)
     }
 
     // :UserConfig add a button to overwrite the user settings file with new defaults here?
-    // inspect("User Settings", *app.settings);
-    // clamp_user_settings();
+    inspect("User Settings", *app.settings);
+    clamp_user_settings();
 
     if current_window_width != INITIAL_WINDOW_WIDTH && current_window_height != INITIAL_WINDOW_HEIGHT {
         if ImGui.Button("Reset Window") {
@@ -37,10 +37,10 @@ show_global_settings_ui :: (world_axes : *Axes_Triad)
         }
     }
 
-    #if true {
-    ImGui.SetNextWindowPos(ImGui.make_ImVec2(650, 20), .FirstUseEver);
-    ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
-    }
+    // #if true {
+    //     ImGui.SetNextWindowPos(ImGui.make_ImVec2(650, 20), .FirstUseEver);
+    //     ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+    // }
 }
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
