@@ -107,6 +107,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
         case .VOID;                 #through;
         case .CODE;                 #through;
         case .ANY;                  #through;
+        case .VARIANT;              #through;
         case .TYPE;
             text := temp_c_string(tprint("% support is incomplete", info.type));
             ImGui.Text(text);

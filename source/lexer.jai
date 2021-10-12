@@ -129,7 +129,8 @@ is_hex_number :: (c: u32) -> bool {
 }
 
 continues_identifier :: (c: u32) -> bool {
-    return starts_identifier(c) || is_number(c);
+    // :HandleFilenames @Cleanup @Hack Identifiers should probably not contain dots! We do this for now to make filenames work
+    return starts_identifier(c) || is_number(c) || c == #char ".";
 }
 
 at_end :: (lex: *Lexer) -> bool {
@@ -254,6 +255,7 @@ get_token :: (lex: *Lexer) -> success: bool, tok: Token {
         return true, tok;
     }
 
+    // :HandleFilenames Probably also need to check that there is a number following the dot, otherwise the dot should be it's own token, and probably combined with a preceeding identifier token to make a filename
     if is_number(lex.data[0]) || lex.data[0] == #char "." {
 
         if decimal_string_contains_dot(lex.data) {

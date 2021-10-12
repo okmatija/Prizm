@@ -118,6 +118,7 @@ registered_console_commands : [..]*Code_Procedure_Header;
 
 generate_code_to_register_console_commands :: (w : Workspace) {
 
+    // @Refactor make use of an indent local variable, which is incremented/decremented when we print lines starting a new block
     Print :: (format_string : string, args : ..Any) #expand {
         print_to_builder(*builder, format_string, ..args);
     }
