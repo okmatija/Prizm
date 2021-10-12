@@ -133,3 +133,23 @@ clear_item :: (item_index : int) {
 
     console_add_log("# Cleared item #% which had % points", item_index, point_count);
 } @RegisterCommand
+
+set_edge_color_to_face_color :: () {
+    for app.entities {
+        it.display_info.wireframe_color = it.display_info.surface_color;
+    }
+} @RegisterCommand
+
+/*
+clear_normals :: (item_index : int) {
+    // @Incomplete if the normals are all constant it screws up the normal render, wipe them here
+} @RegisterCommand
+
+flip_normals :: (item_index : int) {
+    // @Incomplete
+} @RegisterCommand
+
+reorient_triangles_012_to_021 :: (item_index : int) {
+    // @Incomplete Some triangles have flipped face,
+} @RegisterCommand
+*/

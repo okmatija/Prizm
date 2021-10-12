@@ -96,12 +96,20 @@ load_obj :: (filename : string) -> *Entity {
 
         } else if eat_possible_directive(*parser, "f") {
 
-            tri := parse_triangle(*parser);
+            face := parse_face(*parser);
+            if face.index_count != 3 && face.index_count != 4 {
+                error(*parser, peek_token(*parser), "Invalid number of vertex references for 'f' directive, got %, wanted 3 or 4.\n", face.index_count);
+            }
 
             // @Incomplete Do something with the texture and normal indices
-            array_add(*mesh.indices, tri.indices[0]);
-            array_add(*mesh.indices, tri.indices[1]);
-            array_add(*mesh.indices, tri.indices[2]);
+            array_add(*mesh.indices, face.indices[0]);
+            array_add(*mesh.indices, face.indices[1]);
+            array_add(*mesh.indices, face.indices[2]);
+            if face.index_count == 4 {
+                array_add(*mesh.indices, face.indices[0]);
+                array_add(*mesh.indices, face.indices[2]);
+                array_add(*mesh.indices, face.indices[3]);
+            }
 
             if mesh.geometry_format == .UNKNOWN {
                 mesh.geometry_format = .TRIANGLES;
@@ -109,9 +117,22 @@ load_obj :: (filename : string) -> *Entity {
                 error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.TRIANGLES, mesh.geometry_format);
             }
 
+        } else if eat_possible_directive(*parser, "g") ||
+                  eat_possible_directive(*parser, "mtllib") ||
+                  eat_possible_directive(*parser, "usemtl") {
+
+            warning(*parser, peek_token(*parser), "Ignoring '%' token, support is @Incomplete\n", to_string(peek_token(*parser)));
+
+            tok := peek_token(*parser);
+            current_line := tok.line_number;
+            while tok.type != Token.Type.EOF && tok.line_number == current_line {
+                eat_token(*parser);
+                tok = peek_token(*parser);
+            }
+
         } else {
 
-            error(*parser, peek_token(*parser), "Unexpected token %.\n", to_string(peek_token(*parser)));
+            error(*parser, peek_token(*parser), "Unexpected token %. Aborting\n", to_string(peek_token(*parser)));
             break;
 
         }
@@ -231,37 +252,47 @@ obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int {
 }
 
 obj_parse_index :: (p : *Parser) -> u32 {
+    // @Cleanup parse_integer never returns negative integers!!
     index := parse_integer(p);
-    if index < 1 {
-        error(p, peek_token(p), "OBJ file format expects 1-based indices\n");
+    if index == 0 {
+        error(p, peek_token(p), "Unexpected 0 index, the OBJ file format uses 1-based indices\n");
+    } else if index < 0 {
+        error(p, peek_token(p), "Support for OBJ files with negative indices is @Incomplete\n");
     }
     return cast(u32)index - 1;
 }
 
-Obj_Triangle :: struct {
-    // Obj 1-based indices
-    indices : [3]u32 = .[U32_MAX, U32_MAX, U32_MAX];
-    texture : [3]u32 = .[U32_MAX, U32_MAX, U32_MAX];
-    normal  : [3]u32 = .[U32_MAX, U32_MAX, U32_MAX];
+Obj_Face :: struct {
+    // 1-based indices
+    indices : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
+    texture : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
+    normal  : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
+    index_count : int; // How many indices followed the 'f'
 }
 
-parse_triangle :: (p : *Parser) -> Obj_Triangle {
-    tri : Obj_Triangle = ---;
-    for i : 0..2 {
-        tri.indices[i] = obj_parse_index(p);
-        slash := eat_possible_token(p, #char "/");
-        if slash {
-            slash = eat_possible_token(p, #char "/");
+parse_face :: (p : *Parser) -> Obj_Face {
+    face : Obj_Face = ---;
+    current_line := peek_token(p).line_number;
+    for i : 0..3 {
+        if peek_token(p).line_number == current_line {
+
+            face.indices[i] = obj_parse_index(p);
+            slash := eat_possible_token(p, #char "/");
             if slash {
-                // case i//n
-                tri.normal[i] = obj_parse_index(p);
-            } else {
-                // case i/t/n
-                tri.texture[i] = obj_parse_index(p);
-                expect_and_eat(p, #char "/");
-                tri.normal[i] = obj_parse_index(p);
+                slash = eat_possible_token(p, #char "/");
+                if slash {
+                    // case v//vn
+                    face.normal[i] = obj_parse_index(p);
+                } else {
+                    // case v/vt/vn
+                    face.texture[i] = obj_parse_index(p);
+                    expect_and_eat(p, #char "/");
+                    face.normal[i] = obj_parse_index(p);
+                }
             }
+
+            face.index_count = i + 1;
         }
     }
-    return tri;
+    return face;
 }

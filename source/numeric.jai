@@ -50,11 +50,6 @@ cwise_min :: (v : Vector3) -> float, int
     return min_component, min_index;
 }
 
-// @CompilerBug remove this when != is added to the Jai Math module
-operator!= :: (a: Vector3, b: Vector3) -> bool {
-    return a.x != b.x || a.y != b.y || a.z != b.z;
-}
-
 transform_point :: (point : Vector3, transform : Matrix4) -> Vector3
 {
     return (transform * make_vector4(point, 1.)).xyz;
