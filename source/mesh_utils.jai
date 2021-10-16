@@ -125,7 +125,7 @@ to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #
 
 to_Mesh :: (shape : Polygon_Soup) -> Mesh, bool #must {
     result : Mesh;
-    log("Not implemented. Unable to triangulate polygon\n");
+    log_error("Not implemented. Unable to triangulate polygon\n");
     return result, false;
 }
 

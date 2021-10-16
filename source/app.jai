@@ -140,7 +140,7 @@ clamp_user_settings :: ()
                                                                   .00001, app.camera.scene_bounding_sphere.radius / 2);
 }
 
-#import "Basic";
+#import "Basic"; // #import "Basic"()(MEMORY_DEBUGGER=true);
 #import "File";
 #import "File_Utilities";
 #import "String";
@@ -150,6 +150,7 @@ clamp_user_settings :: ()
 #import "SDL";
 #import "GL";
 #import "Deep_Copy";
+#import "Debug";
 #import "Time";
 #import "Hash";
 #import "Hash_Table";
