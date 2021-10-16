@@ -326,11 +326,11 @@ set_icon_and_manifest :: (options: Build_Options) {
     }
 }
 
-// #run {
-// #if OS == .WINDOWS {
-// disable_runtime_console();
-// }
-// }
+#run {
+#if OS == .WINDOWS {
+disable_runtime_console();
+}
+}
 
 #import "Basic";
 #import "Check";

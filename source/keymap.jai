@@ -311,9 +311,9 @@ toggle_current_selection :: () {
 reset_camera :: () { init_camera(); }
 
 my_debug_function :: () {
-    print(#run join("\nYou pressed SPACE!\n",
-                    "This is a binding which will always be reserved for user debug functions.\n",
-                    tprint("You can edit the implementation at %:%\n\n", #file, #line)));
+    log(#run join("\nYou pressed SPACE!\n",
+                  "This is a binding which will always be reserved for user debug functions.\n",
+                  tprint("You can edit the implementation at %:%\n\n", #file, #line)));
 
     // Write your debug code here
 }
