@@ -1,7 +1,10 @@
 *.exe
 *.pdb
-# # *.lib
+# *.lib
 # *.dll
+
+# ignore the windows icon file which is generated in build.jai
+*.ico
 
 .build/
 .vscode/

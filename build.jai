@@ -36,9 +36,9 @@ build :: () {
         exit(0);
     }
 
+    build_options := get_build_options(w);
     {
-        using build_options := get_build_options(w);
-        defer set_build_options(build_options, w);
+        using build_options;
 
         output_type = .EXECUTABLE;
         lazy_foreign_function_lookups = true;
@@ -65,6 +65,7 @@ build :: () {
         array_add(*_import_path, join(CWD, "source/modules", separator="/"));
         import_path = _import_path;
     }
+    set_build_options(build_options, w);
 
     {
         compiler_begin_intercept(w);
@@ -75,39 +76,47 @@ build :: () {
 
         while true {
             message := compiler_wait_for_message();
-            if message.kind == .COMPLETE break;
-            if !message                  continue;
-            if message.workspace != w    continue;
 
-            do_error_checking(message);
-
-            has_note :: (header: *Code_Procedure_Header, note: string) -> bool {
-                for header.notes  if it.text == note  return true;
-                return false;
+            if !message {
+                continue;
             }
 
-            if message.kind == {
-                case .TYPECHECKED;
-                  typechecked := cast(*Message_Typechecked) message;
+            if message.kind == .COMPLETE {
+                set_icon_and_manifest(build_options);
+                break;
+            }
 
-                  for tc: typechecked.procedure_headers {
-                      header := tc.expression;
-                      if has_note(header, "RegisterCommand") {
-                          array_add(*registered_console_commands, header);
+            if message.workspace == w {
+                do_error_checking(message);
+
+                has_note :: (header: *Code_Procedure_Header, note: string) -> bool {
+                    for header.notes  if it.text == note  return true;
+                    return false;
+                }
+
+                if message.kind == {
+                    case .TYPECHECKED;
+                      typechecked := cast(*Message_Typechecked) message;
+
+                      for tc: typechecked.procedure_headers {
+                          header := tc.expression;
+                          if has_note(header, "RegisterCommand") {
+                              array_add(*registered_console_commands, header);
+                          }
                       }
-                  }
 
-                case .PHASE;
-                    phase := cast(*Message_Phase) message;
-                    if phase.phase == .TYPECHECKED_ALL_WE_CAN {
-                        if !generated_code {
-                            generate_code_to_register_console_commands(message.workspace);
-                            generated_code = true;
+                    case .PHASE;
+                        phase := cast(*Message_Phase) message;
+                        if phase.phase == .TYPECHECKED_ALL_WE_CAN {
+                            if !generated_code {
+                                generate_code_to_register_console_commands(message.workspace);
+                                generated_code = true;
+                            }
                         }
-                    }
 
-                case .COMPLETE;
-                    break;
+                    case .COMPLETE;
+                        break;
+                }
             }
         }
     }
@@ -285,9 +294,54 @@ generate_code_to_register_console_commands :: (w : Workspace) {
     add_build_string(builder_to_string(*builder), w);
 }
 
+set_icon_and_manifest :: (options: Build_Options) {
+    if options.output_type != .EXECUTABLE  return;
+
+    // Set the icon on the executable.
+    #if OS == .WINDOWS {
+        icon_name := "icon";
+
+        exe_path  := tprint("%1%2.exe", options.output_path, options.output_executable_name);
+        icon_path := tprint("%1%2.ico", options.output_path, icon_name);
+
+        if !file_exists(icon_path) {
+            ico_file := create_ico_file_from_bitmap_filename(tprint("%1/data/%2.png", options.output_path, icon_name));
+            print("ico_file.count is: %\n", ico_file.count);
+            write_entire_file(icon_path, ico_file);
+            free(ico_file);
+        }
+
+        success := set_icon_by_filename(exe_path, icon_path);
+        if success {
+            print("The icon of '%' has been set successfully to '%'.", exe_path, icon_path);
+        } else {
+            compiler_report("Failure to set the icon.");
+        }
+
+        /*manifest_options: Manifest_Options;
+        success = add_manifest_to_executable(exe_path, manifest_options);
+        if !success {
+            compiler_error("add manifest failed.");
+        }*/
+    }
+}
+
+// #run {
+// #if OS == .WINDOWS {
+// disable_runtime_console();
+// }
+// }
+
 #import "Basic";
 #import "Check";
 #import "Compiler";
 #import "Program_Print";
 #import "Sort";
 #import "String";
+
+#if OS == .WINDOWS {
+    #import "Windows_Resources";
+    #import "Ico_File";
+}
+#import "File";
+#import "File_Utilities";
