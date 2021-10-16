@@ -237,7 +237,7 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
 
         case .UNKNOWN;
 
-            log("Skipped (Could not detect mesh geometry format)\n");
+            log_warning("Skipped (Could not detect mesh geometry format)\n");
             deinit(entity);
     }
 }
