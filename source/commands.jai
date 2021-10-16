@@ -2,7 +2,7 @@
 
 check_geometry_index :: (index : int) -> bool #must {
     if index < 0 || index >= app.entities.count {
-        console_add_log("[error] invalid/out of range geometry index");
+        log_error("Invalid/Out-of-range geometry index");
         return false;
     }
     return true;
@@ -14,7 +14,7 @@ quit :: () {
 
 history :: () {
     console_clear_log();
-    for app.console.history console_add_log("# % %", it_index, it);
+    for app.console.history log("# % %", it_index, it);
 } @RegisterCommand
 
 clear :: () {
@@ -22,8 +22,8 @@ clear :: () {
 } @RegisterCommand
 
 help :: () {
-    console_add_log("# Available commands:");
-    for app.console.commands console_add_log("#  %", it.usage);
+    log("# Available commands:");
+    for app.console.commands log("#  %", it.usage);
 } @RegisterCommand
 
 select_if :: (should_select : (Entity)->bool) {
@@ -36,8 +36,8 @@ select_if :: (should_select : (Entity)->bool) {
             it.is_selected = false;
         }
     }
-    if count == 1 console_add_log("# selected 1 entity");
-    else          console_add_log("# selected % entities", count);
+    if count == 1 log("# selected 1 entity");
+    else          log("# selected % entities", count);
 }
 
 select_if_Polyline_Soup2 :: () { select_if((e) => (e.type == .POLYLINE_SOUP2)); } @RegisterCommand
@@ -64,8 +64,8 @@ select_if_match :: (pattern : string) {
             it.is_selected = false;
         }
     }
-    if count == 1 console_add_log("# selected 1 entity");
-    else          console_add_log("# selected % entities", count);
+    if count == 1 log("# selected 1 entity");
+    else          log("# selected % entities", count);
 } @RegisterCommand
 
 sort_by_name :: (alphabetical : int = 1) {
@@ -131,7 +131,7 @@ clear_item :: (item_index : int) {
     point_count := item.mesh.positions.count;
     clear(item);
 
-    console_add_log("# Cleared item #% which had % points", item_index, point_count);
+    log("# Cleared item #% which had % points", item_index, point_count);
 } @RegisterCommand
 
 set_edge_color_to_face_color :: () {

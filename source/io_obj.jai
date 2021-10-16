@@ -145,7 +145,7 @@ load_obj :: (filename : string) -> *Entity {
 
     if #complete mesh.geometry_format == {
         case .UNKNOWN;
-            log("Skipped (Could not detect mesh geometry format)\n");
+            log_warning("Skipped (Could not detect mesh geometry format)\n");
             parser.failed = true;
         case .LINES;
             if dim == 2 {

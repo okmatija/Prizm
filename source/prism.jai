@@ -22,6 +22,7 @@ main :: () {
     // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in build.jai so that the Windows program console is shown
     context.logger = console_logger;
     context.logger_data = *app.console.log;
+
     // Decide GL+GLSL versions
     // GL 3.0 + GLSL 130
     glsl_version :: "#version 130";
@@ -189,7 +190,7 @@ load_one_file :: (filename : string) {
             case .OVERWRITE; #through;
             case .IGNORE;
                 // When loading files from the command line .OVERWRITE and .IGNORE have the same behaviour
-                log("Skipped file: '%' (already loaded)\n", filename);
+                log_warning("Skipped file: '%' (already loaded)\n", filename);
             case .APPEND;
                 entity := load_entity_from_file(filename);
                 if entity {
@@ -303,7 +304,7 @@ handle_events :: () {
                     if #complete app.settings.duplicate_file_behaviour == {
                         case .IGNORE;
 
-                            log("Skipped file: '%' (already loaded)\n", dropped);
+                            log_warning("Skipped file: '%' (already loaded)\n", dropped);
 
                         case .OVERWRITE;
 

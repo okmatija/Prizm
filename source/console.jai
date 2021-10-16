@@ -16,26 +16,14 @@ Console :: struct {
 
 console_logger :: (message: string, data: *void, info: Log_Info) {
     console_log := cast(*[..]string) data;
-    if info.common_flags == {
-        case .ERROR;
-            array_add(console_log, join("[error] ", message));
-        case .WARNING;
-            array_add(console_log, join("[warning] ", message));
-        case;
-            array_add(console_log, copy_string(message));
+    if info.common_flags & .ERROR {
+        array_add(console_log, join("[error] ", message));
+    } else if info.common_flags & .WARNING {
+        array_add(console_log, join("[warning] ", message));
+    } else {
+        array_add(console_log, copy_string(message));
     }
 }
-
-console_add_log :: (format_string: string, args: .. Any) {
-    builder: String_Builder;
-    defer free_buffers(*builder);
-
-    print_to_builder(*builder, format_string, ..args);
-
-    text := builder_to_string(*builder);
-
-    array_add(*app.console.log, text);
-} @PrintLike
 
 console_clear_log :: () {
     for app.console.log free(it);
@@ -99,11 +87,11 @@ console_execute_command :: (_command : string) {
         } else if tok.type == .IDENTIFIER {
             if sign < 0 {
                 p.failed = true;
-                console_add_log("[error] Unexpected preceeding - token.");
+                log_error("Unexpected preceeding - token.");
                 console_add_history("%", _command);
                 return;
             } else if command_name != "" {
-                console_add_log("[error] Unexpected token IDENTIFIER (%) in argument list, string arguments use single/double quotes.", to_string(tok));
+                log_error("Unexpected token IDENTIFIER (%) in argument list, string arguments use single/double quotes.", to_string(tok));
                 console_add_history("%", _command);
                 return;
             }
@@ -112,7 +100,7 @@ console_execute_command :: (_command : string) {
         } else if tok.type == .SQSTRING || tok.type == .DQSTRING {
             if sign < 0 {
                 p.failed = true;
-                console_add_log("[error] Unexpected preceeding - token.");
+                log_error("Unexpected preceeding - token.");
                 console_add_history("%", _command);
                 return;
             }
@@ -133,7 +121,7 @@ console_execute_command :: (_command : string) {
         } else {
             // @Cleanup Use parser.jai error function with custom logger which prints to the console
             p.failed = true;
-            console_add_log("[error] Unexpected token %.", to_string(tok));
+            log_error("Unexpected token %.", to_string(tok));
             console_add_history("%", _command);
             return;
         }
@@ -148,7 +136,7 @@ console_execute_command :: (_command : string) {
         if it.name == command_name {
 
             console_add_history("%", _command);
-            console_add_log("%", _command);
+            log("%", _command);
             it.procedure(command_args);
 
             found_command = true;
@@ -157,7 +145,7 @@ console_execute_command :: (_command : string) {
     }
 
     if command_name != "" && !found_command {
-        console_add_log("[error] '%' : Command not found", command_name);
+        log_error("'%' : Command not found", command_name);
     }
 }
 
@@ -242,6 +230,8 @@ print_location :: (loc := #caller_location) {
 text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
     new_context : Context;
+    new_context.logger = console_logger;
+    new_context.logger_data = *app.console.log;
     push_context new_context {
 
         // @Cleanup Why does this fail? app is global so I expected we could pass null and just read it directly.
@@ -292,9 +282,9 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                     // List matches
                     console_clear_log();
-                    console_add_log("# Matching commands:");
+                    log("# Matching commands:");
                     for candidate : candidates_usage {
-                        console_add_log("#  %", candidate);
+                        log("#  %", candidate);
                     }
                 } else {
                     // Multiple matches. Complete as much as we can
@@ -333,9 +323,9 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                     // List matches
                     console_clear_log();
-                    console_add_log("# Matching commands:");
+                    log("# Matching commands:");
                     for candidate : candidates_usage {
-                        console_add_log("#  %", candidate);
+                        log("#  %", candidate);
                     }
                 }
             }
