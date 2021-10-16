@@ -18,6 +18,10 @@ main :: () {
         return;
     }
 
+    // Direct all logging into the console
+    // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in build.jai so that the Windows program console is shown
+    context.logger = console_logger;
+    context.logger_data = *app.console.log;
     // Decide GL+GLSL versions
     // GL 3.0 + GLSL 130
     glsl_version :: "#version 130";

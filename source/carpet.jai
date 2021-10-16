@@ -71,3 +71,10 @@ dimension_of :: (T : Type, loc := #caller_location) -> int {
     compiler_report(loc.fully_pathed_filename, loc.line_number, 0, tprint("Expected Vector2 or Vector3, got %", T));
     return -1;
 }
+
+log_warning :: (format_string: string, args: .. Any, loc := #caller_location, flags := Log_Flags.NONE, user_flags : u32 = 0) {
+    // In case people prefer to say log_warning instead of putting a flags argument on the end,
+    // we provide this for convenience. Not really sure if it's worth it, but here you go.
+    new_flags := flags | .WARNING;
+    log(format_string, ..args, loc, new_flags, user_flags);
+} @PrintLike

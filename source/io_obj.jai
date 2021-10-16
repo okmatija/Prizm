@@ -274,7 +274,7 @@ parse_face :: (p : *Parser) -> Obj_Face {
     face : Obj_Face = ---;
     current_line := peek_token(p).line_number;
     for i : 0..3 {
-        if peek_token(p).line_number == current_line {
+        if peek_token(p).line_number == current_line && peek_token(p).type != .EOF {
 
             face.indices[i] = obj_parse_index(p);
             slash := eat_possible_token(p, #char "/");

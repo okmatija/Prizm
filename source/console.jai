@@ -14,6 +14,18 @@ Console :: struct {
     input_buffer : [256]u8;
 }
 
+console_logger :: (message: string, data: *void, info: Log_Info) {
+    console_log := cast(*[..]string) data;
+    if info.common_flags == {
+        case .ERROR;
+            array_add(console_log, join("[error] ", message));
+        case .WARNING;
+            array_add(console_log, join("[warning] ", message));
+        case;
+            array_add(console_log, copy_string(message));
+    }
+}
+
 console_add_log :: (format_string: string, args: .. Any) {
     builder: String_Builder;
     defer free_buffers(*builder);
@@ -184,6 +196,8 @@ console_draw :: () {
         col := ImGui.ImVec4.{1., 1., 1., 1.};
         if begins_with(item, "#") {
             col = ImGui.ImVec4.{1., .78, .58, 1.};
+        } else if begins_with(item, "[warning]") {
+            col = ImGui.ImVec4.{0., .78, .58, 1.};
         } else if begins_with(item, "[error]") {
             col = ImGui.ImVec4.{1., .4, .4, 1.};
         }
