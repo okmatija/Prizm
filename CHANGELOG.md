@@ -1,4 +1,4 @@
-## Version: v0.1.0, Unreleased
+## Version 0.1.0, 20 October 2021
 
 Press h for help.  Features not mentioned in the help message include:
 
