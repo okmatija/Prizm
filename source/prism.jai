@@ -6,7 +6,7 @@ main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    app.window = SDL_CreateWindow(tprint("Prism v%", VERSION_STRING).data,
+    app.window = SDL_CreateWindow(tprint("Prism %", VERSION_STRING).data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
