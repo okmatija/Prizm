@@ -18,6 +18,7 @@ console_logger :: (message: string, data: *void, info: Log_Info) {
     console_log := cast(*[..]string) data;
     if info.common_flags & .ERROR {
         array_add(console_log, join("[error] ", message));
+        app.show_console_ui = true;
     } else if info.common_flags & .WARNING {
         array_add(console_log, join("[warning] ", message));
     } else {

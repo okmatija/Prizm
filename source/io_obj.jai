@@ -166,6 +166,17 @@ load_obj :: (filename : string) -> *Entity {
 
     init_entity_base_parameters(result, filename, mesh);
 
+    // Check obj indices
+    max_index : s64 = -1;
+    for mesh.indices max_index = max(max_index, it);
+    if max_index >= mesh.positions.count {
+        log_error("Detected out-of-range .obj index, found 1-based index %, but loaded mesh has % points", max_index + 1, mesh.positions.count);
+        parser.failed = true;
+    } else if mesh.normals.count != 0 && max_index >= mesh.normals.count {
+        log_error("Detected out-of-range .obj index, found 1-based index %, but loaded mesh has % normals", max_index + 1, mesh.normals.count);
+        parser.failed = true;
+    }
+
     if result {
         if parser.failed {
             deinit(result);
