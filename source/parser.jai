@@ -34,7 +34,7 @@ error :: (p: *Parser, token : Token, format: string, args: .. Any, flags := Log_
 warning :: (p: *Parser, token : Token, format: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) {
     using token.location;
     new_format := tprint("Parse warning at '%:%:%'. %", fully_pathed_filename, line_number, character_number, format);
-    log(new_format, ..args, flags=Log_Flags.ERROR|.CONTENT|flags, loc=loc);
+    log(new_format, ..args, flags=Log_Flags.WARNING|.CONTENT|flags, loc=loc);
 } @PrintLike
 
 eat_token :: next_token;

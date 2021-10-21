@@ -610,6 +610,8 @@ Display_Info_Update :: struct {
 
     color_reset : bool;
     display_mode : bool;
+    screentone_backfaces : bool;
+    flat_shading : bool;
 
     clip_ranges : [3]bool;
 }
@@ -632,61 +634,74 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
     ImGui.PopItemWidth();
 
     {
+        ImGui.Text("Points    ");
+        ImGui.SameLine();
         set.points_visible = ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-        // Show_Tooltip("Visible");
+        Show_Tooltip("Visible");
         ImGui.SameLine();
         old_color := display_info.points_color;
         ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
         for 0..3 set.points_color[it] = old_color.component[it] != display_info.points_color.component[it];
         ImGui.SameLine();
-        ImGui.Text("Points    Visible|Color|Size:  ");
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
         set.points_size = ImGui.InputInt("##points_size", *display_info.points_size);
+        Show_Tooltip("Size");
         display_info.points_size = clamp(display_info.points_size, 1, 10);
         ImGui.PopItemWidth();
     }
 
     if normals_ui {
+        ImGui.Text("Normals   ");
+        ImGui.SameLine();
         set.normals_visible = ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-        // Show_Tooltip("Visible");
+        Show_Tooltip("Visible");
         ImGui.SameLine();
         old_color := display_info.normals_color;
         ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
         for 0..3 set.normals_color[it] = old_color.component[it] != display_info.normals_color.component[it];
         ImGui.SameLine();
-        ImGui.Text("Normals   Visible|Color|Length:");
-        ImGui.SameLine();
         ImGui.PushItemWidth(70);
         set.normals_length = ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+        Show_Tooltip("Length");
         ImGui.PopItemWidth();
     }
 
     if lines_ui {
+        ImGui.Text("Lines     ");
+        ImGui.SameLine();
         set.wireframe_visible = ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
-        // Show_Tooltip("Visible");
+        Show_Tooltip("Visible");
         ImGui.SameLine();
         old_color := display_info.wireframe_color;
         ImGui.ColorEdit4(imgui_label("##wireframe_color", display_info), *display_info.wireframe_color.component, ImGui.ColorEditFlags.NoInputs);
         for 0..3 set.wireframe_color[it] = old_color.component[it] != display_info.wireframe_color.component[it];
         ImGui.SameLine();
-        ImGui.Text("Lines     Visible|Color|Width: ");
-        ImGui.SameLine();
         ImGui.PushItemWidth(70);
         set.wireframe_width = ImGui.InputInt("##wireframe_width", *display_info.wireframe_width);
+        Show_Tooltip("Width");
         display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 10);
         ImGui.PopItemWidth();
     }
 
     if faces_ui {
+        ImGui.Text("Triangles ");
+        ImGui.SameLine();
         set.surface_visible = ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
-        // Show_Tooltip("Visible");
+        Show_Tooltip("Visible");
+        {
+            ImGui.SameLine();
+            old_color := display_info.surface_color;
+            ImGui.ColorEdit4(imgui_label("##surface_color", display_info), *display_info.surface_color.component, ImGui.ColorEditFlags.NoInputs);
+            Show_Tooltip("Frontface Color");
+            for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
+        }
         ImGui.SameLine();
-        old_color := display_info.surface_color;
-        ImGui.ColorEdit4(imgui_label("##surface_color", display_info), *display_info.surface_color.component, ImGui.ColorEditFlags.NoInputs);
-        for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
+        set.screentone_backfaces = ImGui.Checkbox(imgui_label("##screentone_backfaces", display_info), *display_info.screentone_backfaces);
+        Show_Tooltip("Backface dots");
         ImGui.SameLine();
-        ImGui.Text("Triangles Visible|Color");
+        set.flat_shading = ImGui.Checkbox(imgui_label("##flat_shading", display_info), *display_info.flat_shading);
+        Show_Tooltip("Flat shading");
     }
 
     set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));

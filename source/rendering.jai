@@ -65,7 +65,10 @@ Display_Info :: struct {
 
     surface_visible := true;
     surface_color := Vector4.{1., 1., 1., 1.}; // RGBA
+
     display_mode := Display_Mode.BLINN_PHONG;
+    screentone_backfaces := true;
+    flat_shading := true;
 
     aabb_visible := false;
 
@@ -208,7 +211,8 @@ render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using 
     Render_Mesh_Common(mesh, render_info, display_info);
 
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx true);
+    glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx screentone_backfaces);
+    glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
     glUniform4f(glGetUniformLocation(app.mesh_program, "color"), surface_color.x, surface_color.y, surface_color.z, surface_color.w);
 
     if mesh.geometry_format == .TRIANGLES {

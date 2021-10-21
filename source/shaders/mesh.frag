@@ -9,6 +9,7 @@ uniform Camera camera;
 uniform int display_mode = 0;
 uniform vec4 color; // rgba
 uniform bool screentone_backfaces = true;
+uniform bool flat_shading = true;
 
 // @Volatile Keep synced with Jai
 struct Clip_Range {
@@ -68,6 +69,50 @@ vec3 blinn_phong_brdf(vec3 N, vec3 V, vec3 L, vec3 light_color, float light_powe
     return light_color * light_power * (diffuse_color * n_dot_l + specular_color * specular);
 }
 
+const float EPSILON = 1e-10;
+
+vec3 HUEtoRGB(in float hue)
+{
+    // Hue [0..1] to RGB [0..1]
+    // See http://www.chilliant.com/rgb2hsv.html
+    vec3 rgb = abs(hue * 6. - vec3(3, 2, 4)) * vec3(1, -1, -1) + vec3(-1, 2, 2);
+    return clamp(rgb, 0., 1.);
+}
+
+vec3 RGBtoHCV(in vec3 rgb)
+{
+    // RGB [0..1] to Hue-Chroma-Value [0..1]
+    // Based on work by Sam Hocevar and Emil Persson
+    vec4 p = (rgb.g < rgb.b) ? vec4(rgb.bg, -1., 2. / 3.) : vec4(rgb.gb, 0., -1. / 3.);
+    vec4 q = (rgb.r < p.x) ? vec4(p.xyw, rgb.r) : vec4(rgb.r, p.yzx);
+    float c = q.x - min(q.w, q.y);
+    float h = abs((q.w - q.y) / (6. * c + EPSILON) + q.z);
+    return vec3(h, c, q.x);
+}
+
+vec3 HSVtoRGB(in vec3 hsv)
+{
+    // Hue-Saturation-Value [0..1] to RGB [0..1]
+    vec3 rgb = HUEtoRGB(hsv.x);
+    return ((rgb - 1.) * hsv.y + 1.) * hsv.z;
+}
+
+vec3 HSLtoRGB(in vec3 hsl)
+{
+    // Hue-Saturation-Lightness [0..1] to RGB [0..1]
+    vec3 rgb = HUEtoRGB(hsl.x);
+    float c = (1. - abs(2. * hsl.z - 1.)) * hsl.y;
+    return (rgb - 0.5) * c + hsl.z;
+}
+
+vec3 RGBtoHSV(in vec3 rgb)
+{
+    // RGB [0..1] to Hue-Saturation-Value [0..1]
+    vec3 hcv = RGBtoHCV(rgb);
+    float s = hcv.y / (hcv.z + EPSILON);
+    return vec3(hcv.x, s, hcv.z);
+}
+
 void main() {
     for (int i = 0; i < 3; ++i) {
         if (clip_range[i].is_active) {
@@ -81,6 +126,11 @@ void main() {
     }
 
     vec3 N = vertex_normal_ws;
+    if (flat_shading) {
+        vec3 x_tangent = dFdx(fragment_position_ws);
+        vec3 y_tangent = dFdy(fragment_position_ws);
+        N = normalize(cross(x_tangent, y_tangent));
+    }
 
     switch (display_mode) {
 
@@ -131,9 +181,21 @@ void main() {
     }
 
     // TODO: modify the input color instead so we get lighting on the screentone pixels too
-    if (screentone_backfaces && !gl_FrontFacing) {
-        if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-            out_color = vec4(.3, .3, .3, .0);
+
+    if (!gl_FrontFacing) {
+        float darken_factor = (display_mode == 0 ? .5 : .6);
+
+        // Darken backfaces
+        vec3 hsv = RGBtoHSV(out_color.xyz);
+        hsv.z *= darken_factor;
+        out_color.xyz = HSVtoRGB(hsv);
+
+        if (screentone_backfaces) {
+            if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
+                vec3 hsv = RGBtoHSV(out_color.xyz);
+                hsv.z *= darken_factor;
+                out_color.xyz = HSVtoRGB(hsv);
+            }
         }
     }
 

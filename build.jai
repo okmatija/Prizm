@@ -11,7 +11,7 @@ Build Options:
 DONE
 
 VERSION_STRING :: #string DONE
-VERSION_STRING :: "0.1.0";
+VERSION_STRING :: "0.2.0rc";
 DONE
 
 build :: () {
