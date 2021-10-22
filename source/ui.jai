@@ -278,14 +278,16 @@ show_item_list_ui :: () {
                     if set.vertex_label_style_update.label_scale   vertex_label_style.label_scale   = other.vertex_label_style.label_scale;
                     if set.vertex_label_style_update.label_color   vertex_label_style.label_color   = other.vertex_label_style.label_color;
 
-                    if set.wireframe_visible wireframe_visible = other.wireframe_visible;
-                    if set.wireframe_width   wireframe_width   = other.wireframe_width;
-                    if set.surface_visible   surface_visible   = other.surface_visible;
-                    if set.display_mode      display_mode      = other.display_mode;
-                    if set.normals_visible   normals_visible   = other.normals_visible;
-                    if set.normals_length    normals_length    = other.normals_length;
-                    if set.points_visible    points_visible    = other.points_visible;
-                    if set.points_size       points_size       = other.points_size;
+                    if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
+                    if set.wireframe_width      wireframe_width      = other.wireframe_width;
+                    if set.surface_visible      surface_visible      = other.surface_visible;
+                    if set.display_mode         display_mode         = other.display_mode;
+                    if set.screentone_backfaces screentone_backfaces = other.screentone_backfaces;
+                    if set.flat_shading         flat_shading         = other.flat_shading;
+                    if set.normals_visible      normals_visible      = other.normals_visible;
+                    if set.normals_length       normals_length       = other.normals_length;
+                    if set.points_visible       points_visible       = other.points_visible;
+                    if set.points_size          points_size          = other.points_size;
 
                     for 0..3 {
                         if set.wireframe_color[it]   wireframe_color.component[it]   = other.wireframe_color.component[it];

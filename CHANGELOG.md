@@ -4,7 +4,7 @@
 - Changed rendering of back faces to use an darkened version of the front face color
 - Reduced the frequency of color changes in the default background shader
 - Added an option to disable back face screentone effect, accessible in the item context menu
-- Fixed some parser warnings being logged as errors and opening the console
+- Fixed some .obj parsing warnings being incorrectly logged as errors
 
 
 ## Version 0.1.0, 20 October 2021
