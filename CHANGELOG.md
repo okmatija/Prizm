@@ -4,6 +4,7 @@
 - Changed rendering of back faces to use an darkened version of the front face color
 - Reduced the frequency of color changes in the default background shader
 - Added an option to disable back face screentone effect, accessible in the item context menu
+- Increased the default max point count for selectable entities from 100,000 to 5,000,000
 - Fixed some .obj parsing warnings being incorrectly logged as errors
 
 

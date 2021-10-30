@@ -51,7 +51,7 @@ App :: struct {
     user_selection : Mesh_Entity;
     user_selection_cursor_text_shown := false;
     user_selection_cursor_text_scale := .4;
-    user_selection_max_point_count_for_selectable_entity := 100_000;
+    user_selection_max_point_count_for_selectable_entity := 5_000_000;
 
     // Set the defaults for the user selection display
     user_selection.is_visible = false;
