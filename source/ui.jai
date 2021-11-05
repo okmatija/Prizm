@@ -680,9 +680,9 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         for 0..3 set.wireframe_color[it] = old_color.component[it] != display_info.wireframe_color.component[it];
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
-        set.wireframe_width = ImGui.InputInt("##wireframe_width", *display_info.wireframe_width);
+        set.wireframe_width = ImGui.DragFloat(imgui_label("##wireframe_width", display_info), *display_info.wireframe_width, .05);
         Show_Tooltip("Width");
-        display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 10);
+        display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 5);
         ImGui.PopItemWidth();
     }
 

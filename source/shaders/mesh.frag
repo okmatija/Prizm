@@ -10,6 +10,8 @@ uniform int display_mode = 0;
 uniform vec4 color; // rgba
 uniform bool screentone_backfaces = true;
 uniform bool flat_shading = true;
+uniform vec4 wireframe_color; // rgba
+uniform float wireframe_width;
 
 // @Volatile Keep synced with Jai
 struct Clip_Range {
@@ -22,6 +24,7 @@ uniform Clip_Range clip_range[3];
 
 in vec3 vertex_normal_ws;
 in vec3 fragment_position_ws;
+noperspective in vec3 dist;
 
 out vec4 out_color;
 
@@ -130,21 +133,26 @@ void main() {
         vec3 x_tangent = dFdx(fragment_position_ws);
         vec3 y_tangent = dFdy(fragment_position_ws);
         N = normalize(cross(x_tangent, y_tangent));
+        if (!gl_FrontFacing) {
+            N *= -1;
+        }
     }
 
+    vec4 fill_color = vec4(1, 1, 1, 1);
+    vec4 line_color = mix(wireframe_color, vec4(1.f), wave * .5f + .5f);
     switch (display_mode) {
 
         // Normal shading
         case 0: {
 
-            out_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
+            fill_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
 
         } break;
 
         // Solid color
         case 1: {
 
-            out_color = mix(color, vec4(1.f), wave * .5f + .5f);
+            fill_color = mix(color, vec4(1.f), wave * .5f + .5f);
 
         } break;
 
@@ -175,9 +183,18 @@ void main() {
             // }
 
             vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
-            out_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
+            fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
 
         } break;
+    }
+
+    if (wireframe_width > 0.) {
+        float d = min(dist[0], min(dist[1], dist[2]));
+        d /= max(1., wireframe_width);
+        float I = exp2(-2*d*d);
+        out_color = I*line_color + (1. - I)*fill_color;
+    } else {
+        out_color = fill_color;
     }
 
     // TODO: modify the input color instead so we get lighting on the screentone pixels too

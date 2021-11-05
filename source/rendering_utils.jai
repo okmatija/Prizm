@@ -59,3 +59,41 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 
     return program;
 }
+
+debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {
+
+    max_length: GLint;
+    glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, *max_length);
+    name := alloc_string(max_length);
+    defer free(name);
+    // print("GL_ACTIVE_UNIFORM_MAX_LENGTH = %\n", max_length);
+
+    count : s32;
+    glGetProgramiv(program, GL_ACTIVE_UNIFORMS, *count);
+    print("[debug %:%] Program % has % active uniforms:\n", loc.fully_pathed_filename, loc.line_number, program, count);
+    for 0..count-1 {
+        size: GLint;
+        type: GLenum;
+        length: GLsizei;
+
+        glGetActiveUniform(program, cast(GLuint) it, xx max_length, *length, *size, *type, name.data);
+        name.count = xx length;
+        print("Uniform #% Type: 0x% Size: % Name: %\n", it, formatInt(type, base=16), size, name);
+    }
+}
+
+print_errors :: (loc := #caller_location) {
+    DumpGLErrors("context %", #location());
+
+    {
+        error := glGetError();
+        if (error != GL_NO_ERROR) {
+            print("error:%:%,%: code % (%)\n", loc.fully_pathed_filename, loc.line_number, loc.character_number, error, formatInt(error, base=16));
+            print("stack trace\n");
+            for pack_stack_trace() {
+                print_stack_trace(*it);
+            }
+            exit(-1);
+        }
+    }
+}

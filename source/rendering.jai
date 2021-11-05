@@ -61,7 +61,7 @@ Display_Info :: struct {
 
     wireframe_visible := false;
     wireframe_color := Vector4.{0., 0., 0., 1.}; // RGBA
-    wireframe_width : s32 = 0;
+    wireframe_width : float = 0.;
 
     surface_visible := true;
     surface_color := Vector4.{1., 1., 1., 1.}; // RGBA
@@ -123,16 +123,8 @@ render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display
     glUseProgram(app.normals_program);
 
     set_model_view_projection_uniforms(app.normals_program, <<mesh);
-
-    {
-        loc := glGetUniformLocation(app.normals_program, "normals_color");
-        glUniform4f(loc, normals_color.x, normals_color.y, normals_color.z, normals_color.w);
-    }
-
-    {
-        loc := glGetUniformLocation(app.normals_program, "normal_length");
-        glUniform1f(loc, normals_length);
-    }
+    glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
+    glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
 
     glBindVertexArray(app.normals_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -180,7 +172,7 @@ render_aabb :: (mesh : *Mesh, using render_info : *Render_Info, using display_in
 
 render_mesh_points :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !points_visible return;
-    Render_Mesh_Common(mesh, render_info, display_info);
+    render_mesh_common(mesh, render_info, display_info);
 
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx Display_Mode.BLINN_PHONG);
     glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx false);
@@ -191,7 +183,7 @@ render_mesh_points :: (mesh : *Mesh, using render_info : *Render_Info, using dis
 
 render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !wireframe_visible return;
-    Render_Mesh_Common(mesh, render_info, display_info);
+    render_mesh_common(mesh, render_info, display_info);
 
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx Display_Mode.SOLID_COLOR);
     glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx false);
@@ -208,12 +200,16 @@ render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using disp
 
 render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !surface_visible return;
-    Render_Mesh_Common(mesh, render_info, display_info);
+
+    render_mesh_common(mesh, render_info, display_info);
 
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
     glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx screentone_backfaces);
     glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
     glUniform4f(glGetUniformLocation(app.mesh_program, "color"), surface_color.x, surface_color.y, surface_color.z, surface_color.w);
+    glUniform4f(glGetUniformLocation(app.mesh_program, "wireframe_color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
+    glUniform1f(glGetUniformLocation(app.mesh_program, "wireframe_width"), ifx wireframe_visible then wireframe_width else 0);
+    glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
 
     if mesh.geometry_format == .TRIANGLES {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -240,7 +236,7 @@ set_model_view_projection_uniforms :: (program : GLuint, mesh : Mesh) {
     }
 }
 
-Render_Mesh_Common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) #expand {
+render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
 
     maybe_update_render_info(render_info, mesh);
 
@@ -296,7 +292,9 @@ Render_Mesh_Common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     // @Cleanup only set when mode==.LINE
     last_line_width: float;
     glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
-    glLineWidth(xx wireframe_width); // See also glEnable(GL_LINE_SMOOTH);
+    if (wireframe_width > 0) {
+        glLineWidth(xx wireframe_width); // See also glEnable(GL_LINE_SMOOTH);
+    }
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -389,7 +387,6 @@ render_entities :: () {
 
                 mesh := cast(*Mesh_Entity) entity;
                 render_mesh_points(*mesh.mesh, *entity.render_info, entity.display_info);
-                render_mesh_lines(*mesh.mesh, *entity.render_info, entity.display_info);
                 render_mesh_triangles(*mesh.mesh, *entity.render_info, entity.display_info);
                 render_normals(*mesh.mesh, *entity.render_info, entity.display_info);
                 render_aabb(*mesh.mesh, *entity.render_info, entity.display_info);

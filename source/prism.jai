@@ -40,6 +40,9 @@ main :: () {
 
     gl_load(*gl, SDL_GL_GetProcAddress);
 
+    // gl_enable_debug_output(true);
+    // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+
     gl_version_major, gl_version_minor = gl_get_version();
     print ("OpenGL %.%\n", gl_version_major, gl_version_minor);
     init_camera();
@@ -65,8 +68,9 @@ main :: () {
 
     {
         vert :: #run read_entire_file("source/shaders/mesh.vert");
+        geom :: #run read_entire_file("source/shaders/mesh.geom");
         frag :: #run read_entire_file("source/shaders/mesh.frag");
-        app.mesh_program = get_shader_program(vert, frag);
+        app.mesh_program = get_shader_program(vert, frag, geom);
         glGenVertexArrays(1, *app.mesh_vao);
     }
 
