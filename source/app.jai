@@ -61,6 +61,10 @@ App :: struct {
     user_selection.display_info.vertex_label_style.show_position = true;
     user_selection.display_info.vertex_label_style.label_color = .{0, 0, 0, 1};
 
+    // @Cleanup Clipping sphere mode currently works through user selection mode
+    clipping_sphere_mode := false;
+    clipping_sphere_mode_entity_index : int = -1; // The entity which set the clipping sphere center
+
     // Checkbox sweep mode is enabled while LMB is held down if it was clicked on a sweepable checkbox, the mouse will be constrained to move only up and down and the inverse of the state of the checkbox just before the click will be set on all the checkboxes that get swept
     checkbox_sweep_mode := false;
     checkbox_sweep_mode_mouse_min_x : s32;
@@ -99,6 +103,7 @@ entities_iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, s
 }
 
 visible :: #bake_arguments entities_iterator(should_visit = (e)=>(e.is_visible));
+selected :: #bake_arguments entities_iterator(should_visit = (e)=>(e.is_selected));
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {

@@ -81,6 +81,12 @@ expand :: (using this : *Sphere, other : Sphere) {
     return;
 }
 
+// Return true if this contains other
+contains :: (using this : *Sphere, other : Sphere) -> bool {
+    center_distance := distance(this.center, other.center);
+    return this.radius > center_distance + other.radius;
+}
+
 make_hyperplane3 :: (plane_normal : Vector3, point_on_plane: Point3) -> Hyperplane3 {
     result : Hyperplane3 = ---;
 

@@ -40,6 +40,7 @@ select_if :: (should_select : (Entity)->bool) {
     else          log("# selected % entities", count);
 }
 
+// @TODO Add an invert option to these?
 select_if_Polyline_Soup2 :: () { select_if((e) => (e.type == .POLYLINE_SOUP2)); } @RegisterCommand
 select_if_Polyline_Soup3 :: () { select_if((e) => (e.type == .POLYLINE_SOUP3)); } @RegisterCommand
 select_if_Polygon_Soup   :: () { select_if((e) => (e.type == .POLYGON_SOUP));   } @RegisterCommand

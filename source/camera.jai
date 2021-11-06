@@ -138,7 +138,7 @@ update_camera :: (delta_time : float) {
             camera.look_position += increment;
         }
 
-    } else if ImGui.IsMouseDragging(.Right, 0.) && mouse_move_valid { // Orbit about the look position using right button
+    } else if ImGui.IsMouseDragging(.Right, 0.) && mouse_move_valid && !app.clipping_sphere_mode { // Orbit about the look position using right button
 
         world_from_projection_at_mouse_down := inverse(make_projection_from_world(camera_at_mouse_down));
 
@@ -352,6 +352,21 @@ to_ndc :: (position_px : Vector2) -> Vector2
     return position_ndc;
 }
 
+make_camera_ray :: () -> Ray3 {
+    view_from_clip := inverse(make_orthographic_projection_matrix(app.camera));
+    world_from_view := inverse(make_look_at_matrix(app.camera));
+    transform := world_from_view * view_from_clip;
+    inverse_transpose := transpose(inverse(transform));
+
+    ray : Ray3 = ---;
+    ray.origin = (transform * make_vector4(to_ndc(make_Vector2(io().MousePos)), -1., 1.)).xyz;
+    ray.direction = (inverse_transpose * make_vector4(0., 0., 1., 0.)).xyz;
+    check := normalize_or_zero(*ray.direction);
+    assert(check != 0.); // @Robustness: handle this error
+
+    return ray;
+}
+
 #scope_file
 
 visible_entities_bounding_sphere :: (accurate : bool = false) -> Sphere
@@ -362,30 +377,55 @@ visible_entities_bounding_sphere :: (accurate : bool = false) -> Sphere
     return visible_entities_bounding_sphere_fast();
 }
 
-// Returns a bounding sphere of the visible items in the scene in world space
+// Returns a bounding sphere of the visible items in the scene in world space, considers clipping sphere/planes
 visible_entities_bounding_sphere_fast :: () -> Sphere
 {
-    result : Sphere;
-    first_entity := true;
+    expand_sphere :: (result : *Sphere, mesh : *Mesh, info : *Render_Info, display_info : Display_Info, first : bool) {
+        if mesh.positions.count == 0 return;
 
-    Expand_Sphere :: (mesh : *Mesh, info : *Render_Info) #expand {
         maybe_update_render_info(info, mesh);
-        sphere := info.bounding_sphere;
-        transform(*sphere, mesh.world_from_model);
-        if first_entity {
-            result = sphere;
-            first_entity = false;
-        } else {
-            expand(*result, sphere);
+
+        clipped := false;
+        if display_info.clip_sphere.is_active  {
+            // This algorithm works well if the sphere center is known to be a vertex on the mesh,
+            // which is probably is. In cases when its not this might not end up as a very good
+            // bounding sphere of the visible geometry
+
+            // @TODO in some cases we still may prefer the mesh bounding sphere...
+            sphere := display_info.clip_sphere.sphere;
+
+            if first {
+                <<result = sphere;
+            } else {
+                expand(result, sphere);
+            }
+            clipped = true;
+        }
+
+        for display_info.clip_ranges if it.is_active log_warning("@Incomplete Updating the bounding sphere ignoring clipping planes");
+
+        if !clipped {
+            sphere := info.bounding_sphere;
+            transform(*sphere, mesh.world_from_model);
+            if first {
+                <<result = sphere;
+            } else {
+                expand(result, sphere);
+            }
         }
     }
 
+    result : Sphere;
+
+    first := true;
     for :visible app.entities {
-        Expand_Sphere(*it.mesh, *it.render_info);
+        expand_sphere(*result, *it.mesh, *it.render_info, it.display_info, first);
+        first = false;
     }
 
     if app.user_selection.is_visible {
-        Expand_Sphere(*app.user_selection.mesh, *app.user_selection.render_info);
+        expand_sphere(*result, *app.user_selection.mesh, *app.user_selection.render_info, app.user_selection.display_info, first);
+        first = false;
     }
 
     return result;
@@ -397,6 +437,12 @@ visible_entities_bounding_sphere_accurate :: () -> Sphere
     // Compute the bounding sphere the points in the scene
     points_vs : [..]Point3;
     for :visible entity : app.entities {
+
+        warn := false;
+        for entity.display_info.clip_ranges if it.is_active warn = true;
+        if  entity.display_info.clip_sphere.is_active       warn = true;
+        if warn log_warning("Updating the bounding sphere doesn't yet properly consider clipping planes @Incomplete");
+
         for * entity.mesh.positions {
             p := (entity.mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
             array_add(*points_vs, p);

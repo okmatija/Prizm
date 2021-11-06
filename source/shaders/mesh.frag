@@ -22,6 +22,13 @@ struct Clip_Range {
 };
 uniform Clip_Range clip_range[3];
 
+struct Clip_Sphere {
+    vec3 center;
+    float radius;
+    bool is_active;
+};
+uniform Clip_Sphere clip_sphere;
+
 in vec3 vertex_normal_ws;
 in vec3 fragment_position_ws;
 noperspective in vec3 dist;
@@ -125,6 +132,13 @@ void main() {
             if (dist <= min || dist >= max) {
                 discard;
             }
+        }
+    }
+
+    if (clip_sphere.is_active) {
+        float dist = distance(clip_sphere.center, fragment_position_ws);
+        if (dist > clip_sphere.radius) {
+            discard;
         }
     }
 

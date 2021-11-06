@@ -37,12 +37,19 @@ Render_Info :: struct {
     bounding_aabb : AxisBox3; // In world space
 }
 
-// @Volatile Keep synced with GLSL
+// @Volatile Keep synced with shaders
 Clip_Range :: struct {
     normal : Vector3;
     is_active : bool;
     min : float = 0hFF800000; // -inf
     max : float = 0h7F800000; // +inf
+}
+
+// @Volatile Keep synced with shaders
+Clip_Sphere :: struct {
+    using sphere : Sphere;
+    radius = 0;
+    is_active : bool = false;
 }
 
 // Things that should be preserved when the geometry changes
@@ -76,6 +83,8 @@ Display_Info :: struct {
     clip_ranges[0] = .{normal=.{1,0,0}};
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
+
+    clip_sphere : Clip_Sphere;
 }
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
@@ -84,8 +93,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
             // log("Computing and assigning triangle normals to vertices\n");
             success, failure_reason := compute_vertex_normals_from_triangles(mesh);
             if !success {
-                log("Computing and assigning triangle normals to vertices, reason: \"%\"",
-                    failure_reason);
+                log_error("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
             }
         }
 
@@ -269,6 +277,10 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
             glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
             glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
         }
+
+        glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
+        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
+        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
     }
 
     glBindVertexArray(app.mesh_vao);

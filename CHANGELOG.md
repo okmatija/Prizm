@@ -6,6 +6,15 @@
   - Fixes z-fighting/incorrect occulusion issues which could make some mesh edges invisible
   - Fixes jaggies appearing on most edges, edges belonging to only one triangle or silhouette edges still have jaggies
   - The new algorithm is based on the SolidWireframe algorithm by Samuel Gateau
+- Added ability to clip within a sphere when Selection Mode is enabled
+  - The clipping sphere center is positioned on the closest
+  - The clipping sphere is applied to the visible entity on which its centered and to any selected entities (regardless of visibility)
+  - Future work, not yet implemented
+    - render a wiget to indicate the origin and radius of the clipping sphere
+    - maybe render the stuff that will be clipped in a funky way while we live change the radius of the clip sphere
+    - only position on currently visible geometry
+    - allow positioning in a triangle, not alway at a vertex
+    - should we transform the clipping domains when we transform (shift) the geometry?
 - Reduced the frequency of color changes in the default background shader
 - Added an option to disable back face screentone effect, accessible in the item context menu
 - Increased the default max point count for selectable entities from 100,000 to 5,000,000

@@ -304,6 +304,7 @@ show_item_list_ui :: () {
                     for i : 0..clip_ranges.count-1 {
                         if set.clip_ranges[i] clip_ranges[i] = other.clip_ranges[i];
                     }
+                    if set.clip_sphere clip_sphere = other.clip_sphere;
                 }
             }
         }
@@ -593,6 +594,7 @@ Vertex_Label_Style_Update :: struct {
     label_color : bool;
 }
 
+// @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
 Display_Info_Update :: struct {
     points_visible : bool;
     points_color : [4]bool;
@@ -616,6 +618,7 @@ Display_Info_Update :: struct {
     flat_shading : bool;
 
     clip_ranges : [3]bool;
+    clip_sphere : bool;
 }
 
 #run {
@@ -625,6 +628,8 @@ Display_Info_Update :: struct {
         compiler_report(#file, #line, 0, "Expected clip_ranges arrays to have matching sizes");
     }
 }
+
+CLIPPING_DRAG_FLOAT_WIDTH :: 60;
 
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : bool = true, lines_ui : bool = true, faces_ui : bool = true) -> Display_Info_Update {
 
@@ -709,16 +714,32 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
     set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
     Show_Tooltip("Deduce item primary colors from the file path");
 
-    if ImGui.TreeNode("%", "Clipping") {
+    {
+        using display_info;
+        changed := false;
+        ImGui.Checkbox(imgui_label("Clip Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); ImGui.SameLine(); Show_Tooltip("Enable clipping sphere");
+        ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
+        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
+        ImGui.SameLine();
+        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.center.x", *clip_sphere), *clip_sphere.center.x, .01, 0., 0., format="%.3f");
+        ImGui.SameLine();
+        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.center.y", *clip_sphere), *clip_sphere.center.y, .01, 0., 0., format="%.3f");
+        ImGui.SameLine();
+        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.center.z", *clip_sphere), *clip_sphere.center.z, .01, 0., 0., format="%.3f");
+        ImGui.PopItemWidth();
+        set.clip_sphere = changed;
+    }
+
+    if ImGui.TreeNode("%", "Clip ranges") {
         defer ImGui.TreePop();
         using display_info;
         display_info.aabb_visible = true;
 
         ImGui.Text("Clip using distance from planes though the origin");
 
-        set.clip_ranges[0] = clipping_ui(*clip_ranges[0], aabb);
-        set.clip_ranges[1] = clipping_ui(*clip_ranges[1], aabb);
-        set.clip_ranges[2] = clipping_ui(*clip_ranges[2], aabb);
+        set.clip_ranges[0] = clip_range_ui(*clip_ranges[0], aabb);
+        set.clip_ranges[1] = clip_range_ui(*clip_ranges[1], aabb);
+        set.clip_ranges[2] = clip_range_ui(*clip_ranges[2], aabb);
 
         if almost_equal(length(clip_ranges[0].normal), 0.) clip_ranges[0].normal = .{1, 0, 0};
         if almost_equal(length(clip_ranges[1].normal), 0.) clip_ranges[1].normal = .{0, 1, 0};
@@ -761,16 +782,15 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
     return set;
 }
 
-clipping_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
+clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
     changed := false;
-    W :: 60;
     MIN_RANGE :: .1;
 
     ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
     Show_Tooltip("Enable this clipping range");
     ImGui.SameLine();
 
-    ImGui.PushItemWidth(W);
+    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
     if ImGui.DragFloat(imgui_label("##range_min", p), *p.min, .1, 0., 0., format="%.3f") {
         p.min = min(p.min, p.max - MIN_RANGE);
         changed = true;
@@ -779,18 +799,18 @@ clipping_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
     ImGui.SameLine();
     ImGui.Text("<");
     ImGui.SameLine();
-    ImGui.PushItemWidth(W);
+    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
     changed |= ImGui.DragFloat(imgui_label("##normal.x", p), *p.normal.x, .01, 0., 0., format="%.3f");
     ImGui.PopItemWidth();
     ImGui.SameLine();
     ImGui.Text("x +");
     ImGui.SameLine();
-    ImGui.PushItemWidth(W);
+    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
     changed |= ImGui.DragFloat(imgui_label("##normal.y", p), *p.normal.y, .01, 0., 0., format="%.3f");
     ImGui.PopItemWidth();
     ImGui.SameLine();
     ImGui.Text("y +"); ImGui.SameLine();
-    ImGui.PushItemWidth(W);
+    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
     changed |= ImGui.DragFloat(imgui_label("##normal.z", p), *p.normal.z, .01, 0., 0., format="%.3f");
     ImGui.PopItemWidth();
     ImGui.SameLine();
@@ -798,7 +818,7 @@ clipping_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
     ImGui.SameLine();
     ImGui.Text("<");
     ImGui.SameLine();
-    ImGui.PushItemWidth(W);
+    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
     if ImGui.DragFloat(imgui_label("##range_max", p), *p.max, .1, 0., 0., format="%.3f") {
         p.max = max(p.min + MIN_RANGE, p.max);
         changed = true;
