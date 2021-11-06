@@ -106,6 +106,7 @@ init_keymap :: () {
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
+    add_key(*app.keymap, toggle_clipping_sphere, "Toggle clipping sphere on visible items", xx #char "c");
 
     add_key(*app.keymap, reload_selected_items, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, remove_selected_items, "Remove selected items", xx Special_Key_Code.DELETE);
@@ -173,6 +174,14 @@ rotate_look_direction_15_cw    :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  15); }
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
+
+toggle_clipping_sphere :: () {
+    for :visible app.entities {
+        if is_finite(it.display_info.clip_sphere.radius) {
+            it.display_info.clip_sphere.is_active = !it.display_info.clip_sphere.is_active;
+        }
+    }
+}
 
 clear_labels :: () {
     for app.entities if it.is_selected {

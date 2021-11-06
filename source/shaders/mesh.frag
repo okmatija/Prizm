@@ -22,12 +22,15 @@ struct Clip_Range {
 };
 uniform Clip_Range clip_range[3];
 
+// @Volatile Keep synced with Jai
 struct Clip_Sphere {
     vec3 center;
     float radius;
     bool is_active;
 };
 uniform Clip_Sphere clip_sphere;
+
+uniform bool clipping_sphere_mode;
 
 in vec3 vertex_normal_ws;
 in vec3 fragment_position_ws;
@@ -135,10 +138,15 @@ void main() {
         }
     }
 
+    float clipping_sphere_darken_factor = 1.;
     if (clip_sphere.is_active) {
         float dist = distance(clip_sphere.center, fragment_position_ws);
         if (dist > clip_sphere.radius) {
-            discard;
+            if (clipping_sphere_mode) {
+                clipping_sphere_darken_factor = .4;
+            } else {
+                discard;
+            }
         }
     }
 
@@ -228,6 +236,13 @@ void main() {
                 out_color.xyz = HSVtoRGB(hsv);
             }
         }
+    }
+
+    if (clipping_sphere_mode) {
+        // Darken
+        vec3 hsv = RGBtoHSV(out_color.xyz);
+        hsv.z *= clipping_sphere_darken_factor;
+        out_color.xyz = HSVtoRGB(hsv);
     }
 
     // Respect blending of input color

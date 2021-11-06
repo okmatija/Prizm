@@ -236,6 +236,10 @@ fit_on_screen :: (entity : *Entity, accurate : bool = false)
 
     sphere := entity.render_info.bounding_sphere;
     transform(*sphere, entity.mesh.world_from_model);
+    if entity.display_info.clip_sphere.is_active {
+        sphere = entity.display_info.clip_sphere;
+    }
+
     scene_sphere := visible_entities_bounding_sphere(accurate);
     sphere.radius += distance(sphere.center, scene_sphere.center);
 

@@ -48,7 +48,7 @@ Clip_Range :: struct {
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
     using sphere : Sphere;
-    radius = 0;
+    radius = 0h7F800000; // +inf
     is_active : bool = false;
 }
 
@@ -218,6 +218,9 @@ render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using 
     glUniform4f(glGetUniformLocation(app.mesh_program, "wireframe_color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
     glUniform1f(glGetUniformLocation(app.mesh_program, "wireframe_width"), ifx wireframe_visible then wireframe_width else 0);
     glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
+    // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
+    glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+    // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
 
     if mesh.geometry_format == .TRIANGLES {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
