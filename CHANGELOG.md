@@ -10,6 +10,8 @@
 - Added an option to disable back face screentone effect, accessible in the item context menu
 - Increased the default max point count for selectable entities from 100,000 to 5,000,000
 - Fixed some .obj parsing warnings being incorrectly logged as errors
+- Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash
+- Fixed a rare crash which could occur when toggling visibility and there was just one item in the item list
 
 
 ## Version 0.1.0, 20 October 2021

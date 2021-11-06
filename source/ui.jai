@@ -862,6 +862,7 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, hovered : *bool, label : *u
     old_state := <<state;
     if ImGui.Checkbox(label, *old_state) { // @Hack Why do we need to pass old_state? To mimic a PressedOnClick checkbox? Explain this better/reimplement it
         // Get here when the LMB is released after going down while hovering the checkbox
+        app.checkbox_sweep_mode = false; // So we don't get stuck in a state where this mode is on we don't reach the toggle off in IsMouseReleased branch. @Cleanup
         return true;
     }
 

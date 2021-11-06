@@ -211,6 +211,18 @@ load_one_file :: (filename : string) {
 }
 
 load_from_command_line :: () {
+
+    maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {
+        s := _s;
+        #if OS == .WINDOWS {
+            if s.count >= 2 && s.data[0] == #char "." && s.data[1] == #char "/" {
+                s.data += 2;
+                s.count -= 2;
+            }
+        }
+        return s;
+    }
+
     args := get_command_line_arguments();
     defer array_free(args);
     for 1..args.count-1 {
@@ -218,20 +230,15 @@ load_from_command_line :: () {
         // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
         pattern := args[it];
         path_overwrite_separators(pattern, #char "/");
+        pattern = maybe_trim_leading_dot_forwardslash(pattern);
 
         if find_index_of_any_from_left(pattern, "*?[-]") != -1 {
+            // @Cleanup This is really annoying. file_list gives different results on windows/linux
             files := file_list(".", recursive=true, follow_symlinks=false);
             defer array_free(files);
             for _file, file_index : files {
-
-                // @Cleanup This is really annoying. file_list gives different results on windows/linux
-#if OS == .WINDOWS {
-                // Trim the leading ./
                 file := _file;
-                file.data += 2;
-                file.count -= 2;
-}
-
+                file = maybe_trim_leading_dot_forwardslash(file);
                 if wildcard_match(file, pattern) {
                     load_one_file(file);
                 }
