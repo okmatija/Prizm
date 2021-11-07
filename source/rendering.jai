@@ -180,22 +180,18 @@ render_aabb :: (mesh : *Mesh, using render_info : *Render_Info, using display_in
 
 render_mesh_points :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !points_visible return;
-    render_mesh_common(mesh, render_info, display_info);
+    render_simple_mesh_common(mesh, render_info, display_info);
 
-    glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx Display_Mode.BLINN_PHONG);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx false);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), points_color.x, points_color.y, points_color.z, points_color.w);
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), points_color.x, points_color.y, points_color.z, points_color.w);
 
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
 render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !wireframe_visible return;
-    render_mesh_common(mesh, render_info, display_info);
+    render_simple_mesh_common(mesh, render_info, display_info);
 
-    glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx Display_Mode.SOLID_COLOR);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx false);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
 
     if mesh.geometry_format == .LINES {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesn this affect a GL_LINES call?
@@ -255,21 +251,9 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
 
     set_model_view_projection_uniforms(app.mesh_program, <<mesh);
 
-    {
-        loc := glGetUniformLocation(app.mesh_program, "wave");
-        wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
-        glUniform1f(loc, wave);
-    }
-
-    {
-        loc := glGetUniformLocation(app.mesh_program, "point_size");
-        glUniform1f(loc, xx points_size);
-    }
-
-    {
-        loc := glGetUniformLocation(app.mesh_program, "camera.eye_position");
-        glUniform3f(loc, app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
-    }
+    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
+    glUniform1f(glGetUniformLocation(app.mesh_program, "wave"), wave);
+    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
 
     {
         for 0..clip_ranges.count-1 {
@@ -287,6 +271,68 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     }
 
     glBindVertexArray(app.mesh_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
+    ATTRIB_POSITION  :: 0;
+    ATTRIB_NORMAL    :: 1;
+
+    glEnableVertexAttribArray(ATTRIB_POSITION);
+    glEnableVertexAttribArray(ATTRIB_NORMAL);
+
+    // ATTRIB_TEXCOORDS :: 1;
+    // ATTRIB_COLOR     :: 2;
+
+    NP := size_of(Vector3) * mesh.positions.count;
+
+    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
+    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+
+    // @Cleanup only set when mode==.LINE
+    last_line_width: float;
+    glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
+    if (wireframe_width > 0) {
+        glLineWidth(xx wireframe_width); // See also glEnable(GL_LINE_SMOOTH);
+    }
+
+    last_polygon_mode: [2]GLuint;
+    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
+}
+
+render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+
+    maybe_update_render_info(render_info, mesh);
+
+    glUseProgram(app.simple_mesh_program);
+
+    set_model_view_projection_uniforms(app.simple_mesh_program, <<mesh);
+
+    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
+    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "wave"), wave);
+    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx points_size);
+
+    {
+        for 0..clip_ranges.count-1 {
+            // @Cleanup We could use run directive here to get constant strings
+            using clip_ranges[it];
+            glUniform3f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
+            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
+            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
+            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
+        }
+
+        glUniform3f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
+        glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
+        glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
+    }
+
+    glBindVertexArray(app.simple_mesh_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
@@ -403,6 +449,9 @@ render_entities :: () {
                 mesh := cast(*Mesh_Entity) entity;
                 render_mesh_points(*mesh.mesh, *entity.render_info, entity.display_info);
                 render_mesh_triangles(*mesh.mesh, *entity.render_info, entity.display_info);
+                if entity.display_info.surface_color.w != 1 && entity.display_info.wireframe_visible {
+                    render_mesh_lines(*mesh.mesh, *entity.render_info, entity.display_info);
+                }
                 render_normals(*mesh.mesh, *entity.render_info, entity.display_info);
                 render_aabb(*mesh.mesh, *entity.render_info, entity.display_info);
         }

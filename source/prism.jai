@@ -67,6 +67,13 @@ main :: () {
     }
 
     {
+        vert :: #run read_entire_file("source/shaders/simple_mesh.vert");
+        frag :: #run read_entire_file("source/shaders/simple_mesh.frag");
+        app.simple_mesh_program = get_shader_program(vert, frag);
+        glGenVertexArrays(1, *app.simple_mesh_vao);
+    }
+
+    {
         vert :: #run read_entire_file("source/shaders/mesh.vert");
         geom :: #run read_entire_file("source/shaders/mesh.geom");
         frag :: #run read_entire_file("source/shaders/mesh.frag");

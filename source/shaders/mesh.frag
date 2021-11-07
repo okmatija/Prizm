@@ -4,6 +4,31 @@ struct Camera {
     vec3 eye_position;
 };
 
+struct Clip_Range {
+    vec3 normal;
+    bool is_active;
+    float min;
+    float max;
+};
+
+struct Clip_Sphere {
+    vec3 center;
+    float radius;
+    bool is_active;
+};
+
+struct Point_Light {
+    vec3  position;
+    vec3  color;
+    float power;
+};
+
+struct Directional_Light {
+    vec3  direction;
+    vec3  color;
+    float power;
+};
+
 uniform float wave; // time varying value in range [-1,1]
 uniform Camera camera;
 uniform int display_mode = 0;
@@ -12,24 +37,8 @@ uniform bool screentone_backfaces = true;
 uniform bool flat_shading = true;
 uniform vec4 wireframe_color; // rgba
 uniform float wireframe_width;
-
-// @Volatile Keep synced with Jai
-struct Clip_Range {
-    vec3 normal;
-    bool is_active;
-    float min;
-    float max;
-};
 uniform Clip_Range clip_range[3];
-
-// @Volatile Keep synced with Jai
-struct Clip_Sphere {
-    vec3 center;
-    float radius;
-    bool is_active;
-};
 uniform Clip_Sphere clip_sphere;
-
 uniform bool clipping_sphere_mode;
 
 in vec3 vertex_normal_ws;
@@ -38,13 +47,15 @@ noperspective in vec3 dist;
 
 out vec4 out_color;
 
-struct Point_Light {
-    vec3  position;
-    vec3  color;
-    float power;
-};
-
 const int POINT_LIGHT_COUNT = 4;
+const int DIRECTIONAL_LIGHT_COUNT = 1;
+const float EPSILON = 1e-10;
+vec3 ambient_color   = 0.5 * color.xyz;
+vec3 diffuse_color   = color.xyz;
+vec3 specular_color  = vec3(1.0);
+float shininess      = 16.;
+float gamma          = 2.2;
+
 Point_Light point_lights[POINT_LIGHT_COUNT] = Point_Light[POINT_LIGHT_COUNT](
     Point_Light(vec3( 500,  500,  500), vec3(1), .1),
     Point_Light(vec3(-500, -500,  250), vec3(1), .1),
@@ -52,22 +63,9 @@ Point_Light point_lights[POINT_LIGHT_COUNT] = Point_Light[POINT_LIGHT_COUNT](
     Point_Light(vec3(   0,  500, -500), vec3(1), .1)
 );
 
-struct Directional_Light {
-    vec3  direction;
-    vec3  color;
-    float power;
-};
-
-const int DIRECTIONAL_LIGHT_COUNT = 1;
 Directional_Light directional_lights[DIRECTIONAL_LIGHT_COUNT] = Directional_Light[DIRECTIONAL_LIGHT_COUNT](
     Directional_Light(vec3(0,  0,  1), vec3(1), .2)
 );
-
-vec3 ambient_color   = 0.5 * color.xyz;
-vec3 diffuse_color   = color.xyz;
-vec3 specular_color  = vec3(1.0);
-float shininess      = 16.;
-float gamma          = 2.2;
 
 vec3 blinn_phong_brdf(vec3 N, vec3 V, vec3 L, vec3 light_color, float light_power) {
     float n_dot_l = clamp(dot(N, L), 0., 1.);
@@ -81,8 +79,6 @@ vec3 blinn_phong_brdf(vec3 N, vec3 V, vec3 L, vec3 light_color, float light_powe
 
     return light_color * light_power * (diffuse_color * n_dot_l + specular_color * specular);
 }
-
-const float EPSILON = 1e-10;
 
 vec3 HUEtoRGB(in float hue)
 {

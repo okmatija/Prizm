@@ -17,8 +17,13 @@ App :: struct {
     text_vao : GLuint;
     text_vbo : GLuint;
 
+    // For triangle and solid wireframe rendering
     mesh_program : GLuint;
     mesh_vao : GLuint;
+
+    // For point and line rendering
+    simple_mesh_program : GLuint;
+    simple_mesh_vao : GLuint;
 
     normals_program : GLuint;
     normals_vao : GLuint;
