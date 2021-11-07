@@ -16,6 +16,7 @@
     - should we transform the clipping domains when we transform (shift) the geometry?
 - Reduced the frequency of color changes in the default background shader
 - Added an option to disable back face screentone effect, accessible in the item context menu
+- Added a button to show/hide this changelog (when the app was compiled) in the help menu
 - Increased the default max point count for selectable entities from 100,000 to 5,000,000
 - Fixed some .obj parsing warnings being incorrectly logged as errors
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash

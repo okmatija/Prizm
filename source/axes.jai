@@ -20,10 +20,10 @@ make_axes_triad :: (axis_length : float) -> Axes_Triad
     z_axis.mesh = to_Mesh(par_shapes_triad.z_axis);
     origin.mesh = to_Mesh(par_shapes_triad.origin);
 
-    x_axis.display_info = .{surface_color=.{1, 0, 0, 1}, display_mode=.SOLID_COLOR, points_size=0, wireframe_width=0};
-    y_axis.display_info = .{surface_color=.{0, 1, 0, 1}, display_mode=.SOLID_COLOR, points_size=0, wireframe_width=0};
-    z_axis.display_info = .{surface_color=.{0, 0, 1, 1}, display_mode=.SOLID_COLOR, points_size=0, wireframe_width=0};
-    origin.display_info = .{surface_color=.{.3, .3, .3, 1}, display_mode=.SOLID_COLOR, points_size=0, wireframe_width=0};
+    x_axis.display_info = .{surface_color=.{1, 0, 0, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
+    y_axis.display_info = .{surface_color=.{0, 1, 0, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
+    z_axis.display_info = .{surface_color=.{0, 0, 1, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
+    origin.display_info = .{surface_color=.{.3, .3, .3, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
 
     return result;
 }

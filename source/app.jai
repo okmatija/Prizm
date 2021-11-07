@@ -40,6 +40,7 @@ App :: struct {
     show_global_settings_ui := false;
     show_help_ui := false;
     show_console_ui := false;
+    show_changelog := false;
 
     selection_display_info : Display_Info; // UI will edit this value and apply it to all selected entities
     selection_display_info.points_visible = false;
@@ -85,6 +86,8 @@ App :: struct {
     closing_application := false; // Set this to true to quit the application on the next frame
     show_imgui_demo_window := true;
 }
+
+CHANGELOG :: #run read_entire_file("CHANGELOG.md");
 
 current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;

@@ -30,7 +30,7 @@ do_selection_mode :: () {
     app.clipping_sphere_mode = ImGui.IsMouseDown(.Right) && io().KeyAlt;
     if !app.clipping_sphere_mode app.clipping_sphere_mode_entity_index = -1;
 
-    if app.clipping_sphere_mode && !ImGui.IsMouseClicked(.Right) /* so we don't enter on a frame where we won't have set clipping entity index */ {
+    if app.clipping_sphere_mode && app.clipping_sphere_mode_entity_index != -1 {
 
         entity := app.entities[app.clipping_sphere_mode_entity_index];
 

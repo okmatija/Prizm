@@ -323,7 +323,12 @@ show_item_list_ui :: () {
         // Toggle visibility checkbox
         ImGui.SameLine();
         visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
-        Show_Tooltip("Enable Selection Mode");
+        TOOLTIP_TEXT :: #string DONE
+C-LMB Add nearest vertex to Selection
+C-RMB Place camera orbit on nearest vertex
+A-RMB Click drag to set clipping sphere
+DONE
+        Show_Tooltip(ifx it.is_visible then TOOLTIP_TEXT else "Enable Selection Mode");
         any_visibility_changed = any_visibility_changed || visibility_changed;
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -496,90 +501,103 @@ show_help_ui :: () {
     ImGui.Begin("##show_help_ui", flags = ImGui.WindowFlags.NoTitleBar | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
     defer ImGui.End();
 
-    ImGui.Text("In the Viewport");
-    ImGui.Separator();
-    ImGui.Columns(2);
-    ImGui.SetColumnWidth(-1, 80);
-    ImGui.NextColumn();
-    ImGui.NextColumn();
-    ImGui.Text("MMB"); ImGui.NextColumn();
-    ImGui.Text("Pan the camera"); ImGui.NextColumn();
-    ImGui.Text("Scroll"); ImGui.NextColumn();
-    ImGui.Text("Zoom the camera into the position under the cursor"); ImGui.NextColumn();
-    ImGui.Text("C-Scroll"); ImGui.NextColumn();
-    ImGui.Text("Zoom the camera into the camera look position"); ImGui.NextColumn();
-    ImGui.Text("RMB"); ImGui.NextColumn();
-    ImGui.Text("Rotate the camera"); ImGui.NextColumn();
-    ImGui.Text("S-RMB"); ImGui.NextColumn();
-    ImGui.Text("Rotate about selected axis in the camera control pane");
-    ImGui.Columns(1);
-    ImGui.NewLine();
-
-    ImGui.Text("In the Item List");
-    Show_Tooltip("The Item List is visible in the top right\nwhen at least one item has been loaded");
-    ImGui.Separator();
-    ImGui.Columns(2);
-    ImGui.SetColumnWidth(-1, 80);
-    ImGui.NextColumn();
-    ImGui.NextColumn();
-    ImGui.Text("LMB"); ImGui.NextColumn();
-    ImGui.Text("(on a filename) Focus an item");  ImGui.NextColumn();
-    ImGui.Text("C-LMB"); ImGui.NextColumn();
-    ImGui.Text("(on a filename) Select an item"); ImGui.NextColumn();
-    ImGui.Text("RMB"); ImGui.NextColumn();
-    ImGui.Text("(on a filename) Access item/selection context menu"); ImGui.NextColumn();
-    ImGui.Text("RMB"); ImGui.NextColumn();
-    ImGui.Text("(on a color) Cycle shading styles"); ImGui.NextColumn();
-    ImGui.Text("MMB"); ImGui.NextColumn();
-    ImGui.Text("(on a color) Reset color from the filename"); ImGui.NextColumn();
-    ImGui.Text("LMB"); ImGui.NextColumn();
-    ImGui.Text("(sweep over visibility checkbox) Update item visibility"); ImGui.NextColumn();
-    ImGui.Text("C-LMB"); ImGui.NextColumn();
-    ImGui.Text("(sweep over visibility checkbox) Focus hovered item"); ImGui.NextColumn();
-    ImGui.Text("S-LMB"); ImGui.NextColumn();
-    ImGui.Text("(sweep over visibility checkbox) Focus hovered item and update camera"); ImGui.NextColumn();
-    ImGui.Columns(1);
-    ImGui.NewLine();
-
-    ImGui.Text("In Selection Mode");
-    Show_Tooltip("Enable selection mode by toggling visibility\non the 'Selection' item");
-    ImGui.Separator();
-    ImGui.Columns(2);
-    ImGui.SetColumnWidth(-1, 80);
-    ImGui.NextColumn();
-    ImGui.NextColumn();
-    ImGui.Text("C-LMB"); ImGui.NextColumn();
-    ImGui.Text("Add vertex nearest the cursor to 'Selection' item");  ImGui.NextColumn();
-    ImGui.Text("C-RMB"); ImGui.NextColumn();
-    ImGui.Text("Place camera orbit on vertex nearest the cursor");  ImGui.NextColumn();
-    ImGui.Columns(1);
-    ImGui.NewLine();
-
-    ImGui.Text("Key bindings");
-    ImGui.Separator();
-    ImGui.Columns(2);
-    ImGui.SetColumnWidth(-1, 80);
-    ImGui.NextColumn();
-    ImGui.NextColumn();
-    for app.keymap_keydown.mappings {
-        Push_Temporary();
-        ImGui.Text(to_c_string(tprint("%", to_string(it))));
-        ImGui.NextColumn();
-        ImGui.Text(to_c_string(tprint("%", app.keymap_keydown.procs[it.proc_info_index].name)));
-        ImGui.NextColumn();
+    if app.show_changelog {
+        ImGui.SetNextWindowPos(ImGui.make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5});
+        flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .AlwaysHorizontalScrollbar;
+        ImGui.Begin("##changelog", flags=flags);// | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
+        ImGui.TextUnformatted(CHANGELOG);
+        defer ImGui.End();
     }
-    for app.keymap.mappings {
-        Push_Temporary();
-        ImGui.Text(to_c_string(tprint("%", to_string(it))));
-        ImGui.NextColumn();
-        ImGui.Text(to_c_string(tprint("%", app.keymap.procs[it.proc_info_index].name)));
-        ImGui.NextColumn();
-    }
-    ImGui.Columns(1);
 
-    // ImGui.NewLine();
-    ImGui.Text("                                                                                ");
+    if ImGui.TreeNodeEx("In the Viewport", .DefaultOpen) {
+        defer ImGui.TreePop();
+        ImGui.Columns(2);
+        defer ImGui.Columns(1);
+        ImGui.SetColumnWidth(-1, 80);
+        ImGui.NextColumn();
+        ImGui.NextColumn();
+        ImGui.Text("MMB"); ImGui.NextColumn();
+        ImGui.Text("Pan the camera"); ImGui.NextColumn();
+        ImGui.Text("Scroll"); ImGui.NextColumn();
+        ImGui.Text("Zoom the camera into the position under the cursor"); ImGui.NextColumn();
+        ImGui.Text("C-Scroll"); ImGui.NextColumn();
+        ImGui.Text("Zoom the camera into the camera look position"); ImGui.NextColumn();
+        ImGui.Text("RMB"); ImGui.NextColumn();
+        ImGui.Text("Rotate the camera"); ImGui.NextColumn();
+        ImGui.Text("S-RMB"); ImGui.NextColumn();
+        ImGui.Text("Rotate about selected axis in the camera control pane");
+    }
+
+    if ImGui.TreeNodeEx("In the Item List", .DefaultOpen) {
+        Show_Tooltip("The Item List is visible in the top right\nwhen at least one item has been loaded");
+        defer ImGui.TreePop();
+        ImGui.Columns(2);
+        defer ImGui.Columns(1);
+        ImGui.SetColumnWidth(-1, 80);
+        ImGui.NextColumn();
+        ImGui.NextColumn();
+        ImGui.Text("LMB"); ImGui.NextColumn();
+        ImGui.Text("(on a filename) Focus an item");  ImGui.NextColumn();
+        ImGui.Text("C-LMB"); ImGui.NextColumn();
+        ImGui.Text("(on a filename) Select an item"); ImGui.NextColumn();
+        ImGui.Text("RMB"); ImGui.NextColumn();
+        ImGui.Text("(on a filename) Access item/selection context menu"); ImGui.NextColumn();
+        ImGui.Text("RMB"); ImGui.NextColumn();
+        ImGui.Text("(on a color) Cycle shading styles"); ImGui.NextColumn();
+        ImGui.Text("MMB"); ImGui.NextColumn();
+        ImGui.Text("(on a color) Reset color from the filename"); ImGui.NextColumn();
+        ImGui.Text("LMB"); ImGui.NextColumn();
+        ImGui.Text("(sweep over visibility checkbox) Update item visibility"); ImGui.NextColumn();
+        ImGui.Text("C-LMB"); ImGui.NextColumn();
+        ImGui.Text("(sweep over visibility checkbox) Focus hovered item"); ImGui.NextColumn();
+        ImGui.Text("S-LMB"); ImGui.NextColumn();
+        ImGui.Text("(sweep over visibility checkbox) Focus hovered item and update camera"); ImGui.NextColumn();
+    }
+
+    if ImGui.TreeNodeEx("In Selection Mode", .DefaultOpen) {
+        Show_Tooltip("Enable selection mode by toggling visibility\non the 'Selection' item");
+        defer ImGui.TreePop();
+        ImGui.Columns(2);
+        defer ImGui.Columns(1);
+        ImGui.SetColumnWidth(-1, 80);
+        ImGui.NextColumn();
+        ImGui.NextColumn();
+        ImGui.Text("C-LMB"); ImGui.NextColumn();
+        ImGui.Text("Add nearest vertex to 'Selection' item");  ImGui.NextColumn();
+        ImGui.Text("C-RMB"); ImGui.NextColumn();
+        ImGui.Text("Place camera orbit on nearest vertex");  ImGui.NextColumn();
+    }
+
+    if ImGui.TreeNodeEx("Key bindings", .DefaultOpen) {
+        defer ImGui.TreePop();
+        ImGui.Columns(2);
+        defer ImGui.Columns(1);
+        ImGui.SetColumnWidth(-1, 80);
+        ImGui.NextColumn();
+        ImGui.NextColumn();
+        for app.keymap_keydown.mappings {
+            Push_Temporary();
+            ImGui.Text(to_c_string(tprint("%", to_string(it))));
+            ImGui.NextColumn();
+            ImGui.Text(to_c_string(tprint("%", app.keymap_keydown.procs[it.proc_info_index].name)));
+            ImGui.NextColumn();
+        }
+        for app.keymap.mappings {
+            Push_Temporary();
+            ImGui.Text(to_c_string(tprint("%", to_string(it))));
+            ImGui.NextColumn();
+            ImGui.Text(to_c_string(tprint("%", app.keymap.procs[it.proc_info_index].name)));
+            ImGui.NextColumn();
+        }
+    }
+
+    ImGui.Text("                                                                                   ");
     ImGui.Text("Note: S=Shift, C=Ctrl, A=Alt, SPC=Space bar");
+    SHOW_CHANGELOG :: "Show Changelog";
+    HIDE_CHANGELOG :: "Hide Changelog";
+    if ImGui.Button(ifx app.show_changelog then cast(*u8)HIDE_CHANGELOG else cast(*u8)SHOW_CHANGELOG) {
+        app.show_changelog = !app.show_changelog;
+    }
 
     // @Incomplete add a message about where the keymap is for editing
 }
