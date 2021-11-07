@@ -10,17 +10,14 @@
   - The clipping sphere center is positioned on the closest vertex among visible entities, the radius is set by dragging the mouse
   - The clipping sphere is applied to the visible entity on which it is centered, and to any selected entities (regardless of visibility)
   - Added key binding to toggle clipping sphere visibility for visible items using 'c' (press h for help)
-  - Future work, not yet implemented
-    - allow positioning in a triangle, not always at a vertex
-    - render a wiget to indicate the origin and radius of the clipping sphere
-    - should we transform the clipping domains when we transform (shift) the geometry?
-- Reduced the frequency of color changes in the default background shader
 - Added an option to disable back face screentone effect, accessible in the item context menu
 - Added a button to show/hide this changelog (when the app was compiled) in the help menu
-- Increased the default max point count for selectable entities from 100,000 to 5,000,000
+- Fixed an issue where normal vectors were not affected by clipping domains
 - Fixed some .obj parsing warnings being incorrectly logged as errors
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash
 - Fixed a rare crash which could occur when toggling visibility and there was just one item in the item list
+- Increased the default max point count for selectable entities from 100,000 to 5,000,000
+- Reduced the frequency of color changes in the default background shader
 
 
 ## Version 0.1.0, 20 October 2021

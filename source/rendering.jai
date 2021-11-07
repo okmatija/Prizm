@@ -122,17 +122,35 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
 
 // @Cleanup consolidate this
 render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !normals_visible {
-        return;
-    }
+    if !normals_visible return;
 
     maybe_update_render_info(render_info, mesh);
 
     glUseProgram(app.normals_program);
 
+    // @Incomplete handle wave?
     set_model_view_projection_uniforms(app.normals_program, <<mesh);
     glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
     glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
+
+    {
+        for 0..clip_ranges.count-1 {
+            // @Cleanup We could use run directive here to get constant strings
+            using clip_ranges[it];
+            glUniform3f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
+            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
+            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
+            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
+        }
+
+        glUniform3f(glGetUniformLocation(app.normals_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
+        glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.radius"), xx clip_sphere.radius);
+        glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
+    }
+
+    // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
+    glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+    // glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
 
     glBindVertexArray(app.normals_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -214,9 +232,6 @@ render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using 
     glUniform4f(glGetUniformLocation(app.mesh_program, "wireframe_color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
     glUniform1f(glGetUniformLocation(app.mesh_program, "wireframe_width"), ifx wireframe_visible then wireframe_width else 0);
     glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
-    // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-    glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
-    // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
 
     if mesh.geometry_format == .TRIANGLES {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -268,6 +283,10 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
+
+        // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
+        glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+        // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
     }
 
     glBindVertexArray(app.mesh_vao);
@@ -301,8 +320,6 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
-
-    glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
 render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
@@ -330,6 +347,11 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
         glUniform3f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
+
+        // Note: disabled for points/lines since it makes things hard to see!
+        // // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
+        // glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+        // // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
     }
 
     glBindVertexArray(app.simple_mesh_vao);

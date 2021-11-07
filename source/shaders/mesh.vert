@@ -6,7 +6,6 @@ layout (location = 1) in vec3 in_normal;
 uniform mat4 world_from_model;
 uniform mat4 view_from_world;
 uniform mat4 clip_from_view;
-uniform float point_size;
 
 out VS_Out {
     vec3 vertex_normal_ws;
@@ -20,5 +19,4 @@ void main() {
     vs_out.fragment_position_ws = (world_from_model * vec4(in_vertex, 1.)).xyz;
 
     gl_Position = clip_from_model * vec4(in_vertex, 1.);
-    gl_PointSize = point_size;
 }
