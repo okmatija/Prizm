@@ -96,7 +96,7 @@ show_item_list_ui :: () {
             }
         }
 
-        // // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
+        // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
         if app.show_console_ui || app.user_selection.is_visible {
             ImGui.SameLine();
             label := to_c_string(tprint("#%", it_index));
@@ -323,12 +323,14 @@ show_item_list_ui :: () {
         // Toggle visibility checkbox
         ImGui.SameLine();
         visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
-        TOOLTIP_TEXT :: #string DONE
+
+        SELECTION_MODE_TOOLTIP :: #string DONE
 C-LMB Add nearest vertex to Selection
-C-RMB Place camera orbit on nearest vertex
-A-RMB Click drag to set clipping sphere
-DONE
-        Show_Tooltip(ifx it.is_visible then TOOLTIP_TEXT else "Enable Selection Mode");
+S-LMB Click-drag to set clipping sphere
+C-RMB Place camera orbit
+c     Toggle clipping of visible items
+DONE // @Volatile Keep synced with keymap
+        Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode");
         any_visibility_changed = any_visibility_changed || visibility_changed;
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -524,7 +526,7 @@ show_help_ui :: () {
         ImGui.Text("Zoom the camera into the camera look position"); ImGui.NextColumn();
         ImGui.Text("RMB"); ImGui.NextColumn();
         ImGui.Text("Rotate the camera"); ImGui.NextColumn();
-        ImGui.Text("S-RMB"); ImGui.NextColumn();
+        ImGui.Text("A-RMB"); ImGui.NextColumn();
         ImGui.Text("Rotate about selected axis in the camera control pane");
     }
 
@@ -565,7 +567,9 @@ show_help_ui :: () {
         ImGui.Text("C-LMB"); ImGui.NextColumn();
         ImGui.Text("Add nearest vertex to 'Selection' item");  ImGui.NextColumn();
         ImGui.Text("C-RMB"); ImGui.NextColumn();
-        ImGui.Text("Place camera orbit on nearest vertex");  ImGui.NextColumn();
+        ImGui.Text("Place camera orbit");  ImGui.NextColumn();
+        ImGui.Text("A-RMB"); ImGui.NextColumn();
+        ImGui.Text("Click-drag to set clipping sphere");  ImGui.NextColumn();
     }
 
     if ImGui.TreeNodeEx("Key bindings", .DefaultOpen) {
@@ -614,6 +618,7 @@ Vertex_Label_Style_Update :: struct {
 
 // @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
 Display_Info_Update :: struct {
+
     points_visible : bool;
     points_color : [4]bool;
     points_size : bool;
@@ -630,10 +635,11 @@ Display_Info_Update :: struct {
     surface_visible : bool;
     surface_color : [4]bool;
 
-    color_reset : bool;
     display_mode : bool;
     screentone_backfaces : bool;
     flat_shading : bool;
+
+    color_reset : bool; @NoSync
 
     clip_ranges : [3]bool;
     clip_sphere : bool;
@@ -643,7 +649,8 @@ Display_Info_Update :: struct {
     info :   Display_Info;
     update : Display_Info_Update;
     if info.clip_ranges.count != update.clip_ranges.count {
-        compiler_report(#file, #line, 0, "Expected clip_ranges arrays to have matching sizes");
+        error_message := tprint("Expected clip_ranges arrays to have matching sizes, got % vs %", info.clip_ranges.count, update.clip_ranges.count);
+        compiler_report(#file, #line, 0, error_message);
     }
 }
 

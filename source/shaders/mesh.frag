@@ -129,7 +129,9 @@ void main() {
             float min = clip_range[i].min;
             float max = clip_range[i].max;
             if (dist <= min || dist >= max) {
-                discard;
+                if (!clipping_sphere_mode) {
+                    discard;
+                }
             }
         }
     }

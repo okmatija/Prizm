@@ -6,6 +6,11 @@
 
 Point3 :: Vector3;
 
+Triangle3 :: struct {
+    // using v : [3]Point3;
+    v : [3]Point3;
+}
+
 // The plane is represented as Dot(U,X) = d where U is a unit-length normal
 // vector, d is the plane constant, and X is any point on the plane.  The user
 // must ensure that the normal vector is unit length.
@@ -87,6 +92,10 @@ contains :: (using this : *Sphere, other : Sphere) -> bool {
     return this.radius > center_distance + other.radius;
 }
 
+contains :: (sphere : Sphere, point : Vector3) -> bool {
+    return distance_squared(sphere.center, point) < (sphere.radius * sphere.radius);
+}
+
 make_hyperplane3 :: (plane_normal : Vector3, point_on_plane: Point3) -> Hyperplane3 {
     result : Hyperplane3 = ---;
 
@@ -142,8 +151,7 @@ distance_point3_ray3 :: (point : Point3, ray : Ray3) -> (closest : Point3, dist2
 
 // test_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> bool #must
 
-find_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> (intersect_count : s32 = 0 #must, parameter : float = 0)
-{
+find_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> (intersect_count : s32 = 0 #must, parameter : float = 0) {
     cosine := dot(line.direction, plane.normal);
     signed_distance, _ := signed_distance_point3_plane3(line.origin, plane);
 
@@ -160,6 +168,96 @@ find_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> (intersect
             return;
         }
     }
+}
+
+find_intersect_ray3_plane3 :: (ray : Ray3, plane : Hyperplane3) -> (intersect_count : s32 = 0 #must, parameter : float = 0) {
+    line : Line3;
+    line.origin = ray.origin;
+    line.direction = ray.direction;
+
+    intersect_count, parameter := find_intersect_line3_plane3(line, plane);
+    if parameter < 0 {
+        intersect_count = 0;
+    }
+    return intersect_count, parameter;
+}
+
+// Compute Dot((x0,x1,x2),Cross((y0,y1,y2),(z0,z1,z2)), the triple scalar
+// product of three vectors, where v0 = (x0,x1,x2), v1 = (y0,y1,y2), and
+// v2 is (z0,z1,z2).
+dot_cross :: (v0 : Vector3, v1 : Vector3, v2 : Vector3) -> float {
+    return dot(v0, cross(v1, v2));
+}
+
+find_intersect_ray3_triangle3 :: (ray : Ray3, triangle : Triangle3) -> (intersect : bool = false, parameter : float = 0, triangleBary : [3]float = .[0,0,0], point : Point3) {
+    result_intersect : bool = false;
+    result_parameter : float = 0;
+    result_triangleBary : [3]float = .[0,0,0];
+    result_point : Point3;
+
+    // Compute the offset origin, edges, and normal.
+    diff := ray.origin - triangle.v[0];
+    edge1 := triangle.v[1] - triangle.v[0];
+    edge2 := triangle.v[2] - triangle.v[0];
+    normal := cross(edge1, edge2);
+
+    // Solve Q + t*D = b1*E1 + b2*E2 (Q = kDiff, D = ray direction,
+    // E1 = edge1, E2 = edge2, N = Cross(E1,E2)) by
+    //   |Dot(D,N)|*b1 = sign(Dot(D,N))*Dot(D,Cross(Q,E2))
+    //   |Dot(D,N)|*b2 = sign(Dot(D,N))*Dot(D,Cross(E1,Q))
+    //   |Dot(D,N)|*t = -sign(Dot(D,N))*Dot(Q,N)
+    DdN := dot(ray.direction, normal);
+    sign : float;
+    if (DdN > 0)
+    {
+        sign = 1;
+    }
+    else if (DdN < 0)
+    {
+        sign = -1;
+        DdN = -DdN;
+    }
+    else
+    {
+        // Ray and triangle are parallel, call it a "no intersection"
+        // even if the ray does intersect.
+        result_intersect = false;
+
+        return result_intersect, result_parameter, result_triangleBary, result_point;
+    }
+
+    DdQxE2 := sign * dot_cross(ray.direction, diff, edge2);
+    if (DdQxE2 >= 0)
+    {
+        DdE1xQ := sign * dot_cross(ray.direction, edge1, diff);
+        if (DdE1xQ >= 0)
+        {
+            if (DdQxE2 + DdE1xQ <= DdN)
+            {
+                // Line intersects triangle, check whether ray does.
+                QdN := -sign * dot(diff, normal);
+                if (QdN >= 0)
+                {
+                    // Ray intersects triangle.
+                    result_intersect = true;
+                    inv := 1 / DdN;
+                    result_parameter = QdN * inv;
+                    result_triangleBary[1] = DdQxE2 * inv;
+                    result_triangleBary[2] = DdE1xQ * inv;
+                    result_triangleBary[0] = 1. - result_triangleBary[1] - result_triangleBary[2];
+                    result_point = ray.origin + result_parameter * ray.direction;
+                    return result_intersect, result_parameter, result_triangleBary, result_point;
+                }
+                // else: t < 0, no intersection
+            }
+            // else: b1+b2 > 1, no intersection
+        }
+        // else: b2 < 0, no intersection
+    }
+    // else: b1 < 0, no intersection
+
+    result_intersect = false;
+    return result_intersect, result_parameter, result_triangleBary, result_point;
 }
 
 bounding_sphere :: (aabb : AxisBox3) -> Sphere

@@ -8,6 +8,7 @@ Build Options:
   debug      build debug mode (default)
   release    build release mode
   checks     enable array bounds checks and fatal cast and math bounds checks
+  set_icon   set the app icon when compiling
 DONE
 
 VERSION_STRING :: #string DONE
@@ -82,7 +83,9 @@ build :: () {
             }
 
             if message.kind == .COMPLETE {
-                set_icon_and_manifest(build_options);
+                if Has_Argument("set_icon") {
+                    set_icon_and_manifest(build_options);
+                }
                 break;
             }
 
@@ -326,11 +329,7 @@ set_icon_and_manifest :: (options: Build_Options) {
     }
 }
 
-#run {
-#if OS == .WINDOWS {
-disable_runtime_console();
-}
-}
+#run { #if OS == .WINDOWS { disable_runtime_console(); } } // IMPORTANT: Enabling this hides prints to the console!
 
 #import "Basic";
 #import "Check";

@@ -157,6 +157,11 @@ diagonal :: (using box : $T/AxisBox) -> T.Vector #must {
     return box_extents;
 }
 
+contains :: (using box : $T/AxisBox, point : T.Point) -> bool #must {
+    return (min_point.x <= point.x) && (min_point.y <= point.y) &&
+           (max_point.x >= point.x) && (max_point.y >= point.y);
+}
+
 #scope_file
 
 generate_initializer :: ($dim : int) -> string {

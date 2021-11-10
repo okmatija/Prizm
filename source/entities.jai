@@ -254,17 +254,17 @@ load_entity_from_file :: (filename : string) -> *Entity {
     return result;
 }
 
-Closest_Vertex_On_Entity :: struct {
-    vertex_position : Point3;
-    vertex_index : int = -1;
+Point_On_Entity :: struct {
+    position : Point3;
+    element_index : int = -1; // Vertex or Triangle
     entity_index : int = -1;
 }
 
-find_closest_vertex_on_visible_entities :: (front_facing_only : bool = true) -> Closest_Vertex_On_Entity {
+find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_clipped := true, range_clipped := false) -> Point_On_Entity {
 
     ray := make_camera_ray();
 
-    result : Closest_Vertex_On_Entity;
+    result : Point_On_Entity;
 
     dist2 := FLOAT32_INFINITY;
     for entity, entity_index : app.entities {
@@ -277,19 +277,85 @@ find_closest_vertex_on_visible_entities :: (front_facing_only : bool = true) -> 
                     p := (entity.mesh.world_from_model * make_vector4(vertex, 1.)).xyz;
                     c, d2, t := distance_point3_ray3(p, ray);
                     if d2 < dist2 {
+
+                        if sphere_clipped {
+                            if entity.display_info.clip_sphere.is_active && !contains(entity.display_info.clip_sphere, p) {
+                                continue;
+                            }
+                        }
+
+                        if range_clipped {
+                            for clip : entity.display_info.clip_ranges if clip.is_active {
+                                plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
+                                dist := signed_distance_point3_plane3(p, plane);
+                                if (dist <= clip.min || dist >= clip.max) {
+                                    continue;
+                                }
+                            }
+                        }
+
                         dist2 = d2;
-                        result.vertex_position = p;
-                        result.vertex_index = vertex_index;
+                        result.position = p;
+                        result.element_index = vertex_index;
                         result.entity_index = entity_index;
                     }
                 }
+            }
+        }
+    }
 
-                if result.vertex_index != -1 for clip : entity.display_info.clip_ranges if clip.is_active {
-                    plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
-                    dist := signed_distance_point3_plane3(result.vertex_position, plane);
-                    if (dist <= clip.min || dist >= clip.max) {
-                        ini :: initializer_of(type_of(result));
-                        ini(*result);
+    return result;
+}
+
+// @Cleanup since this says VISIBLE we should just remove the exclude_clipped parameter and treat it as always true!
+find_intersection_point_on_visible_entities :: (front_facing_only := false, sphere_clipped := false, range_clipped := false) -> Point_On_Entity {
+
+    ray := make_camera_ray();
+
+    result : Point_On_Entity;
+
+    t_min := FLOAT32_INFINITY;
+    for entity, entity_index : app.entities {
+        if entity.is_visible {
+            if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
+
+                for i : 0..(entity.mesh.indices.count/3)-1 {
+                    a := entity.mesh.positions[entity.mesh.indices[3 * i + 0]];
+                    b := entity.mesh.positions[entity.mesh.indices[3 * i + 1]];
+                    c := entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
+
+                    triangle : Triangle3;
+                    triangle.v[0] = a;
+                    triangle.v[1] = b;
+                    triangle.v[2] = c;
+
+                    n := cross(a - b, a - c); // No need to normalize
+                    if front_facing_only && dot(current_look_direction(), n) > 0 {
+                        continue;
+                    }
+
+                    isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
+                    if isect && t < t_min {
+                        if sphere_clipped {
+                            if entity.display_info.clip_sphere.is_active && !contains(entity.display_info.clip_sphere, ipoint) {
+                                continue;
+                            }
+                        }
+
+                        if range_clipped {
+                            for clip : entity.display_info.clip_ranges if clip.is_active {
+                                plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
+                                dist := signed_distance_point3_plane3(ipoint, plane);
+                                if (dist <= clip.min || dist >= clip.max) {
+                                    continue;
+                                }
+                            }
+                        }
+
+                        t_min = t;
+                        result.position = ipoint;
+                        result.element_index = i;
+                        result.entity_index = entity_index;
                     }
                 }
             }

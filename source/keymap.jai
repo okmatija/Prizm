@@ -106,7 +106,7 @@ init_keymap :: () {
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
-    add_key(*app.keymap, toggle_clipping_sphere, "Toggle clipping sphere on visible items", xx #char "c");
+    add_key(*app.keymap, toggle_clipping, "Toggle clipping on visible items", xx #char "c"); // @Volatile Sync with SELECTION_MODE_TOOLTIP
 
     add_key(*app.keymap, reload_selected_items, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, remove_selected_items, "Remove selected items", xx Special_Key_Code.DELETE);
@@ -122,8 +122,8 @@ init_keymap :: () {
     // @Volatile button text in camera control pane should be kept in sync with keymap!
     add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  15 deg about selected rotation axis", xx #char "]");
     add_key(*app.keymap, rotate_look_direction_5_ccw,  "Rotate -15 deg about selected rotation axis", xx #char "[");
-    add_key(*app.keymap, rotate_look_direction_15_cw,  "Rotate  5  deg about selected rotation axis", xx #char "]", .{shift_pressed=true});
-    add_key(*app.keymap, rotate_look_direction_15_ccw, "Rotate -5  deg about selected rotation axis", xx #char "[", .{shift_pressed=true});
+    add_key(*app.keymap, rotate_look_direction_15_cw,  "Rotate  5  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
+    add_key(*app.keymap, rotate_look_direction_15_ccw, "Rotate -5  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
 
     // Reserved! Do not change this binding
     add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
@@ -175,11 +175,11 @@ rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
-toggle_clipping_sphere :: () {
+toggle_clipping :: () {
     for :visible app.entities {
-        if is_finite(it.display_info.clip_sphere.radius) {
-            it.display_info.clip_sphere.is_active = !it.display_info.clip_sphere.is_active;
-        }
+        using it.display_info;
+        clip_sphere.is_active = !clip_sphere.is_active;
+        for * clip_ranges it.is_active = !it.is_active;
     }
 }
 

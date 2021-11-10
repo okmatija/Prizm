@@ -152,7 +152,7 @@ update_camera :: (delta_time : float) {
 
         arcball_angle := angle(curr_arcball_vector, prev_arcball_vector);
 
-        if io().KeyShift {
+        if io().KeyAlt {
             // Rotate around the currently chosen camera rotation axis
             arcball_axis_world = camera_rotation_axis();
             arcball_angle = (io().MousePos.y - rmb_down_pos.y) * .02;

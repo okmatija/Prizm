@@ -55,29 +55,29 @@ Clip_Sphere :: struct {
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
-    flash_wave_dt : float = 0.;
+    flash_wave_dt : float = 0.; @NoSync
 
     points_visible := false;
-    points_color := Vector4.{.5, .5, .5, 1.}; // RGBA
+    points_color := Vector4.{.5, .5, .5, 1.};
     points_size : s32 = 0;
     vertex_label_style : Vertex_Label_Style;
 
     normals_visible := false;
-    normals_color := Vector4.{0., 0., .8, 1.}; // RGBA
+    normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
 
     wireframe_visible := false;
-    wireframe_color := Vector4.{0., 0., 0., 1.}; // RGBA
+    wireframe_color := Vector4.{0., 0., 0., 1.};
     wireframe_width : float = 0.;
 
     surface_visible := true;
-    surface_color := Vector4.{1., 1., 1., 1.}; // RGBA
+    surface_color := Vector4.{1., 1., 1., 1.};
 
     display_mode := Display_Mode.BLINN_PHONG;
     screentone_backfaces := true;
     flat_shading := true;
 
-    aabb_visible := false;
+    aabb_visible := false; @NoSync
 
     clip_ranges : [3]Clip_Range;
     clip_ranges[0] = .{normal=.{1,0,0}};
@@ -149,7 +149,7 @@ render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display
     }
 
     // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-    glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+    glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyCtrl));
     // glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
 
     glBindVertexArray(app.normals_vao);
@@ -285,7 +285,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
 
         // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-        glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+        // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyShift));
         // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
     }
 
@@ -350,7 +350,7 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
 
         // Note: disabled for points/lines since it makes things hard to see!
         // // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-        // glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyAlt));
+        // glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyShift));
         // // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
     }
 
@@ -468,10 +468,18 @@ render_entities :: () {
 
             case .MESH;
 
+                clipping_sphere_mode := (app.user_selection.is_visible && (io().KeyShift || io().KeyCtrl));
+                old_display_info := entity.display_info;
+                defer entity.display_info = old_display_info;
+                if clipping_sphere_mode {
+                     entity.display_info.wireframe_visible = true;
+                     entity.display_info.wireframe_width = 1;
+                }
+
                 mesh := cast(*Mesh_Entity) entity;
                 render_mesh_points(*mesh.mesh, *entity.render_info, entity.display_info);
                 render_mesh_triangles(*mesh.mesh, *entity.render_info, entity.display_info);
-                if entity.display_info.surface_color.w != 1 && entity.display_info.wireframe_visible {
+                if (entity.display_info.surface_color.w != 1 && entity.display_info.wireframe_visible) || clipping_sphere_mode {
                     render_mesh_lines(*mesh.mesh, *entity.render_info, entity.display_info);
                 }
                 render_normals(*mesh.mesh, *entity.render_info, entity.display_info);

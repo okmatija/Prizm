@@ -60,6 +60,20 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
     return program;
 }
 
+debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1, 1}) {
+    glEnable(GL_BLEND);
+    defer glDisable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    text_w := get_text_width_in_pixels(text, 1.0);
+    render_text_quad(app.text_program,
+                     text,
+                     // make_vector2(25.0, WINDOW_HEIGHT - FONT_SIZE * scale),
+                     make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y),
+                     scale,
+                     color);
+}
+
 debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {
 
     max_length: GLint;

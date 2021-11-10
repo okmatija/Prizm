@@ -27,10 +27,11 @@ do_selection_mode :: () {
     use_result_for_repositioning_camera := ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
     use_result_for_rendering_cursor_text := app.user_selection_cursor_text_shown;
 
-    app.clipping_sphere_mode = ImGui.IsMouseDown(.Right) && io().KeyAlt;
+    app.clipping_sphere_mode = ImGui.IsMouseDown(.Left) && io().KeyShift;
     if !app.clipping_sphere_mode app.clipping_sphere_mode_entity_index = -1;
 
-    if app.clipping_sphere_mode && app.clipping_sphere_mode_entity_index != -1 {
+    // This block computes the radius of the clipping sphere, then returns from the function
+    if app.clipping_sphere_mode_entity_index != -1 {
 
         entity := app.entities[app.clipping_sphere_mode_entity_index];
 
@@ -39,11 +40,9 @@ do_selection_mode :: () {
         line : Line3; // @Cleanup Make a ray/plane intersection function
         line.origin = ray.origin;
         line.direction = ray.direction;
-
         plane := make_hyperplane3(plane_normal=current_look_direction(), point_on_plane=entity.display_info.clip_sphere.center);
         intersect_count, intersect_t := find_intersect_line3_plane3(line, plane);
-
-        if intersect_count != 1 || intersect_t < 0 {
+        if intersect_count != 1 {
             log_error("Expected an intersection");
             return;
         }
@@ -60,42 +59,43 @@ do_selection_mode :: () {
         return;
     }
 
-    if use_result_for_adding_to_selection  ||
-       use_result_for_repositioning_camera ||
-       use_result_for_rendering_cursor_text ||
-       app.clipping_sphere_mode {
+    if app.clipping_sphere_mode || use_result_for_adding_to_selection  || use_result_for_repositioning_camera || use_result_for_rendering_cursor_text {
 
-        closest := find_closest_vertex_on_visible_entities();
+        closest := find_intersection_point_on_visible_entities(sphere_clipped=true); // @Volatile element_index is a triangle index
+        if closest.entity_index == -1 || (use_result_for_adding_to_selection && !app.clipping_sphere_mode) { // we only want to add vertices to the selection
+            closest = find_closest_vertex_on_visible_entities(front_facing_only = true, sphere_clipped=true); // @Volatile element_index is now a vertex index
+        }
+
         if closest.entity_index != -1 {
 
             if use_result_for_repositioning_camera || app.clipping_sphere_mode {
                 view_from_world := make_look_at_matrix(app.camera);
-                closest_view := view_from_world * make_vector4(closest.vertex_position, 1.);
+                closest_view := view_from_world * make_vector4(closest.position, 1.);
 
                 world_from_view := inverse(view_from_world);
                 eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
 
                 sphere : Sphere;
-                sphere.center = closest.vertex_position;
+                sphere.center = closest.position;
 
                 // Compute the bounding sphere radius of the points in the scene
                 sphere.radius = 0;
                 for :visible entity : app.entities {
                     for * entity.mesh.positions {
                         p := (entity.mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
-                        sphere.radius = max(sphere.radius, length_squared(closest.vertex_position - p));
+                        sphere.radius = max(sphere.radius, length_squared(closest.position - p));
                     }
                 }
                 if app.user_selection.is_visible {
                     mesh := *app.user_selection.mesh;
                     for * mesh.positions {
                         p := (mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
-                        sphere.radius = max(sphere.radius, length_squared(closest.vertex_position - p));
+                        sphere.radius = max(sphere.radius, length_squared(closest.position - p));
                     }
                 }
                 sphere.radius = sqrt(sphere.radius);
 
-                if app.clipping_sphere_mode && ImGui.IsMouseClicked(.Right) {
+                if app.clipping_sphere_mode && ImGui.IsMouseClicked(.Left) {
                     app.clipping_sphere_mode_entity_index = closest.entity_index;
                     entity := app.entities[app.clipping_sphere_mode_entity_index];
                     entity.display_info.clip_sphere.is_active = true;
@@ -108,7 +108,7 @@ do_selection_mode :: () {
                 }
 
                 if use_result_for_repositioning_camera {
-                    app.camera.look_position = closest.vertex_position;
+                    app.camera.look_position = closest.position;
                     app.camera.eye_position  += eye_displacement;
                     app.camera.far = sphere.radius * 2;
                     app.camera.near = -app.camera.far;
@@ -119,23 +119,23 @@ do_selection_mode :: () {
 
                 removed := false;
                 for app.user_selection.mesh.positions {
-                    if closest.vertex_position == it {
+                    if closest.position == it {
                         remove it;
                         removed = true;
                         break;
                     }
                 }
                 if !removed {
-                    array_add(*app.user_selection.mesh.positions, closest.vertex_position);
+                    array_add(*app.user_selection.mesh.positions, closest.position);
                 }
 
                 app.user_selection.render_info.is_dirty = true;
             }
 
-            // if use_result_for_rendering_cursor_text {
-            //     text := tprint("#%,%: %", closest.entity_index, closest.vertex_index, closest.vertex_position);
-            //     debug_text_at_cursor(text, app.user_selection_cursor_text_scale, app.user_selection.display_info.points_color);
-            // }
+            if use_result_for_rendering_cursor_text {
+                text := tprint("#%,%: %", closest.entity_index, closest.element_index, closest.position);
+                debug_text_at_cursor(text, app.user_selection_cursor_text_scale, app.user_selection.display_info.points_color);
+            }
         }
     }
 }
