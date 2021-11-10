@@ -3,23 +3,12 @@
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Tests
 
-has_extension :: (name: string, extension: string) -> bool {
-    if name.count < extension.count  return false;
-    test := name;
-    advance(*test, name.count - extension.count);
-    return test == extension;
-}
-
 // @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
 load_obj :: (filename : string) -> *Entity {
 
     // http://paulbourke.net/dataformats/obj/
 
     log("Loading file '%'... ", filename);
-
-    if !has_extension(filename, "obj") {
-        return null;
-    }
 
     data := read_entire_file(filename);
     defer free(data);
@@ -33,7 +22,7 @@ load_obj :: (filename : string) -> *Entity {
     parser.tokens = get_tokens(filename, parser.data, hash_character_starts_comment=true);
     parser.current_token = 0;
 
-    // for parser.tokens print("token[%] = %\n", it_index, it);
+    // for parser.tokens log("token[%] = %\n", it_index, it);
 
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
@@ -121,7 +110,7 @@ load_obj :: (filename : string) -> *Entity {
                   eat_possible_directive(*parser, "mtllib") ||
                   eat_possible_directive(*parser, "usemtl") {
 
-            warning(*parser, peek_token(*parser), "Ignoring '%' token, support is @Incomplete\n", to_string(peek_token(*parser)));
+            warning(*parser, peek_token(*parser), "Unsupported '%' token, support is @Incomplete. Attempting to continue...\n", to_string(peek_token(*parser)));
 
             tok := peek_token(*parser);
             current_line := tok.line_number;
@@ -132,8 +121,14 @@ load_obj :: (filename : string) -> *Entity {
 
         } else {
 
-            error(*parser, peek_token(*parser), "Unexpected token %. Aborting\n", to_string(peek_token(*parser)));
-            break;
+            warning(*parser, peek_token(*parser), "Unexpected '%' token will be ignored. Attempting to continue...\n", to_string(peek_token(*parser)));
+
+            tok := peek_token(*parser);
+            current_line := tok.line_number;
+            while tok.type != Token.Type.EOF && tok.line_number == current_line {
+                eat_token(*parser);
+                tok = peek_token(*parser);
+            }
 
         }
     }
@@ -182,7 +177,7 @@ load_obj :: (filename : string) -> *Entity {
             deinit(result);
             result = null;
         } else {
-            log("Inferred entity type '%'", result.type);
+            log("Parsing successful. Inferred entity type '%'", result.type);
         }
     }
 
@@ -279,6 +274,9 @@ Obj_Face :: struct {
     texture : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
     normal  : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
     index_count : int; // How many indices followed the 'f'
+
+    has_textures := false;
+    has_normals := false;
 }
 
 parse_face :: (p : *Parser) -> Obj_Face {
@@ -294,12 +292,22 @@ parse_face :: (p : *Parser) -> Obj_Face {
                 if slash {
                     // case v//vn
                     face.normal[i] = obj_parse_index(p);
+                    face.has_normals = true;
                 } else {
-                    // case v/vt/vn
                     face.texture[i] = obj_parse_index(p);
-                    expect_and_eat(p, #char "/");
-                    face.normal[i] = obj_parse_index(p);
+                    slash = eat_possible_token(p, #char "/");
+                    if slash {
+                        // case v/vt/vn
+                        face.normal[i] = obj_parse_index(p);
+                        face.has_normals = true;
+                        face.has_textures = true;
+                    } else {
+                        // case v/vt
+                        face.has_textures = true;
+                    }
                 }
+            } else {
+                // case v
             }
 
             face.index_count = i + 1;

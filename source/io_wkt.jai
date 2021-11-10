@@ -4,10 +4,6 @@ load_wkt :: (filename : string) -> *Entity {
 
     log("Loading file '%'... ", filename);
 
-    if !has_extension(filename, "wkt") {
-        return null;
-    }
-
     data := read_entire_file(filename);
     defer free(data);
 

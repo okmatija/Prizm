@@ -245,9 +245,9 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
 load_entity_from_file :: (filename : string) -> *Entity {
     result : *Entity;
 
-    if ends_with(filename, "obj") {
+    if ends_with_nocase(filename, "obj") {
         result = load_obj(filename);
-    } else if ends_with(filename, "wkt") {
+    } else if ends_with_nocase(filename, "wkt") {
         result = load_wkt(filename);
     }
 
