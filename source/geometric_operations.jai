@@ -260,6 +260,175 @@ find_intersect_ray3_triangle3 :: (ray : Ray3, triangle : Triangle3) -> (intersec
     return result_intersect, result_parameter, result_triangleBary, result_point;
 }
 
+Closest_Point_Ray_Segment :: struct {
+    distance : float = 0;
+    sqrDistance : float = 0;
+    parameter : [2]float = .[0, 0];
+    closest : [2]Point3 = .[.{0,0,0}, .{0,0,0}];
+};
+
+// Compute the distance between a ray and a segment in nD.
+// 
+// The ray is P[0] + s[0] * D[0] for s[0] >= 0. D[0] is not required to be
+// unit length. 
+// 
+// The segment is Q[0] + s[1] * (Q[1] - Q[0]) for 0 <= s[1 <= 1. The
+// direction D = Q[1] - Q[0] is generally not unit length.
+// 
+// The closest point on the ray is stored in closest[0] with parameter[0]
+// storing s[0]. The closest point on the segment is stored in closest[1] with
+// parameter[1] storing s[1]. When there are infinitely many choices for the
+// pair of closest points, only one of them is returned.
+closest_point_ray_segment :: (ray : Ray3, segment : Segment3) -> Closest_Point_Ray_Segment
+{
+    result : Closest_Point_Ray_Segment;
+
+    zero : float = 0;
+    one : float = 1;
+    segDirection := segment.p[1] - segment.p[0];
+    diff := ray.origin - segment.p[0];
+    a00 := dot(ray.direction, ray.direction);
+    a01 := -dot(ray.direction, segDirection);
+    a11 := dot(segDirection, segDirection);
+    b0 := dot(ray.direction, diff);
+    det := Max(a00 * a11 - a01 * a01, zero);
+    s0, s1 : float = 0, 0;
+
+    if (det > zero)
+    {
+        // The ray and segment are not parallel.
+        b1 := -dot(segDirection, diff);
+        s0 := a01 * b1 - a11 * b0;
+        s1 := a01 * b0 - a00 * b1;
+
+        if (s0 >= zero)
+        {
+            if (s1 >= zero)
+            {
+                if (s1 <= det)  // region 0
+                {
+                    // The minimum occurs at interior points of the
+                    // ray and the segment.
+                    s0 /= det;
+                    s1 /= det;
+                }
+                else  // region 1
+                {
+                    // The endpoint Q1 of the segment and an interior
+                    // point of the line are closest.
+                    s0 = -(a01 + b0) / a00;
+                    s1 = one;
+                }
+            }
+            else  // region 5
+            {
+                // The endpoint Q0 of the segment and an interior
+                // point of the line are closest.
+                s0 = -b0 / a00;
+                s1 = zero;
+            }
+        }
+        else  // s0 < 0
+        {
+            if (s1 <= zero)  // region 4
+            {
+                s0 = -b0;
+                if (s0 > zero)
+                {
+                    s0 /= a00;
+                    s1 = zero;
+                }
+                else
+                {
+                    s0 = zero;
+                    s1 = -b1;
+                    if (s1 < zero)
+                    {
+                        s1 = zero;
+                    }
+                    else if (s1 > a11)
+                    {
+                        s1 = one;
+                    }
+                    else
+                    {
+                        s1 /= a11;
+                    }
+                }
+            }
+            else if (s1 <= det)  // region 3
+            {
+                s0 = zero;
+                s1 = -b1;
+                if (s1 < zero)
+                {
+                    s1 = zero;
+                }
+                else if (s1 > a11)
+                {
+                    s1 = one;
+                }
+                else
+                {
+                    s1 /= a11;
+                }
+            }
+            else  // region 2
+            {
+                s0 = -(a01 + b0);
+                if (s0 > zero)
+                {
+                    s0 /= a00;
+                    s1 = one;
+                }
+                else
+                {
+                    s0 = zero;
+                    s1 = -b1;
+                    if (s1 < zero)
+                    {
+                        s1 = zero;
+                    }
+                    else if (s1 > a11)
+                    {
+                        s1 = one;
+                    }
+                    else
+                    {
+                        s1 /= a11;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // The ray and segment are parallel.
+        if (a01 > zero)
+        {
+            // Opposite direction vectors.
+            s0 = -b0 / a00;
+            s1 = zero;
+        }
+        else
+        {
+            // Same direction vectors.
+            s0 = -(a01 + b0) / a00;
+            s1 = one;
+        }
+    }
+
+    result.parameter[0] = s0;
+    result.parameter[1] = s1;
+    result.closest[0] = ray.origin + s0 * ray.direction;
+    result.closest[1] = segment.p[0] + s1 * segDirection;
+    diff = result.closest[0] - result.closest[1];
+    result.sqrDistance = dot(diff, diff);
+    result.distance = sqrt(result.sqrDistance);
+    return result;
+}
+
+
 bounding_sphere :: (aabb : AxisBox3) -> Sphere
 {
     result : Sphere = ---;

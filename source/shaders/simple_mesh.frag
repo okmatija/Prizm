@@ -66,7 +66,7 @@ void main() {
             float min = clip_range[i].min;
             float max = clip_range[i].max;
             if (dist <= min || dist >= max) {
-                discard;
+                // discard;
             }
         }
     }
@@ -78,7 +78,7 @@ void main() {
             if (clipping_sphere_mode) {
                 clipping_sphere_darken_factor = .4;
             } else {
-                discard;
+                // discard;
             }
         }
     }

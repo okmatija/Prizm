@@ -114,8 +114,9 @@ init_keymap :: () {
     add_key(*app.keymap, cycle_normals_visibility, "Cycle normals visibility for selected items", xx #char "n");
     add_key(*app.keymap, cycle_wireframe_width, "Cycle line width for selected items", xx #char "l");
     add_key(*app.keymap, cycle_point_size, "Cycle point size for selected items", xx #char "p");
-    add_key(*app.keymap, cycle_point_index_labels, "Cycle point index labels for selected items", xx #char "p", .{shift_pressed=true});
-    add_key(*app.keymap, cycle_point_position_labels, "Cycle point position labels for selected items", xx #char "p", .{alt_pressed=true});
+    // @Speed These are both extremely slow (on Windows?) so currently disabled
+    // add_key(*app.keymap, cycle_point_index_labels, "Cycle point index labels for selected items", xx #char "p", .{shift_pressed=true});
+    // add_key(*app.keymap, cycle_point_position_labels, "Cycle point position labels for selected items", xx #char "p", .{alt_pressed=true});
     add_key(*app.keymap, toggle_is_visible, "Toggle visibility on selected items", xx #char "v");
     add_key(*app.keymap, clear_labels, "Clear labels for selected items", xx #char "x");
 

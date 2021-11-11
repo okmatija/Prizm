@@ -15,6 +15,8 @@ VERSION_STRING :: #string DONE
 VERSION_STRING :: "0.2.0rc";
 DONE
 
+OUTPUT_EXE_NAME :: "Prism";
+
 build :: () {
 
     // This is a build file that doesn't generate an executable
@@ -23,7 +25,7 @@ build :: () {
     set_working_directory(#filepath);
 
     // Create a workspace where we will compile our actual program
-    w := compiler_create_workspace();
+    w := compiler_create_workspace(OUTPUT_EXE_NAME);
     if !w exit(1);
 
     command_line_arguments := compiler_get_command_line_arguments();
@@ -44,7 +46,7 @@ build :: () {
         output_type = .EXECUTABLE;
         lazy_foreign_function_lookups = true;
 
-        output_executable_name = "Prism";
+        output_executable_name = OUTPUT_EXE_NAME;
 
         if Has_Argument("checks") {
             array_bounds_check = .ON;
@@ -53,7 +55,8 @@ build :: () {
         }
 
         if Has_Argument("release") {
-            set_optimization_level(*build_options, 3, 3);
+            set_optimization_level(*build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
+            // build_options.stack_trace = false;
         } else {
             // memory_debugger = true;
             // llvm_options.debug_options = .["-g"];
@@ -90,7 +93,6 @@ build :: () {
             }
 
             if message.workspace == w {
-                do_error_checking(message);
 
                 has_note :: (header: *Code_Procedure_Header, note: string) -> bool {
                     for header.notes  if it.text == note  return true;
@@ -99,14 +101,16 @@ build :: () {
 
                 if message.kind == {
                     case .TYPECHECKED;
-                      typechecked := cast(*Message_Typechecked) message;
+                        do_error_checking(message);
 
-                      for tc: typechecked.procedure_headers {
-                          header := tc.expression;
-                          if has_note(header, "RegisterCommand") {
-                              array_add(*registered_console_commands, header);
-                          }
-                      }
+                        typechecked := cast(*Message_Typechecked) message;
+
+                        for tc: typechecked.procedure_headers {
+                            header := tc.expression;
+                            if has_note(header, "RegisterCommand") {
+                                array_add(*registered_console_commands, header);
+                            }
+                        }
 
                     case .PHASE;
                         phase := cast(*Message_Phase) message;

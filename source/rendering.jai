@@ -444,46 +444,47 @@ render_vertex_labels :: (points : []$T, world_from_model : Matrix4, style : Vert
 render_entities :: () {
 
     render_entity_geometry :: (entity : *Entity) {
+        ri := *entity.render_info;
+        di :=  entity.display_info;
+        old_display_info := entity.display_info;
+        defer entity.display_info = old_display_info;
+
+        clipping_sphere_mode := (app.user_selection.is_visible && (io().KeyShift || io().KeyCtrl)); // Note: Not app.clipping_sphere_mode!
+
         if entity.type == {
             case .POLYLINE_SOUP2;
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
-                render_mesh_points(*soup.mesh, *entity.render_info, entity.display_info);
-                render_mesh_lines(*soup.mesh, *entity.render_info, entity.display_info);
-                render_aabb(*soup.mesh, *entity.render_info, entity.display_info);
+                render_mesh_points(*soup.mesh, ri, di);
+                render_mesh_lines(*soup.mesh, ri, di);
+                render_aabb(*soup.mesh, ri, di);
 
             case .POLYLINE_SOUP3;
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
-                render_mesh_points(*soup.mesh, *entity.render_info, entity.display_info);
-                render_mesh_lines(*soup.mesh, *entity.render_info, entity.display_info);
-                render_aabb(*soup.mesh, *entity.render_info, entity.display_info);
+                render_mesh_points(*soup.mesh, ri, di);
+                render_mesh_lines(*soup.mesh, ri, di);
+                render_aabb(*soup.mesh, ri, di);
 
             case .POLYGON_SOUP;
 
                 soup := cast(*Polygon_Soup_Entity) entity;
-                render_mesh_points(*soup.mesh, *entity.render_info, entity.display_info);
-                render_mesh_triangles(*soup.mesh, *entity.render_info, entity.display_info);
-                render_aabb(*soup.mesh, *entity.render_info, entity.display_info);
+                render_mesh_points(*soup.mesh, ri, di);
+                render_mesh_triangles(*soup.mesh, ri, di);
+                render_aabb(*soup.mesh, ri, di);
 
             case .MESH;
 
-                clipping_sphere_mode := (app.user_selection.is_visible && (io().KeyShift || io().KeyCtrl));
-                old_display_info := entity.display_info;
-                defer entity.display_info = old_display_info;
-                if clipping_sphere_mode {
-                     entity.display_info.wireframe_visible = true;
-                     entity.display_info.wireframe_width = 1;
-                }
-
                 mesh := cast(*Mesh_Entity) entity;
-                render_mesh_points(*mesh.mesh, *entity.render_info, entity.display_info);
-                render_mesh_triangles(*mesh.mesh, *entity.render_info, entity.display_info);
-                if (entity.display_info.surface_color.w != 1 && entity.display_info.wireframe_visible) || clipping_sphere_mode {
-                    render_mesh_lines(*mesh.mesh, *entity.render_info, entity.display_info);
+                render_mesh_points(*mesh.mesh, ri, di);
+                if clipping_sphere_mode di.wireframe_visible, di.wireframe_width = true, 1.5;
+                render_mesh_triangles(*mesh.mesh, ri, di);
+                if clipping_sphere_mode di.wireframe_visible, di.wireframe_width = true, 1.0;
+                if clipping_sphere_mode || (di.wireframe_visible && di.surface_color.w != 1) {
+                    render_mesh_lines(*mesh.mesh, ri, di);
                 }
-                render_normals(*mesh.mesh, *entity.render_info, entity.display_info);
-                render_aabb(*mesh.mesh, *entity.render_info, entity.display_info);
+                render_normals(*mesh.mesh, ri, di);
+                render_aabb(*mesh.mesh, ri, di);
         }
     }
 

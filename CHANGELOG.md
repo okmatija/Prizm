@@ -2,10 +2,9 @@
 
 - Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
 - Changed rendering of back faces to use an darkened version of the front face color
-- Improved rendering of mesh edges/wireframes
+- Improved rendering of mesh edges/wireframes using the SolidWireframe algorithm by Samuel Gateau
   - Fixes z-fighting/incorrect occulusion issues which could make some mesh edges invisible
   - Fixes jaggies appearing on most edges, edges belonging to only one triangle or silhouette edges still have jaggies
-  - The new algorithm is based on the SolidWireframe paper by Samuel Gateau
 - Added ability to clip within a sphere when Selection Mode is enabled
   - The clipping sphere center is positioned by clicking on a visible entity and the radius is changed by dragging the mouse and set on release
   - The clipping sphere is applied to the visible entity on which it is centered, and to any selected entities (regardless of visibility)
@@ -13,7 +12,7 @@
 - Added an option to disable back face screentone effect, accessible in the item context menu
 - Added a button to show/hide this changelog (when the app was compiled) in the help menu
 - Fixed an issue where normal vectors were not affected by clipping domains
-- Fixed some .obj parsing warnings being incorrectly logged as errors
+- Fixed some .obj parsing warnings and errors
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash
 - Fixed a rare crash which could occur when toggling visibility and there was just one item in the item list
 - Changed the keybinding to rotate the camera around the selected axis in the camera control pane (press h for help)

@@ -325,7 +325,7 @@ show_item_list_ui :: () {
         visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
 
         SELECTION_MODE_TOOLTIP :: #string DONE
-C-LMB Add nearest vertex to Selection
+C-LMB Add nearest unclipped vertex to Selection
 S-LMB Click-drag to set clipping sphere
 C-RMB Place camera orbit
 c     Toggle clipping of visible items
@@ -565,11 +565,11 @@ show_help_ui :: () {
         ImGui.NextColumn();
         ImGui.NextColumn();
         ImGui.Text("C-LMB"); ImGui.NextColumn();
-        ImGui.Text("Add nearest vertex to 'Selection' item");  ImGui.NextColumn();
+        ImGui.Text("Add nearest unclipped vertex to 'Selection' item");  ImGui.NextColumn();
+        ImGui.Text("S-LMB"); ImGui.NextColumn();
+        ImGui.Text("Click-drag to set clipping sphere");  ImGui.NextColumn();
         ImGui.Text("C-RMB"); ImGui.NextColumn();
         ImGui.Text("Place camera orbit");  ImGui.NextColumn();
-        ImGui.Text("A-RMB"); ImGui.NextColumn();
-        ImGui.Text("Click-drag to set clipping sphere");  ImGui.NextColumn();
     }
 
     if ImGui.TreeNodeEx("Key bindings", .DefaultOpen) {
@@ -649,7 +649,7 @@ Display_Info_Update :: struct {
     info :   Display_Info;
     update : Display_Info_Update;
     if info.clip_ranges.count != update.clip_ranges.count {
-        error_message := tprint("Expected clip_ranges arrays to have matching sizes, got % vs %", info.clip_ranges.count, update.clip_ranges.count);
+        error_message := tprint("Expected clip_ranges arrays to have equal sizes (% != %)", info.clip_ranges.count, update.clip_ranges.count);
         compiler_report(#file, #line, 0, error_message);
     }
 }

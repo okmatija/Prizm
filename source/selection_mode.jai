@@ -61,8 +61,10 @@ do_selection_mode :: () {
 
     if app.clipping_sphere_mode || use_result_for_adding_to_selection  || use_result_for_repositioning_camera || use_result_for_rendering_cursor_text {
 
-        closest := find_intersection_point_on_visible_entities(sphere_clipped=true); // @Volatile element_index is a triangle index
-        if closest.entity_index == -1 || (use_result_for_adding_to_selection && !app.clipping_sphere_mode) { // we only want to add vertices to the selection
+        closest : Point_On_Entity = ---;
+        if app.clipping_sphere_mode || use_result_for_repositioning_camera {
+            closest = find_intersection_point_on_visible_entities(sphere_clipped=true); // @Volatile element_index is a triangle index
+        } else {
             closest = find_closest_vertex_on_visible_entities(front_facing_only = true, sphere_clipped=true); // @Volatile element_index is now a vertex index
         }
 
