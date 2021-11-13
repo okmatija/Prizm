@@ -70,10 +70,6 @@ eat_possible_token :: (p: *Parser, type: Token.Type) -> did_eat: bool {
     return false;
 }
 
-eat_possible_token :: (p: *Parser, type: Token.Type.loose) -> did_eat: bool {
-    return eat_possible_token(p, cast(Token.Type) type);
-}
-
 eat_possible_directive :: (p: *Parser, name: string) -> did_eat: bool {
     tok := peek_token(p);
 
@@ -103,11 +99,6 @@ expect :: (p: *Parser, type: Token.Type, source_loc := #caller_location) {
 
 expect_and_eat :: (p: *Parser, type: Token.Type, loc := #caller_location) {
     expect(p, type, loc);
-    eat_token(p);
-}
-
-expect_and_eat :: (p: *Parser, type: Token.Type.loose, loc := #caller_location) {
-    expect(p, xx type, loc);
     eat_token(p);
 }
 
