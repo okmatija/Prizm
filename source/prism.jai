@@ -61,45 +61,46 @@ main :: () {
     }
 
     {
-        vert :: #run read_entire_file("source/shaders/text.vert");
-        frag :: #run read_entire_file("source/shaders/text.frag");
-        app.text_program = get_shader_program(vert, frag);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/text.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/text.frag"); #assert(FRAG_OK);
+        app.text_program = get_shader_program(VERT, FRAG);
     }
 
     {
-        vert :: #run read_entire_file("source/shaders/simple_mesh.vert");
-        frag :: #run read_entire_file("source/shaders/simple_mesh.frag");
-        app.simple_mesh_program = get_shader_program(vert, frag);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/simple_mesh.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/simple_mesh.frag"); #assert(FRAG_OK);
+        app.simple_mesh_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.simple_mesh_vao);
     }
 
     {
-        vert :: #run read_entire_file("source/shaders/mesh.vert");
-        geom :: #run read_entire_file("source/shaders/mesh.geom");
-        frag :: #run read_entire_file("source/shaders/mesh.frag");
-        app.mesh_program = get_shader_program(vert, frag, geom);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/mesh.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/mesh.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/mesh.frag"); #assert(FRAG_OK);
+        app.mesh_program = get_shader_program(VERT, FRAG, GEOM);
         glGenVertexArrays(1, *app.mesh_vao);
     }
 
     {
-        vert :: #run read_entire_file("source/shaders/normals.vert");
-        geom :: #run read_entire_file("source/shaders/normals.geom");
-        frag :: #run read_entire_file("source/shaders/normals.frag");
-        app.normals_program = get_shader_program(vert, frag, geom);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.normals_program = get_shader_program(VERT, FRAG, GEOM);
         glGenVertexArrays(1, *app.normals_vao);
     }
 
     {
-        vert :: #run read_entire_file("source/shaders/aabb.vert");
-        frag :: #run read_entire_file("source/shaders/aabb.frag");
-        app.aabb_program = get_shader_program(vert, frag);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/aabb.frag"); #assert(FRAG_OK);
+        app.aabb_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.aabb_vao);
     }
 
     {
-        vert :: #run read_entire_file("source/shaders/background.vert");
-        frag :: #run read_entire_file("source/shaders/background.frag");
-        app.background_program = get_shader_program(vert, frag);
+        // We may want to hot-load this file in future to allow the user to customize the background
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/background.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/background.frag"); #assert(FRAG_OK);
+        app.background_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.background_vao);
     }
 

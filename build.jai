@@ -11,11 +11,8 @@ Build Options:
   set_icon   set the app icon when compiling
 DONE
 
-VERSION_STRING :: #string DONE
-VERSION_STRING :: "0.2.0rc";
-DONE
-
 OUTPUT_EXE_NAME :: "Prism";
+VERSION_STRING  :: "0.2.0rc";
 
 build :: () {
 
@@ -75,7 +72,8 @@ build :: () {
         compiler_begin_intercept(w);
         defer compiler_end_intercept(w);
 
-        add_build_string(VERSION_STRING, w);
+        add_build_string(tprint("VERSION_STRING  :: \"%\";", VERSION_STRING), w);
+        add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", OUTPUT_EXE_NAME), w);
         add_build_file("source/prism.jai", w);
 
         while true {
