@@ -15,7 +15,6 @@ struct Clip_Sphere {
 
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-uniform bool clipping_sphere_mode;
 uniform vec4 normals_color = vec4(0., 0., .8, 1.); // rgba
 
 in vec3 fragment_position_ws;
@@ -70,24 +69,12 @@ void main() {
         }
     }
 
-    float clipping_sphere_darken_factor = 1.;
     if (clip_sphere.is_active) {
         float dist = distance(clip_sphere.center, fragment_position_ws);
         if (dist > clip_sphere.radius) {
-            if (clipping_sphere_mode) {
-                clipping_sphere_darken_factor = .4;
-            } else {
-                discard;
-            }
+            discard;
         }
     }
 
     out_color = normals_color;
-
-    if (clipping_sphere_mode) {
-        // Darken
-        vec3 hsv = RGBtoHSV(out_color.xyz);
-        hsv.z *= clipping_sphere_darken_factor;
-        out_color.xyz = HSVtoRGB(hsv);
-    }
 }

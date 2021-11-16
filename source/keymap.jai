@@ -108,6 +108,7 @@ init_keymap :: () {
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, toggle_clipping, "Toggle clipping on visible items", xx #char "c"); // @Volatile Sync with SELECTION_MODE_TOOLTIP
 
+    // @Cleanup Improve names here!! Add selected to the function names
     add_key(*app.keymap, reload_selected_items, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, remove_selected_items, "Remove selected items", xx Special_Key_Code.DELETE);
     add_key(*app.keymap, cycle_opacity, "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
@@ -177,10 +178,20 @@ rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
 toggle_clipping :: () {
+    clip_active := false;
+    for :visible app.entities {
+        if it.display_info.clip_sphere.is_active {
+            clip_active = true;
+            break;
+        }
+    }
+
+    // Toggle and apply it to all visible entities
+    clip_active = !clip_active;
     for :visible app.entities {
         using it.display_info;
-        clip_sphere.is_active = !clip_sphere.is_active;
-        for * clip_ranges it.is_active = !it.is_active;
+        clip_sphere.is_active = clip_active;
+        for * clip_ranges it.is_active = clip_active;
     }
 }
 
@@ -221,7 +232,7 @@ cycle_point_size :: () {
         }
     }
 
-    for app.entities if it.is_selected {
+    for :selected app.entities {
         it.display_info.points_visible = app_info.points_visible;
         it.display_info.points_size    = app_info.points_size;
     }
@@ -243,7 +254,7 @@ cycle_wireframe_width :: () {
         }
     }
 
-    for app.entities if it.is_selected {
+    for :selected app.entities {
         it.display_info.wireframe_visible = app_info.wireframe_visible;
         it.display_info.wireframe_width   = app_info.wireframe_width;
     }
@@ -256,7 +267,7 @@ cycle_opacity :: () {
     else if app_info.surface_color.w == .5  app_info.surface_color.w = .2;
     else    app_info.surface_color.w =  1.;
 
-    for app.entities if it.is_selected {
+    for :selected app.entities {
         it.display_info.surface_color.w = app_info.surface_color.w;
     }
 }
@@ -266,15 +277,26 @@ cycle_normals_visibility :: () {
     app_info := *app.selection_display_info;
     app_info.normals_visible = !app_info.normals_visible;
 
-    for app.entities if it.is_selected {
+    for :selected app.entities {
         it.display_info.normals_visible = app_info.normals_visible;
     }
 }
 
 
 toggle_is_visible :: () {
-    for app.entities if it.is_selected {
-        it.is_visible = !it.is_visible;
+
+    visible := false;
+    for :selected app.entities {
+        if it.is_visible {
+            visible = true;
+            break;
+        }
+    }
+
+    // Toggle and apply it to all visible entities
+    visible = !visible;
+    for :selected app.entities {
+        it.is_visible = visible;
     }
 }
 

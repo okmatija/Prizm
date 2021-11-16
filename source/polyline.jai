@@ -86,6 +86,22 @@ point_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
+segment_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
+    #assert(flags == 0); // No options are supported.
+
+    `it_index := 0;
+    for polyline_index : 0..soup.polylines.count-1 {
+        segment_count := soup.polylines[polyline_index].points.count-1;
+        for segment_index : 0..segment_count-1 {
+            `it : Edge(T.Point) = ---;
+            it.from_point = *soup.polylines[polyline_index].points[segment_index];
+            it.to_point   = *soup.polylines[polyline_index].points[segment_index + 1];
+            #insert (remove=#assert(false)) body;
+            it_index += 1;
+        }
+    }
+}
+
 #scope_file
 
 #import "Math";

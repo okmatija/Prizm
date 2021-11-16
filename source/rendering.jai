@@ -26,6 +26,12 @@ cycle_display_mode :: (mode : *Display_Mode) {
     }
 }
 
+Clip_Mode :: enum #specified {
+    HIDDEN ::  0;
+    BLACKEN :: 1;
+    DARKEN ::  2;
+}
+
 // Things that needs updating when the geometry changes
 Render_Info :: struct {
     is_dirty := true;
@@ -45,11 +51,31 @@ Clip_Range :: struct {
     max : float = 0h7F800000; // +inf
 }
 
+is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
+    for clip : clip_ranges if clip.is_active {
+        plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
+        dist := signed_distance_point3_plane3(point, plane);
+        if (dist <= clip.min || dist >= clip.max) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
     using sphere : Sphere;
     radius = 0h7F800000; // +inf
     is_active : bool = false;
+}
+
+is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
+    if clip_sphere.is_active {
+        if !contains(clip_sphere, point) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Things that should be preserved when the geometry changes
@@ -83,8 +109,8 @@ Display_Info :: struct {
     clip_ranges[0] = .{normal=.{1,0,0}};
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
-
     clip_sphere : Clip_Sphere;
+    clip_mode := Clip_Mode.HIDDEN;
 }
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
@@ -147,10 +173,6 @@ render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display
         glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
     }
-
-    // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-    glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyCtrl));
-    // glUniform1i(glGetUniformLocation(app.normals_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
 
     glBindVertexArray(app.normals_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -283,10 +305,6 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-
-        // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-        // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyShift));
-        // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
     }
 
     glBindVertexArray(app.mesh_vao);
@@ -348,10 +366,11 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
 
-        // Note: disabled for points/lines since it makes things hard to see!
-        // // Rendering the outside of the clipping sphere darker feels better like this (vs doing it in clipping_sphere_mode)
-        // glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clipping_sphere_mode"), xx (app.user_selection.is_visible && io().KeyShift));
-        // // glUniform1i(glGetUniformLocation(app.mesh_program, "clipping_sphere_mode"), xx app.clipping_sphere_mode);
+        clip_mode := Clip_Mode.HIDDEN;
+        if app.user_selection.is_visible && (ImGui.IsMouseDown(.Left) && (io().KeyShift || io().KeyCtrl)) {
+            clip_mode = .BLACKEN;
+        }
+        glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx clip_mode);
     }
 
     glBindVertexArray(app.simple_mesh_vao);

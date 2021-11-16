@@ -260,6 +260,7 @@ Point_On_Entity :: struct {
     entity_index : int = -1;
 }
 
+// @Cleanup Add a threshold for how close you need to be to consider adding a vertex
 find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_clipped := true, range_clipped := false) -> Point_On_Entity {
 
     ray := make_camera_ray();
@@ -271,27 +272,22 @@ find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_cl
         if entity.is_visible {
             if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
                 for vertex, vertex_index : entity.mesh.positions {
+
                     if front_facing_only && (entity.mesh.normals.count != 0) && dot(current_look_direction(), entity.mesh.normals[vertex_index]) > 0 {
                         continue;
                     }
+
                     p := (entity.mesh.world_from_model * make_vector4(vertex, 1.)).xyz;
                     c, d2, t := distance_point3_ray3(p, ray);
+
                     if d2 < dist2 {
 
-                        if sphere_clipped {
-                            if entity.display_info.clip_sphere.is_active && !contains(entity.display_info.clip_sphere, p) {
-                                continue;
-                            }
+                        if sphere_clipped && is_clipped(entity.display_info.clip_sphere, p) {
+                            continue;
                         }
 
-                        if range_clipped {
-                            for clip : entity.display_info.clip_ranges if clip.is_active {
-                                plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
-                                dist := signed_distance_point3_plane3(p, plane);
-                                if (dist <= clip.min || dist >= clip.max) {
-                                    continue;
-                                }
-                            }
+                        if range_clipped && is_clipped(entity.display_info.clip_ranges, p) {
+                            continue;
                         }
 
                         dist2 = d2;
@@ -307,57 +303,129 @@ find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_cl
     return result;
 }
 
-// @Cleanup since this says VISIBLE we should just remove the exclude_clipped parameter and treat it as always true!
+// @Cleanup rename to find_closest_point_on_visible_entities
+// @Cleanup rename to do_sphere_clipping, and do_range_clipping (or just do_clipping???)
 find_intersection_point_on_visible_entities :: (front_facing_only := false, sphere_clipped := false, range_clipped := false) -> Point_On_Entity {
 
     ray := make_camera_ray();
 
     result : Point_On_Entity;
 
+    visible_selectable_triangulated :: #bake_arguments entities_iterator(should_visit = (e) => (
+            e.is_visible &&
+            (e.type == .MESH || e.type == .POLYGON_SOUP) &&
+            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+        ));
+
+    intersected_triangle := false;
     t_min := FLOAT32_INFINITY;
-    for entity, entity_index : app.entities {
-        if entity.is_visible {
-            if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
+    for :visible_selectable_triangulated entity, entity_index : app.entities {
+        for i : 0..(entity.mesh.indices.count/3)-1 {
 
-                for i : 0..(entity.mesh.indices.count/3)-1 {
-                    a := entity.mesh.positions[entity.mesh.indices[3 * i + 0]];
-                    b := entity.mesh.positions[entity.mesh.indices[3 * i + 1]];
-                    c := entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
+            triangle : Triangle3;
+            triangle.a = entity.mesh.positions[entity.mesh.indices[3 * i + 0]];
+            triangle.b = entity.mesh.positions[entity.mesh.indices[3 * i + 1]];
+            triangle.c = entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
+            n := cross(triangle.a - triangle.b, triangle.a - triangle.c); // No need to normalize
 
-                    triangle : Triangle3;
-                    triangle.v[0] = a;
-                    triangle.v[1] = b;
-                    triangle.v[2] = c;
+            if front_facing_only && dot(current_look_direction(), n) > 0 {
+                continue;
+            }
 
-                    n := cross(a - b, a - c); // No need to normalize
-                    if front_facing_only && dot(current_look_direction(), n) > 0 {
-                        continue;
-                    }
+            isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
+            if isect && t < t_min {
 
-                    isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
-                    if isect && t < t_min {
-                        if sphere_clipped {
-                            if entity.display_info.clip_sphere.is_active && !contains(entity.display_info.clip_sphere, ipoint) {
-                                continue;
-                            }
-                        }
-
-                        if range_clipped {
-                            for clip : entity.display_info.clip_ranges if clip.is_active {
-                                plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
-                                dist := signed_distance_point3_plane3(ipoint, plane);
-                                if (dist <= clip.min || dist >= clip.max) {
-                                    continue;
-                                }
-                            }
-                        }
-
-                        t_min = t;
-                        result.position = ipoint;
-                        result.element_index = i;
-                        result.entity_index = entity_index;
-                    }
+                if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
+                    continue;
                 }
+
+                if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                    continue;
+                }
+
+                t_min = t;
+                result.position = ipoint;
+                result.element_index = i;
+                result.entity_index = entity_index;
+                intersected_triangle = true;
+            }
+        }
+    }
+
+    if intersected_triangle {
+        return result;
+    }
+
+    visible_selectable_polyline_soup2 :: #bake_arguments entities_iterator(should_visit = (e) => (
+            e.is_visible &&
+            e.type == .POLYLINE_SOUP2 &&
+            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+        ));
+
+    visible_selectable_polyline_soup3 :: #bake_arguments entities_iterator(should_visit = (e) => (
+            e.is_visible &&
+            e.type == .POLYLINE_SOUP3 &&
+            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+        ));
+
+    d_min := FLOAT32_INFINITY;
+    for :visible_selectable_polyline_soup3 entity, entity_index : app.entities {
+        soup := cast(*Polyline_Soup3_Entity)entity;
+        for :segment_iterator segment, segment_index : soup.shape {
+            segment3 : Segment3;
+            segment3.start = <<segment.from_point;
+            segment3.end = <<segment.to_point;
+
+            closest_point := closest_point_ray_segment(ray, segment3);
+            ipoint := closest_point.closest[1];
+            d := closest_point.distance;
+
+            // @Incomplete continue if the distance is beyond a threshold?
+
+            if d < d_min {
+
+                if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
+                    continue;
+                }
+
+                if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                    continue;
+                }
+
+                d_min = d;
+                result.position = ipoint;
+                result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
+                result.entity_index = entity_index;
+            }
+        }
+    }
+    for :visible_selectable_polyline_soup2 entity, entity_index : app.entities {
+        soup := cast(*Polyline_Soup2_Entity)entity;
+        for :segment_iterator segment, segment_index : soup.shape {
+            segment3 : Segment3;
+            segment3.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
+            segment3.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
+
+            closest_point := closest_point_ray_segment(ray, segment3);
+            ipoint := closest_point.closest[1];
+            d := closest_point.distance;
+
+            // @Incomplete continue if the distance is beyond a threshold?
+
+            if d < d_min {
+
+                if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
+                    continue;
+                }
+
+                if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                    continue;
+                }
+
+                d_min = d;
+                result.position = ipoint;
+                result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
+                result.entity_index = entity_index;
             }
         }
     }

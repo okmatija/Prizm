@@ -7,8 +7,11 @@
 Point3 :: Vector3;
 
 Triangle3 :: struct {
-    // using v : [3]Point3;
-    v : [3]Point3;
+    a : Point3;
+    b : Point3;
+    c : Point3;
+#place a;
+    v : [3]Point3 = ---;
 }
 
 // The plane is represented as Dot(U,X) = d where U is a unit-length normal
@@ -298,8 +301,8 @@ closest_point_ray_segment :: (ray : Ray3, segment : Segment3) -> Closest_Point_R
     {
         // The ray and segment are not parallel.
         b1 := -dot(segDirection, diff);
-        s0 := a01 * b1 - a11 * b0;
-        s1 := a01 * b0 - a00 * b1;
+        s0 = a01 * b1 - a11 * b0;
+        s1 = a01 * b0 - a00 * b1;
 
         if (s0 >= zero)
         {

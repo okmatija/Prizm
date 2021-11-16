@@ -1,5 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+do_clip_radius_mode :: (clicked : bool = false) -> bool {
+    button_component := ifx clicked then ImGui.IsMouseClicked(.Left) else ImGui.IsMouseDown(.Left)
+    return app.user_selection.is_visible && (button_component && (io().KeyShift || io().KeyCtrl));
+}
+
 do_selection_mode :: () {
     {
         if app.user_selection.is_hovered {
@@ -27,8 +32,7 @@ do_selection_mode :: () {
     use_result_for_repositioning_camera := ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
     use_result_for_rendering_cursor_text := app.user_selection_cursor_text_shown;
 
-    app.clipping_sphere_mode = ImGui.IsMouseDown(.Left) && io().KeyShift;
-    if !app.clipping_sphere_mode app.clipping_sphere_mode_entity_index = -1;
+    if !do_clip_radius_mode() app.clipping_sphere_mode_entity_index = -1;
 
     // This block computes the radius of the clipping sphere, then returns from the function
     if app.clipping_sphere_mode_entity_index != -1 {
@@ -59,10 +63,10 @@ do_selection_mode :: () {
         return;
     }
 
-    if app.clipping_sphere_mode || use_result_for_adding_to_selection  || use_result_for_repositioning_camera || use_result_for_rendering_cursor_text {
+    if do_clip_radius_mode() || use_result_for_adding_to_selection  || use_result_for_repositioning_camera || use_result_for_rendering_cursor_text {
 
         closest : Point_On_Entity = ---;
-        if app.clipping_sphere_mode || use_result_for_repositioning_camera {
+        if do_clip_radius_mode() || use_result_for_repositioning_camera {
             closest = find_intersection_point_on_visible_entities(sphere_clipped=true); // @Volatile element_index is a triangle index
         } else {
             closest = find_closest_vertex_on_visible_entities(front_facing_only = true, sphere_clipped=true); // @Volatile element_index is now a vertex index
@@ -70,7 +74,7 @@ do_selection_mode :: () {
 
         if closest.entity_index != -1 {
 
-            if use_result_for_repositioning_camera || app.clipping_sphere_mode {
+            if use_result_for_repositioning_camera || do_clip_radius_mode() {
                 view_from_world := make_look_at_matrix(app.camera);
                 closest_view := view_from_world * make_vector4(closest.position, 1.);
 
@@ -97,7 +101,7 @@ do_selection_mode :: () {
                 }
                 sphere.radius = sqrt(sphere.radius);
 
-                if app.clipping_sphere_mode && ImGui.IsMouseClicked(.Left) {
+                if do_clip_radius_mode(clicked=true) {
                     app.clipping_sphere_mode_entity_index = closest.entity_index;
                     entity := app.entities[app.clipping_sphere_mode_entity_index];
                     entity.display_info.clip_sphere.is_active = true;

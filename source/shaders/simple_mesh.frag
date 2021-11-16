@@ -17,7 +17,7 @@ uniform float wave; // time varying value in range [-1,1]
 uniform vec4 color; // rgba
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-uniform bool clipping_sphere_mode;
+uniform int clip_mode = 0;
 
 in vec3 fragment_position_ws;
 
@@ -60,38 +60,48 @@ vec3 RGBtoHSV(in vec3 rgb)
 }
 
 void main() {
+    vec4 used_color = color;
+
     for (int i = 0; i < 3; ++i) {
         if (clip_range[i].is_active) {
             float dist = dot(clip_range[i].normal, fragment_position_ws);
             float min = clip_range[i].min;
             float max = clip_range[i].max;
             if (dist <= min || dist >= max) {
-                // discard;
+                switch (clip_mode) {
+                    case 0: { // Hidden
+                        discard;
+                    } break;
+                    case 1: { // Blacken
+                        used_color = vec4(0, 0, 0, 1);
+                    } break;
+                    case 2: { // Darken
+                        // @Incomplete
+                    } break;
+                }
             }
         }
     }
 
-    float clipping_sphere_darken_factor = 1.;
     if (clip_sphere.is_active) {
         float dist = distance(clip_sphere.center, fragment_position_ws);
         if (dist > clip_sphere.radius) {
-            if (clipping_sphere_mode) {
-                clipping_sphere_darken_factor = .4;
-            } else {
-                // discard;
+            switch (clip_mode) {
+                case 0: { // Hidden
+                    discard;
+                } break;
+                case 1: { // Blacken
+                    used_color = vec4(0, 0, 0, 1);
+                } break;
+                case 2: { // Darken
+                    // @Incomplete
+                } break;
             }
         }
     }
 
-    out_color = mix(color, vec4(1.f), wave * .5f + .5f);
-
-    if (clipping_sphere_mode) {
-        // Darken
-        vec3 hsv = RGBtoHSV(out_color.xyz);
-        hsv.z *= clipping_sphere_darken_factor;
-        out_color.xyz = HSVtoRGB(hsv);
-    }
+    out_color = mix(used_color, vec4(1.f), wave * .5f + .5f);
 
     // Respect blending of input color
-    out_color.w = color.w;
+    out_color.w = used_color.w;
 }
