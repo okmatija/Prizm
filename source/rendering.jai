@@ -366,10 +366,7 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
 
-        clip_mode := Clip_Mode.HIDDEN;
-        if app.user_selection.is_visible && (ImGui.IsMouseDown(.Left) && (io().KeyShift || io().KeyCtrl)) {
-            clip_mode = .BLACKEN;
-        }
+        clip_mode := ifx do_clip_radius_mode() then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
         glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx clip_mode);
     }
 

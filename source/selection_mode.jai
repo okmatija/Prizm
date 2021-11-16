@@ -1,8 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 do_clip_radius_mode :: (clicked : bool = false) -> bool {
+    if ImGui.IsMouseClicked(.Left) assert(ImGui.IsMouseDown(.Left));
     button_component := ifx clicked then ImGui.IsMouseClicked(.Left) else ImGui.IsMouseDown(.Left)
-    return app.user_selection.is_visible && (button_component && (io().KeyShift || io().KeyCtrl));
+    return app.user_selection.is_visible && button_component && io().KeyShift;
 }
 
 do_selection_mode :: () {
@@ -67,24 +68,31 @@ do_selection_mode :: () {
 
         closest : Point_On_Entity = ---;
         if do_clip_radius_mode() || use_result_for_repositioning_camera {
-            closest = find_intersection_point_on_visible_entities(sphere_clipped=true); // @Volatile element_index is a triangle index
+            closest = find_intersection_point_on_visible_entities(); // @Volatile element_index is a triangle index
         } else {
-            closest = find_closest_vertex_on_visible_entities(front_facing_only = true, sphere_clipped=true); // @Volatile element_index is now a vertex index
+            closest = find_closest_vertex_on_visible_entities(); // @Volatile element_index is now a vertex index
         }
 
         if closest.entity_index != -1 {
 
-            if use_result_for_repositioning_camera || do_clip_radius_mode() {
-                view_from_world := make_look_at_matrix(app.camera);
-                closest_view := view_from_world * make_vector4(closest.position, 1.);
+            if do_clip_radius_mode(clicked=true) {
+                app.clipping_sphere_mode_entity_index = closest.entity_index;
+                entity := app.entities[app.clipping_sphere_mode_entity_index];
+                entity.display_info.clip_sphere.is_active = true;
+                entity.display_info.clip_sphere.sphere.center = closest.position;
+                entity.display_info.clip_sphere.sphere.radius = 0.;
+                for :selected app.entities {
+                    it.display_info.clip_sphere = entity.display_info.clip_sphere;
+                    app.selection_display_info.clip_sphere = entity.display_info.clip_sphere; // Set in each iteration but whatever
+                }
+            }
 
-                world_from_view := inverse(view_from_world);
-                eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
+            if use_result_for_repositioning_camera {
 
                 sphere : Sphere;
                 sphere.center = closest.position;
 
-                // Compute the bounding sphere radius of the points in the scene
+                // Compute the bounding sphere of the points in the scene
                 sphere.radius = 0;
                 for :visible entity : app.entities {
                     for * entity.mesh.positions {
@@ -101,24 +109,15 @@ do_selection_mode :: () {
                 }
                 sphere.radius = sqrt(sphere.radius);
 
-                if do_clip_radius_mode(clicked=true) {
-                    app.clipping_sphere_mode_entity_index = closest.entity_index;
-                    entity := app.entities[app.clipping_sphere_mode_entity_index];
-                    entity.display_info.clip_sphere.is_active = true;
-                    entity.display_info.clip_sphere.sphere.center = sphere.center;
-                    entity.display_info.clip_sphere.sphere.radius = 0.;
-                    for :selected app.entities {
-                        it.display_info.clip_sphere = entity.display_info.clip_sphere;
-                        app.selection_display_info.clip_sphere = entity.display_info.clip_sphere; // Set in each iteration but whatever
-                    }
-                }
+                view_from_world := make_look_at_matrix(app.camera);
+                closest_view := view_from_world * make_vector4(closest.position, 1.);
+                world_from_view := inverse(view_from_world);
+                eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
 
-                if use_result_for_repositioning_camera {
-                    app.camera.look_position = closest.position;
-                    app.camera.eye_position  += eye_displacement;
-                    app.camera.far = sphere.radius * 2;
-                    app.camera.near = -app.camera.far;
-                }
+                app.camera.look_position = closest.position;
+                app.camera.eye_position  += eye_displacement;
+                app.camera.far = sphere.radius * 2;
+                app.camera.near = -app.camera.far;
             }
 
             if use_result_for_adding_to_selection {

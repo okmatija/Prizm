@@ -261,7 +261,7 @@ Point_On_Entity :: struct {
 }
 
 // @Cleanup Add a threshold for how close you need to be to consider adding a vertex
-find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_clipped := true, range_clipped := false) -> Point_On_Entity {
+find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
     ray := make_camera_ray();
 
@@ -273,6 +273,7 @@ find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_cl
             if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
                 for vertex, vertex_index : entity.mesh.positions {
 
+                    front_facing_only :: true;
                     if front_facing_only && (entity.mesh.normals.count != 0) && dot(current_look_direction(), entity.mesh.normals[vertex_index]) > 0 {
                         continue;
                     }
@@ -282,10 +283,12 @@ find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_cl
 
                     if d2 < dist2 {
 
+                        sphere_clipped :: true;
                         if sphere_clipped && is_clipped(entity.display_info.clip_sphere, p) {
                             continue;
                         }
 
+                        range_clipped :: true;
                         if range_clipped && is_clipped(entity.display_info.clip_ranges, p) {
                             continue;
                         }
@@ -304,8 +307,10 @@ find_closest_vertex_on_visible_entities :: (front_facing_only := true, sphere_cl
 }
 
 // @Cleanup rename to find_closest_point_on_visible_entities
-// @Cleanup rename to do_sphere_clipping, and do_range_clipping (or just do_clipping???)
-find_intersection_point_on_visible_entities :: (front_facing_only := false, sphere_clipped := false, range_clipped := false) -> Point_On_Entity {
+find_intersection_point_on_visible_entities :: (front_facing_only := false) -> Point_On_Entity {
+
+    sphere_clipped :: true;
+    range_clipped :: true;
 
     ray := make_camera_ray();
 
