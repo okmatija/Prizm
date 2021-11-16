@@ -106,20 +106,19 @@ init_keymap :: () {
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
-    add_key(*app.keymap, toggle_clipping, "Toggle clipping on visible items", xx #char "c"); // @Volatile Sync with SELECTION_MODE_TOOLTIP
+    add_key(*app.keymap, toggle_visible_clipping, "Toggle clipping on visible items", xx #char "c"); // @Volatile Sync with SELECTION_MODE_TOOLTIP
 
-    // @Cleanup Improve names here!! Add selected to the function names
-    add_key(*app.keymap, reload_selected_items, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap, remove_selected_items, "Remove selected items", xx Special_Key_Code.DELETE);
-    add_key(*app.keymap, cycle_opacity, "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
-    add_key(*app.keymap, cycle_normals_visibility, "Cycle normals visibility for selected items", xx #char "n");
-    add_key(*app.keymap, cycle_wireframe_width, "Cycle line width for selected items", xx #char "l");
-    add_key(*app.keymap, cycle_point_size, "Cycle point size for selected items", xx #char "p");
+    add_key(*app.keymap, reload_selection, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
+    add_key(*app.keymap, cycle_selection_opacity, "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
+    add_key(*app.keymap, cycle_selection_normals_visibility, "Cycle normals visibility for selected items", xx #char "n");
+    add_key(*app.keymap, cycle_selection_wireframe_width, "Cycle line width for selected items", xx #char "l");
+    add_key(*app.keymap, cycle_selection_point_size, "Cycle point size for selected items", xx #char "p");
     // @Speed These are both extremely slow (on Windows?) so currently disabled
-    // add_key(*app.keymap, cycle_point_index_labels, "Cycle point index labels for selected items", xx #char "p", .{shift_pressed=true});
-    // add_key(*app.keymap, cycle_point_position_labels, "Cycle point position labels for selected items", xx #char "p", .{alt_pressed=true});
-    add_key(*app.keymap, toggle_is_visible, "Toggle visibility on selected items", xx #char "v");
-    add_key(*app.keymap, clear_labels, "Clear labels for selected items", xx #char "x");
+    // add_key(*app.keymap, cycle_selection_point_index_labels, "Cycle point index labels for selected items", xx #char "p", .{shift_pressed=true});
+    // add_key(*app.keymap, cycle_selection_point_position_labels, "Cycle point position labels for selected items", xx #char "p", .{alt_pressed=true});
+    add_key(*app.keymap, toggle_selection_is_visible, "Toggle visibility on selected items", xx #char "v");
+    add_key(*app.keymap, clear_selection_all_labels, "Clear labels for selected items", xx #char "x");
 
     // @Volatile button text in camera control pane should be kept in sync with keymap!
     add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  15 deg about selected rotation axis", xx #char "]");
@@ -177,7 +176,7 @@ rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
-toggle_clipping :: () {
+toggle_visible_clipping :: () {
     clip_active := false;
     for :visible app.entities {
         if it.display_info.clip_sphere.is_active {
@@ -195,30 +194,30 @@ toggle_clipping :: () {
     }
 }
 
-clear_labels :: () {
-    for app.entities if it.is_selected {
+clear_selection_all_labels :: () {
+    for :selected app.entities {
         using it.display_info.vertex_label_style;
         show_index, show_position = false, false;
     }
 }
 
-cycle_point_index_labels :: () {
+cycle_selection_point_index_labels :: () {
     app_style := *app.selection_display_info.vertex_label_style;
     app_style.show_index = !app_style.show_index;
-    for app.entities if it.is_selected {
+    for :selected app.entities {
         it.display_info.vertex_label_style.show_index = app_style.show_index;
     }
 }
 
-cycle_point_position_labels :: () {
+cycle_selection_point_position_labels :: () {
     app_style := *app.selection_display_info.vertex_label_style;
     app_style.show_position = !app_style.show_position;
-    for app.entities if it.is_selected {
+    for :selected app.entities {
         it.display_info.vertex_label_style.show_position = app_style.show_position;
     }
 }
 
-cycle_point_size :: () {
+cycle_selection_point_size :: () {
     app_info := *app.selection_display_info;
     {
         using app_info;
@@ -238,7 +237,7 @@ cycle_point_size :: () {
     }
 }
 
-cycle_wireframe_width :: () {
+cycle_selection_wireframe_width :: () {
     app_info := *app.selection_display_info;
     {
         using app_info;
@@ -260,7 +259,7 @@ cycle_wireframe_width :: () {
     }
 }
 
-cycle_opacity :: () {
+cycle_selection_opacity :: () {
 
     app_info := *app.selection_display_info;
     if      app_info.surface_color.w == 1.  app_info.surface_color.w = .5;
@@ -272,7 +271,7 @@ cycle_opacity :: () {
     }
 }
 
-cycle_normals_visibility :: () {
+cycle_selection_normals_visibility :: () {
 
     app_info := *app.selection_display_info;
     app_info.normals_visible = !app_info.normals_visible;
@@ -283,7 +282,7 @@ cycle_normals_visibility :: () {
 }
 
 
-toggle_is_visible :: () {
+toggle_selection_is_visible :: () {
 
     visible := false;
     for :selected app.entities {
@@ -306,13 +305,13 @@ toggle_fullscreen :: () {
     ok := SDL_SetWindowFullscreen(app.window, flags); // @Robustness handle error
 }
 
-reload_selected_items :: () {
+reload_selection :: () {
     for app.entities if it.is_selected {
         app.entities[it_index] = reload_entity(it);
     }
 }
 
-remove_selected_items :: () {
+remove_selection :: () {
     for app.entities if it.is_selected {
         deinit(it);
         free(it);
