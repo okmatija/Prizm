@@ -42,16 +42,13 @@ do_selection_mode :: () {
 
         // Find plane though point we clicked normal to the camera and compute intersection of mouse ray with that plane to set the radius
         ray := make_camera_ray();
-        line : Line3; // @Cleanup Make a ray/plane intersection function
-        line.origin = ray.origin;
-        line.direction = ray.direction;
         plane := make_hyperplane3(plane_normal=current_look_direction(), point_on_plane=entity.display_info.clip_sphere.center);
-        intersect_count, intersect_t := find_intersect_line3_plane3(line, plane);
+        intersect_count, intersect_t := find_intersect_ray3_plane3(ray, plane);
         if intersect_count != 1 {
             log_error("Expected an intersection");
             return;
         }
-        current_point := to_point(line, intersect_t);
+        current_point := to_point(ray, intersect_t);
 
         speed :: 2;
         d := distance(entity.display_info.clip_sphere.center, current_point);
@@ -68,9 +65,9 @@ do_selection_mode :: () {
 
         closest : Point_On_Entity = ---;
         if do_clip_radius_mode() || use_result_for_repositioning_camera {
-            closest = find_intersection_point_on_visible_entities(); // @Volatile element_index is a triangle index
+            closest = find_closest_point_on_visible_entities(); // @Volatile closest.element_index is a triangle index
         } else {
-            closest = find_closest_vertex_on_visible_entities(); // @Volatile element_index is now a vertex index
+            closest = find_closest_vertex_on_visible_entities(); // @Volatile closest.element_index is now a vertex index
         }
 
         if closest.entity_index != -1 {

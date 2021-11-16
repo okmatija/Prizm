@@ -306,8 +306,7 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
     return result;
 }
 
-// @Cleanup rename to find_closest_point_on_visible_entities
-find_intersection_point_on_visible_entities :: (front_facing_only := false) -> Point_On_Entity {
+find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_On_Entity {
 
     sphere_clipped :: true;
     range_clipped :: true;
