@@ -109,7 +109,7 @@ Display_Info :: struct {
     clip_ranges[0] = .{normal=.{1,0,0}};
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
-    clip_sphere : Clip_Sphere;
+    clip_sphere, clip_sphere_prev : Clip_Sphere;
     clip_mode := Clip_Mode.HIDDEN;
 }
 
@@ -305,6 +305,12 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
+
+        glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.center"), clip_sphere_prev.center.x, clip_sphere_prev.center.y, clip_sphere_prev.center.z);
+        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.radius"), xx clip_sphere_prev.radius);
+        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.is_active"), xx clip_sphere_prev.is_active);
+
+        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx do_clip_radius_mode());
     }
 
     glBindVertexArray(app.mesh_vao);

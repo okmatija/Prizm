@@ -7,6 +7,7 @@ do_clip_radius_mode :: (clicked : bool = false) -> bool {
 }
 
 do_selection_mode :: () {
+    // @Cleanup make this separate
     {
         if app.user_selection.is_hovered {
             glClear(GL_DEPTH_BUFFER_BIT);
@@ -33,7 +34,9 @@ do_selection_mode :: () {
     use_result_for_repositioning_camera := ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
     use_result_for_rendering_cursor_text := app.user_selection_cursor_text_shown;
 
-    if !do_clip_radius_mode() app.clipping_sphere_mode_entity_index = -1;
+    if !do_clip_radius_mode() {
+        app.clipping_sphere_mode_entity_index = -1;
+    }
 
     // This block computes the radius of the clipping sphere, then returns from the function
     if app.clipping_sphere_mode_entity_index != -1 {
@@ -52,11 +55,15 @@ do_selection_mode :: () {
 
         speed :: 2;
         d := distance(entity.display_info.clip_sphere.center, current_point);
-        entity.display_info.clip_sphere.radius = speed * d;
+
+        new_sphere : Clip_Sphere = entity.display_info.clip_sphere;
+        new_sphere.radius = speed * d;
+
+        entity.display_info.clip_sphere = new_sphere;
         for :selected app.entities {
-            it.display_info.clip_sphere.radius = entity.display_info.clip_sphere.radius;
-            app.selection_display_info.clip_sphere.radius = entity.display_info.clip_sphere.radius; // Set in each iteration but whatever
+            it.display_info.clip_sphere = new_sphere;
         }
+        app.selection_display_info.clip_sphere = new_sphere;
 
         return;
     }
@@ -73,15 +80,29 @@ do_selection_mode :: () {
         if closest.entity_index != -1 {
 
             if do_clip_radius_mode(clicked=true) {
+                // When we first enter clip radius mode (when the mouse is first clicked) we:
+                // 1. Store the previous sphere
+                // 2. Store the center of the new sphere
+
                 app.clipping_sphere_mode_entity_index = closest.entity_index;
                 entity := app.entities[app.clipping_sphere_mode_entity_index];
-                entity.display_info.clip_sphere.is_active = true;
-                entity.display_info.clip_sphere.sphere.center = closest.position;
-                entity.display_info.clip_sphere.sphere.radius = 0.;
+
+                old_sphere : Clip_Sphere = app.selection_display_info.clip_sphere;
+
+                new_sphere : Clip_Sphere;
+                new_sphere.is_active = true;
+                new_sphere.center = closest.position;
+                new_sphere.radius = 0.;
+
+                // @Cleanup nocommit Make this into two calls to an update sphere function!!!
+                entity.display_info.clip_sphere = new_sphere;
+                entity.display_info.clip_sphere_prev = old_sphere;
                 for :selected app.entities {
-                    it.display_info.clip_sphere = entity.display_info.clip_sphere;
-                    app.selection_display_info.clip_sphere = entity.display_info.clip_sphere; // Set in each iteration but whatever
+                    it.display_info.clip_sphere = new_sphere;
+                    it.display_info.clip_sphere_prev = old_sphere;
                 }
+                app.selection_display_info.clip_sphere = new_sphere;
+                app.selection_display_info.clip_sphere_prev = old_sphere;
             }
 
             if use_result_for_repositioning_camera {

@@ -39,7 +39,8 @@ uniform vec4 wireframe_color; // rgba
 uniform float wireframe_width;
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-const int clip_mode = 0;
+uniform Clip_Sphere clip_sphere_prev;
+uniform bool clip_radius_mode = false;
 
 in vec3 vertex_normal_ws;
 in vec3 fragment_position_ws;
@@ -124,6 +125,7 @@ vec3 RGBtoHSV(in vec3 rgb)
 
 void main() {
     vec4 used_color = color;
+    float clip_mode_darken_factor = 1.;
 
     for (int i = 0; i < 3; ++i) {
         if (clip_range[i].is_active) {
@@ -131,6 +133,7 @@ void main() {
             float min = clip_range[i].min;
             float max = clip_range[i].max;
             if (dist <= min || dist >= max) {
+                int clip_mode = 0;
                 switch (clip_mode) {
                     case 0: { // Hidden
                         discard;
@@ -139,27 +142,33 @@ void main() {
                         used_color = vec4(0, 0, 0, 1);
                     } break;
                     case 2: { // Darken
-                        // @Incomplete
+                        clip_mode_darken_factor = .4;
                     } break;
                 }
             }
         }
     }
 
-    float clip_mode_darken_factor = 1.;
     if (clip_sphere.is_active) {
         float dist = distance(clip_sphere.center, fragment_position_ws);
-        if (dist > clip_sphere.radius) {
-            switch (clip_mode) {
-                case 0: { // Hidden
-                    discard;
-                } break;
-                case 1: { // Blacken
-                    used_color = vec4(0, 0, 0, 1);
-                } break;
-                case 2: { // Darken
-                    clip_mode_darken_factor = .4;
-                } break;
+        bool outside_clip_sphere = dist > clip_sphere.radius;
+
+        float dist_prev = distance(clip_sphere_prev.center, fragment_position_ws);
+        bool outside_clip_sphere_prev = dist_prev > clip_sphere_prev.radius;
+
+        if (clip_radius_mode) {
+            if (outside_clip_sphere &&  outside_clip_sphere_prev) {
+                discard;
+            } else if (outside_clip_sphere && !outside_clip_sphere_prev) {
+                clip_mode_darken_factor = .4;
+            } else {
+                 // do nothing
+            }
+        } else {
+            if (outside_clip_sphere) {
+                discard;
+            } else {
+                // do nothing
             }
         }
     }
@@ -252,11 +261,10 @@ void main() {
         }
     }
 
-    if (clip_mode == 2) { // Darken
-        vec3 hsv = RGBtoHSV(out_color.xyz);
-        hsv.z *= clip_mode_darken_factor;
-        out_color.xyz = HSVtoRGB(hsv);
-    }
+    // Maybe Darken
+    vec3 hsv = RGBtoHSV(out_color.xyz);
+    hsv.z *= clip_mode_darken_factor;
+    out_color.xyz = HSVtoRGB(hsv);
 
     // Respect blending of input color
     out_color.w = color.w;
