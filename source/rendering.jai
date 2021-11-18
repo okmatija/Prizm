@@ -465,8 +465,6 @@ render_entities :: () {
         old_display_info := entity.display_info;
         defer entity.display_info = old_display_info;
 
-        clipping_sphere_mode := (app.user_selection.is_visible && (io().KeyShift || io().KeyCtrl)); // Note: Not app.clipping_sphere_mode!
-
         if entity.type == {
             case .POLYLINE_SOUP2;
 
@@ -493,12 +491,18 @@ render_entities :: () {
 
                 mesh := cast(*Mesh_Entity) entity;
                 render_mesh_points(*mesh.mesh, ri, di);
-                if clipping_sphere_mode di.wireframe_visible, di.wireframe_width = true, 1.5;
-                render_mesh_triangles(*mesh.mesh, ri, di);
-                if clipping_sphere_mode di.wireframe_visible, di.wireframe_width = true, 1.0;
-                if clipping_sphere_mode || (di.wireframe_visible && di.surface_color.w != 1) {
-                    render_mesh_lines(*mesh.mesh, ri, di);
+                if do_clip_radius_mode() {
+                    di.wireframe_visible, di.wireframe_width = true, 1.5;
                 }
+                render_mesh_triangles(*mesh.mesh, ri, di);
+                if do_clip_radius_mode() {
+                    di.wireframe_visible, di.wireframe_width = true, 1.0;
+                } else if di.surface_visible && di.wireframe_width >= 1 {
+                    // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
+                    // smooth version drawn in the render_mesh_triangles call
+                    di.wireframe_width = max(di.wireframe_width - 1, 1);
+                }
+                render_mesh_lines(*mesh.mesh, ri, di);
                 render_normals(*mesh.mesh, ri, di);
                 render_aabb(*mesh.mesh, ri, di);
         }

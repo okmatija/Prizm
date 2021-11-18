@@ -322,6 +322,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         ));
 
     intersected_triangle := false;
+    has_degenerate_triangles := false;
     t_min := FLOAT32_INFINITY;
     for :visible_selectable_triangulated entity, entity_index : app.entities {
         for i : 0..(entity.mesh.indices.count/3)-1 {
@@ -332,32 +333,86 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
             triangle.c = entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
             n := cross(triangle.a - triangle.b, triangle.a - triangle.c); // No need to normalize
 
-            if front_facing_only && dot(current_look_direction(), n) > 0 {
-                continue;
-            }
-
-            isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
-            if isect && t < t_min {
-
-                if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
+            if n == Vector3.{0, 0, 0} {
+                has_degenerate_triangles = true;
+            } else {
+                if front_facing_only && dot(current_look_direction(), n) > 0 {
                     continue;
                 }
 
-                if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
-                    continue;
-                }
+                isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
+                if isect && t < t_min {
 
-                t_min = t;
-                result.position = ipoint;
-                result.element_index = i;
-                result.entity_index = entity_index;
-                intersected_triangle = true;
+                    if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
+                        continue;
+                    }
+
+                    if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                        continue;
+                    }
+
+                    t_min = t;
+                    result.position = ipoint;
+                    result.element_index = i;
+                    result.entity_index = entity_index;
+                    intersected_triangle = true;
+                }
             }
         }
     }
 
     if intersected_triangle {
         return result;
+    }
+
+    d_min := FLOAT32_INFINITY;
+    if (has_degenerate_triangles) {
+        for :visible_selectable_triangulated entity, entity_index : app.entities {
+            for i : 0..(entity.mesh.indices.count/3)-1 {
+
+                triangle : Triangle3;
+                triangle.a = entity.mesh.positions[entity.mesh.indices[3 * i + 0]];
+                triangle.b = entity.mesh.positions[entity.mesh.indices[3 * i + 1]];
+                triangle.c = entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
+
+                segment3 : Segment3 = ---;
+                if triangle.a == triangle.b {
+                    segment3.start = triangle.a;
+                    segment3.end = triangle.c;
+                } else if triangle.a == triangle.c {
+                    segment3.start = triangle.a;
+                    segment3.end = triangle.b;
+                } else if triangle.b == triangle.c {
+                    segment3.start = triangle.a;
+                    segment3.end = triangle.b;
+                } else {
+                    segment3.start = triangle.a;
+                    segment3.end = triangle.a;
+                }
+
+                closest_point := closest_point_ray_segment(ray, segment3);
+                ipoint := closest_point.closest[1];
+                d := closest_point.distance;
+
+                // @Incomplete continue if the distance is beyond a threshold?
+
+                if d < d_min {
+
+                    if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
+                        continue;
+                    }
+
+                    if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                        continue;
+                    }
+
+                    d_min = d;
+                    result.position = ipoint;
+                    result.element_index = 0; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
+                    result.entity_index = entity_index;
+                }
+            }
+        }
     }
 
     visible_selectable_polyline_soup2 :: #bake_arguments entities_iterator(should_visit = (e) => (
@@ -372,7 +427,6 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
 
-    d_min := FLOAT32_INFINITY;
     for :visible_selectable_polyline_soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
         for :segment_iterator segment, segment_index : soup.shape {
