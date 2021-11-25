@@ -310,7 +310,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.radius"), xx clip_sphere_prev.radius);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.is_active"), xx clip_sphere_prev.is_active);
 
-        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx do_clip_radius_mode());
+        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx (do_clip_radius_mode() && app.clipping_sphere_mode_entity_index >=0));
     }
 
     glBindVertexArray(app.mesh_vao);

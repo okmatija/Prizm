@@ -7,6 +7,10 @@ do_clip_radius_mode :: (clicked : bool = false) -> bool {
 }
 
 do_selection_mode :: () {
+    if app.user_selection.is_visible == false {
+        return;
+    }
+
     // @Cleanup make this separate
     {
         if app.user_selection.is_hovered {
@@ -39,7 +43,7 @@ do_selection_mode :: () {
     }
 
     // This block computes the radius of the clipping sphere, then returns from the function
-    if app.clipping_sphere_mode_entity_index != -1 {
+    if app.clipping_sphere_mode_entity_index >= 0 {
 
         entity := app.entities[app.clipping_sphere_mode_entity_index];
 

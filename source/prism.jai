@@ -152,15 +152,11 @@ main :: () {
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-        render_background();
         update_camera(1);
+        render_background();
         render_entities();
-        if app.user_selection.is_visible {
-            do_selection_mode();
-        }
-        if triad.visible {
-            render_axes_triad(*triad);
-        }
+        render_axes_triad(*triad);
+        do_selection_mode();
 
 
         // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);

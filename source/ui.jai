@@ -64,37 +64,44 @@ show_item_list_ui :: () {
             entity_to_remove = it_index;
         }
 
-        // Toggle visibility and set color
-        ImGui.SameLine();
-        was_visible := it.is_visible;
-        visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
-        // Show_Tooltip("Visible");
-
-        if !was_visible && it.is_visible {
-            // Make sure we see something when turning on visibility
-            if !it.display_info.surface_visible && !it.display_info.wireframe_visible {
-                it.display_info.surface_visible = true;
-            }
-        }
-
-        any_visibility_changed = any_visibility_changed || visibility_changed;
-        ImGui.SameLine();
-        if it.display_info.display_mode == .NORMALS {
-            ImGui.TextDisabled("NR.");
-        } else {
-            color := entity_primary_color(it);
-            if color {
-                ImGui.ColorEdit4(imgui_label("##color", it), *color.component, ImGui.ColorEditFlags.NoInputs);
-            }
-        }
-        if ImGui.IsItemClicked(.Right) {
-            cycle_display_mode(*it.display_info.display_mode);
-        } else if ImGui.IsItemClicked(.Middle) {
-            if it.display_info.display_mode != .NORMALS {
+        // Color selection
+        {
+            ImGui.SameLine();
+            if it.display_info.display_mode == .NORMALS {
+                ImGui.TextDisabled("NR.");
+            } else {
                 color := entity_primary_color(it);
-                <<color = color_from_path(it.fully_pathed_filename);
+                if color {
+                    ImGui.ColorEdit4(imgui_label("##color", it), *color.component, ImGui.ColorEditFlags.NoInputs);
+                }
+            }
+            if ImGui.IsItemClicked(.Right) {
+                cycle_display_mode(*it.display_info.display_mode);
+            } else if ImGui.IsItemClicked(.Middle) {
+                if it.display_info.display_mode != .NORMALS {
+                    color := entity_primary_color(it);
+                    <<color = color_from_path(it.fully_pathed_filename);
+                }
             }
         }
+
+        // Toggle visibility checkbox
+        {
+            ImGui.SameLine();
+            was_visible := it.is_visible;
+            visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
+            any_visibility_changed = any_visibility_changed || visibility_changed;
+            Show_Tooltip("Visible");
+
+            if !was_visible && it.is_visible {
+                // Make sure we see something when turning on visibility
+                if !it.display_info.surface_visible && !it.display_info.wireframe_visible {
+                    it.display_info.surface_visible = true;
+                }
+            }
+        }
+
+        // Toggle clipping checkbox?
 
         // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
         if app.show_console_ui || app.user_selection.is_visible {
@@ -320,20 +327,26 @@ show_item_list_ui :: () {
             deinit(it);
         }
 
-        // Toggle visibility checkbox
-        ImGui.SameLine();
-        visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
+        // Color selection
+        {
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+        }
 
-        SELECTION_MODE_TOOLTIP :: #string DONE
+        // Toggle visibility checkbox
+        {
+            ImGui.SameLine();
+            visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
+            any_visibility_changed = any_visibility_changed || visibility_changed;
+
+            SELECTION_MODE_TOOLTIP :: #string DONE
 C-LMB Add nearest unclipped vertex to Selection
 S-LMB Click-drag to set clipping sphere
 C-RMB Place camera orbit
 c     Toggle clipping of visible items
 DONE // @Volatile Keep synced with keymap
-        Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode");
-        any_visibility_changed = any_visibility_changed || visibility_changed;
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+            Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode");
+        }
 
         ImGui.SameLine();
         ImGui.Text("Selection");

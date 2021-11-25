@@ -29,6 +29,10 @@ make_axes_triad :: (axis_length : float) -> Axes_Triad
 }
 
 render_axes_triad :: (triad : *Axes_Triad) {
+    if triad.visible == false {
+        return;
+    }
+
     using *app.camera;
     old_camera := app.camera;
     defer app.camera = old_camera;
