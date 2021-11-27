@@ -627,14 +627,14 @@ show_help_ui :: () {
         ImGui.NextColumn();
         ImGui.NextColumn();
         for app.keymap_keydown.mappings {
-            Push_Temporary();
+            push_allocator(temp);
             ImGui.Text(to_c_string(tprint("%", to_string(it))));
             ImGui.NextColumn();
             ImGui.Text(to_c_string(tprint("%", app.keymap_keydown.procs[it.proc_info_index].name)));
             ImGui.NextColumn();
         }
         for app.keymap.mappings {
-            Push_Temporary();
+            push_allocator(temp);
             ImGui.Text(to_c_string(tprint("%", to_string(it))));
             ImGui.NextColumn();
             ImGui.Text(to_c_string(tprint("%", app.keymap.procs[it.proc_info_index].name)));
@@ -920,7 +920,7 @@ clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
 }
 
 imgui_label :: (label : string, ptr : *void) -> *u8 {
-    Push_Temporary();
+    push_allocator(temp);
     return to_c_string(join(label, tprint("##%", ptr)));
 }
 

@@ -158,7 +158,7 @@ entity_filename :: (using entity : Entity, with_generation_index : bool, with_sh
 }
 
     if with_short_filename {
-        Push_Temporary();
+        push_allocator(temp);
         path := parse_path(fully_pathed_filename);
         if path.words.count {
             name_text = path.words[path.words.count - 1];
