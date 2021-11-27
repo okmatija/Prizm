@@ -317,9 +317,10 @@ show_item_list_ui :: () {
         }
     }
 
-    {
-        ImGui.Separator();
+    ImGui.Separator();
 
+    // Selection Mode UI
+    {
         it := *app.user_selection;
 
         // Remove button
@@ -339,13 +340,13 @@ show_item_list_ui :: () {
             visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
             any_visibility_changed = any_visibility_changed || visibility_changed;
 
+            // nocommit Change this keybind which toggles selection mode, make it s??
             SELECTION_MODE_TOOLTIP :: #string DONE
 C-LMB Add nearest unclipped vertex to Selection
-S-LMB Click-drag to set clipping sphere
 C-RMB Place camera orbit
-c     Toggle clipping of visible items
+s     Toggle clipping of visible items
 DONE // @Volatile Keep synced with keymap
-            Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode");
+            Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode and Show Selection");
         }
 
         ImGui.SameLine();
@@ -402,6 +403,39 @@ DONE // @Volatile Keep synced with keymap
             ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
             ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
         }
+    }
+
+    // Clipping Mode UI
+    {
+        it := *app.user_selection; // nocommit
+
+        // Clear button
+        if ImGui.Button(imgui_label("Clear ##Clipping ", it)) {
+            // deinit(it); // nocommit implement this 
+        }
+
+        // Color selection
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled("NA.");
+            // ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+        }
+
+        // Toggle clipping sphere checkbox
+        {
+            ImGui.SameLine();
+            clipping_mode := *it.display_info.clip_sphere.is_active;
+            ImGui.Checkbox(imgui_label("##Clipping", it), clipping_mode);
+
+            CLIPPING_MODE_TOOLTIP :: #string DONE
+S-LMB Click-drag to set clipping sphere
+c     Toggle clipping of visible items
+DONE // @Volatile Keep synced with keymap
+            Show_Tooltip(ifx <<clipping_mode then CLIPPING_MODE_TOOLTIP else "Enable Clipping Mode");
+        }
+
+        ImGui.SameLine();
+        ImGui.Text("Clipping");
     }
 
     if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {

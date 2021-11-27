@@ -1,5 +1,8 @@
+
+
 ## Version 0.2.0, Unreleased
 
+- Changed Selection Mode toggle keybinding to s from m
 - Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
 - Changed rendering of back faces to use an darkened version of the front face color
 - Improved rendering of mesh edges/wireframes using the SolidWireframe algorithm by Samuel Gateau

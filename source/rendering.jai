@@ -310,6 +310,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.radius"), xx clip_sphere_prev.radius);
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.is_active"), xx clip_sphere_prev.is_active);
 
+        // Also check the entity index here so we only render the previous sphere when we're resizing the sphere
         glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx (do_clip_radius_mode() && app.clipping_sphere_mode_entity_index >=0));
     }
 
@@ -372,6 +373,7 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
 
+        // @Refactor move the clip_radius_mode stuff to the shader, do switching there
         clip_mode := ifx do_clip_radius_mode() then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
         glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx clip_mode);
     }

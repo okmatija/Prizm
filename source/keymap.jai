@@ -93,12 +93,15 @@ Keymap :: struct {
 }
 
 init_keymap :: () {
+
+    // TODO Add options here for behaviour customizations?
+
     add_key(*app.keymap_keydown, toggle_fullscreen, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_show_help_ui, "Toggle help UI",  xx #char "h");
     add_key(*app.keymap_keydown, toggle_show_global_settings_ui, "Toggle settings UI",  xx #char "h", .{shift_pressed=true});
     add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`");
     add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", .{control_pressed=true}, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "m");
+    add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "s"); // @Volatile keep synced with SELECTION_MODE_TOOLTIP
 
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, call_fit_on_screen, "Fit on screen", xx #char "r");
@@ -106,7 +109,7 @@ init_keymap :: () {
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
-    add_key(*app.keymap, toggle_visible_clipping, "Toggle clipping on visible items", xx #char "c"); // @Volatile Sync with SELECTION_MODE_TOOLTIP
+    add_key(*app.keymap, toggle_clipping_selection, "Toggle clipping on selected items", xx #char "c"); // @Volatile Sync with CLIPPING_MODE_TOOLTIP
 
     add_key(*app.keymap, reload_selection, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
@@ -176,18 +179,18 @@ rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
-toggle_visible_clipping :: () {
+toggle_clipping_selection :: () {
     clip_active := false;
-    for :visible app.entities {
+    for :selected app.entities {
         if it.display_info.clip_sphere.is_active {
             clip_active = true;
             break;
         }
     }
 
-    // Toggle and apply it to all visible entities
+    // Toggle and apply it to all selected entities
     clip_active = !clip_active;
-    for :visible app.entities {
+    for :selected app.entities {
         using it.display_info;
         clip_sphere.is_active = clip_active;
         for * clip_ranges it.is_active = clip_active;
