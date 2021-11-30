@@ -44,6 +44,7 @@ camera_rotation_axis :: () -> Vector3
 
 set_look_direction :: (direction : Vector3, up : Vector3)
 {
+    // @Incomplete Interpolate the motion
     using *app.camera;
     d := distance(look_position, eye_position) / length(direction);
     eye_position = look_position - d * direction;

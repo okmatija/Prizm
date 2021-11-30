@@ -463,10 +463,6 @@ show_camera_controls :: () {
     using ImGui.WindowFlags;
 
     ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
-    // SetNextWindowSize(ImVec2(400,400), ImGuiCond_FirstUseEver);
-    // ImGui.SetNextWindowSize(*ImVec2.{150., 0.});
-    ImGui.SetNextWindowContentSize(ImGui.ImVec2.{110., 0.});
-    // ImGui.SetNextWindowBgAlpha(.3);
     ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
     defer ImGui.End();
 
@@ -476,67 +472,69 @@ show_camera_controls :: () {
 
     keep_up := app.settings.camera_controls_keep_up_when_setting_look_along;
 
-    // @Incomplete Interpolate the motion
+    if ImGui.BeginTable("##ViewCube", 3) {
+        defer ImGui.EndTable();
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        if ImGui.Button("+X ") {
+            set_look_direction(direction=X_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
+        }
+        ImGui.TableNextColumn();
+        if ImGui.Button("+Y ") {
+            set_look_direction(direction=Y_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
+        }
+        ImGui.TableNextColumn();
+        if ImGui.Button("+Z ") {
+            set_look_direction(direction=Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
+        }
 
-    ImGui.Columns(3, border=false);
-    if ImGui.Button("+X ") {
-        set_look_direction(direction=X_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-    }
-    ImGui.NextColumn();
-    if ImGui.Button("+Y ") {
-        set_look_direction(direction=Y_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-    }
-    ImGui.NextColumn();
-    if ImGui.Button("+Z ") {
-        set_look_direction(direction=Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
-    }
-    ImGui.NextColumn();
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        if ImGui.Button("-X ") {
+            set_look_direction(direction=-X_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
+        }
+        ImGui.TableNextColumn();
+        if ImGui.Button("-Y ") {
+            set_look_direction(direction=-Y_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
+        }
+        ImGui.TableNextColumn();
+        if ImGui.Button("-Z ") {
+            set_look_direction(direction=-Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
+        }
 
-    if ImGui.Button("-X ") {
-        set_look_direction(direction=-X_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-    }
-    ImGui.NextColumn();
-    if ImGui.Button("-Y ") {
-        set_look_direction(direction=-Y_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-    }
-    ImGui.NextColumn();
-    if ImGui.Button("-Z ") {
-        set_look_direction(direction=-Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
-    }
-    ImGui.NextColumn();
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
 
-    // @Volatile button text in camera control pane should be kept in sync with keymap!
-    right_label, left_label, amount := "<< ", " >>", 5.;
-    if io().KeyShift {
-        right_label, left_label, amount = "<<<", ">>>", 15.;
-    } else if io().KeyAlt {
-        right_label, left_label, amount = " < ", " > ", 1.;
+        // @Volatile button text in camera control pane should be kept in sync with keymap!
+        right_label, left_label, amount := "<< ", ">> ", 5.;
+        if io().KeyShift {
+            right_label, left_label, amount = "<<<", ">>>", 15.;
+        } else if io().KeyAlt {
+            right_label, left_label, amount = " < ", " > ", 1.;
+        }
+        if ImGui.Button(to_c_string(right_label)) {
+            axis := camera_rotation_axis();
+            rotate_look_direction(axis, amount);
+        }
+        ImGui.TableNextColumn();
+        if ImGui.Button("XYZ") {
+            up := normalize(cross(.{-1, 1, 0}, .{-1, -1, -1}));
+            set_look_direction(direction=.{-1, -1, -1}, up=up);
+        }
+        ImGui.TableNextColumn();
+        if ImGui.Button(to_c_string(left_label)) {
+            axis := camera_rotation_axis();
+            rotate_look_direction(axis, -amount);
+        }
     }
 
-    if ImGui.Button(to_c_string(right_label)) {
-        axis := camera_rotation_axis();
-        rotate_look_direction(axis, amount);
-    }
-    ImGui.NextColumn();
-    if ImGui.Button("XYZ") {
-        up := normalize(cross(.{-1, 1, 0}, .{-1, -1, -1}));
-        set_look_direction(direction=.{-1, -1, -1}, up=up);
-    }
-    ImGui.NextColumn();
-    if ImGui.Button(to_c_string(left_label)) {
-        axis := camera_rotation_axis();
-        rotate_look_direction(axis, -amount);
-    }
-    ImGui.NextColumn();
-
-    ImGui.Columns(1, border=false);
-
-    ImGui.PushItemWidth(100);
+    ImGui.SetNextItemWidth(-FLOAT32_MIN);
     combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
     Show_Tooltip("Camera Rotation Axis");
 
     if app.camera.look_position != Vector3.{0, 0, 0} {
-        if ImGui.Button(" Reset Orbit ") {
+        size_of_last_item := ImGui.GetItemRectSize();
+        if ImGui.Button("Reset Orbit", size=size_of_last_item) {
             look_direction := current_look_direction();
             app.camera.look_position = .{0, 0, 0};
             app.camera.eye_position = app.camera.look_position - look_direction;
