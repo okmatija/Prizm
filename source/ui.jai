@@ -57,131 +57,157 @@ show_item_list_ui :: () {
 
     any_visibility_changed := false;
 
-    entity_to_remove := -1;
-    for entities {
-        // Remove button
-        if ImGui.Button(imgui_label("Remove", it)) {
-            entity_to_remove = it_index;
-        }
+    {
+        show_entity_index := app.show_console_ui || app.user_selection.is_visible;
 
-        // Color selection
-        {
-            ImGui.SameLine();
-            if it.display_info.display_mode == .NORMALS {
-                ImGui.TextDisabled("NR.");
-            } else {
-                color := entity_primary_color(it);
-                if color {
-                    ImGui.ColorEdit4(imgui_label("##color", it), *color.component, ImGui.ColorEditFlags.NoInputs);
-                }
-            }
-            if ImGui.IsItemClicked(.Right) {
-                cycle_display_mode(*it.display_info.display_mode);
-            } else if ImGui.IsItemClicked(.Middle) {
-                if it.display_info.display_mode != .NORMALS {
-                    color := entity_primary_color(it);
-                    <<color = color_from_path(it.fully_pathed_filename);
-                }
-            }
-        }
+        ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
+        defer ImGui.EndTable();
 
-        // Toggle visibility checkbox
-        {
-            ImGui.SameLine();
-            was_visible := it.is_visible;
-            visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
-            any_visibility_changed = any_visibility_changed || visibility_changed;
-            Show_Tooltip("Visible");
+        entity_to_remove := -1;
+        for entities {
+            ImGui.TableNextRow();
 
-            if !was_visible && it.is_visible {
-                // Make sure we see something when turning on visibility
-                if !it.display_info.surface_visible && !it.display_info.wireframe_visible {
-                    it.display_info.surface_visible = true;
-                }
-            }
-        }
-
-        // Toggle clipping checkbox?
-
-        // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
-        if app.show_console_ui || app.user_selection.is_visible {
-            ImGui.SameLine();
-            label := to_c_string(tprint("#%", it_index));
-            if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-                ImGui.Text(label);
-                Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
-            } else {
-                ImGui.TextDisabled(label);
-                Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
-            }
-            ImGui.SameLine();
-        }
-
-        // Write filename
-        ImGui.SameLine();
-        if it.fully_pathed_filename.count {
-            text := entity_filename(<<it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
-
-            delta_time := get_current_file_time() - it.loaded_filetime;
-            FADE_TIME_SECS := 1;
-            base_color := ifx is_empty(<<it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
-            color := ImGui.make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
-            if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
-                alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
-                color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, alpha);
-                color = ImGui.make_ImVec4(color4.x, color4.y, color4.z, color4.w);
+            // Remove button
+            ImGui.TableNextColumn();
+            if ImGui.Button(imgui_label("Remove", it)) {
+                entity_to_remove = it_index;
             }
 
-            ImGui.PushStyleColor(xx ImGui.Col.Text, color);
+            // Color selection
             {
-                push_allocator(temp); // to free the join'd string
-                if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
-                    if !io().KeyCtrl it.is_selected = !it.is_selected;
+                ImGui.TableNextColumn();
+                if it.display_info.display_mode == .NORMALS {
+                    ImGui.TextDisabled("NR");
+                } else {
+                    color := entity_primary_color(it);
+                    if color {
+                        ImGui.ColorEdit4(imgui_label("##color", it), *color.component, ImGui.ColorEditFlags.NoInputs);
+                    }
+                }
+                if ImGui.IsItemClicked(.Right) {
+                    cycle_display_mode(*it.display_info.display_mode);
+                } else if ImGui.IsItemClicked(.Middle) {
+                    if it.display_info.display_mode != .NORMALS {
+                        color := entity_primary_color(it);
+                        <<color = color_from_path(it.fully_pathed_filename);
+                    }
                 }
             }
-            ImGui.PopStyleColor();
-        } else {
-            ImGui.Selectable("---", *it.is_selected);
-        }
-        if ImGui.IsItemClicked() {
-            if !io().KeyCtrl && !is_empty(<<it) {
-                fit_on_screen(it);
+
+            // Toggle visibility checkbox
+            {
+                ImGui.TableNextColumn();
+                was_visible := it.is_visible;
+                visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
+                any_visibility_changed = any_visibility_changed || visibility_changed;
+                Show_Tooltip("Visible");
+
+                if !was_visible && it.is_visible {
+                    // Make sure we see something when turning on visibility
+                    if !it.display_info.surface_visible && !it.display_info.wireframe_visible {
+                        it.display_info.surface_visible = true;
+                    }
+                }
             }
-        }
-        was_hovered := it.is_hovered;
-        it.is_hovered = ImGui.IsItemHovered();
-        if ImGui.IsItemHovered() {
-            it.display_info.flash_wave_dt += io().DeltaTime;
-        } else if was_hovered {
-            it.display_info.flash_wave_dt = 0;
+
+            // Toggle clipping checkbox?
+
+            // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
+            if show_entity_index {
+                ImGui.TableNextColumn();
+                label := to_c_string(tprint("#%", it_index));
+                if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
+                    ImGui.Text(label);
+                    Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
+                } else {
+                    ImGui.TextDisabled(label);
+                    Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
+                }
+            }
+
+            // Write filename
+            ImGui.TableNextColumn();
+            // ImGui.SetNextItemWidth(-FLOAT32_MIN);
+            if it.fully_pathed_filename.count {
+                text := entity_filename(<<it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
+
+                delta_time := get_current_file_time() - it.loaded_filetime;
+                FADE_TIME_SECS := 1;
+                base_color := ifx is_empty(<<it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
+                color := ImGui.make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
+                if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
+                    alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
+                    color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, alpha);
+                    color = ImGui.make_ImVec4(color4.x, color4.y, color4.z, color4.w);
+                }
+
+                ImGui.PushStyleColor(xx ImGui.Col.Text, color);
+                {
+                    push_allocator(temp); // to free the join'd string
+                    if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                        if !io().KeyCtrl it.is_selected = !it.is_selected;
+                    }
+                }
+                ImGui.PopStyleColor();
+            } else {
+                ImGui.Selectable("---", *it.is_selected);
+            }
+            if ImGui.IsItemClicked() {
+                if !io().KeyCtrl && !is_empty(<<it) {
+                    fit_on_screen(it);
+                }
+            }
+            was_hovered := it.is_hovered;
+            it.is_hovered = ImGui.IsItemHovered();
+            if ImGui.IsItemHovered() {
+                it.display_info.flash_wave_dt += io().DeltaTime;
+            } else if was_hovered {
+                it.display_info.flash_wave_dt = 0;
+            }
+
+            // @Cleanup This is a horrible way to do this...
+            it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
+
+            show_item_context_menu(it, it_index);
         }
 
-        // @Cleanup This is a horrible way to do this...
-        it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
+        if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
+            fit_scene_on_screen();
+        }
 
-        show_item_context_menu(it, it_index);
+        if entity_to_remove >= 0 && entity_to_remove < entities.count {
+            deinit(entities[entity_to_remove]);
+            free(entities[entity_to_remove]);
+            array_ordered_remove_by_index(*entities, entity_to_remove);
+        }
     }
 
     ImGui.Separator();
 
+    ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody);
+    defer ImGui.EndTable();
+
     // Selection Mode UI
     {
+        ImGui.TableNextRow();
+
         it := *app.user_selection;
 
         // Remove button
+        ImGui.TableNextColumn();
         if ImGui.Button(imgui_label("Clear ", it)) {
             deinit(it);
         }
 
         // Color selection
         {
-            ImGui.SameLine();
+            ImGui.TableNextColumn();
             ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
         }
 
         // Toggle visibility checkbox
         {
-            ImGui.SameLine();
+            ImGui.TableNextColumn();
             visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
             any_visibility_changed = any_visibility_changed || visibility_changed;
 
@@ -194,7 +220,7 @@ DONE // @Volatile Keep synced with keymap
             Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode and Show Selection");
         }
 
-        ImGui.SameLine();
+        ImGui.TableNextColumn();
         ImGui.Text("Selection");
         if ImGui.IsItemClicked() {
             fit_on_screen(it);
@@ -252,23 +278,26 @@ DONE // @Volatile Keep synced with keymap
 
     // Clipping Mode UI
     {
+        ImGui.TableNextRow();
+
         it := *app.user_selection; // nocommit
 
         // Clear button
+        ImGui.TableNextColumn();
         if ImGui.Button(imgui_label("Clear ##Clipping ", it)) {
             // deinit(it); // nocommit implement this 
         }
 
         // Color selection
         {
-            ImGui.SameLine();
-            ImGui.TextDisabled("NA");
+            ImGui.TableNextColumn();
+            // ImGui.TextDisabled("NA");
             // ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
         }
 
         // Toggle clipping sphere checkbox
         {
-            ImGui.SameLine();
+            ImGui.TableNextColumn();
             clipping_mode := *it.display_info.clip_sphere.is_active;
             ImGui.Checkbox(imgui_label("##Clipping", it), clipping_mode);
 
@@ -279,18 +308,8 @@ DONE // @Volatile Keep synced with keymap
             Show_Tooltip(ifx <<clipping_mode then CLIPPING_MODE_TOOLTIP else "Enable Clipping Mode");
         }
 
-        ImGui.SameLine();
+        ImGui.TableNextColumn();
         ImGui.Text("Clipping");
-    }
-
-    if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
-        fit_scene_on_screen();
-    }
-
-    if entity_to_remove >= 0 && entity_to_remove < entities.count {
-        deinit(entities[entity_to_remove]);
-        free(entities[entity_to_remove]);
-        array_ordered_remove_by_index(*entities, entity_to_remove);
     }
 }
 
