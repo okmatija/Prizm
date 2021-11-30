@@ -133,8 +133,11 @@ show_item_list_ui :: () {
             }
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, color);
-            if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) { // @Leak? free the join'd string?
-                if !io().KeyCtrl it.is_selected = !it.is_selected;
+            {
+                push_allocator(temp); // to free the join'd string
+                if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                    if !io().KeyCtrl it.is_selected = !it.is_selected;
+                }
             }
             ImGui.PopStyleColor();
         } else {
@@ -156,165 +159,7 @@ show_item_list_ui :: () {
         // @Cleanup This is a horrible way to do this...
         it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
 
-        if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx it_index)) {
-            defer ImGui.EndPopup();
-
-            if !it.is_selected {
-                if it.fully_pathed_filename.count {
-                    if ImGui.Button(imgui_label("Reload", it)) {
-                        app.entities[it_index] = reload_entity(it);
-                    }
-                    ImGui.SameLine();
-                    text := entity_filename(<<it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
-                    ImGui.TextUnformatted(text);
-                }
-
-                ImGui.Separator();
-
-                normals_ui :=  it.type == .MESH;
-                lines_ui   := (it.type == .MESH && it.mesh.geometry_format != .POINTS) || it.type == .POLYLINE_SOUP2 || it.type == .POLYLINE_SOUP3;
-                faces_ui   := (it.type == .MESH && it.mesh.geometry_format == .TRIANGLES) || it.type == .POLYGON_SOUP;
-                maybe_update_render_info(*it.render_info, *it.mesh);
-
-                transformed_aabb := it.render_info.bounding_aabb;
-                {
-                    // @Volatile @Cleanup only works for a shift
-                    using transformed_aabb;
-                    min_point = (it.mesh.world_from_model * make_vector4(min_point, 1)).xyz;
-                    max_point = (it.mesh.world_from_model * make_vector4(max_point, 1)).xyz;
-                }
-
-                set := display_info_ui(*it.display_info, transformed_aabb, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
-                if set.color_reset it.display_info.surface_color = color_from_path(it.fully_pathed_filename);
-
-                ImGui.Separator();
-
-                shift := make_vector3(it.mesh.world_from_model._14, it.mesh.world_from_model._24, it.mesh.world_from_model._34);
-                // ImGui.PushItemWidth(-1);
-                ImGui.DragFloat3(imgui_label("Shift", it), *shift.component, .05);
-                // ImGui.PopItemWidth();
-                it.mesh.world_from_model._14, it.mesh.world_from_model._24, it.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
-
-                ImGui.Separator();
-
-                if #complete it.type == {
-                    case .POLYLINE_SOUP2;
-
-                        using soup := cast(*Polyline_Soup2_Entity)it;
-                        ImGui.Text(to_c_string(tprint("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count)));
-
-                    case .POLYLINE_SOUP3;
-
-                        using soup := cast(*Polyline_Soup3_Entity)it;
-                        ImGui.Text(to_c_string(tprint("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count)));
-
-                    case .POLYGON_SOUP;
-
-                        using soup := cast(*Polygon_Soup_Entity)it;
-                        ImGui.Text(to_c_string(tprint("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count)));
-
-                    case .UNKNOWN; #through;
-                    case .MESH;
-
-                        mesh := cast(*Mesh_Entity)it;
-                        if #complete mesh.mesh.geometry_format == {
-                            case .UNKNOWN; #through;
-                            case .POINTS;
-                                ImGui.Text(to_c_string(tprint("Mesh #points = %", mesh.mesh.positions.count)));
-                            case .LINES;
-                                ImGui.Text(to_c_string(tprint("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2)));
-                            case .TRIANGLES;
-                                ImGui.Text(to_c_string(tprint("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3)));
-                        }
-                }
-                maybe_update_render_info(*it.render_info, *it.mesh);
-                aabb := it.render_info.bounding_aabb;
-                ImGui.Text(to_c_string(tprint("Model space AABB = [%, %, %]x[%, %, %]",
-                                              aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
-                                              aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
-
-
-            } else {
-                for app.entities if it.is_selected {
-                    if it.fully_pathed_filename.count {
-                        if ImGui.Button(imgui_label("Reload", it)) {
-                            app.entities[it_index] = reload_entity(it);
-                        }
-                        ImGui.SameLine();
-                        text := entity_filename(<<it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
-                        ImGui.TextUnformatted(text);
-                    }
-                }
-
-                if ImGui.Button("Reload Selection") {
-                    for app.entities if it.is_selected {
-                        app.entities[it_index] = reload_entity(it);
-                    }
-                    // ImGui.CloseCurrentPopup();
-                }
-
-                ImGui.SameLine();
-                if ImGui.Button("Clear Selection") {
-                    for app.entities if it.is_selected {
-                        it.is_selected = false;
-                    }
-                    ImGui.CloseCurrentPopup();
-                }
-
-                ImGui.Separator();
-
-                selection_aabb : AxisBox3;
-                for app.entities if it.is_selected {
-                    maybe_update_render_info(*it.render_info, *it.mesh);
-                    // @Volatile @Cleanup only works for a shift
-                    aabb := it.render_info.bounding_aabb;
-                    aabb.min_point = (it.mesh.world_from_model * make_vector4(aabb.min_point, 1)).xyz;
-                    aabb.max_point = (it.mesh.world_from_model * make_vector4(aabb.max_point, 1)).xyz;
-                    expand(*selection_aabb, aabb);
-                }
-
-                set := display_info_ui(*app.selection_display_info, selection_aabb);
-
-                for app.entities if it.is_selected {
-                    other := *app.selection_display_info;
-                    using it.display_info;
-
-                    if set.vertex_label_style_update.show_position vertex_label_style.show_position = other.vertex_label_style.show_position;
-                    if set.vertex_label_style_update.show_index    vertex_label_style.show_index    = other.vertex_label_style.show_index;
-                    if set.vertex_label_style_update.format_float  vertex_label_style.format_float  = other.vertex_label_style.format_float;
-                    if set.vertex_label_style_update.label_scale   vertex_label_style.label_scale   = other.vertex_label_style.label_scale;
-                    if set.vertex_label_style_update.label_color   vertex_label_style.label_color   = other.vertex_label_style.label_color;
-
-                    if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
-                    if set.wireframe_width      wireframe_width      = other.wireframe_width;
-                    if set.surface_visible      surface_visible      = other.surface_visible;
-                    if set.display_mode         display_mode         = other.display_mode;
-                    if set.screentone_backfaces screentone_backfaces = other.screentone_backfaces;
-                    if set.flat_shading         flat_shading         = other.flat_shading;
-                    if set.normals_visible      normals_visible      = other.normals_visible;
-                    if set.normals_length       normals_length       = other.normals_length;
-                    if set.points_visible       points_visible       = other.points_visible;
-                    if set.points_size          points_size          = other.points_size;
-
-                    for 0..3 {
-                        if set.wireframe_color[it]   wireframe_color.component[it]   = other.wireframe_color.component[it];
-                        if set.surface_color[it]     surface_color.component[it]     = other.surface_color.component[it];
-                        if set.normals_color[it]     normals_color.component[it]     = other.normals_color.component[it];
-                        if set.points_color[it]      points_color.component[it]      = other.points_color.component[it];
-                    }
-
-                    if set.color_reset {
-                        color  := entity_primary_color(it);
-                        <<color = color_from_path(it.fully_pathed_filename);
-                    }
-
-                    for i : 0..clip_ranges.count-1 {
-                        if set.clip_ranges[i] clip_ranges[i] = other.clip_ranges[i];
-                    }
-                    if set.clip_sphere clip_sphere = other.clip_sphere;
-                }
-            }
-        }
+        show_item_context_menu(it, it_index);
     }
 
     ImGui.Separator();
@@ -417,7 +262,7 @@ DONE // @Volatile Keep synced with keymap
         // Color selection
         {
             ImGui.SameLine();
-            ImGui.TextDisabled("NA.");
+            ImGui.TextDisabled("NA");
             // ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
         }
 
@@ -446,6 +291,168 @@ DONE // @Volatile Keep synced with keymap
         deinit(entities[entity_to_remove]);
         free(entities[entity_to_remove]);
         array_ordered_remove_by_index(*entities, entity_to_remove);
+    }
+}
+
+show_item_context_menu :: (entity : *Entity, entity_index : s64) {
+    if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
+        defer ImGui.EndPopup();
+
+        if !entity.is_selected {
+            if entity.fully_pathed_filename.count {
+                if ImGui.Button(imgui_label("Reload", entity)) {
+                    app.entities[entity_index] = reload_entity(entity);
+                }
+                ImGui.SameLine();
+                text := entity_filename(<<entity, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                ImGui.TextUnformatted(text);
+            }
+
+            ImGui.Separator();
+
+            normals_ui :=  entity.type == .MESH;
+            lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
+            faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES) || entity.type == .POLYGON_SOUP;
+            maybe_update_render_info(*entity.render_info, *entity.mesh);
+
+            transformed_aabb := entity.render_info.bounding_aabb;
+            {
+                // @Volatile @Cleanup only works for a shift
+                using transformed_aabb;
+                min_point = (entity.mesh.world_from_model * make_vector4(min_point, 1)).xyz;
+                max_point = (entity.mesh.world_from_model * make_vector4(max_point, 1)).xyz;
+            }
+
+            set := display_info_ui(*entity.display_info, transformed_aabb, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
+            if set.color_reset entity.display_info.surface_color = color_from_path(entity.fully_pathed_filename);
+
+            ImGui.Separator();
+
+            shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
+            // ImGui.PushItemWidth(-1);
+            ImGui.DragFloat3(imgui_label("Shift", entity), *shift.component, .05);
+            // ImGui.PopItemWidth();
+            entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
+
+            ImGui.Separator();
+
+            if #complete entity.type == {
+                case .POLYLINE_SOUP2;
+
+                    using soup := cast(*Polyline_Soup2_Entity)entity;
+                    ImGui.Text(to_c_string(tprint("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count)));
+
+                case .POLYLINE_SOUP3;
+
+                    using soup := cast(*Polyline_Soup3_Entity)entity;
+                    ImGui.Text(to_c_string(tprint("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count)));
+
+                case .POLYGON_SOUP;
+
+                    using soup := cast(*Polygon_Soup_Entity)entity;
+                    ImGui.Text(to_c_string(tprint("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count)));
+
+                case .UNKNOWN; #through;
+                case .MESH;
+
+                    mesh := cast(*Mesh_Entity)entity;
+                    if #complete mesh.mesh.geometry_format == {
+                        case .UNKNOWN; #through;
+                        case .POINTS;
+                            ImGui.Text(to_c_string(tprint("Mesh #points = %", mesh.mesh.positions.count)));
+                        case .LINES;
+                            ImGui.Text(to_c_string(tprint("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2)));
+                        case .TRIANGLES;
+                            ImGui.Text(to_c_string(tprint("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3)));
+                    }
+            }
+            maybe_update_render_info(*entity.render_info, *entity.mesh);
+            aabb := entity.render_info.bounding_aabb;
+            ImGui.Text(to_c_string(tprint("Model space AABB = [%, %, %]x[%, %, %]",
+                                          aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
+                                          aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
+
+
+        } else {
+            for :selected app.entities {
+                if it.fully_pathed_filename.count {
+                    if ImGui.Button(imgui_label("Reload", it)) {
+                        app.entities[it_index] = reload_entity(it);
+                    }
+                    ImGui.SameLine();
+                    text := entity_filename(<<it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                    ImGui.TextUnformatted(text);
+                }
+            }
+
+            if ImGui.Button("Reload Selection") {
+                for :selected app.entities {
+                    app.entities[it_index] = reload_entity(it);
+                }
+                // ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.SameLine();
+            if ImGui.Button("Clear Selection") {
+                for :selected app.entities {
+                    it.is_selected = false;
+                }
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.Separator();
+
+            selection_aabb : AxisBox3;
+            for :selected app.entities {
+                maybe_update_render_info(*it.render_info, *it.mesh);
+                // @Volatile @Cleanup only works for a shift
+                aabb := it.render_info.bounding_aabb;
+                aabb.min_point = (it.mesh.world_from_model * make_vector4(aabb.min_point, 1)).xyz;
+                aabb.max_point = (it.mesh.world_from_model * make_vector4(aabb.max_point, 1)).xyz;
+                expand(*selection_aabb, aabb);
+            }
+
+            set := display_info_ui(*app.selection_display_info, selection_aabb);
+
+            for :selected app.entities {
+                other := *app.selection_display_info;
+                using it.display_info;
+
+                if set.vertex_label_style_update.show_position vertex_label_style.show_position = other.vertex_label_style.show_position;
+                if set.vertex_label_style_update.show_index    vertex_label_style.show_index    = other.vertex_label_style.show_index;
+                if set.vertex_label_style_update.format_float  vertex_label_style.format_float  = other.vertex_label_style.format_float;
+                if set.vertex_label_style_update.label_scale   vertex_label_style.label_scale   = other.vertex_label_style.label_scale;
+                if set.vertex_label_style_update.label_color   vertex_label_style.label_color   = other.vertex_label_style.label_color;
+
+                if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
+                if set.wireframe_width      wireframe_width      = other.wireframe_width;
+                if set.surface_visible      surface_visible      = other.surface_visible;
+                if set.display_mode         display_mode         = other.display_mode;
+                if set.screentone_backfaces screentone_backfaces = other.screentone_backfaces;
+                if set.flat_shading         flat_shading         = other.flat_shading;
+                if set.normals_visible      normals_visible      = other.normals_visible;
+                if set.normals_length       normals_length       = other.normals_length;
+                if set.points_visible       points_visible       = other.points_visible;
+                if set.points_size          points_size          = other.points_size;
+
+                for 0..3 {
+                    if set.wireframe_color[it]   wireframe_color.component[it]   = other.wireframe_color.component[it];
+                    if set.surface_color[it]     surface_color.component[it]     = other.surface_color.component[it];
+                    if set.normals_color[it]     normals_color.component[it]     = other.normals_color.component[it];
+                    if set.points_color[it]      points_color.component[it]      = other.points_color.component[it];
+                }
+
+                if set.color_reset {
+                    color  := entity_primary_color(it);
+                    <<color = color_from_path(it.fully_pathed_filename);
+                }
+
+                for i : 0..clip_ranges.count-1 {
+                    if set.clip_ranges[i] clip_ranges[i] = other.clip_ranges[i];
+                }
+                if set.clip_sphere clip_sphere = other.clip_sphere;
+            }
+        }
     }
 }
 
