@@ -16,12 +16,12 @@
 - Added a button to show/hide this changelog (when the app was compiled) in the help menu
 - Fixed an issue where normal vectors were not affected by clipping domains
 - Fixed some .obj parsing warnings and errors
-- Fixed some widget alignment issues in the camera controls
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash
 - Fixed a rare crash which could occur when toggling visibility and there was just one item in the item list
 - Changed the keybinding to rotate the camera around the selected axis in the camera control pane (press h for help)
 - Increased the default max point count for selectable entities from 100,000 to 5,000,000
 - Reduced the frequency of color changes in the default background shader
+- Various UI and widget aligment improvements to the item context menu and camera control panels
 
 
 ## Version 0.1.0, 20 October 2021

@@ -731,130 +731,93 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
 
     set : Display_Info_Update;
 
-    // FIXME FIXME: opacity should control wireframe??
-    ImGui.PushItemWidth(120);
-    set.display_mode = combo_box("", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
-    ImGui.PopItemWidth();
-
-    {
-        ImGui.Text("Points    ");
-        ImGui.SameLine();
-        set.points_visible = ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-        Show_Tooltip("Visible");
-        ImGui.SameLine();
-        old_color := display_info.points_color;
-        ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-        for 0..3 set.points_color[it] = old_color.component[it] != display_info.points_color.component[it];
-        ImGui.SameLine();
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        set.points_size = ImGui.InputInt("##points_size", *display_info.points_size);
-        Show_Tooltip("Size");
-        display_info.points_size = clamp(display_info.points_size, 1, 10);
-        ImGui.PopItemWidth();
-    }
-
-    if normals_ui {
-        ImGui.Text("Normals   ");
-        ImGui.SameLine();
-        set.normals_visible = ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-        Show_Tooltip("Visible");
-        ImGui.SameLine();
-        old_color := display_info.normals_color;
-        ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-        for 0..3 set.normals_color[it] = old_color.component[it] != display_info.normals_color.component[it];
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        set.normals_length = ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
-        Show_Tooltip("Length");
-        ImGui.PopItemWidth();
-    }
-
-    if lines_ui {
-        ImGui.Text("Lines     ");
-        ImGui.SameLine();
-        set.wireframe_visible = ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
-        Show_Tooltip("Visible");
-        ImGui.SameLine();
-        old_color := display_info.wireframe_color;
-        ImGui.ColorEdit4(imgui_label("##wireframe_color", display_info), *display_info.wireframe_color.component, ImGui.ColorEditFlags.NoInputs);
-        for 0..3 set.wireframe_color[it] = old_color.component[it] != display_info.wireframe_color.component[it];
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        set.wireframe_width = ImGui.DragFloat(imgui_label("##wireframe_width", display_info), *display_info.wireframe_width, .05);
-        Show_Tooltip("Width");
-        display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 5);
-        ImGui.PopItemWidth();
-    }
-
-    if faces_ui {
-        ImGui.Text("Triangles ");
-        ImGui.SameLine();
-        set.surface_visible = ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
-        Show_Tooltip("Visible");
-        {
-            ImGui.SameLine();
-            old_color := display_info.surface_color;
-            ImGui.ColorEdit4(imgui_label("##surface_color", display_info), *display_info.surface_color.component, ImGui.ColorEditFlags.NoInputs);
-            Show_Tooltip("Frontface Color");
-            for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
-        }
-        ImGui.SameLine();
-        set.screentone_backfaces = ImGui.Checkbox(imgui_label("##screentone_backfaces", display_info), *display_info.screentone_backfaces);
-        Show_Tooltip("Backface dots");
-        ImGui.SameLine();
-        set.flat_shading = ImGui.Checkbox(imgui_label("##flat_shading", display_info), *display_info.flat_shading);
-        Show_Tooltip("Flat shading");
-    }
-
-    set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-    Show_Tooltip("Deduce item primary colors from the file path");
-
-    {
-        using display_info;
-        changed := false;
-        ImGui.Checkbox(imgui_label("Clip Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); ImGui.SameLine(); Show_Tooltip("Enable clipping sphere");
-        ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
-        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
-        ImGui.SameLine();
-        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.center.x", *clip_sphere), *clip_sphere.center.x, .01, 0., 0., format="%.3f");
-        ImGui.SameLine();
-        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.center.y", *clip_sphere), *clip_sphere.center.y, .01, 0., 0., format="%.3f");
-        ImGui.SameLine();
-        changed |= ImGui.DragFloat(imgui_label("##clip_sphere.center.z", *clip_sphere), *clip_sphere.center.z, .01, 0., 0., format="%.3f");
-        ImGui.PopItemWidth();
-        set.clip_sphere = changed;
-    }
-
-    if ImGui.TreeNode("%", "Clip ranges") {
+    if ImGui.TreeNodeEx("Rendering", .DefaultOpen) {
         defer ImGui.TreePop();
-        using display_info;
-        display_info.aabb_visible = true;
 
-        ImGui.Text("Clip using distance from planes though the origin");
+        // FIXME FIXME: opacity should control wireframe??
+        ImGui.PushItemWidth(120);
+        set.display_mode = combo_box("", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
+        ImGui.PopItemWidth();
 
-        set.clip_ranges[0] = clip_range_ui(*clip_ranges[0], aabb);
-        set.clip_ranges[1] = clip_range_ui(*clip_ranges[1], aabb);
-        set.clip_ranges[2] = clip_range_ui(*clip_ranges[2], aabb);
+        ImGui.SameLine();
+        set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+        Show_Tooltip("Deduce item primary colors from the file path");
 
-        if almost_equal(length(clip_ranges[0].normal), 0.) clip_ranges[0].normal = .{1, 0, 0};
-        if almost_equal(length(clip_ranges[1].normal), 0.) clip_ranges[1].normal = .{0, 1, 0};
-        if almost_equal(length(clip_ranges[2].normal), 0.) clip_ranges[2].normal = .{0, 0, 1};
-
-        if ImGui.Button(imgui_label("Normalize", display_info)) {
-            for *clip_ranges {
-                normal_length := length(it.normal);
-                if normal_length != 0 {
-                    it.min /= normal_length;
-                    it.max /= normal_length;
-                    it.normal /= normal_length;
-                }
-            }
+        {
+            ImGui.Text("Points    ");
+            ImGui.SameLine();
+            set.points_visible = ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
+            Show_Tooltip("Visible");
+            ImGui.SameLine();
+            old_color := display_info.points_color;
+            ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+            for 0..3 set.points_color[it] = old_color.component[it] != display_info.points_color.component[it];
+            ImGui.SameLine();
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            set.points_size = ImGui.InputInt("##points_size", *display_info.points_size);
+            Show_Tooltip("Size");
+            display_info.points_size = clamp(display_info.points_size, 1, 10);
+            ImGui.PopItemWidth();
         }
-        Show_Tooltip("Make the normals unit and update the min/max for all ranges");
+
+        if normals_ui {
+            ImGui.Text("Normals   ");
+            ImGui.SameLine();
+            set.normals_visible = ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
+            Show_Tooltip("Visible");
+            ImGui.SameLine();
+            old_color := display_info.normals_color;
+            ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
+            for 0..3 set.normals_color[it] = old_color.component[it] != display_info.normals_color.component[it];
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            set.normals_length = ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+            Show_Tooltip("Length");
+            ImGui.PopItemWidth();
+        }
+
+        if lines_ui {
+            ImGui.Text("Lines     ");
+            ImGui.SameLine();
+            set.wireframe_visible = ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
+            Show_Tooltip("Visible");
+            ImGui.SameLine();
+            old_color := display_info.wireframe_color;
+            ImGui.ColorEdit4(imgui_label("##wireframe_color", display_info), *display_info.wireframe_color.component, ImGui.ColorEditFlags.NoInputs);
+            for 0..3 set.wireframe_color[it] = old_color.component[it] != display_info.wireframe_color.component[it];
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            set.wireframe_width = ImGui.DragFloat(imgui_label("##wireframe_width", display_info), *display_info.wireframe_width, .05);
+            Show_Tooltip("Width");
+            display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 5);
+            ImGui.PopItemWidth();
+        }
+
+        if faces_ui {
+            ImGui.Text("Triangles ");
+            ImGui.SameLine();
+            set.surface_visible = ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
+            Show_Tooltip("Visible");
+            {
+                ImGui.SameLine();
+                old_color := display_info.surface_color;
+                ImGui.ColorEdit4(imgui_label("##surface_color", display_info), *display_info.surface_color.component, ImGui.ColorEditFlags.NoInputs);
+                Show_Tooltip("Frontface Color");
+                for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
+            }
+            ImGui.SameLine();
+            set.screentone_backfaces = ImGui.Checkbox(imgui_label("##screentone_backfaces", display_info), *display_info.screentone_backfaces);
+            Show_Tooltip("Backface dots");
+            ImGui.SameLine();
+            set.flat_shading = ImGui.Checkbox(imgui_label("##flat_shading", display_info), *display_info.flat_shading);
+            Show_Tooltip("Flat shading");
+        }
     }
 
-    if ImGui.TreeNode("%", "Label Settings") {
+    show_clipping_ui(*set, display_info, aabb);
+
+    if ImGui.TreeNodeEx("Labeling") {
         defer ImGui.TreePop();
         using display_info;
 
@@ -878,70 +841,102 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
     return set;
 }
 
-clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
-    changed := false;
-    MIN_RANGE :: .1;
+show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {
 
-    ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
-    Show_Tooltip("Enable this clipping range");
-    ImGui.SameLine();
+    if ImGui.TreeNodeEx("Clipping", .DefaultOpen) {
+        defer ImGui.TreePop();
 
-    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
-    if ImGui.DragFloat(imgui_label("##range_min", p), *p.min, .1, 0., 0., format="%.3f") {
-        p.min = min(p.min, p.max - MIN_RANGE);
-        changed = true;
-    }
-    ImGui.PopItemWidth();
-    ImGui.SameLine();
-    ImGui.Text("<");
-    ImGui.SameLine();
-    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
-    changed |= ImGui.DragFloat(imgui_label("##normal.x", p), *p.normal.x, .01, 0., 0., format="%.3f");
-    ImGui.PopItemWidth();
-    ImGui.SameLine();
-    ImGui.Text("x +");
-    ImGui.SameLine();
-    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
-    changed |= ImGui.DragFloat(imgui_label("##normal.y", p), *p.normal.y, .01, 0., 0., format="%.3f");
-    ImGui.PopItemWidth();
-    ImGui.SameLine();
-    ImGui.Text("y +"); ImGui.SameLine();
-    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
-    changed |= ImGui.DragFloat(imgui_label("##normal.z", p), *p.normal.z, .01, 0., 0., format="%.3f");
-    ImGui.PopItemWidth();
-    ImGui.SameLine();
-    ImGui.Text("z");
-    ImGui.SameLine();
-    ImGui.Text("<");
-    ImGui.SameLine();
-    ImGui.PushItemWidth(CLIPPING_DRAG_FLOAT_WIDTH);
-    if ImGui.DragFloat(imgui_label("##range_max", p), *p.max, .1, 0., 0., format="%.3f") {
-        p.max = max(p.min + MIN_RANGE, p.max);
-        changed = true;
-    }
-    ImGui.PopItemWidth();
+        // nocommit Move this to tooltip on enable checkbox
+        ImGui.Text("Clip using distance from a point or from planes though the origin");
 
-    NEGATIVE_INF :: 0hFF800000;
-    POSITIVE_INF :: 0h7F800000;
-
-    ImGui.SameLine();
-    uninitialized := (p.min == NEGATIVE_INF) || (p.max == POSITIVE_INF);
-    if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
-        p.min = POSITIVE_INF;
-        p.max = NEGATIVE_INF;
-        for :corners_iterator aabb {
-            plane := make_hyperplane3(p.normal, Vector3.{0, 0, 0});
-            dist := signed_distance_point3_plane3(it, plane);
-            p.min = min(p.min, dist);
-            p.max = max(p.max, dist);
+        {
+            changed := false;
+            ImGui.Checkbox(imgui_label("Clip Sphere:##clip_sphere", *clip_sphere), *clip_sphere.is_active); ImGui.SameLine(); Show_Tooltip("Enable clipping sphere");
+            ImGui.Text("Center");
+            ImGui.SameLine();
+            ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
+            ImGui.SameLine();
+            ImGui.Text("Radius");
+            ImGui.SameLine();
+            changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
+            set.clip_sphere = changed;
         }
-        p.min -= .0001;
-        p.max += .0001;
-    }
-    Show_Tooltip("Reset the range min/max to keep the entire aabb");
 
-    return changed;
+        {
+            clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
+                changed := false;
+                MIN_RANGE :: .1;
+
+                ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
+                Show_Tooltip("Enable this clipping range");
+                ImGui.SameLine();
+                ImGui.Text("Clip Range: ");
+                ImGui.SameLine();
+
+                ImGui.Text("Normal");
+                ImGui.SameLine();
+                changed |= ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
+                ImGui.SameLine();
+                ImGui.Text("Range");
+                ImGui.SameLine();
+                range := make_vector2(p.min, p.max);
+                if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {
+                    p.min, p.max = range.x, range.y;
+                    p.min = min(p.min, p.max - MIN_RANGE);
+                    p.max = max(p.min + MIN_RANGE, p.max);
+                    changed = true;
+                }
+
+                NEGATIVE_INF :: 0hFF800000;
+                POSITIVE_INF :: 0h7F800000;
+
+                ImGui.SameLine();
+                uninitialized := (p.min == NEGATIVE_INF) || (p.max == POSITIVE_INF);
+                if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
+                    p.min = POSITIVE_INF;
+                    p.max = NEGATIVE_INF;
+                    for :corners_iterator aabb {
+                        plane := make_hyperplane3(p.normal, Vector3.{0, 0, 0});
+                        dist := signed_distance_point3_plane3(it, plane);
+                        p.min = min(p.min, dist);
+                        p.max = max(p.max, dist);
+                    }
+                    p.min -= .0001;
+                    p.max += .0001;
+                }
+                Show_Tooltip("Reset the range min/max to keep the entire aabb");
+
+                return changed;
+            }
+
+            using display_info;
+            display_info.aabb_visible = true;
+
+            // nocommit Rename clip range to clip slab?
+            set.clip_ranges[0] = clip_range_ui(*clip_ranges[0], aabb);
+            set.clip_ranges[1] = clip_range_ui(*clip_ranges[1], aabb);
+            set.clip_ranges[2] = clip_range_ui(*clip_ranges[2], aabb);
+
+            if almost_equal(length(clip_ranges[0].normal), 0.) clip_ranges[0].normal = .{1, 0, 0};
+            if almost_equal(length(clip_ranges[1].normal), 0.) clip_ranges[1].normal = .{0, 1, 0};
+            if almost_equal(length(clip_ranges[2].normal), 0.) clip_ranges[2].normal = .{0, 0, 1};
+
+            // nocommit Make this per-slab
+            if ImGui.Button(imgui_label("Normalize", display_info)) {
+                for *clip_ranges {
+                    normal_length := length(it.normal);
+                    if normal_length != 0 {
+                        it.min /= normal_length;
+                        it.max /= normal_length;
+                        it.normal /= normal_length;
+                    }
+                }
+            }
+            Show_Tooltip("Make the normals unit and update the min/max for all ranges");
+        }
+    }
 }
+
 
 imgui_label :: (label : string, ptr : *void) -> *u8 {
     push_allocator(temp);
