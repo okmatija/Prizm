@@ -1,5 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+// @TODO Separate clipping mode
+
 do_clip_radius_mode :: (clicked : bool = false) -> bool {
     if ImGui.IsMouseClicked(.Left) assert(ImGui.IsMouseDown(.Left));
     button_component := ifx clicked then ImGui.IsMouseClicked(.Left) else ImGui.IsMouseDown(.Left)
@@ -98,7 +100,7 @@ do_selection_mode :: () {
                 new_sphere.center = closest.position;
                 new_sphere.radius = 0.;
 
-                // @Cleanup nocommit Make this into two calls to an update sphere function!!!
+                // @Cleanup Make this into two calls to an update sphere function!
                 entity.display_info.clip_sphere = new_sphere;
                 entity.display_info.clip_sphere_prev = old_sphere;
                 for :selected app.entities {

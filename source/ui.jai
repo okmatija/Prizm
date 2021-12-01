@@ -234,16 +234,6 @@ DONE // @Volatile Keep synced with keymap
         if ImGui.BeginPopupContextItem(imgui_label("##context_menu", it)) {
             defer ImGui.EndPopup();
 
-            ImGui.Text(to_c_string(tprint("#points = %", it.mesh.positions.count)));
-
-            maybe_update_render_info(*it.render_info, *it.mesh);
-            aabb := it.render_info.bounding_aabb;
-            ImGui.Text(to_c_string(tprint("AABB [%, %, %], [%, %, %]",
-                                          aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
-                                          aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
-
-            ImGui.Separator();
-
             // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
             // ImGui.SameLine();
             // ImGui.PushItemWidth(70);
@@ -271,6 +261,16 @@ DONE // @Volatile Keep synced with keymap
             Show_Tooltip("Format is '#E,I {X,Y,Z}'\n X,Y,Z are the coordinates of the closest vertex\n E is entity index to which it belongs\n I is the vertex index within the entity");
             ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
             ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
+
+            ImGui.Separator();
+
+            ImGui.Text(to_c_string(tprint("#points = %", it.mesh.positions.count)));
+
+            maybe_update_render_info(*it.render_info, *it.mesh);
+            aabb := it.render_info.bounding_aabb;
+            ImGui.Text(to_c_string(tprint("AABB [%, %, %], [%, %, %]",
+                                          aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
+                                          aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
         }
     }
 }
@@ -831,6 +831,15 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                 ImGui.TableSetColumnIndex(4);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
+                ImGui.TableSetColumnIndex(5);
+                POSITIVE_INF :: 0h7F800000;
+                uninitialized := (clip_sphere.radius == POSITIVE_INF);
+                if ImGui.Button(imgui_label("Reset##sphere", *clip_sphere)) || uninitialized {
+                    clip_sphere.center = .{0, 0, 0};
+                    clip_sphere.radius = POSITIVE_INF;
+                    changed = true;
+                }
+                Show_Tooltip("Reset sphere to contain the universe");
 
                 set.clip_sphere = changed;
             }
@@ -877,6 +886,7 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                         }
                         p.min -= .0001;
                         p.max += .0001;
+                        changed = true;
                     }
                     Show_Tooltip("Reset the range min/max to keep the entire aabb");
 
@@ -888,6 +898,7 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                             p.max /= normal_length;
                             p.normal /= normal_length;
                         }
+                        changed = true;
                     }
                     Show_Tooltip("Make the normal unit and update the range min/max");
 

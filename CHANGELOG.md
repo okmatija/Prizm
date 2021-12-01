@@ -7,12 +7,13 @@
   - Fixes z-fighting/incorrect occulusion issues which could make some mesh edges invisible
   - Fixes jaggies appearing on most edges, edges belonging to only one triangle or silhouette edges still have jaggies
 - Added ability to clip within a sphere when Selection Mode is enabled
-  - The clipping sphere center is positioned by clicking on a visible entity and the radius is changed by dragging the mouse and set on release
+  - The clipping sphere center is positioned by click(ing on a visible entity and the radius is changed by dragging the mouse and set on release
   - The clipping sphere is applied to the visible entity on which it is centered, and to any selected entities (regardless of visibility)
   - Key bindings are shown when hovering the Selection Mode checkbox, or in the help menu (press h for help)
+  - Note: In future, when spatial lookups accelerate selection queries, the Selection Mode concept will be removed (it'll be always on)
 - Added an option to disable back face screentone effect, accessible in the item context menu
 - Added a button to show/hide this changelog (when the app was compiled) in the help menu
-- Added key-bindings following the pattern: 'k' performs operation on selected items, 'C-k' on all items and 'S-k' on visible items. Press 'h' for help
+- Added key-bindings following the pattern: 'k' performs operation on selected items, 'C-k' on all items and 'S-k' on visible items (press 'h' for help)
 - Fixed an issue where normal vectors were not affected by clipping domains
 - Fixed some .obj parsing warnings and errors
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash

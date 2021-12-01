@@ -100,6 +100,7 @@ build :: () {
                 if message.kind == {
                     case .TYPECHECKED;
                         do_error_checking(message);
+                        // do_error_checking(message, check_bindings=true); // @Cleanup fix these errors
 
                         typechecked := cast(*Message_Typechecked) message;
 
