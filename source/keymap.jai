@@ -106,22 +106,47 @@ init_keymap :: () {
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, call_fit_on_screen, "Fit on screen", xx #char "r");
     add_key(*app.keymap, reset_camera, "Reset camera", xx #char "r", .{shift_pressed=true});
+
+    // @Incomplete Refactor these to fit the k, C-k, S-k pattern?
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
-    add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
-    add_key(*app.keymap, toggle_clipping_selection, "Toggle clipping on selected items", xx #char "c"); // @Volatile Sync with CLIPPING_MODE_TOOLTIP
+    add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
 
     add_key(*app.keymap, reload_selection, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
-    add_key(*app.keymap, cycle_selection_opacity, "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
-    add_key(*app.keymap, cycle_selection_normals_visibility, "Cycle normals visibility for selected items", xx #char "n");
-    add_key(*app.keymap, cycle_selection_wireframe_width, "Cycle line width for selected items", xx #char "l");
-    add_key(*app.keymap, cycle_selection_point_size, "Cycle point size for selected items", xx #char "p");
+
+    // @Volatile Sync with SELECTION_MODE_TOOLTIP
+    add_key(*app.keymap, ()=>{toggle_clipping(.SELECTED);}, "Toggle clipping on selected items", xx #char "c");
+    add_key(*app.keymap, ()=>{toggle_clipping(.ALL);},      "Toggle clipping on all      items", xx #char "c", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{toggle_clipping(.VISIBLE);},  "Toggle clipping on visible  items", xx #char "c", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{toggle_is_visible(.SELECTED);}, "Toggle visibility on selected items", xx #char "v");
+    add_key(*app.keymap, ()=>{toggle_is_visible(.ALL);},      "Toggle visibility on all      items", xx #char "v", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{toggle_is_visible(.VISIBLE);},  "Toggle visibility on visible  items (Hide all items)", xx #char "v", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{cycle_opacity(.SELECTED);}, "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
+    add_key(*app.keymap, ()=>{cycle_opacity(.ALL);},      "Cycle opacity 20%%/50%%/100%% for all      items", xx #char "o", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{cycle_opacity(.VISIBLE);},  "Cycle opacity 20%%/50%%/100%% for visible  items", xx #char "o", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{cycle_normals_visibility(.SELECTED);}, "Cycle normals visibility for selected items", xx #char "n");
+    add_key(*app.keymap, ()=>{cycle_normals_visibility(.ALL);},      "Cycle normals visibility for all      items", xx #char "n", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{cycle_normals_visibility(.VISIBLE);},  "Cycle normals visibility for visible  items", xx #char "n", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{cycle_wireframe_width(.SELECTED);}, "Cycle line width for selected items", xx #char "l");
+    add_key(*app.keymap, ()=>{cycle_wireframe_width(.ALL);},      "Cycle line width for all      items", xx #char "l", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{cycle_wireframe_width(.VISIBLE);},  "Cycle line width for visible  items", xx #char "l", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{cycle_point_size(.SELECTED);}, "Cycle point size for selected items", xx #char "p");
+    add_key(*app.keymap, ()=>{cycle_point_size(.ALL);},      "Cycle point size for all      items", xx #char "p", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{cycle_point_size(.VISIBLE);},  "Cycle point size for visible  items", xx #char "p", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{clear_all_labels(.SELECTED);}, "Clear labels for selected items", xx #char "x");
+    add_key(*app.keymap, ()=>{clear_all_labels(.ALL);},      "Clear labels for all      items", xx #char "x", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{clear_all_labels(.VISIBLE);},  "Clear labels for visible  items", xx #char "x", .{shift_pressed=true});
+
     // @Speed These are both extremely slow (on Windows?) so currently disabled
     // add_key(*app.keymap, cycle_selection_point_index_labels, "Cycle point index labels for selected items", xx #char "p", .{shift_pressed=true});
     // add_key(*app.keymap, cycle_selection_point_position_labels, "Cycle point position labels for selected items", xx #char "p", .{alt_pressed=true});
-    add_key(*app.keymap, toggle_selection_is_visible, "Toggle visibility on selected items", xx #char "v");
-    add_key(*app.keymap, clear_selection_all_labels, "Clear labels for selected items", xx #char "x");
 
     // @Volatile button text in camera control pane should be kept in sync with keymap!
     add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  15 deg about selected rotation axis", xx #char "]");
@@ -179,26 +204,46 @@ rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
-toggle_clipping_selection :: () {
+Target_Items :: enum {
+    ALL;
+    VISIBLE;
+    SELECTED;
+}
+
+Is_Target :: (e : *Entity) -> bool #expand {
+    if #complete `target == {
+        case .SELECTED; return (e.is_selected == true);
+        case .VISIBLE;  return (e.is_visible  == true);
+        case .ALL;      return true;
+    }
+}
+
+toggle_clipping :: (target : Target_Items) {
+
     clip_active := false;
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         if it.display_info.clip_sphere.is_active {
+            clip_active = true;
+            break;
+        }
+        for it.display_info.clip_ranges if it.is_active {
             clip_active = true;
             break;
         }
     }
 
-    // Toggle and apply it to all selected entities
+    // Toggle and apply it to target entities
     clip_active = !clip_active;
-    for :selected app.entities {
-        using it.display_info;
-        clip_sphere.is_active = clip_active;
-        for * clip_ranges it.is_active = clip_active;
+    for app.entities if Is_Target(it) {
+        it.display_info.clip_sphere.is_active = clip_active;
+        for * it.display_info.clip_ranges {
+            it.is_active = clip_active;
+        }
     }
 }
 
-clear_selection_all_labels :: () {
-    for :selected app.entities {
+clear_all_labels :: (target : Target_Items) {
+    for app.entities if Is_Target(it) {
         using it.display_info.vertex_label_style;
         show_index, show_position = false, false;
     }
@@ -220,7 +265,7 @@ cycle_selection_point_position_labels :: () {
     }
 }
 
-cycle_selection_point_size :: () {
+cycle_point_size :: (target : Target_Items) {
     app_info := *app.selection_display_info;
     {
         using app_info;
@@ -234,13 +279,13 @@ cycle_selection_point_size :: () {
         }
     }
 
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         it.display_info.points_visible = app_info.points_visible;
         it.display_info.points_size    = app_info.points_size;
     }
 }
 
-cycle_selection_wireframe_width :: () {
+cycle_wireframe_width :: (target : Target_Items) {
     app_info := *app.selection_display_info;
     {
         using app_info;
@@ -256,39 +301,39 @@ cycle_selection_wireframe_width :: () {
         }
     }
 
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         it.display_info.wireframe_visible = app_info.wireframe_visible;
         it.display_info.wireframe_width   = app_info.wireframe_width;
     }
 }
 
-cycle_selection_opacity :: () {
+cycle_opacity :: (target : Target_Items) {
 
     app_info := *app.selection_display_info;
     if      app_info.surface_color.w == 1.  app_info.surface_color.w = .5;
     else if app_info.surface_color.w == .5  app_info.surface_color.w = .2;
     else    app_info.surface_color.w =  1.;
 
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         it.display_info.surface_color.w = app_info.surface_color.w;
     }
 }
 
-cycle_selection_normals_visibility :: () {
+cycle_normals_visibility :: (target : Target_Items) {
 
     app_info := *app.selection_display_info;
     app_info.normals_visible = !app_info.normals_visible;
 
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         it.display_info.normals_visible = app_info.normals_visible;
     }
 }
 
 
-toggle_selection_is_visible :: () {
+toggle_is_visible :: (target : Target_Items) {
 
     visible := false;
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         if it.is_visible {
             visible = true;
             break;
@@ -297,7 +342,7 @@ toggle_selection_is_visible :: () {
 
     // Toggle and apply it to all visible entities
     visible = !visible;
-    for :selected app.entities {
+    for app.entities if Is_Target(it) {
         it.is_visible = visible;
     }
 }

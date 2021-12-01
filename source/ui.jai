@@ -77,7 +77,7 @@ show_item_list_ui :: () {
             {
                 ImGui.TableNextColumn();
                 if it.display_info.display_mode == .NORMALS {
-                    ImGui.TextDisabled("NR");
+                    ImGui.TextDisabled("NR.");
                 } else {
                     color := entity_primary_color(it);
                     if color {
@@ -184,14 +184,13 @@ show_item_list_ui :: () {
 
     ImGui.Separator();
 
-    ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody);
-    defer ImGui.EndTable();
-
     // Selection Mode UI
-    {
-        ImGui.TableNextRow();
+    if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
+        defer ImGui.EndTable();
 
         it := *app.user_selection;
+
+        ImGui.TableNextRow();
 
         // Remove button
         ImGui.TableNextColumn();
@@ -211,13 +210,12 @@ show_item_list_ui :: () {
             visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
             any_visibility_changed = any_visibility_changed || visibility_changed;
 
-            // nocommit Change this keybind which toggles selection mode, make it s??
             SELECTION_MODE_TOOLTIP :: #string DONE
-C-LMB Add nearest unclipped vertex to Selection
+C-LMB Add nearest unclipped vertex to Selection item
+S-LMB Click-drag to set clipping sphere on selected items
 C-RMB Place camera orbit
-s     Toggle clipping of visible items
 DONE // @Volatile Keep synced with keymap
-            Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Enable Selection Mode and Show Selection");
+            Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Show Selection\nEnable Selection and Clipping Modes");
         }
 
         ImGui.TableNextColumn();
@@ -274,42 +272,6 @@ DONE // @Volatile Keep synced with keymap
             ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
             ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
         }
-    }
-
-    // Clipping Mode UI
-    {
-        ImGui.TableNextRow();
-
-        it := *app.user_selection; // nocommit
-
-        // Clear button
-        ImGui.TableNextColumn();
-        if ImGui.Button(imgui_label("Clear ##Clipping ", it)) {
-            // deinit(it); // nocommit implement this 
-        }
-
-        // Color selection
-        {
-            ImGui.TableNextColumn();
-            // ImGui.TextDisabled("NA");
-            // ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-        }
-
-        // Toggle clipping sphere checkbox
-        {
-            ImGui.TableNextColumn();
-            clipping_mode := *it.display_info.clip_sphere.is_active;
-            ImGui.Checkbox(imgui_label("##Clipping", it), clipping_mode);
-
-            CLIPPING_MODE_TOOLTIP :: #string DONE
-S-LMB Click-drag to set clipping sphere
-c     Toggle clipping of visible items
-DONE // @Volatile Keep synced with keymap
-            Show_Tooltip(ifx <<clipping_mode then CLIPPING_MODE_TOOLTIP else "Enable Clipping Mode");
-        }
-
-        ImGui.TableNextColumn();
-        ImGui.Text("Clipping");
     }
 }
 
@@ -571,6 +533,7 @@ show_help_ui :: () {
 
     if app.show_changelog {
         ImGui.SetNextWindowPos(ImGui.make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5});
+        // ImGui.SetNextWindowSize(ImGui.make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}); // @Incomplete
         flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .AlwaysHorizontalScrollbar;
         ImGui.Begin("##changelog", flags=flags);// | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
         ImGui.TextUnformatted(CHANGELOG);
@@ -857,12 +820,12 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                 changed := false;
 
                 ImGui.TableSetColumnIndex(0);
-                ImGui.Checkbox(imgui_label("Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); Show_Tooltip("Enable clipping using distance\nfrom a point");
+                changed |= ImGui.Checkbox(imgui_label("Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
-                ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
+                changed |= ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
                 ImGui.TableSetColumnIndex(3);
                 ImGui.Text("Radius");
                 ImGui.TableSetColumnIndex(4);
@@ -880,7 +843,7 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                     MIN_RANGE :: .1;
 
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.Checkbox(imgui_label("Slab##clip_plane", p), *p.is_active); Show_Tooltip("Enable clipping using distance range\nfrom a plane through the origin");
+                    changed |= ImGui.Checkbox(imgui_label("Slab##clip_plane", p), *p.is_active); Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text("Normal");
                     ImGui.TableSetColumnIndex(2);

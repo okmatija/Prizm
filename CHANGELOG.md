@@ -1,5 +1,3 @@
-
-
 ## Version 0.2.0, Unreleased
 
 - Changed Selection Mode toggle keybinding to s from m
@@ -14,6 +12,7 @@
   - Key bindings are shown when hovering the Selection Mode checkbox, or in the help menu (press h for help)
 - Added an option to disable back face screentone effect, accessible in the item context menu
 - Added a button to show/hide this changelog (when the app was compiled) in the help menu
+- Added key-bindings following the pattern: 'k' performs operation on selected items, 'C-k' on all items and 'S-k' on visible items. Press 'h' for help
 - Fixed an issue where normal vectors were not affected by clipping domains
 - Fixed some .obj parsing warnings and errors
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash
