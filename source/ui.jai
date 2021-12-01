@@ -347,14 +347,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             ImGui.Separator();
 
-            shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
-            // ImGui.PushItemWidth(-1);
-            ImGui.DragFloat3(imgui_label("Shift", entity), *shift.component, .05);
-            // ImGui.PopItemWidth();
-            entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
-
-            ImGui.Separator();
-
             if #complete entity.type == {
                 case .POLYLINE_SOUP2;
 
@@ -391,6 +383,9 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                                           aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
                                           aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
 
+            shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
+            ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
+            entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
 
         } else {
             for :selected app.entities {
@@ -824,9 +819,10 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
         // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
 
-        set.vertex_label_style_update.show_index = ImGui.Checkbox("Index labels", *vertex_label_style.show_index);
-        ImGui.SameLine();
+        // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
+        set.vertex_label_style_update.show_index    = ImGui.Checkbox("Index labels", *vertex_label_style.show_index);
         set.vertex_label_style_update.show_position = ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
+        set.vertex_label_style_update.label_color   = ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
 
         trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
         set.vertex_label_style_update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
@@ -835,7 +831,6 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
 
         set.vertex_label_style_update.format_float = combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
         set.vertex_label_style_update.label_scale  = ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
-        set.vertex_label_style_update.label_color  = ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
     }
 
     return set;
@@ -843,96 +838,109 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
 
 show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {
 
-    if ImGui.TreeNodeEx("Clipping", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Clipping", .None /*.DefaultOpen*/) {
         defer ImGui.TreePop();
 
-        // nocommit Move this to tooltip on enable checkbox
-        ImGui.Text("Clip using distance from a point or from planes though the origin");
+        if ImGui.BeginTable("##Clipping UI Table", 7) { // , flags=ImGui.TableFlags.SizingFixedFit) {
+            defer ImGui.EndTable();
 
-        {
-            changed := false;
-            ImGui.Checkbox(imgui_label("Clip Sphere:##clip_sphere", *clip_sphere), *clip_sphere.is_active); ImGui.SameLine(); Show_Tooltip("Enable clipping sphere");
-            ImGui.Text("Center");
-            ImGui.SameLine();
-            ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
-            ImGui.SameLine();
-            ImGui.Text("Radius");
-            ImGui.SameLine();
-            changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
-            set.clip_sphere = changed;
-        }
+            ImGui.TableSetupColumn("checkbox", .WidthFixed, user_id=0);
+            ImGui.TableSetupColumn("center/normal", .WidthFixed, user_id=1);
+            ImGui.TableSetupColumn("center/normal value", .WidthFixed, init_width_or_weight=200, user_id=2);
+            ImGui.TableSetupColumn("radius/range", .WidthFixed, user_id=3);
+            ImGui.TableSetupColumn("radius/range value", .WidthFixed, init_width_or_weight=200, user_id=4);
+            ImGui.TableSetupColumn("reset", .WidthFixed, user_id=5);
+            ImGui.TableSetupColumn("normalize", .WidthFixed, user_id=6);
 
-        {
-            clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
+            {
+                ImGui.TableNextRow();
                 changed := false;
-                MIN_RANGE :: .1;
 
-                ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
-                Show_Tooltip("Enable this clipping range");
-                ImGui.SameLine();
-                ImGui.Text("Clip Range: ");
-                ImGui.SameLine();
+                ImGui.TableSetColumnIndex(0);
+                ImGui.Checkbox(imgui_label("Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); Show_Tooltip("Enable clipping using distance\nfrom a point");
+                ImGui.TableSetColumnIndex(1);
+                ImGui.Text("Center");
+                ImGui.TableSetColumnIndex(2);
+                ImGui.SetNextItemWidth(-FLOAT32_MIN);
+                ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
+                ImGui.TableSetColumnIndex(3);
+                ImGui.Text("Radius");
+                ImGui.TableSetColumnIndex(4);
+                ImGui.SetNextItemWidth(-FLOAT32_MIN);
+                changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
 
-                ImGui.Text("Normal");
-                ImGui.SameLine();
-                changed |= ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
-                ImGui.SameLine();
-                ImGui.Text("Range");
-                ImGui.SameLine();
-                range := make_vector2(p.min, p.max);
-                if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {
-                    p.min, p.max = range.x, range.y;
-                    p.min = min(p.min, p.max - MIN_RANGE);
-                    p.max = max(p.min + MIN_RANGE, p.max);
-                    changed = true;
-                }
-
-                NEGATIVE_INF :: 0hFF800000;
-                POSITIVE_INF :: 0h7F800000;
-
-                ImGui.SameLine();
-                uninitialized := (p.min == NEGATIVE_INF) || (p.max == POSITIVE_INF);
-                if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
-                    p.min = POSITIVE_INF;
-                    p.max = NEGATIVE_INF;
-                    for :corners_iterator aabb {
-                        plane := make_hyperplane3(p.normal, Vector3.{0, 0, 0});
-                        dist := signed_distance_point3_plane3(it, plane);
-                        p.min = min(p.min, dist);
-                        p.max = max(p.max, dist);
-                    }
-                    p.min -= .0001;
-                    p.max += .0001;
-                }
-                Show_Tooltip("Reset the range min/max to keep the entire aabb");
-
-                return changed;
+                set.clip_sphere = changed;
             }
 
-            using display_info;
-            display_info.aabb_visible = true;
+            {
+                clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
+                    ImGui.TableNextRow();
+                    changed := false;
 
-            // nocommit Rename clip range to clip slab?
-            set.clip_ranges[0] = clip_range_ui(*clip_ranges[0], aabb);
-            set.clip_ranges[1] = clip_range_ui(*clip_ranges[1], aabb);
-            set.clip_ranges[2] = clip_range_ui(*clip_ranges[2], aabb);
+                    MIN_RANGE :: .1;
 
-            if almost_equal(length(clip_ranges[0].normal), 0.) clip_ranges[0].normal = .{1, 0, 0};
-            if almost_equal(length(clip_ranges[1].normal), 0.) clip_ranges[1].normal = .{0, 1, 0};
-            if almost_equal(length(clip_ranges[2].normal), 0.) clip_ranges[2].normal = .{0, 0, 1};
-
-            // nocommit Make this per-slab
-            if ImGui.Button(imgui_label("Normalize", display_info)) {
-                for *clip_ranges {
-                    normal_length := length(it.normal);
-                    if normal_length != 0 {
-                        it.min /= normal_length;
-                        it.max /= normal_length;
-                        it.normal /= normal_length;
+                    ImGui.TableSetColumnIndex(0);
+                    ImGui.Checkbox(imgui_label("Slab##clip_plane", p), *p.is_active); Show_Tooltip("Enable clipping using distance range\nfrom a plane through the origin");
+                    ImGui.TableSetColumnIndex(1);
+                    ImGui.Text("Normal");
+                    ImGui.TableSetColumnIndex(2);
+                    ImGui.SetNextItemWidth(-FLOAT32_MIN);
+                    changed |= ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
+                    ImGui.TableSetColumnIndex(3);
+                    ImGui.Text("Range");
+                    ImGui.TableSetColumnIndex(4);
+                    range := make_vector2(p.min, p.max);
+                    ImGui.SetNextItemWidth(-FLOAT32_MIN);
+                    if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {
+                        p.min, p.max = range.x, range.y;
+                        p.min = min(p.min, p.max - MIN_RANGE);
+                        p.max = max(p.min + MIN_RANGE, p.max);
+                        changed = true;
                     }
+
+                    NEGATIVE_INF :: 0hFF800000;
+                    POSITIVE_INF :: 0h7F800000;
+
+                    ImGui.TableSetColumnIndex(5);
+                    uninitialized := (p.min == NEGATIVE_INF) || (p.max == POSITIVE_INF);
+                    if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
+                        p.min = POSITIVE_INF;
+                        p.max = NEGATIVE_INF;
+                        for :corners_iterator aabb {
+                            plane := make_hyperplane3(p.normal, Vector3.{0, 0, 0});
+                            dist := signed_distance_point3_plane3(it, plane);
+                            p.min = min(p.min, dist);
+                            p.max = max(p.max, dist);
+                        }
+                        p.min -= .0001;
+                        p.max += .0001;
+                    }
+                    Show_Tooltip("Reset the range min/max to keep the entire aabb");
+
+                    ImGui.TableSetColumnIndex(6);
+                    if ImGui.Button(imgui_label("Normalize", p)) {
+                        normal_length := length(p.normal);
+                        if normal_length != 0 {
+                            p.min /= normal_length;
+                            p.max /= normal_length;
+                            p.normal /= normal_length;
+                        }
+                    }
+                    Show_Tooltip("Make the normal unit and update the range min/max");
+
+                    return changed;
                 }
+
+                display_info.aabb_visible = true;
+
+                set.clip_ranges[0] = clip_range_ui(*clip_ranges[0], aabb);
+                set.clip_ranges[1] = clip_range_ui(*clip_ranges[1], aabb);
+                set.clip_ranges[2] = clip_range_ui(*clip_ranges[2], aabb);
+
+                if almost_equal(length(clip_ranges[0].normal), 0.) clip_ranges[0].normal = .{1, 0, 0};
+                if almost_equal(length(clip_ranges[1].normal), 0.) clip_ranges[1].normal = .{0, 1, 0};
+                if almost_equal(length(clip_ranges[2].normal), 0.) clip_ranges[2].normal = .{0, 0, 1};
             }
-            Show_Tooltip("Make the normals unit and update the min/max for all ranges");
         }
     }
 }
