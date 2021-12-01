@@ -1,4 +1,4 @@
-## Version 0.2.0, Unreleased
+## Version 0.2.0, 1 December 2021
 
 - Changed Selection Mode toggle keybinding to s from m
 - Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
@@ -6,14 +6,14 @@
 - Improved rendering of mesh edges/wireframes using the SolidWireframe algorithm by Samuel Gateau
   - Fixes z-fighting/incorrect occulusion issues which could make some mesh edges invisible
   - Fixes jaggies appearing on most edges, edges belonging to only one triangle or silhouette edges still have jaggies
-- Added ability to clip within a sphere when Selection Mode is enabled
-  - The clipping sphere center is positioned by click(ing on a visible entity and the radius is changed by dragging the mouse and set on release
+- Added ability to clip within a sphere when Selection Mode is enabled (i.e., when the Selection item is visible)
+  - The clipping sphere center is positioned by clicking on a visible entity and the radius is changed by dragging the mouse and set on release
   - The clipping sphere is applied to the visible entity on which it is centered, and to any selected entities (regardless of visibility)
   - Key bindings are shown when hovering the Selection Mode checkbox, or in the help menu (press h for help)
   - Note: In future, when spatial lookups accelerate selection queries, the Selection Mode concept will be removed (it'll be always on)
 - Added an option to disable back face screentone effect, accessible in the item context menu
-- Added a button to show/hide this changelog (when the app was compiled) in the help menu
-- Added key-bindings following the pattern: 'k' performs operation on selected items, 'C-k' on all items and 'S-k' on visible items (press 'h' for help)
+- Added a button to show/hide this changelog (as it appeared when the app was compiled) in the help menu
+- Added some key-bindings following the pattern: key-only performs operation on selected items, control-key performs on all items and shift-key performs on visible items (press 'h' for help)
 - Fixed an issue where normal vectors were not affected by clipping domains
 - Fixed some .obj parsing warnings and errors
 - Fixed command line loading of multiple files using wildcards not working when the pattern started with a dot slash
