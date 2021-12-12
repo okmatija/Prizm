@@ -16,7 +16,7 @@ From the top-level project directory do the following:
 
 1. Update `build.jai` with the new version number
 2. Update `CHANGELOG.md` to add the release date
-3. Compile using: `jai build.jai -x64 -- release boost_on`
+3. Disable the runtime console and compile using: `jai build.jai -x64 -- release boost_on`
 5. Copy the top-level directory and rename it `Prism-X.Y.Z`
 6. Delete the .git folder and other folders/files not to be distributed
 7. Zip the release folder

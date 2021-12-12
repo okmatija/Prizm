@@ -32,6 +32,7 @@ compute_vertex_normals_from_triangles :: (using mesh : *Mesh) -> bool, string {
     }
 
     if mesh.indices.count % 3 == 0 {
+        // @FIXME This doesn't compute vertex normals properly
         array_resize(*mesh.normals, mesh.positions.count, initialize=false);
         for i : 0..mesh.indices.count/3-1 {
 

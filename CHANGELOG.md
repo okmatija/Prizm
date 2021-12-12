@@ -1,3 +1,5 @@
+## Version 0.3.0, Unreleased
+
 ## Version 0.2.0, 1 December 2021
 
 - Changed Selection Mode toggle keybinding to s from m
