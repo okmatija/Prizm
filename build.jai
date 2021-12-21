@@ -61,10 +61,10 @@ build :: () {
 
         CWD :: #run get_working_directory();
 
-        _import_path : [..]string;
-        for import_path array_add(*_import_path, it);
-        array_add(*_import_path, join(CWD, "source/modules", separator="/"));
-        import_path = _import_path;
+        // _import_path : [..]string;
+        // for import_path array_add(*_import_path, it);
+        // array_add(*_import_path, join(CWD, "source/modules", separator="/"));
+        // import_path = _import_path;
     }
     set_build_options(build_options, w);
 

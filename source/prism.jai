@@ -23,10 +23,6 @@ main :: () {
     context.logger = console_logger;
     context.logger_data = *app.console.log;
 
-    // Decide GL+GLSL versions
-    // GL 3.0 + GLSL 130
-    glsl_version :: "#version 130";
-
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -117,10 +113,9 @@ main :: () {
     assert(ctx != null, "must call create context");
     ImGui.SetCurrentContext(ctx);
 
-
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui_ImplOpenGL3_Init("#version 130");
 
     ImGui.StyleColorsDark();
 
@@ -134,7 +129,7 @@ main :: () {
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame(app.window);
+        ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
         if app.show_ui {
@@ -164,17 +159,6 @@ main :: () {
         // Rendering
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
-
-        // Update and Render additional Platform Windows
-        // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-        //  For this specific demo app we could also call SDL_GL_MakeCurrent(window, gl_context) directly)
-        if io().ConfigFlags_ & .ViewportsEnable {
-            backup_current_window := SDL_GL_GetCurrentWindow();
-            backup_current_context := SDL_GL_GetCurrentContext();
-            ImGui.UpdatePlatformWindows();
-            ImGui.RenderPlatformWindowsDefault();
-            SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
-        }
 
         SDL_GL_SwapWindow(app.window);
 
@@ -411,6 +395,5 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
 
     ctx = ImGui.CreateContext();
     io := ImGui.GetIO();
-    io.ConfigFlags_ |= .DockingEnable;
     // io.ConfigFlags_ |= .NavEnableKeyboard; // This interacts in an annoying way with keyboard shortcuts, fix that before enabling
 }

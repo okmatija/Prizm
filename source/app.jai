@@ -167,9 +167,9 @@ clamp_user_settings :: ()
 #import "Hash_Table";
 #import "freetype255";
 #import "System";
-ImGui :: #import "jai-imgui"(LINK_STATIC=true);
-#load "modules/jai-imgui/backends/imgui_impl_sdl.jai"; // SDL platform backend
-#load "modules/jai-imgui/backends/imgui_impl_opengl3.jai"; // OpenGL renderer backend
+ImGui :: #import "ImGui";
+#load "imgui_impl_sdl.jai"; // SDL platform backend
+#load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
 
 #load "axis_box.jai";
 #load "polyline.jai";

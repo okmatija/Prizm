@@ -154,8 +154,8 @@ console_draw :: () {
     if !app.show_console_ui return;
 
     console_top_y := app.current_window_height * .6;
-    ImGui.SetNextWindowPos(ImGui.make_ImVec2(0, xx console_top_y));
-    ImGui.SetNextWindowSize(ImGui.make_ImVec2(xx app.current_window_width, xx (app.current_window_height - console_top_y)), .Always);
+    ImGui.SetNextWindowPos(make_ImVec2(0, xx console_top_y));
+    ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx (app.current_window_height - console_top_y)), .Always);
     ImGui.Begin("console", flags = ImGui.WindowFlags.AlwaysAutoResize | ImGui.WindowFlags.NoTitleBar); // TODO if !Begin should close
 
     ImGui.TextWrapped("Enter 'help' for help, press TAB for text completion, press UP/DOWN to navigate history.");
@@ -377,4 +377,13 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
     }
 
     return 0;
+}
+
+#scope_file
+
+make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
+    v: ImGui.ImVec2 = ---;
+    v.x = a;
+    v.y = b;
+    return v;
 }

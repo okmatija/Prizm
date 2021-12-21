@@ -40,7 +40,7 @@ show_global_settings_ui :: (world_axes : *Axes_Triad)
     }
 
     // #if true {
-    //     ImGui.SetNextWindowPos(ImGui.make_ImVec2(650, 20), .FirstUseEver);
+    //     ImGui.SetNextWindowPos(make_ImVec2(650, 20), .FirstUseEver);
     //     ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
     // }
 }
@@ -134,11 +134,11 @@ show_item_list_ui :: () {
                 delta_time := get_current_file_time() - it.loaded_filetime;
                 FADE_TIME_SECS := 1;
                 base_color := ifx is_empty(<<it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
-                color := ImGui.make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
+                color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
                 if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
                     alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
                     color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, alpha);
-                    color = ImGui.make_ImVec4(color4.x, color4.y, color4.z, color4.w);
+                    color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
                 }
 
                 ImGui.PushStyleColor(xx ImGui.Col.Text, color);
@@ -433,8 +433,8 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 }
 
 show_camera_controls :: () {
-    window_pos := ImGui.make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
-    window_pivot := ImGui.make_ImVec2(1, 0);
+    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
+    window_pivot := make_ImVec2(1, 0);
 
     using ImGui.WindowFlags;
 
@@ -524,16 +524,16 @@ show_camera_controls :: () {
 show_help_ui :: () {
     if !app.show_help_ui return;
 
-    window_pos := ImGui.make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
-    window_pivot := ImGui.make_ImVec2(1, 0);
+    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
+    window_pivot := make_ImVec2(1, 0);
 
     ImGui.SetNextWindowPos(pos=window_pos, pivot=window_pivot);
     ImGui.Begin("##show_help_ui", flags = ImGui.WindowFlags.NoTitleBar | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
     defer ImGui.End();
 
     if app.show_changelog {
-        ImGui.SetNextWindowPos(ImGui.make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5});
-        // ImGui.SetNextWindowSize(ImGui.make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}); // @Incomplete
+        ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5});
+        // ImGui.SetNextWindowSize(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}); // @Incomplete
         flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .AlwaysHorizontalScrollbar;
         ImGui.Begin("##changelog", flags=flags);// | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
         ImGui.TextUnformatted(CHANGELOG);
@@ -1029,4 +1029,22 @@ Show_Tooltip :: (description : string) #expand {
         // ImGui.PopTextWrapPos();
         ImGui.EndTooltip();
     }
+}
+
+#scope_file
+
+make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
+    v: ImGui.ImVec2 = ---;
+    v.x = a;
+    v.y = b;
+    return v;
+}
+
+make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
+    v: ImGui.ImVec4 = ---;
+    v.x = a;
+    v.y = b;
+    v.z = c;
+    v.w = d;
+    return v;
 }
