@@ -6,6 +6,15 @@
 # ignore the windows icon file which is generated in build.jai
 *.ico
 
+# ignore imgui ini files
+imgui*.ini
+
+# ignore RemedyBG x64 debugger files
+*.rdbg
+
+# ignore render doc files
+*.cap
+
 .build/
 .vscode/
 imgui.ini
