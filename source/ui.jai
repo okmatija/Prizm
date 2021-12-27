@@ -25,7 +25,7 @@ show_global_settings_ui :: (world_axes : *Axes_Triad)
         ImGui.InputInt("Label limit", *app.label_limit);
         if app.label_limit > 2000 {
             color := ImGui.ImVec4.{1., .4, .4, 1.};
-            ImGui.TextColored(color, "%", "Warning: label limit > 2000 may be slow");
+            TextColored(color, "%", "Warning: label limit > 2000 may be slow");
         }
     }
 
@@ -1048,3 +1048,5 @@ make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
     v.w = d;
     return v;
 }
+
+// @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it

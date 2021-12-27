@@ -2,6 +2,7 @@
 
 //
 // Ring. A closed line (last point == first point) which should not be self-intersecting, inside is on the left of the points
+// @Incomplete extend to 3d polygons which are also useful even though they may not be planar
 //
 
 Ring :: struct {

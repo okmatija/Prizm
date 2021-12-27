@@ -118,14 +118,13 @@ main :: () {
     ImGui_ImplOpenGL3_Init("#version 130");
 
     ImGui.StyleColorsDark();
+    ImGui.GetStyle().WindowRounding = 0;
 
     load_from_command_line();
 
     // Main loop
     while !app.closing_application {
         handle_events();
-
-        ImGui.GetStyle().WindowRounding = 0;
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();

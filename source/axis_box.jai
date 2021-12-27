@@ -74,26 +74,28 @@ corners_iterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #e
     }
 }
 
+// @Cleanup rename to make_AxisBox2
 make_axis_box :: (points : ..Vector2) -> AxisBox2 #must {
     box : AxisBox2;
     for points expand(*box, it);
     return box;
 }
 
+// @Cleanup rename to make_AxisBox3
 make_axis_box3 :: (points : ..Vector3) -> AxisBox3 #must {
     box : AxisBox3;
     for points expand(*box, it);
     return box;
 }
 
-to_polyline :: (using box : *AxisBox2) -> Polyline2 #must {
+to_polyline :: (using box : AxisBox2) -> Polyline2 #must {
     polyline : Polyline2;
     array_add(*polyline.points,
-              corner(<<box, .XY_00),
-              corner(<<box, .XY_10),
-              corner(<<box, .XY_11),
-              corner(<<box, .XY_01),
-              corner(<<box, .XY_00));
+              corner(box, .XY_00),
+              corner(box, .XY_10),
+              corner(box, .XY_11),
+              corner(box, .XY_01),
+              corner(box, .XY_00));
     return polyline;
 }
 

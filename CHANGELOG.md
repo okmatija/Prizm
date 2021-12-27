@@ -1,5 +1,11 @@
 ## Version 0.3.0, Unreleased
 
+- Improvements to the console:
+  - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code
+  - Added an optional string argument to the `help` command so it can print the documentation string
+  - Added various `make_grid*` commands which are handy to add grid items (of polyline soup type)
+- Refactored UI code to use the Dear ImGui 1.85 module bundled with the Jai compiler
+
 ## Version 0.2.0, 1 December 2021
 
 - Changed Selection Mode toggle keybinding to s from m

@@ -133,28 +133,23 @@ registered_console_commands : [..]*Code_Procedure_Header;
 
 generate_code_to_register_console_commands :: (w : Workspace) {
 
-    // @Refactor make use of an indent local variable, which is incremented/decremented when we print lines starting a new block
+    // @Refactor make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
     Print :: (format_string : string, args : ..Any) #expand {
         print_to_builder(*builder, format_string, ..args);
     }
+
+    // @Cleanup
+#if OS == .WINDOWS {
+    SEPARATOR :: "\r\n";
+} else {
+    SEPARATOR :: "\n";
+}
 
     builder: String_Builder;
     defer free_buffers(*builder);
 
     // Sort commands by name so that help lists them in alphabetic order
     quick_sort(registered_console_commands, (a,b) => (compare_strings(a.name, b.name)));
-
-    max_padding : string;
-    {
-        longest_command_name : int;
-        for registered_console_commands {
-            longest_command_name = max(longest_command_name, it.name.count);
-        }
-        while longest_command_name != 0 {
-            max_padding = tprint("% ", max_padding);
-            longest_command_name -= 1;
-        }
-    }
 
     // Generate init_commands function
     Print("init_commands :: () {\n");
@@ -165,36 +160,48 @@ generate_code_to_register_console_commands :: (w : Workspace) {
             compiler_report(path, command.l0, command.c0, tprint("Console commands must have 0 return values, got %", command.returns.count));
         }
 
-        usage : string;
+        usage, documentation : string;
         {
-            usage_builder : String_Builder;
-            print_to_builder(*usage_builder, "%  XXX_PADDING_XXX", command.name);
-            defer free_buffers(*usage_builder);
-            for arg, arg_index : command.arguments {
-                decl := cast(*Code_Declaration) arg.expression;
-                print_expression(*usage_builder, arg);
-                print_to_builder(*usage_builder, "  ");
+            path := command.enclosing_load.fully_pathed_filename;
+            file_contents, ok := read_entire_file(path);
+            file_lines := split(file_contents, SEPARATOR);
+            cursor := command.l0 - 1;
+            while cursor < command.l1 {
+                if file_lines[cursor] != "" {
+                    usage = join(usage, trim(file_lines[cursor], " {"), " ");
+                }
+                cursor += 1;
             }
 
-            padding := max_padding;
-            padding.count -= command.name.count;
-            usage = builder_to_string(*usage_builder);
-            usage = replace(usage, ": ", ":");
-            usage = replace(usage, " = ", "=");
-            usage = replace(usage, "XXX_PADDING_XXX", padding);
+            documentation_lines : [..]string;
+            cursor = command.l0 - 2;
+            while cursor >= 0 && begins_with(file_lines[cursor], "//") {
+                array_add(*documentation_lines, replace(file_lines[cursor], "//", "# "));
+                cursor -= 1;
+            }
+
+            documentation = usage;
+            for < documentation_lines {
+                documentation = join(documentation, it, separator="\n");
+            }
+
+            // @Leak
+            usage = escape(usage);
+            documentation = escape(documentation);
         }
 
         Print("    {\n");
         Print("        info : Command_Info;\n");
         Print("        info.name = \"%\";\n", command.name);
         Print("        info.usage = \"%\";\n", usage);
+        Print("        info.documentation = \"%\";\n", documentation);
         Print("        info.procedure = %_boiler_plate;\n", command.name);
         Print("        array_add(*app.console.commands, info);\n");
         Print("    }\n");
     }
     Print("}\n\n");
 
-    // Generate boiler plate for registered console commands
+    // Generate boiler plate for registered console commands so they are callable from console input strings
     for command, command_index : registered_console_commands {
         path   := command.enclosing_load.fully_pathed_filename;
         plural := ifx command.arguments.count == 1 then "" else "s";
@@ -299,6 +306,50 @@ generate_code_to_register_console_commands :: (w : Workspace) {
 
     add_build_string(builder_to_string(*builder), w);
 }
+
+escape :: (s: string) -> string #must {
+    if s == "" {
+        return "";
+    }
+
+    result : String_Builder;
+
+    for i : 0..s.count - 1 {
+        if s[i] == {
+            case #char "\\";
+            append(*result, "\\\\");
+
+            case #char "\e";
+            append(*result, "\\e");
+
+            case #char "\n";
+            append(*result, "\\n");
+
+            case #char "\r";
+            append(*result, "\\r");
+
+            case #char "\t";
+            append(*result, "\\t");
+
+            case #char "\"";
+            append(*result, "\\\"");
+
+            case #char "\0";
+            append(*result, "\\0");
+
+            case;
+            if s[i] < 32
+                print_to_builder(*result, "\\x%", formatInt(s[i], 16, 2));
+            else
+                append(*result, s[i]);
+        }
+    }
+
+    output := builder_to_string(*result);
+
+    return output;
+}
+
 
 set_icon_and_manifest :: (options: Build_Options) {
     if options.output_type != .EXECUTABLE  return;

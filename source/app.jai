@@ -176,6 +176,7 @@ ImGui :: #import "ImGui";
 #load "polygon.jai";
 #load "edge.jai";
 #load "mesh.jai";
+#load "grid.jai";
 #load "axes.jai";
 #load "selection_mode.jai";
 #load "numeric.jai";
