@@ -26,6 +26,8 @@ Entity :: struct {
     using_default_vertex_label_style : bool = true;
     fully_pathed_filename : string;
     loaded_filetime : u64;
+
+    // @Refactor consider keeping the fully_pathed_filename and the generation index together in a struct
     generation_index : int; // entities with the same fully pathed_filename will increment this
 }
 
@@ -197,7 +199,12 @@ color_from_path :: (path : string) -> Vector4 {
             to_hash = path;
     }
 
-    n := get_hash(to_hash);
+    return color_from_string(to_hash);
+}
+
+color_from_string :: (str : string) -> Vector4 {
+
+    n := get_hash(str);
     m := get_hash(n);
 
     h := (cast(float)(n % 257) / 256);

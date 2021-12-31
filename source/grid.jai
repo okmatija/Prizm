@@ -1,164 +1,227 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-// A uniform grid data-structure.
+// A uniform infinite grid data-structure.
 // This data-structure is defined in reference to an infinite 'background' grid.
 // The background grid has the same spacing as the desired grid but its [0,0,0]-th sample point is located at world space zero.
 // The origin_offset member locates position of the Grid's [0,0,0]-th sample point as an offset in local coordinates from the background grid origin
 
+// @Incomplete 2D grids are just 3D grids with one point in one dimension
+// @Incomplete Make a GRID Entity_Type so that e.g., index labelling can work better
 // @Incomplete make_alignable_Grid
+// @Incomplete Have an api where you have cell indices in X, Y, Z (slabs) XY, XZ, YZ (columns) XYZ (cells)
 
-// GridPlane;
+// @Incomplete Polymorph the Grid using this type to enable optimizations, maybe we'll need some make_Frame overloads, too
+Grid_Type :: enum {
+    XYZ; // 3D grid oriented with world axes
+    UVW; // 3D grid not oriented with world axes
 
-Grid :: struct ($DIM: u8) {
-    #assert(DIM == 2 || DIM == 3);
+    XY;  // 2D grid parallel to world XY plane
+    YZ;  // 2D grid parallel to world YZ plane
+    XZ;  // 2D grid parallel to world XZ plane
+    UV;  // 2D grid not oriented with world axes
 
-#if DIM == 2 {
-    Position :: #type,isa Vector2;
-    Cell_Index :: #type,isa Vector2i;
-} else {
-    Position :: #type,isa Vector3;
-    Cell_Index :: #type,isa Vector3i;
+    X;   // 1D grid parallel to world X axis
+    Y;   // 1D grid parallel to world Y axis
+    Z;   // 1D grid parallel to world Z axis
+    U;   // 1D grid not oriented with world axes
 }
 
-    Local :: #type,isa Position;
-    World :: #type,isa Position;
-    Cell_Linear_Index :: #type,isa s64; // Linear index into the Grid, useful to index data stored at grid cells
+Frame :: struct {
+    x_axis : Vector3 = .{1, 0, 0};
+    y_axis : Vector3 = .{0, 1, 0};
+    z_axis : Vector3 = .{0, 0, 1};
+
+    #place x_axis; u_axis : Vector3 = ---;
+    #place y_axis; v_axis : Vector3 = ---;
+    #place z_axis; w_axis : Vector3 = ---;
+}
+
+WORLD_FRAME :: Frame.{};
+
+make_Frame :: (x_axis : Vector3, y_axis : Vector3, $checked := true /* nocommit */) -> Frame {
+    z_axis := cross_product(x_axis,  y_axis);
+
+#if checked {
+    assert(almost_equal(length(x_axis), 1.));
+    assert(almost_equal(length(y_axis), 1.));
+    assert(almost_equal(length(z_axis), 1.));
+}
+
+    result : Frame = ---;
+    result.x_axis = x_axis;
+    result.y_axis = y_axis;
+    result.z_axis = z_axis;
+    return result;
+}
+
+// @Cleanup Using a return struct containing these values would be simpler
+Declare_Inner_Products :: (a : Frame, b : Frame) #expand {
+    `U_X, `V_X, `W_X := dot(a.u_axis, b.x_axis), dot(a.v_axis, b.x_axis), dot(a.w_axis, b.x_axis);
+    `U_Y, `V_Y, `W_Y := dot(a.u_axis, b.y_axis), dot(a.v_axis, b.y_axis), dot(a.w_axis, b.y_axis);
+    `U_Z, `V_Z, `W_Z := dot(a.u_axis, b.z_axis), dot(a.v_axis, b.z_axis), dot(a.w_axis, b.z_axis);
+}
+
+Grid :: struct {
+    // Index a single grid point, a line of grid points, or a plane of grid points
+    Point_Index_1D :: #type,isa int;      // e.g., In a 3D grid, this indexes a set of points {(x, y, Z) where x, y vary and Z is constant}
+    Point_Index_2D :: #type,isa Vector2i; // e.g., In a 3D grid, this indexes a set of points {(x, Y, Z) where x varies and Y, Z are constant}
+    Point_Index_3D :: #type,isa Vector3i;
+    Point_Index ::    #type,isa Point_Index_3D; // Common case type alias
+
+    // Index a single grid cube, a column of grid cubes, or a slab of grid cubes
+    Cell_Index_1D :: #type,isa int;      // e.g., In a 3D grid, this indexes a set of cubes {(x, y, Z) where x, y vary and Z is constant}
+    Cell_Index_2D :: #type,isa Vector2i; // e.g., In a 3D grid, this indexes a set of cubes {(x, Y, Z) where x varies and Y, Z are constant}
+    Cell_Index_3D :: #type,isa Vector3i;
+    Cell_Index ::    #type,isa Cell_Index_3D; // Common case type alias
+
+    // Local or World position type
+    Position_1D :: #type,isa float;
+    Position_2D :: #type,isa Vector2;
+    Position_3D :: #type,isa Vector3;
+    Position ::    #type,isa Position_3D; // Common case type alias
+
+    // Integer values of the local coordinate align with grid points
+    Local_1D :: #type,isa Position_1D;
+    Local_2D :: #type,isa Position_2D;
+    Local_3D :: #type,isa Position_3D;
+    Local ::    #type,isa Position; // Common case type alias
+
+    // World_1D :: #type,isa Position_1D; // Not useful
+    // World_2D :: #type,isa Position_2D; // Not useful
+    // World_3D :: #type,isa Position_3D; // Not useful
+    World_UVW :: #type,isa Position; // World in the grid frame
+    World_XYZ :: #type,isa Position; // World in the world frame
+    World :: World_XYZ; // Note: no #type,isa (clarify why)
 
     spacing : float;
     inverse_spacing : float;
     origin_offset : Local;
+    frame : Frame;
 }
 
-Grid2 :: Grid(2);
-Grid3 :: Grid(3);
+make_Grid_from_World :: (spacing : float, origin : Grid.World, frame : Frame = .{}) -> Grid {
+    background_grid := make_Grid_from_Local(spacing, Grid.Local.{}, frame);
 
-make_Grid :: (spacing : float, origin_offset : Grid(DIM).Local, $DIM : u8) -> Grid(DIM) {
-    result : Grid(DIM) = ---;
+    result : Grid = ---;
     result.spacing = spacing;
     result.inverse_spacing = 1. / spacing;
-    result.origin_offset = origin_offset;
+    result.origin_offset = to_local(background_grid, origin);
+    result.frame = frame;
     return result;
 }
 
-make_Grid2 :: #bake_arguments make_Grid(DIM = 2);
-make_Grid3 :: #bake_arguments make_Grid(DIM = 3);
+make_Grid_from_Local :: (spacing : float, origin : Grid.Local, frame : Frame = .{}) -> Grid {
+    result : Grid = ---;
+    result.spacing = spacing;
+    result.inverse_spacing = 1. / spacing;
+    result.origin_offset = origin;
+    result.frame = frame;
+    return result;
+}
 
 // Return the local position transformed to world coordinates
-to_world :: inline (using grid : $T/Grid, local : T.Local) -> T.World {
-    return xx ((local + origin_offset) * spacing);
+// @Incomplete just `return xx ((local + origin_offset) * spacing);` when Grid_Type == .XYZ
+to_world :: inline (using grid : Grid, local : Grid.Local) -> Grid.World {
+
+    Declare_Inner_Products(grid.frame, WORLD_FRAME);
+
+    world_uvw : Grid.World_UVW = xx ((local + origin_offset) * spacing);
+    u, v, w  := world_uvw.x, world_uvw.y, world_uvw.z;
+
+    x := u * U_X + v * V_X + w * W_X;
+    y := u * U_Y + v * V_Y + w * W_Y;
+    z := u * U_Z + v * V_Z + w * W_Z;
+    world_xyz : Grid.World_XYZ = xx make_vector3(x, y, z); // @CompilerBug should auto-cast be needed here?
+
+    return world_xyz;
 }
 
 // Return the sample point located the local coordinate integer junction points (aka minimum cell corner)
-sample_point :: inline (using grid : $T/Grid, cell : T.Cell_Index) -> T.World {
-    return to_world(grid, inline make_Grid_Local(cell));
+sample_point :: inline (using grid : Grid, cell : Grid.Cell_Index) -> Grid.World {
+    local : Grid.Local = ---;
+    local.x, local.y, local.z = xx cell.x, xx cell.y, xx cell.z;
+    return to_world(grid, local);
 }
 
 // Return the world position transformed to local coordinates
-to_local :: inline (using grid : $T/Grid, world : T.World) -> T.Local {
-    return xx (world * inverse_spacing - origin_offset);
+// @Incomplete just `return xx (world * inverse_spacing - origin_offset);` when Grid_Type == .XYZ
+to_local :: inline (using grid : Grid, world_xyz : Grid.World) -> Grid.Local {
+
+    Declare_Inner_Products(grid.frame, WORLD_FRAME);
+
+    x, y, z := world_xyz.x, world_xyz.y, world_xyz.z;
+
+    u := x * U_X + y * U_Y + z * U_Z;
+    v := x * V_X + y * V_Y + z * V_Z;
+    w := x * W_X + y * W_Y + z * W_Z;
+    world_uvw : Grid.World_UVW = xx make_vector3(u, v, w); // @CompilerBug should auto-cast be needed here?
+
+    local : Grid.Local = xx (world_uvw * inverse_spacing - origin_offset);
+
+    return local;
 }
 
 // Return the cell containing the given local position
-cell_of :: inline (using grid : $T/Grid, local : T.Local) -> T.Cell_Index {
-    return inline make_Cell_Index(xx inline floor(local));
+cell_of :: inline (using grid : Grid, local : Grid.Local) -> Grid.Cell_Index {
+    index : Grid.Cell_Index = ---;
+    index.x, index.y, index.z = xx floor(local.x), xx floor(local.y), xx floor(local.z);
+    return index;
 }
 
 // Return the cell containing the given world position
-cell_of :: inline (using grid : $T/Grid, world : T.World) -> T.Cell_Index {
+cell_of :: inline (using grid : Grid, world : Grid.World) -> Grid.Cell_Index {
+    assert(grid.frame.x_axis == .{1, 0, 0} && grid.frame.y_axis == .{0, 1, 0}); // @nocommit 
     return cell_of(grid, to_local(grid, world));
 }
 
 // Return bounds, in world coordinates, of the cell with the given index
-cell_bounds :: inline (using grid : $T/Grid, index : T.Cell_Index) -> AxisBox(T.Position) {
+cell_bounds :: inline (using grid : Grid, index : Grid.Cell_Index) -> AxisBox(xx Grid.Position) {
     min_corner := sample_point(grid, index);
     max_corner := min_corner;
     for 0..T.DIM-1 max_corner[it_index] += spacing;
     return inline make_axis_box3(min_corner, max_corner);
 }
 
-world_origin :: inline (using grid : $T/Grid) -> T.World {
-    #if T.DIM == 2 {
-        return sample_point(grid, .{0, 0});
-    } else {
-        return sample_point(grid, .{0, 0, 0});
+world_origin :: inline (using grid : Grid) -> Grid.World {
+    return sample_point(grid, .{0, 0, 0});
+}
+
+to_Polyline_Soup3 :: (grid : Grid, extents : Vector3i) -> Polyline_Soup3 {
+
+    // Point count in each direction
+    nx, ny, nz := extents.x, extents.y, extents.z;
+
+    result : Polyline_Soup3;
+
+    for k : 0..nz-1 for j : 0..ny-1 {
+        polyline := array_add(*result.polylines);
+        for i : 0..nx-1 {
+            index : Grid.Cell_Index = ---;
+            index.x, index.y, index.z = i, j, k;
+            p := sample_point(grid, index);
+            array_add(*polyline.points, p);
+        }
     }
-}
 
+    for k : 0..nz-1 for i : 0..nx-1 {
+        polyline := array_add(*result.polylines);
+        for j : 0..ny-1 {
+            index : Grid.Cell_Index = ---;
+            index.x, index.y, index.z = i, j, k;
+            p := sample_point(grid, index);
+            array_add(*polyline.points, p);
+        }
+    }
 
+    for j : 0..ny-1 for i : 0..nx-1 {
+        polyline := array_add(*result.polylines);
+        for k : 0..nz-1 {
+            index : Grid.Cell_Index = ---;
+            index.x, index.y, index.z = i, j, k;
+            p := sample_point(grid, index);
+            array_add(*polyline.points, p);
+        }
+    }
 
-
-floor :: (v : Vector2) -> Vector2 {
-    result : Vector2 = ---;
-    result.x = floor(v.x);
-    result.y = floor(v.y);
-    return result;
-}
-
-floor :: (v : Vector3) -> Vector3 {
-    result : Vector3 = ---;
-    result.x = floor(v.x);
-    result.y = floor(v.y);
-    result.z = floor(v.z);
-    return result;
-}
-
-Vector2i :: struct {
-    x, y : int;
-#place x;
-    component : [2] int = ---;
-}
-
-Vector3i :: struct {
-    x, y, z : int;
-#place x;
-    component : [3] int = ---;
-}
-
-make_Grid_Local :: (cell : Grid2.Cell_Index) -> Grid2.Local {
-    result : Grid2.Local = ---;
-    result.x = xx cell.x;
-    result.y = xx cell.y;
-    return result;
-}
-
-make_Grid_Local :: (cell : Grid3.Cell_Index) -> Grid3.Local {
-    result : Grid3.Local = ---;
-    result.x = xx cell.x;
-    result.y = xx cell.y;
-    result.z = xx cell.z;
-    return result;
-}
-
-make_Cell_Index :: (i : int, j : int) -> Grid2.Cell_Index {
-    result : Grid2.Cell_Index = ---;
-    result.x = i;
-    result.y = j;
-    return result;
-}
-
-make_Cell_Index :: (i : int, j : int, k : int) -> Grid3.Cell_Index {
-    result : Grid3.Cell_Index = ---;
-    result.x = i;
-    result.y = j;
-    result.z = k;
-    return result;
-}
-
-make_Cell_Index :: (local : Grid2.Local, $checked := false) -> Grid2.Cell_Index {
-    #if checked assert(floor(local) == local);
-
-    result : Grid2.Cell_Index = ---;
-    result.x = xx local.x;
-    result.y = xx local.y;
-    return result;
-}
-
-make_Cell_Index :: (local : Grid3.Local, $checked := false) -> Grid3.Cell_Index {
-    #if checked assert(floor(local) == local);
-
-    result : Grid3.Cell_Index = ---;
-    result.x = xx local.x;
-    result.y = xx local.y;
-    result.z = xx local.z;
     return result;
 }

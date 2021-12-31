@@ -54,3 +54,30 @@ transform_point :: (point : Vector3, transform : Matrix4) -> Vector3
 {
     return (transform * make_vector4(point, 1.)).xyz;
 }
+
+Vector2i :: struct {
+    x, y : int;
+#place x;
+    component : [2] int = ---;
+}
+
+Vector3i :: struct {
+    x, y, z : int;
+#place x;
+    component : [3] int = ---;
+}
+
+make_Vector2i :: (x : int, y : int) -> Vector2i {
+    result : Vector2i = ---;
+    result.x = x;
+    result.y = y;
+    return result;
+}
+
+make_Vector3i :: (x : int, y : int, z : int) -> Vector3i {
+    result : Vector3i = ---;
+    result.x = x;
+    result.y = y;
+    result.z = z;
+    return result;
+}

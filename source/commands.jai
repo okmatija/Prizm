@@ -188,53 +188,38 @@ set_edge_color_to_face_color :: () {
 // @Incomplete add an origin argument
 // @Incomplete variants to create a grids covering the aabb of an entity/selection/scene
 // @Incomplete 2D version placing grid in front of camera
+// @Incomplete add spacing to the item name
+// @Incomplete disable reload selection on Grid items
 
-// Adds a grid item with the given `spacing` and extending for the given number
-// of cells in the x, y and z world axes directions
-make_grid :: (spacing : float, nx : int, ny : int, nz : int) {
+// @Incomplete make_grid_on_near_plane :: (spacing : float) // extents over entire view
+// @Incomplete make_grid_on_far_plane :: (spacing : float)
+// @Incomplete make_grid_on_xy_plane :: (spacing : float, n : Vector2i, o : Vector3)
+// @Incomplete make_grid_on_yz_plane :: (spacing : float, n : Vector2i, o : Vector3)
+// @Incomplete make_grid_on_xz_plane :: (spacing : float, n : Vector2i, o : Vector3)
+// @Incomplete make_grid
 
-    new_entity := New(Polyline_Soup3_Entity);
 
-    grid := make_Grid3(spacing, .{0, 0, 0});
-
-    for k : 0..nz for j : 0..ny {
-        polyline := array_add(*new_entity.shape.polylines);
-        for i : 0..nx {
-            p := sample_point(grid, make_Cell_Index(i, j, k));
-            array_add(*polyline.points, p);
-        }
+make_Grid_on_near_plane :: (spacing : float) {
+    frame : Frame = ---;
+    {
+        forward := normalize_or_z_axis(app.camera.look_position - app.camera.eye_position);
+        right := normalize_or_z_axis(cross(forward, app.camera.up_direction));
+        up := cross(right, forward);
+        frame = make_Frame(right, up);
     }
+    grid := make_Grid_from_World(spacing, xx app.camera.eye_position, frame=frame);
+    extents := make_Vector3i(10, 10, 1);
+    make_Grid_Entity(grid, extents);
+} @RegisterCommand
 
-    for k : 0..nz for i : 0..nx {
-        polyline := array_add(*new_entity.shape.polylines);
-        for j : 0..ny {
-            p := sample_point(grid, make_Cell_Index(i, j, k));
-            array_add(*polyline.points, p);
-        }
-    }
-
-    for j : 0..ny for i : 0..nx {
-        polyline := array_add(*new_entity.shape.polylines);
-        for k : 0..nz {
-            p := sample_point(grid, make_Cell_Index(i, j, k));
-            array_add(*polyline.points, p);
-        }
-    }
-
-    ok : bool;
-    new_entity.mesh, ok = to_Mesh(new_entity.shape);
-    assert(ok);
-
-    name :: "grid";
-    init_entity_base_parameters(new_entity, name, new_entity.mesh);
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-
-    found, _ := find_entity_with_max_generation_index(name);
-    if found {
-        new_entity.generation_index = found.generation_index + 1;
-    }
-    array_add(*app.entities, new_entity);
-
+// Adds a 3D grid item.
+// `spacing`        is the distance between adjacent grid points in each world axes direction
+// `nx`, `ny`, `nz` is the number of grid points in each world axes direction
+// `ox`, `oy`, `oz` is the world position of the grid point with local coordinate {0,0,0}
+make_Grid :: (spacing : float, nx : int, ny : int, nz : int, ox : float, oy : float, oz : float) {
+    grid := make_Grid_from_World(spacing, xx make_vector3(ox, oy, oz));
+    extents := make_Vector3i(nx, ny, nz);
+    make_Grid_Entity(grid, extents);
 } @RegisterCommand
 
 /*
@@ -250,3 +235,31 @@ reorient_triangles_012_to_021 :: (item_index : int) {
     // @Incomplete Some triangles have flipped face,
 } @RegisterCommand
 */
+
+#scope_file
+
+make_Grid_Entity :: (grid : Grid, extents : Vector3i) {
+    new_entity := New(Polyline_Soup3_Entity);
+
+    new_entity.shape = to_Polyline_Soup3(grid, extents);
+
+    ok : bool;
+    new_entity.mesh, ok = to_Mesh(new_entity.shape);
+    assert(ok);
+
+    name := tprint("Grid_%", grid.spacing); // nocommit Pick a good formatting here probably scientific?
+    found, _ := find_entity_with_max_generation_index(name);
+    if found {
+        new_entity.generation_index = found.generation_index + 1;
+    }
+
+    init_entity_base_parameters(new_entity, name, new_entity.mesh);
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
+
+    color := entity_primary_color(new_entity);
+    if color {
+        <<color = color_from_string(tprint("%", ImGui.GetFrameCount()));
+    }
+
+    array_add(*app.entities, new_entity);
+}
