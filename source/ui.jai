@@ -683,8 +683,6 @@ Display_Info_Update :: struct {
     }
 }
 
-CLIPPING_DRAG_FLOAT_WIDTH :: 60;
-
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : bool = true, lines_ui : bool = true, faces_ui : bool = true) -> Display_Info_Update {
 
     set : Display_Info_Update;

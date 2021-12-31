@@ -1,9 +1,9 @@
 ## Version 0.3.0, Unreleased
 
 - Improvements to the console:
-  - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code
-  - Added an optional string argument to the `help` command so it can print the documentation string
-  - Added various `make_grid*` commands which are handy to add grid items (of polyline soup type)
+  - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
+  - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code. The documentation is printed on command tab-completion
+  - Added various `make_grid*` commands which are handy to add grid items. Currently these have polyline soup type but future work to make them proper Entity_Types will improve eg grid junction labelling
 - Refactored UI code to use the Dear ImGui 1.85 module bundled with the Jai compiler
 
 ## Version 0.2.0, 1 December 2021

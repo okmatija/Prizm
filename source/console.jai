@@ -50,13 +50,37 @@ console_add_history :: (format_string: string, args: .. Any) {
     array_add(*app.console.history, text);
 } @PrintLike
 
+console_save_history :: () {
+    history_string : string;
+    for app.console.history {
+        history_string = join(history_string, it, "\n"); // @Leak
+    }
+    write_entire_file("console_history.txt", history_string);
+}
+
+console_load_history :: () {
+    console_history_file, ok := read_entire_file("console_history.txt", zero_terminated=true);
+    if ok {
+        file_lines := split(console_history_file, "\n");
+        for file_lines {
+            if trim(it, " ") != "" {
+                console_add_history(it);
+            }
+        }
+    } else {
+        log_error("Could not load console history from 'console_history.txt' file");
+    }
+}
+
 console_clear_history :: () {
     for app.console.history free(it);
     array_reset(*app.console.history);
+    console_save_history();
 }
 
 console_execute_command :: (_command : string) {
     app.console.history_position = -1;
+    defer console_save_history();
 
     p : Parser;
     p.data = _command;
@@ -159,7 +183,7 @@ console_draw :: () {
     ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx (app.current_window_height - console_top_y)), .Always);
     ImGui.Begin("console", flags = ImGui.WindowFlags.AlwaysAutoResize | ImGui.WindowFlags.NoTitleBar); // TODO if !Begin should close
 
-    ImGui.TextWrapped("Enter 'help' for help, press TAB for text completion, press UP/DOWN to navigate history.");
+    ImGui.TextWrapped("Enter 'help' for help, press TAB for text completion and command documentation, press UP/DOWN to navigate history.");
 
     // ImGui.SameLine();
     // if (ImGui.SmallButton("Clear")) {
@@ -286,7 +310,6 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                     // List matches
                     console_clear_log();
-                    log("# Matching commands:");
                     for candidate : candidates_documentation {
                         log("#  %", candidate);
                     }
@@ -327,7 +350,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                     // List matches
                     console_clear_log();
-                    log("# Matching commands:");
+                    log("# % matching commands:", candidates_usage.count);
                     for candidate : candidates_usage {
                         log("#  %", candidate);
                     }

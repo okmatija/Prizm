@@ -17,10 +17,16 @@ quit :: () {
     app.closing_application = true;
 } @RegisterCommand
 
-// Show the history of console commands from this session
+// Show the history of console commands
 history :: () {
     console_clear_log();
     for app.console.history log("# % %", it_index, it);
+} @RegisterCommand
+
+// Clear the history of console commands
+clear_history :: () {
+    console_clear_log();
+    console_clear_history();
 } @RegisterCommand
 
 // Clear all the text shown in the console
@@ -28,21 +34,11 @@ clear :: () {
     console_clear_log();
 } @RegisterCommand
 
-// Show the documentation of the given `command`
-// If no arguments are passed list all available commands
+// Lists all available commands and displays a help message
 help :: (command : string = "") {
-    if command == "" {
-        log("# Available commands:");
-        for app.console.commands {
-            log("#  %", it.usage);
-        }
-    } else {
-        for app.console.commands {
-            if it.name == command {
-                log("#  %", it.documentation);
-                break;
-            }
-        }
+    log("# % available commands:", app.console.commands.count);
+    for app.console.commands {
+        log("#  %", it.usage);
     }
 } @RegisterCommand
 

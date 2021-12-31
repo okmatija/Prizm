@@ -23,6 +23,9 @@ main :: () {
     context.logger = console_logger;
     context.logger_data = *app.console.log;
 
+    // Load console history from file
+    console_load_history();
+
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);

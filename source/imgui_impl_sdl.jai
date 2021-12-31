@@ -375,7 +375,7 @@ ImGui_ImplSDL2_NewFrame :: ()
         io.DisplayFramebufferScale = make_ImVec2(cast(float)display_w / w, cast(float)display_h / h);
 
     // Setup time step (we don't use SDL_GetTicks() because it is using millisecond resolution)
-    frequency := SDL_GetPerformanceCounter(); // @Cleanup in C this was: static Uint64 frequency = SDL_GetPerformanceFrequency();
+    frequency := SDL_GetPerformanceFrequency(); // @Cleanup in C this was static
     current_time := SDL_GetPerformanceCounter();
     io.DeltaTime = ifx bd.Time > 0 then cast(float)(cast(float64)(current_time - bd.Time) / frequency) else cast(float)(1.0 / 60.0);
     bd.Time = current_time;
