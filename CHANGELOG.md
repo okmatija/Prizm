@@ -1,10 +1,22 @@
+- Camera view history (make it persist, too?), which will be useful with grid plane
+- Persistent near/far Camera grids with a spotlight feature to limit the extents of the rendered grid to a disk near the cursor
+- Future work will make grids a specialized item type to improve grid junction index labelling and allow for custom item context menu UI (currenlty grid items are represented as polyline soups)
+- Why does x64 binary not work
+
+
 ## Version 0.3.0, Unreleased
 
 - Improvements to the console:
   - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
   - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code. The documentation is printed on command tab-completion
-  - Added various `make_grid*` commands which are handy to add grid items. Currently these have polyline soup type but future work to make them proper Entity_Types will improve eg grid junction labelling
+- Added various commands to add grid items to the item list
+  - `make_Grid` adds a 3D grid item
+  - `make_Grid_on_near/far_plane` add 2D grids filling the camera near/far planes (handy to render a grid in front of/behind the entire scene)
+  - `make_Grid_on_xy/yz/zx_plane` add 2D grids on the xy/yz/zx planes through the current orbit point (can be set on the model using C-RMB in Selection Mode, and reset to 0,0,0 in the camera control UI)
+  - `make_Grid_on_xyz_planes` which is equivalent to calling each of `make_Grid_on_xy/yz/zx_plane`
+  - Tip: When using `make_Grid_on_*_plane` add grids with multiple resolutions before adjusting the camera to get nicely aligned multi-resolution overlays
 - Refactored UI code to use the Dear ImGui 1.85 module bundled with the Jai compiler
+
 
 ## Version 0.2.0, 1 December 2021
 

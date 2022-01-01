@@ -185,21 +185,15 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
-// @Incomplete add an origin argument
 // @Incomplete variants to create a grids covering the aabb of an entity/selection/scene
 // @Incomplete 2D version placing grid in front of camera
 // @Incomplete add spacing to the item name
 // @Incomplete disable reload selection on Grid items
 
-// @Incomplete make_grid_on_near_plane :: (spacing : float) // extents over entire view
-// @Incomplete make_grid_on_far_plane :: (spacing : float)
-// @Incomplete make_grid_on_xy_plane :: (spacing : float, n : Vector2i, o : Vector3)
-// @Incomplete make_grid_on_yz_plane :: (spacing : float, n : Vector2i, o : Vector3)
-// @Incomplete make_grid_on_xz_plane :: (spacing : float, n : Vector2i, o : Vector3)
-// @Incomplete make_grid
-
-
-make_Grid_on_near_plane :: (spacing : float) {
+// Adds a 2D grid item filling the the camera near plane.
+// `spacing`    is the distance between adjacent grid points in each world axes direction
+// `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
+make_Grid_on_near_plane :: (spacing : float, restricted : int=1) {
     frame : Frame = ---;
     {
         forward := normalize_or_z_axis(app.camera.look_position - app.camera.eye_position);
@@ -207,9 +201,80 @@ make_Grid_on_near_plane :: (spacing : float) {
         up := cross(right, forward);
         frame = make_Frame(right, up);
     }
-    grid := make_Grid_from_World(spacing, xx app.camera.eye_position, frame=frame);
-    extents := make_Vector3i(10, 10, 1);
-    make_Grid_Entity(grid, extents);
+
+    origin := app.camera.eye_position + normalize(current_look_direction()) * (app.camera.near + .001);
+    name := tprint("Grid_Near_%", spacing);
+
+    Nx := cast(int)ceil((app.camera.right - app.camera.left) / spacing / 2) + 2;
+    Ny := cast(int)ceil((app.camera.top - app.camera.bottom) / spacing / 2) + 2;
+    color := color_from_string(tprint("%", ImGui.GetFrameCount()));
+
+    make_Grid_on_plane(spacing, Nx, Ny, frame, xx origin, name, color, restricted);
+} @RegisterCommand
+
+// Adds a 2D grid item filling the the camera far plane.
+// `spacing`    is the distance between adjacent grid points in each world axes direction
+// `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
+make_Grid_on_far_plane :: (spacing : float, restricted : int=1) {
+    frame : Frame = ---;
+    {
+        forward := normalize_or_z_axis(app.camera.look_position - app.camera.eye_position);
+        right := normalize_or_z_axis(cross(forward, app.camera.up_direction));
+        up := cross(right, forward);
+        frame = make_Frame(right, up);
+    }
+
+    origin := app.camera.eye_position + normalize(current_look_direction()) * (app.camera.far - .001);
+    name := tprint("Grid_Far_%", spacing); // @Cleanup Pick a good formatting here probably scientific? (and in similar places in this file)
+
+    Nx := cast(int)ceil((app.camera.right - app.camera.left) / spacing / 2) + 2;
+    Ny := cast(int)ceil((app.camera.top - app.camera.bottom) / spacing / 2) + 2;
+    color := color_from_string(tprint("%", ImGui.GetFrameCount()));
+
+    make_Grid_on_plane(spacing, Nx, Ny, frame, xx origin, name, color, restricted);
+} @RegisterCommand
+
+// Adds a 2D grid item in the XY plane passing through the camera orbit point
+// `spacing`    is the distance between adjacent grid points in each world axes direction
+// `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
+// Note: The camera orbit may be positioned on a model using C-RMB in Selection Mode
+make_Grid_on_xy_plane :: (spacing : float, N : int, restricted : int=1) {
+    frame := make_Frame(.{1, 0, 0}, .{0, 1, 0});
+    origin := app.camera.look_position;
+    name := tprint("Grid_XY_%", spacing);
+    BLUE :: Vector4.{0,0,1,1};
+    make_Grid_on_plane(spacing, N, N, frame, xx origin, name, BLUE, restricted);
+} @RegisterCommand
+
+// Adds a 2D grid item in the YZ plane passing through the camera orbit point
+// `spacing`    is the distance between adjacent grid points in each world axes direction
+// `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
+// Note: The camera orbit may be positioned on a model using C-RMB in Selection Mode
+make_Grid_on_yz_plane :: (spacing : float, N : int, restricted : int=1) {
+    frame := make_Frame(.{0, 1, 0}, .{0, 0, 1});
+    origin := app.camera.look_position;
+    name := tprint("Grid_YZ_%", spacing);
+    RED :: Vector4.{1,0,0,1};
+    make_Grid_on_plane(spacing, N, N, frame, xx origin, name, RED, restricted);
+} @RegisterCommand
+
+// Adds a 2D grid item in the ZX plane passing through the camera orbit point
+// `spacing`    is the distance between adjacent grid points in each world axes direction
+// `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
+// Note: The camera orbit may be positioned on a model using C-RMB in Selection Mode
+make_Grid_on_zx_plane :: (spacing : float, N : int, restricted : int=1) {
+    frame := make_Frame(.{0, 0, 1}, .{1, 0, 0});
+    origin := app.camera.look_position;
+    name := tprint("Grid_ZX_%", spacing);
+    GREEN :: Vector4.{0,1,0,1};
+    make_Grid_on_plane(spacing, N, N, frame, xx origin, name, GREEN, restricted);
+} @RegisterCommand
+
+// Equivalent to calling each of make_Grid_on_xy/yz/zx_plane
+make_Grid_on_xyz_planes :: (spacing : float, N : int, restricted : int=1) {
+    make_Grid_on_xy_plane(spacing, N, restricted);
+    make_Grid_on_yz_plane(spacing, N, restricted);
+    make_Grid_on_zx_plane(spacing, N, restricted);
 } @RegisterCommand
 
 // Adds a 3D grid item.
@@ -219,7 +284,8 @@ make_Grid_on_near_plane :: (spacing : float) {
 make_Grid :: (spacing : float, nx : int, ny : int, nz : int, ox : float, oy : float, oz : float) {
     grid := make_Grid_from_World(spacing, xx make_vector3(ox, oy, oz));
     extents := make_Vector3i(nx, ny, nz);
-    make_Grid_Entity(grid, extents);
+    name := tprint("Grid_%", grid.spacing);
+    make_Grid_Entity(grid, extents, name, color_from_string(tprint("%", ImGui.GetFrameCount())));
 } @RegisterCommand
 
 /*
@@ -238,7 +304,34 @@ reorient_triangles_012_to_021 :: (item_index : int) {
 
 #scope_file
 
-make_Grid_Entity :: (grid : Grid, extents : Vector3i) {
+make_Grid_on_plane :: (_spacing : float, _Nx : int, _Ny : int, frame : Frame, origin : Grid.World, name : string, color : Vector4, restricted : int=1) {
+    Nx, Ny, spacing := _Nx, _Ny, _spacing;
+
+    if restricted && spacing < .0001 {
+        log_warning("Spacing was clamped to .0001. Pass 0 for restricted argument to not do this.");
+        spacing = 0.0001;
+    }
+
+    grid := make_Grid_from_World(spacing, origin, frame);
+
+    MAX_N :: 500;
+
+    if restricted && Nx > MAX_N {
+        log_warning("Extents were clamped to %, from %. Pass 0 for restricted argument to not do this.", MAX_N, Nx);
+        Nx = MAX_N;
+    }
+
+    if restricted && Ny > MAX_N {
+        log_warning("Extents were clamped to %, from %. Pass 0 for restricted argument to not do this.", MAX_N, Ny);
+        Ny = MAX_N;
+    }
+
+    extents := make_Vector3i(Nx, Ny, 1);
+
+    make_Grid_Entity(grid, extents, name, color);
+}
+
+make_Grid_Entity :: (grid : Grid, extents : Vector3i, name : string, color : Vector4) {
     new_entity := New(Polyline_Soup3_Entity);
 
     new_entity.shape = to_Polyline_Soup3(grid, extents);
@@ -247,18 +340,23 @@ make_Grid_Entity :: (grid : Grid, extents : Vector3i) {
     new_entity.mesh, ok = to_Mesh(new_entity.shape);
     assert(ok);
 
-    name := tprint("Grid_%", grid.spacing); // nocommit Pick a good formatting here probably scientific?
-    found, _ := find_entity_with_max_generation_index(name);
-    if found {
-        new_entity.generation_index = found.generation_index + 1;
-    }
-
     init_entity_base_parameters(new_entity, name, new_entity.mesh);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
 
-    color := entity_primary_color(new_entity);
-    if color {
-        <<color = color_from_string(tprint("%", ImGui.GetFrameCount()));
+    // Set generation index
+    {
+        found, _ := find_entity_with_max_generation_index(name);
+        if found {
+            new_entity.generation_index = found.generation_index + 1;
+        }
+    }
+
+    // Set color
+    {
+        primary_color := entity_primary_color(new_entity);
+        if primary_color {
+            <<primary_color = color;
+        }
     }
 
     array_add(*app.entities, new_entity);

@@ -186,16 +186,22 @@ world_origin :: inline (using grid : Grid) -> Grid.World {
     return sample_point(grid, .{0, 0, 0});
 }
 
-to_Polyline_Soup3 :: (grid : Grid, extents : Vector3i) -> Polyline_Soup3 {
+to_Polyline_Soup3 :: (grid : Grid, extents : Vector3i, symmetric : bool = true) -> Polyline_Soup3 {
 
     // Point count in each direction
-    nx, ny, nz := extents.x, extents.y, extents.z;
+    maxx, maxy, maxz := extents.x, extents.y, extents.z;
+    minx, miny, minz := 0, 0, 0;
+    if symmetric {
+        minx, miny, minz = -extents.x, -extents.y, -extents.z;
+    }
 
     result : Polyline_Soup3;
+    array_reserve(*result.polylines, 2*extents.x + 2*extents.y + 2*extents.z);
 
-    for k : 0..nz-1 for j : 0..ny-1 {
+    for k : minz+1..maxz-1 for j : miny+1..maxy-1 {
         polyline := array_add(*result.polylines);
-        for i : 0..nx-1 {
+        array_reserve(*polyline.points, 2*extents.x);
+        for i : minx+1..maxx-1 {
             index : Grid.Cell_Index = ---;
             index.x, index.y, index.z = i, j, k;
             p := sample_point(grid, index);
@@ -203,9 +209,10 @@ to_Polyline_Soup3 :: (grid : Grid, extents : Vector3i) -> Polyline_Soup3 {
         }
     }
 
-    for k : 0..nz-1 for i : 0..nx-1 {
+    for k : minz+1..maxz-1 for i : minx+1..maxx-1 {
         polyline := array_add(*result.polylines);
-        for j : 0..ny-1 {
+        array_reserve(*polyline.points, 2*extents.y);
+        for j : miny+1..maxy-1 {
             index : Grid.Cell_Index = ---;
             index.x, index.y, index.z = i, j, k;
             p := sample_point(grid, index);
@@ -213,9 +220,10 @@ to_Polyline_Soup3 :: (grid : Grid, extents : Vector3i) -> Polyline_Soup3 {
         }
     }
 
-    for j : 0..ny-1 for i : 0..nx-1 {
+    for j : miny+1..maxy-1 for i : minx+1..maxx-1 {
         polyline := array_add(*result.polylines);
-        for k : 0..nz-1 {
+        array_reserve(*polyline.points, 2*extents.z);
+        for k : minz+1..maxz-1 {
             index : Grid.Cell_Index = ---;
             index.x, index.y, index.z = i, j, k;
             p := sample_point(grid, index);
