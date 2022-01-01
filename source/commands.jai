@@ -35,7 +35,7 @@ clear :: () {
 } @RegisterCommand
 
 // Lists all available commands and displays a help message
-help :: (command : string = "") {
+help :: () {
     log("# % available commands:", app.console.commands.count);
     for app.console.commands {
         log("#  %", it.usage);
@@ -186,8 +186,6 @@ set_edge_color_to_face_color :: () {
 } @RegisterCommand
 
 // @Incomplete variants to create a grids covering the aabb of an entity/selection/scene
-// @Incomplete 2D version placing grid in front of camera
-// @Incomplete add spacing to the item name
 // @Incomplete disable reload selection on Grid items
 
 // Adds a 2D grid item filling the the camera near plane.

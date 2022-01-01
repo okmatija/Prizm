@@ -8,7 +8,7 @@ Command_Info :: struct {
 }
 
 Console :: struct {
-    history : [..]string; // different to log in that command feedback is not stored in the history
+    history : [..]string; // Different to log in that command feedback is not stored in the history
     history_position : int = -1; // -1: new line, 0..history.count-1 browsing history
     commands : [..]Command_Info;
     log : [..]string;
@@ -283,20 +283,14 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                 }
 
                 current_word := to_string(word_start, word_end - word_start);
-
-                // @CompilerBug: Even though we have pushed a context we get an error about calling a native procedure
                 // printv(#code current_word);
-                // print("current_word = %\n", current_word);
 
-                // Build a list of candidates // @TODO Use temporary allocator here
-                candidates : [..]string;
-                candidates_usage : [..]string;
-                candidates_documentation : [..]string;
+                // Build a list of candidates
+                candidates : [..]Command_Info;
+                candidates.allocator = temp;
                 for app.console.commands {
                     if begins_with_nocase(it.name, current_word) {
-                        array_add(*candidates, it.name);
-                        array_add(*candidates_usage, it.usage);
-                        array_add(*candidates_documentation, it.documentation);
+                        array_add(*candidates, it);
                     }
                 }
 
@@ -305,13 +299,13 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                 } else if candidates.count == 1 {
                     // Single match. Delete the beginning of the word and replace it entirely so we've got nice casing
                     data.DeleteChars(data, xx (word_start - data.Buf), xx (word_end - word_start));
-                    data.InsertChars(data, data.CursorPos, candidates[0]);
+                    data.InsertChars(data, data.CursorPos, candidates[0].name);
                     data.InsertChars(data, data.CursorPos, " ");
 
                     // List matches
                     console_clear_log();
-                    for candidate : candidates_documentation {
-                        log("#  %", candidate);
+                    for candidate : candidates {
+                        log("#  %", candidate.documentation);
                     }
                 } else {
                     // Multiple matches. Complete as much as we can
@@ -326,11 +320,11 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                                 break;
                             }
 
-                            if cursor == candidate.count {
+                            if cursor == candidate.name.count {
                                 all_candidates_match = false;
                             } else if candidate_index == 0 {
-                                cursor_character = to_upper(candidates[0][cursor]);
-                            } else if cursor_character != to_upper(candidate[cursor]) {
+                                cursor_character = to_upper(candidates[0].name[cursor]);
+                            } else if cursor_character != to_upper(candidate.name[cursor]) {
                                 all_candidates_match = false;
                             }
                         }
@@ -344,44 +338,42 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                     if cursor > 0 {
                         data.DeleteChars(data, xx (word_start - data.Buf), xx (word_end - word_start));
-                        tmp := slice(candidates[0], 0, cursor);
+                        tmp := slice(candidates[0].name, 0, cursor);
                         data.InsertChars(data, data.CursorPos, tmp);
                     }
 
                     // List matches
                     console_clear_log();
-                    log("# % matching commands:", candidates_usage.count);
-                    for candidate : candidates_usage {
-                        log("#  %", candidate);
+                    log("# % matching commands:", candidates.count);
+                    for candidate : candidates{
+                        log("#  %", candidate.usage);
                     }
                 }
             }
 
             case .CallbackHistory; {
 
-                using app;
-
-                prev_history_position := console.history_position;
+                prev_history_position := app.console.history_position;
                 if data.EventKey == .UpArrow {
-                    if console.history_position == -1 {
-                        console.history_position = console.history.count - 1;
-                    } else if console.history_position > 0 {
-                        console.history_position -= 1;
+                    if app.console.history_position == -1 {
+                        app.console.history_position = app.console.history.count - 1;
+                    } else if app.console.history_position > 0 {
+                        app.console.history_position -= 1;
                     }
                 } else if data.EventKey == .DownArrow {
-                    if console.history_position != -1 {
-                        console.history_position += 1;
-                        if console.history_position >= console.history.count {
-                            console.history_position = -1;
+                    if app.console.history_position != -1 {
+                        app.console.history_position += 1;
+                        if app.console.history_position >= app.console.history.count {
+                            app.console.history_position = -1;
                         }
                     }
                 }
 
                 // A better implementation would preserve the data on the current input line along with cursor position.
-                if prev_history_position != console.history_position {
+                if prev_history_position != app.console.history_position {
 
-                    if console.history_position >= 0 {
-                        item := console.history[console.history_position];
+                    if app.console.history_position >= 0 {
+                        item := app.console.history[app.console.history_position];
                         data.CursorPos = xx item.count;
                         memcpy(data.Buf, item.data, item.count);
                         data.Buf[item.count] = 0;
