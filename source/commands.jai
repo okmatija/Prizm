@@ -18,20 +18,9 @@ quit :: () {
 } @RegisterCommand
 
 // Show the history of console commands
-history :: () {
+console_show_history :: () {
     console_clear_log();
     for app.console.history log("# % %", it_index, it);
-} @RegisterCommand
-
-// Clear the history of console commands
-clear_history :: () {
-    console_clear_log();
-    console_clear_history();
-} @RegisterCommand
-
-// Clear all the text shown in the console
-clear :: () {
-    console_clear_log();
 } @RegisterCommand
 
 // Lists all available commands and displays a help message
@@ -162,7 +151,7 @@ sort_by_size :: (ascending : int = 1) {
     else           quick_sort(app.entities, compare_descending);
 } @RegisterCommand
 
-// Clears the item with the given `index`
+// Clears the item with the given `index` (resets geometry data containers)
 clear_item :: (index : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(index) {
@@ -174,8 +163,6 @@ clear_item :: (index : int) {
     clear(item);
 
     log("# Cleared item #% which had % points", index, point_count);
-} @RegisterCommand
-
 } @RegisterCommand
 
 // Sets the edge/wireframe color to the face/surface color for all items

@@ -27,10 +27,11 @@ console_logger :: (message: string, data: *void, info: Log_Info) {
     }
 }
 
+// Clear all the text shown in the console
 console_clear_log :: () {
     for app.console.log free(it);
     array_reset(*app.console.log);
-}
+} @RegisterCommand
 
 console_add_history :: (format_string: string, args: .. Any) {
     builder: String_Builder;
@@ -72,11 +73,12 @@ console_load_history :: () {
     }
 }
 
+// Clear the history of console commands
 console_clear_history :: () {
     for app.console.history free(it);
     array_reset(*app.console.history);
     console_save_history();
-}
+} @RegisterCommand
 
 console_execute_command :: (_command : string) {
     app.console.history_position = -1;
@@ -268,13 +270,13 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                 // Only complete the function name
                 current_input := to_string(data.Buf, data.CursorPos);
-                if contains(current_input, " ") {
+                if contains(trim(current_input), " ") {
                     return 0;
                 }
 
                 // Locate beginning of current word
                 word_end := data.Buf + data.CursorPos;
-                word_start := word_end;
+                word_start := data.Buf + trim_right(current_input, " ").count;
                 while word_start > data.Buf {
                     c := <<(word_start - 1);
                     if (c == #char " " || c == #char "\t" || c == #char "," || c == #char ";")
@@ -283,7 +285,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                 }
 
                 current_word := to_string(word_start, word_end - word_start);
-                // printv(#code current_word);
+                // print("current_word = '%'\n", current_word);
 
                 // Build a list of candidates
                 candidates : [..]Command_Info;
@@ -291,11 +293,17 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                 for app.console.commands {
                     if begins_with_nocase(it.name, current_word) {
                         array_add(*candidates, it);
+                    } else if it.name == trim_right(current_word) {
+                        // Handles case when current_word has trailing spaces
+                        array_add(*candidates, it);
                     }
                 }
 
                 if candidates.count == 0 {
                     // No match
+                    console_clear_log();
+                    log("# 0 matching commands");
+
                 } else if candidates.count == 1 {
                     // Single match. Delete the beginning of the word and replace it entirely so we've got nice casing
                     data.DeleteChars(data, xx (word_start - data.Buf), xx (word_end - word_start));
@@ -316,7 +324,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                         cursor_character : u8;
                         all_candidates_match := true;
                         for candidate, candidate_index : candidates {
-                            if !all_candidates_match {
+                            if all_candidates_match == false {
                                 break;
                             }
 
