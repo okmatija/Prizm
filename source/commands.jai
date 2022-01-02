@@ -172,6 +172,92 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
+// Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `index`
+find_open_edges :: (index : int) {
+    // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+    if !check_geometry_index(index) {
+        return;
+    }
+
+    if app.entities[index].type != .MESH {
+        log_error("Expected MESH type item, got %.", app.entities[index].type);
+        return;
+    }
+
+    edge_hash :: (e : Vector2i) -> u32 {
+        if e.x < e.y {
+            return get_hash(e.component);
+        } else {
+            return get_hash(make_Vector2i(e.y, e.x).component);
+        }
+    }
+
+    edge_comp :: (a : Vector2i, b : Vector2i) -> bool {
+        if a == b return true;
+        if a == make_Vector2i(b.y, b.x) return true;
+        return false;
+    }
+
+    origin_to_edge : Table(Vector2i, s64, edge_hash, edge_comp);
+    defer uninit(*origin_to_edge);
+
+    mesh := app.entities[index].mesh;
+    for :triangles_iterator mesh {
+        edge_01 := make_Vector2i(it.component[0], it.component[1]);
+        edge_12 := make_Vector2i(it.component[1], it.component[2]);
+        edge_20 := make_Vector2i(it.component[2], it.component[0]);
+
+        Process_Edge :: (edge : Vector2i) #expand {
+            value, found := table_find(origin_to_edge, edge);
+            if found {
+                table_remove(*origin_to_edge, edge);
+            } else {
+                origin := edge.x;
+                table_add(*origin_to_edge, edge, origin);
+            }
+        }
+
+        Process_Edge(edge_01);
+        Process_Edge(edge_12);
+        Process_Edge(edge_20);
+    }
+
+    if origin_to_edge.count == 0 {
+        log("No boundary edges detected");
+        return;
+    }
+
+    // @Incomplete weld/stitch polyline segments together
+    segment_soup : Polyline_Soup3;
+
+    for origin, edge : origin_to_edge {
+        segment := array_add(*segment_soup.polylines);
+        array_add(*segment.points, mesh.positions[edge.x]);
+        array_add(*segment.points, mesh.positions[edge.y]);
+    }
+
+    // @Cleanup use a make_Polyline_Soup3_Entity function here
+    new_entity := New(Polyline_Soup3_Entity);
+    new_entity.shape = segment_soup;
+    ok : bool;
+    new_entity.mesh, ok = to_Mesh(new_entity.shape);
+    assert(ok);
+    name := join(app.entities[index].fully_pathed_filename, "_open_edges"); // @Leak
+    init_entity_base_parameters(new_entity, name, new_entity.mesh);
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
+    new_entity.display_info.wireframe_width = 3;
+
+    // Set generation index
+    {
+        found, _ := find_entity_with_max_generation_index(name);
+        if found {
+            new_entity.generation_index = found.generation_index + 1;
+        }
+    }
+
+    array_add(*app.entities, new_entity);
+} @RegisterCommand
+
 // @Incomplete variants to create a grids covering the aabb of an entity/selection/scene
 // @Incomplete disable reload selection on Grid items
 
@@ -316,6 +402,7 @@ make_Grid_on_plane :: (_spacing : float, _Nx : int, _Ny : int, frame : Frame, or
     make_Grid_Entity(grid, extents, name, color);
 }
 
+// @Cleanup This could be an init :: (Polyline_Soup_Entity) function
 make_Grid_Entity :: (grid : Grid, extents : Vector3i, name : string, color : Vector4) {
     new_entity := New(Polyline_Soup3_Entity);
 

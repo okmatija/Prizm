@@ -12,6 +12,24 @@ Mesh :: struct {
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
 }
 
+triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+    #assert(flags == 0); // No options are supported
+
+    `it_index := 0;
+    for i : 0..mesh.indices.count/3-1 {
+        i0 := mesh.indices[3 * i + 0];
+        i1 := mesh.indices[3 * i + 1];
+        i2 := mesh.indices[3 * i + 2];
+        `it := make_Vector3i(xx i0, xx i1, xx i2); // nocommit @Cleanup
+        #insert (remove=#assert(false)) body;
+        it_index += 1;
+    }
+}
+
+// // @Incomplete see parshapes for a sample implementation
+// weld :: (mesh : Mesh) -> Mesh { }
+// unweld :: (mesh : Mesh) -> Mesh { }
+
 Geometry_Format :: enum {
     UNKNOWN;
     POINTS;

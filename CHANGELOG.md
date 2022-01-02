@@ -10,6 +10,7 @@
   - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
   - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code. The documentation is printed on command tab-completion
   - Renamed console-specific commands to start with a `console_` prefix
+- Added a `find_open_edges` command which adds an item containing the soup of edges belonging to only one triangle in the given mesh item
 - Added various commands to add grid items to the item list
   - `make_Grid` adds a 3D grid item
   - `make_Grid_on_near/far_plane` add 2D grids filling the camera near/far planes (handy to render a grid in front of/behind the entire scene)
