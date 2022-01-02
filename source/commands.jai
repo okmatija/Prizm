@@ -202,12 +202,14 @@ find_open_edges :: (index : int) {
     defer uninit(*origin_to_edge);
 
     mesh := app.entities[index].mesh;
-    for :triangles_iterator mesh {
-        edge_01 := make_Vector2i(it.component[0], it.component[1]);
-        edge_12 := make_Vector2i(it.component[1], it.component[2]);
-        edge_20 := make_Vector2i(it.component[2], it.component[0]);
+    if mesh.geometry_format != .TRIANGLES {
+        log("Expected a mesh with TRIANGLES geometry format, got %.", mesh.geometry_format);
+        return;
+    }
 
-        Process_Edge :: (edge : Vector2i) #expand {
+    for :triangles_iterator mesh {
+        Process_Edge :: (i : int, j : int) #expand {
+            edge := make_Vector2i(i, j);
             value, found := table_find(origin_to_edge, edge);
             if found {
                 table_remove(*origin_to_edge, edge);
@@ -217,9 +219,9 @@ find_open_edges :: (index : int) {
             }
         }
 
-        Process_Edge(edge_01);
-        Process_Edge(edge_12);
-        Process_Edge(edge_20);
+        Process_Edge(it.component[0], it.component[1]);
+        Process_Edge(it.component[1], it.component[2]);
+        Process_Edge(it.component[2], it.component[0]);
     }
 
     if origin_to_edge.count == 0 {
@@ -227,17 +229,16 @@ find_open_edges :: (index : int) {
         return;
     }
 
-    // @Incomplete weld/stitch polyline segments together
+    // Collect the segment soup @Incomplete weld/stitch polyline segments together
     segment_soup : Polyline_Soup3;
-
     for origin, edge : origin_to_edge {
         segment := array_add(*segment_soup.polylines);
         array_add(*segment.points, mesh.positions[edge.x]);
         array_add(*segment.points, mesh.positions[edge.y]);
     }
 
+    // Add a new item
     new_entity := New(Polyline_Soup3_Entity);
-
     new_entity.shape = segment_soup;
     new_entity.mesh = to_Mesh(new_entity.shape);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
@@ -248,7 +249,6 @@ find_open_edges :: (index : int) {
     if found_entity {
         new_entity.generation_index = found_entity.generation_index + 1;
     }
-
     array_add(*app.entities, new_entity);
 } @RegisterCommand
 
