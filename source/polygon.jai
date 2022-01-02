@@ -14,6 +14,10 @@ clear :: (shape : *Ring) {
     array_reset_keeping_memory(*shape.points);
 }
 
+is_empty :: (shape : Ring) -> bool #must {
+    return shape.points.count < 2;
+}
+
 deinit :: (shape : *Ring) {
     if !shape return;
     array_reset(*shape.points);
@@ -45,6 +49,10 @@ clear :: (shape : *Polygon) {
     clear(*shape.outer_ring);
     for * shape.inner_rings clear(it);
     array_reset_keeping_memory(*shape.inner_rings);
+}
+
+is_empty :: (shape : Polygon) -> bool #must {
+    return is_empty(shape.outer_ring);
 }
 
 deinit :: (shape : *Polygon) {
@@ -137,6 +145,11 @@ clear :: (shape : *Polygon_Soup) {
     if !shape return;
     for * shape.polygons clear(it);
     array_reset_keeping_memory(*shape.polygons);
+}
+
+is_empty :: (shape : Polygon_Soup) -> bool #must {
+    for shape.polygons if !is_empty(it) return false;
+    return true;
 }
 
 deinit :: (shape : *Polygon_Soup) {

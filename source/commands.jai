@@ -236,23 +236,17 @@ find_open_edges :: (index : int) {
         array_add(*segment.points, mesh.positions[edge.y]);
     }
 
-    // @Cleanup use a make_Polyline_Soup3_Entity function here
     new_entity := New(Polyline_Soup3_Entity);
+
     new_entity.shape = segment_soup;
-    ok : bool;
-    new_entity.mesh, ok = to_Mesh(new_entity.shape);
-    assert(ok);
+    new_entity.mesh = to_Mesh(new_entity.shape);
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
     name := join(app.entities[index].fully_pathed_filename, "_open_edges"); // @Leak
     init_entity_base_parameters(new_entity, name, new_entity.mesh);
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
     new_entity.display_info.wireframe_width = 3;
-
-    // Set generation index
-    {
-        found, _ := find_entity_with_max_generation_index(name);
-        if found {
-            new_entity.generation_index = found.generation_index + 1;
-        }
+    found_entity := find_entity_with_max_generation_index(new_entity.fully_pathed_filename);
+    if found_entity {
+        new_entity.generation_index = found_entity.generation_index + 1;
     }
 
     array_add(*app.entities, new_entity);
@@ -402,33 +396,21 @@ make_Grid_on_plane :: (_spacing : float, _Nx : int, _Ny : int, frame : Frame, or
     make_Grid_Entity(grid, extents, name, color);
 }
 
-// @Cleanup This could be an init :: (Polyline_Soup_Entity) function
 make_Grid_Entity :: (grid : Grid, extents : Vector3i, name : string, color : Vector4) {
+
     new_entity := New(Polyline_Soup3_Entity);
 
     new_entity.shape = to_Polyline_Soup3(grid, extents);
-
-    ok : bool;
-    new_entity.mesh, ok = to_Mesh(new_entity.shape);
-    assert(ok);
-
+    new_entity.mesh = to_Mesh(new_entity.shape);
     init_entity_base_parameters(new_entity, name, new_entity.mesh);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-
-    // Set generation index
-    {
-        found, _ := find_entity_with_max_generation_index(name);
-        if found {
-            new_entity.generation_index = found.generation_index + 1;
-        }
+    primary_color := entity_primary_color(new_entity);
+    if primary_color {
+        <<primary_color = color;
     }
-
-    // Set color
-    {
-        primary_color := entity_primary_color(new_entity);
-        if primary_color {
-            <<primary_color = color;
-        }
+    found_entity := find_entity_with_max_generation_index(name);
+    if found_entity {
+        new_entity.generation_index = found_entity.generation_index + 1;
     }
 
     array_add(*app.entities, new_entity);

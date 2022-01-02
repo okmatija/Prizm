@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh, bool #must {
+to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh {
+    #assert(T == Polyline_Soup2 || T == Polyline_Soup3);
+
     mesh : Mesh;
     mesh.geometry_format = .LINES;
 
@@ -14,7 +16,6 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh, bool #must {
 #if T == Polyline_Soup2 {
         array_add(*mesh.positions, make_vector3(point.x, point.y, 0));
 } else {
-        #assert(T == Polyline_Soup3);
         array_add(*mesh.positions, point);
 }
 
@@ -23,7 +24,6 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh, bool #must {
 #if T == Polyline_Soup2 {
             array_add(*mesh.positions, make_vector3(point.x, point.y, 0));
 } else {
-            #assert(T == Polyline_Soup3);
             array_add(*mesh.positions, point);
 }
             array_add(*mesh.indices, xx (index_offset + edge_index));
@@ -33,7 +33,7 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh, bool #must {
         index_offset += polyline.points.count;
     }
 
-    return mesh, true;
+    return mesh;
 }
 
 to_Polyline_Soup2 :: #bake_arguments to_Polyline_Soup(Point = Vector2);
@@ -123,10 +123,9 @@ to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #
     return result, true;
 }
 
-to_Mesh :: (shape : Polygon_Soup) -> Mesh, bool #must {
-    result : Mesh;
-    log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
-    return result, false;
+to_Mesh :: (shape : Polygon_Soup) -> Mesh {
+    // @Incomplete
+    return .{};
 }
 
 

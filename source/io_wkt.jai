@@ -90,16 +90,14 @@ load_wkt :: (filename : string) -> *Entity {
                 entity = New(Polyline_Soup2_Entity); // @CompilerBug???????
                 e : *Polyline_Soup2_Entity = xx entity;
                 array_add(*e.shape.polylines).points = points2;
-                e.mesh, ok = to_Mesh(e.shape);
-                if !ok parser.failed = true;
+                e.mesh = to_Mesh(e.shape);
 
             } else if dim == 3 {
 
                 entity = New(Polyline_Soup3_Entity);
                 e : *Polyline_Soup3_Entity = xx entity; // @CompilerBug???????
                 array_add(*e.shape.polylines).points = points3;
-                e.mesh, ok = to_Mesh(e.shape);
-                if !ok parser.failed = true;
+                e.mesh = to_Mesh(e.shape);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -121,16 +119,14 @@ load_wkt :: (filename : string) -> *Entity {
                 entity = New(Polyline_Soup2_Entity);
                 e : *Polyline_Soup2_Entity = xx entity; // @CompilerBug???????
                 e.shape = polyline_soup2;
-                e.mesh, ok = to_Mesh(e.shape);
-                if !ok parser.failed = true;
+                e.mesh = to_Mesh(e.shape);
 
             } else if dim == 3 {
 
                 entity = New(Polyline_Soup3_Entity);
                 e : *Polyline_Soup3_Entity = xx entity; // @CompilerBug???????
                 e.shape = polyline_soup3;
-                e.mesh, ok = to_Mesh(e.shape);
-                if !ok parser.failed = true;
+                e.mesh = to_Mesh(e.shape);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -142,8 +138,12 @@ load_wkt :: (filename : string) -> *Entity {
 
             e := New(Polygon_Soup_Entity);
             array_add(*e.shape.polygons, polygon);
-            e.mesh, ok = to_Mesh(e.shape);
-            if !ok parser.failed = true;
+            e.mesh = to_Mesh(e.shape);
+
+            if !is_empty(e.shape) && e.mesh.positions.count == 0 {
+                log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
+                parser.failed = true;
+            }
 
             entity = e;
 
@@ -153,8 +153,12 @@ load_wkt :: (filename : string) -> *Entity {
 
             e := New(Polygon_Soup_Entity);
             e.shape = polygon_soup;
-            e.mesh, ok = to_Mesh(e.shape);
-            if !ok parser.failed = true;
+            e.mesh = to_Mesh(e.shape);
+
+            if !is_empty(e.shape) && e.mesh.positions.count == 0 {
+                log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
+                parser.failed = true;
+            }
 
             entity = e;
 
