@@ -51,11 +51,11 @@ Special_Key_Code :: enum u32 #specified {
 to_string :: (using mapping : Single_Key_Mapping) -> string {
     builder : String_Builder;
     defer free_buffers(*builder);
-    if modifier_flags.control_pressed print_to_builder(*builder, "C-");
-    if modifier_flags.alt_pressed     print_to_builder(*builder, "A-");
-    if modifier_flags.shift_pressed   print_to_builder(*builder, "S-");
+    if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl-");
+    if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt-");
+    if modifier_flags.shift_pressed   print_to_builder(*builder, "Shift-");
     if key_code == 32 {
-        print_to_builder(*builder, "SPC");
+        print_to_builder(*builder, "Space");
     } else if key_code > 32 {
         // upper_case := to_upper(cast(u8) key_code);
         upper_case := cast(u8) key_code;
@@ -98,7 +98,6 @@ init_keymap :: () {
 
     add_key(*app.keymap_keydown, toggle_fullscreen, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_show_help_ui, "Toggle help UI",  xx #char "h");
-    add_key(*app.keymap_keydown, toggle_show_global_settings_ui, "Toggle settings UI",  xx #char "h", .{shift_pressed=true});
     add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`");
     add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", .{control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "s"); // @Volatile keep synced with SELECTION_MODE_TOOLTIP
@@ -193,7 +192,6 @@ init_keymap :: () {
 call_fit_on_screen             :: () { fit_scene_on_screen(); } // @CompilerBug? why do we need this wrapper
 quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
-toggle_show_global_settings_ui :: () { app.show_global_settings_ui = !app.show_global_settings_ui; }
 toggle_show_help_ui            :: () { app.show_ui, app.show_help_ui    = true, !app.show_help_ui; }
 toggle_show_console_ui         :: () { app.show_ui, app.show_console_ui = true, !app.show_console_ui; }
 toggle_selection_mode          :: () { app.user_selection.is_visible = !app.user_selection.is_visible; }

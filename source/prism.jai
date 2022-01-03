@@ -135,10 +135,9 @@ main :: () {
         ImGui.NewFrame();
 
         if app.show_ui {
-            show_global_settings_ui(*triad);
             show_item_list_ui();
             show_camera_controls();
-            show_help_ui();
+            show_help_ui(*triad);
             console_draw();
             // inspect("Debug", *app.camera, true);
         }

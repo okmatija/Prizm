@@ -42,7 +42,6 @@ App :: struct {
     background_vao : GLuint;
 
     show_ui := true;
-    show_global_settings_ui := false;
     show_help_ui := false;
     show_console_ui := false;
     show_changelog := false;

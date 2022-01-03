@@ -20,6 +20,7 @@
   - Tip: When using `make_Grid_on_*_plane` add grids with multiple resolutions before adjusting the camera to get nicely aligned multi-resolution overlays
   - Tip: The orbit points can be set on a model using C-RMB in Selection Mode, the orbit can be reset to 0,0,0 in the camera control UI.
 - Refactored UI code to use the Dear ImGui 1.85 module bundled with the Jai compiler
+- Simplified the help panel, application settings have been moved there as well (press h for help)
 
 
 ## Version 0.2.0, 1 December 2021

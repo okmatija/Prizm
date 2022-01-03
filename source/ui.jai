@@ -2,49 +2,6 @@
 
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 
-show_global_settings_ui :: (world_axes : *Axes_Triad)
-{
-    if !app.show_global_settings_ui return;
-
-    using app;
-
-    ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
-    ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | ImGui.WindowFlags.NoTitleBar);
-    defer ImGui.End();
-    defer if entities.count ImGui.Separator();
-
-    // @TODO Default this to open
-    if ImGui.TreeNode("%", "General Settings") {
-        defer ImGui.TreePop();
-        combo_box("Background", *app.background_style, type_info(Background_Style));
-        if app.background_style == .SOLID_COLOR {
-            ImGui.ColorEdit4("Background Color", *background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
-        }
-        ImGui.Checkbox("World Axes", *world_axes.visible);
-
-        ImGui.InputInt("Label limit", *app.label_limit);
-        if app.label_limit > 2000 {
-            color := ImGui.ImVec4.{1., .4, .4, 1.};
-            TextColored(color, "%", "Warning: label limit > 2000 may be slow");
-        }
-    }
-
-    // :UserConfig add a button to overwrite the user settings file with new defaults here?
-    inspect("User Settings", *app.settings);
-    clamp_user_settings();
-
-    if current_window_width != INITIAL_WINDOW_WIDTH && current_window_height != INITIAL_WINDOW_HEIGHT {
-        if ImGui.Button("Reset Window") {
-            SDL_SetWindowSize(window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-        }
-    }
-
-    // #if true {
-    //     ImGui.SetNextWindowPos(make_ImVec2(650, 20), .FirstUseEver);
-    //     ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
-    // }
-}
-
 // @Refactor This function is too long (especially the top level for loop). Break it up.
 show_item_list_ui :: () {
     using app;
@@ -521,7 +478,7 @@ show_camera_controls :: () {
     // @Incomplete add button to reset look position
 }
 
-show_help_ui :: () {
+show_help_ui :: (world_axes : *Axes_Triad) {
     if !app.show_help_ui return;
 
     window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
@@ -540,36 +497,36 @@ show_help_ui :: () {
         defer ImGui.End();
     }
 
-    if ImGui.TreeNodeEx("In the Viewport", .DefaultOpen) {
+    COLUMN_WIDTH :: 100;
+
+    if ImGui.TreeNodeEx("Key bindings in the Viewport") {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, 80);
-        ImGui.NextColumn();
-        ImGui.NextColumn();
+        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
+        ImGui.NextColumn(); ImGui.NextColumn();
         ImGui.Text("MMB"); ImGui.NextColumn();
         ImGui.Text("Pan the camera"); ImGui.NextColumn();
         ImGui.Text("Scroll"); ImGui.NextColumn();
         ImGui.Text("Zoom the camera into the position under the cursor"); ImGui.NextColumn();
-        ImGui.Text("C-Scroll"); ImGui.NextColumn();
+        ImGui.Text("Ctrl-Scroll"); ImGui.NextColumn();
         ImGui.Text("Zoom the camera into the camera look position"); ImGui.NextColumn();
         ImGui.Text("RMB"); ImGui.NextColumn();
         ImGui.Text("Rotate the camera"); ImGui.NextColumn();
-        ImGui.Text("A-RMB"); ImGui.NextColumn();
+        ImGui.Text("Alt-RMB"); ImGui.NextColumn();
         ImGui.Text("Rotate about selected axis in the camera control pane");
     }
 
-    if ImGui.TreeNodeEx("In the Item List", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Key bindings for the Item List") {
         Show_Tooltip("The Item List is visible in the top right\nwhen at least one item has been loaded");
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, 80);
-        ImGui.NextColumn();
-        ImGui.NextColumn();
+        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
+        ImGui.NextColumn(); ImGui.NextColumn();
         ImGui.Text("LMB"); ImGui.NextColumn();
         ImGui.Text("(on a filename) Focus an item");  ImGui.NextColumn();
-        ImGui.Text("C-LMB"); ImGui.NextColumn();
+        ImGui.Text("Ctrl-LMB"); ImGui.NextColumn();
         ImGui.Text("(on a filename) Select an item"); ImGui.NextColumn();
         ImGui.Text("RMB"); ImGui.NextColumn();
         ImGui.Text("(on a filename) Access item/selection context menu"); ImGui.NextColumn();
@@ -579,33 +536,32 @@ show_help_ui :: () {
         ImGui.Text("(on a color) Reset color from the filename"); ImGui.NextColumn();
         ImGui.Text("LMB"); ImGui.NextColumn();
         ImGui.Text("(sweep over visibility checkbox) Update item visibility"); ImGui.NextColumn();
-        ImGui.Text("C-LMB"); ImGui.NextColumn();
+        ImGui.Text("Ctrl-LMB"); ImGui.NextColumn();
         ImGui.Text("(sweep over visibility checkbox) Focus hovered item"); ImGui.NextColumn();
-        ImGui.Text("S-LMB"); ImGui.NextColumn();
+        ImGui.Text("Shift-LMB"); ImGui.NextColumn();
         ImGui.Text("(sweep over visibility checkbox) Focus hovered item and update camera"); ImGui.NextColumn();
     }
 
-    if ImGui.TreeNodeEx("In Selection Mode", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Key bindings for Selection Mode") {
         Show_Tooltip("Enable selection mode by toggling visibility\non the 'Selection' item");
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, 80);
-        ImGui.NextColumn();
-        ImGui.NextColumn();
-        ImGui.Text("C-LMB"); ImGui.NextColumn();
+        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
+        ImGui.NextColumn(); ImGui.NextColumn();
+        ImGui.Text("Ctrl-LMB"); ImGui.NextColumn();
         ImGui.Text("Add nearest unclipped vertex to 'Selection' item");  ImGui.NextColumn();
-        ImGui.Text("S-LMB"); ImGui.NextColumn();
+        ImGui.Text("Shift-LMB"); ImGui.NextColumn();
         ImGui.Text("Click-drag to set clipping sphere");  ImGui.NextColumn();
-        ImGui.Text("C-RMB"); ImGui.NextColumn();
+        ImGui.Text("Ctrl-RMB"); ImGui.NextColumn();
         ImGui.Text("Place camera orbit");  ImGui.NextColumn();
     }
 
-    if ImGui.TreeNodeEx("Key bindings", .DefaultOpen) {
+    if ImGui.TreeNodeEx("General key bindings") {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, 80);
+        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
         ImGui.NextColumn();
         ImGui.NextColumn();
         for app.keymap_keydown.mappings {
@@ -624,8 +580,34 @@ show_help_ui :: () {
         }
     }
 
+    if ImGui.TreeNode("%", "General Settings") {
+        defer ImGui.TreePop();
+        combo_box("Background", *app.background_style, type_info(app.Background_Style));
+        if app.background_style == .SOLID_COLOR {
+            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+        }
+        ImGui.Checkbox("World Axes", *world_axes.visible);
+
+        ImGui.InputInt("Label limit", *app.label_limit);
+        if app.label_limit > 2000 {
+            color := ImGui.ImVec4.{1., .4, .4, 1.};
+            TextColored(color, "%", "Warning: label limit > 2000 may be slow");
+        }
+
+        if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
+            if ImGui.Button("Reset Window") {
+                SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+            }
+        }
+    }
+
+    // :UserConfig add a button to overwrite the user settings file with new defaults here?
+    inspect("User Settings", *app.settings);
+    clamp_user_settings();
+
+    // @Hack to display all text in the columns
     ImGui.Text("                                                                                   ");
-    ImGui.Text("Note: S=Shift, C=Ctrl, A=Alt, SPC=Space bar");
+
     SHOW_CHANGELOG :: "Show Changelog";
     HIDE_CHANGELOG :: "Hide Changelog";
     if ImGui.Button(ifx app.show_changelog then cast(*u8)HIDE_CHANGELOG else cast(*u8)SHOW_CHANGELOG) {
