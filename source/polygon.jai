@@ -1,8 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+// @Incomplete extend to 3d polygons which are also useful even though they may not be planar
+
 //
 // Ring. A closed line (last point == first point) which should not be self-intersecting, inside is on the left of the points
-// @Incomplete extend to 3d polygons which are also useful even though they may not be planar
 //
 
 Ring :: struct {
@@ -86,7 +87,7 @@ point_count :: (using polygon : Polygon) -> int {
 // Iterators.
 //
 
-point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags, reverse : bool) #expand {
+point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
     #if flags & .POINTER {
     `it : *Vector2 = ---;
@@ -96,15 +97,15 @@ point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags, rev
     `it_index := 0;
 
     // print("outer ring:\n");
-    for *=BY_POINTER <=reverse point, point_index : outer_ring.points {
+    for *=BY_POINTER point, point_index : outer_ring.points {
         it = point;
         #insert body;
         it_index += 1;
     }
 
-    for <=reverse inner_ring, inner_ring_index : inner_rings {
+    for inner_ring, inner_ring_index : inner_rings {
         // print("inner ring %:\n", inner_ring_index);
-        for *=BY_POINTER <=reverse point, point_index : inner_ring.points {
+        for *=BY_POINTER point, point_index : inner_ring.points {
             it = point;
             #insert body;
             it_index += 1;
@@ -112,8 +113,8 @@ point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags, rev
     }
 }
 
-point_forward_iterator :: #bake_arguments point_iterator(reverse=false);
-point_reverse_iterator :: #bake_arguments point_iterator(reverse=true);
+// point_forward_iterator :: #bake_arguments point_iterator(reverse=false);
+// point_reverse_iterator :: #bake_arguments point_iterator(reverse=true);
 
 edge_iterator :: (using ring : *Ring, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.

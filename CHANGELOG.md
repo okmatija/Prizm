@@ -11,12 +11,13 @@
   - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code
   - When tab-completion yields a unique result the command documentation is printed to the console log
   - Renamed console-specific commands to start with a `console_` prefix
-- Added `find_open_edges` command which adds an item containing the soup of edges belonging to only one triangle in the given mesh item
-- Added `make_Grid*` commands which add cartesian grid items to the item list
+- Added some new commands to the console:
+  - `find_open_edges` adds an item containing the soup of edges belonging to only one triangle in the given mesh item
+  - `perturb_positions` modifies the position data of an item to randomly chosen new positions on a sphere of a given radius centered on the original position
   - `make_Grid` adds a 3D grid item
-  - `make_Grid_on_near/far_plane` add 2D grids filling the camera near/far planes
-  - `make_Grid_on_xy/yz/zx_plane` add 2D grids on the xy/yz/zx planes through the current orbit point
-  - `make_Grid_on_xyz_planes` add 2D grids on the xy, yz and zx planes through the current orbit point
+  - `make_Grid_on_near/far_plane` add 2D grid items filling the camera near/far planes
+  - `make_Grid_on_xy/yz/zx_plane` add 2D grid items on the xy/yz/zx planes through the current orbit point
+  - `make_Grid_on_xyz_planes` add 2D grid items on the xy, yz and zx planes through the current orbit point
   - Tip: When using `make_Grid_on_*_plane` add grids with multiple resolutions before adjusting the camera to get nicely aligned multi-resolution overlays
   - Tip: The orbit points can be set on a model using C-RMB in Selection Mode, the orbit can be reset to 0,0,0 in the camera control UI.
 - Refactored UI code to use the Dear ImGui 1.85 module bundled with the Jai compiler

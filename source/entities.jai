@@ -1,11 +1,11 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 Entity_Type :: enum {
-    UNKNOWN;
+    MESH;
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
     POLYGON_SOUP;
-    MESH;
+    UNKNOWN;
 }
 
 Entity :: struct {

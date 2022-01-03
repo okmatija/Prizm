@@ -2,15 +2,13 @@
 
 FLOAT_MACHINE_EPSILON :: 0.0001; // @FIXME
 
-almost_equal :: (a : float, b : float, epsilon : float = 10 * FLOAT_MACHINE_EPSILON, scale : float = 1.0) -> bool
-{
+almost_equal :: (a : float, b : float, epsilon : float = 10 * FLOAT_MACHINE_EPSILON, scale : float = 1.0) -> bool {
     // exact comparison allows to handle infinities and prevents from getting FPE triggered by (inf - inf)
     exactly_equal := (a == b);
     return exactly_equal || (abs(a - b) < epsilon * (scale + abs(a) + abs(b)));
 }
 
-angle :: (a : Vector3, b : Vector3, normalize : bool = false) -> float
-{
+angle :: (a : Vector3, b : Vector3, normalize : bool = false) -> float {
     if normalize {
         // @Cleanup make this #if and use a = normalize(a), currently this looks like a @CompilerBug
         normalize_or_z_axis(*a);
@@ -24,8 +22,7 @@ angle :: (a : Vector3, b : Vector3, normalize : bool = false) -> float
 
 angle_unit :: #bake_arguments angle(normalize = false);
 
-cwise_max :: (v : Vector3) -> float, int
-{
+cwise_max :: (v : Vector3) -> float, int {
     max_component := v.component[0];
     max_index     := 0;
     for d : 0..2 {
@@ -37,8 +34,7 @@ cwise_max :: (v : Vector3) -> float, int
     return max_component, max_index;
 }
 
-cwise_min :: (v : Vector3) -> float, int
-{
+cwise_min :: (v : Vector3) -> float, int {
     min_component := v.component[0];
     min_index     := 0;
     for d : 0..2 {
@@ -50,10 +46,27 @@ cwise_min :: (v : Vector3) -> float, int
     return min_component, min_index;
 }
 
-transform_point :: (point : Vector3, transform : Matrix4) -> Vector3
-{
+transform_point :: (point : Vector3, transform : Matrix4) -> Vector3 {
     return (transform * make_vector4(point, 1.)).xyz;
 }
+
+normalize :: (using v: *Vector2, epsilon := 0, fallback := Vector2.{0, 0}) -> float {
+    sq := sqrt(x*x + y*y);
+    if sq == 0 {
+        <<v = fallback;
+        return sq;
+    }
+
+    factor := 1.0 / sq;
+    x *= factor;
+    y *= factor;
+
+    return sq;
+} @NoProfile
+
+normalize_or_x_axis :: inline (using v: *Vector2) -> float {
+    return normalize(v, fallback=.{x=1});
+} @NoProfile
 
 Vector2i :: struct {
     x, y : int;

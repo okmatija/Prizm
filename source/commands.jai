@@ -250,6 +250,74 @@ find_open_edges :: (index : int) {
         new_entity.generation_index = found_entity.generation_index + 1;
     }
     array_add(*app.entities, new_entity);
+
+} @RegisterCommand
+
+// Modify the position data of the item with the given `index` so new positions lie on spheres with
+// the given `radius` centered on the original positions.  If the item is two dimensional then the
+// new positions will lie on a circle in the embedding plane containing the geometry
+//
+// Note: Mesh vertex normals are _not_ updated, but with flat shading the faces will be colored in
+// a way which is consistent with the perturbation
+perturb_positions :: (index : int, radius : float = .001) {
+    // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+    if !check_geometry_index(index) {
+        return;
+    }
+
+    if radius <= 0 {
+        log_error("Radius argument should be greater than 0, got %.", radius);
+        return;
+    }
+
+    Rand :: () -> float #expand {
+        return random_get_within_range(-1, 1);
+    }
+
+    Perturb2 :: (point : *Vector2) #expand {
+        delta := make_vector2(Rand(), Rand());
+        normalize_or_x_axis(*delta);
+        <<point = <<point + delta * radius;
+    }
+
+    Perturb3 :: (point : *Vector3) #expand {
+        delta := make_vector3(Rand(), Rand(), Rand());
+        normalize_or_z_axis(*delta);
+        <<point = <<point + delta * radius;
+    }
+
+    base := app.entities[index];
+    base.render_info.is_dirty = true;
+    if #complete base.type == {
+        case .POLYLINE_SOUP2;
+            entity := cast(*Polyline_Soup2_Entity)base;
+            for * :point_iterator point : entity.shape {
+                Perturb2(point);
+            }
+            entity.mesh = to_Mesh(entity.shape);
+        case .POLYGON_SOUP;
+            entity := cast(*Polygon_Soup_Entity)base;
+            for polygon : entity.shape.polygons {
+                for * :point_iterator point : polygon {
+                    Perturb2(point);
+                }
+            }
+            entity.mesh = to_Mesh(entity.shape);
+        case .POLYLINE_SOUP3;
+            entity := cast(*Polyline_Soup3_Entity)base;
+            for * :point_iterator point : entity.shape {
+                Perturb3(point);
+            }
+            entity.mesh = to_Mesh(entity.shape);
+        case .MESH;
+            entity := cast(*Mesh_Entity)base;
+            for * point : entity.mesh.positions {
+                Perturb3(point);
+            }
+        case .UNKNOWN;
+            log_error("Unknown item type.");
+            return;
+    }
 } @RegisterCommand
 
 // @Incomplete variants to create a grids covering the aabb of an entity/selection/scene

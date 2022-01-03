@@ -86,6 +86,24 @@ point_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
+point_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
+    BY_POINTER :: cast(bool)(flags & .POINTER);
+    `it_index := 0;
+
+    for polyline_index : 0..soup.polylines.count-1 {
+        point_count := soup.polylines[polyline_index].points.count;
+        for point_index : 0..point_count-1 {
+            #if flags & .POINTER {
+            `it : *T.Point = *soup.polylines[polyline_index].points[point_index];
+            } else {
+            `it : T.Point = soup.polylines[polyline_index].points[point_index];
+            }
+            #insert body;
+            it_index += 1;
+        }
+    }
+}
+
 segment_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.
 
