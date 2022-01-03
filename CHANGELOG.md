@@ -1,9 +1,3 @@
-- Camera view history (make it persist, too?), which will be useful with grid plane
-- Persistent near/far Camera grids with a spotlight feature to limit the extents of the rendered grid to a disk near the cursor
-- Future work will make grids a specialized item type to improve grid junction index labelling and allow for custom item context menu UI (currenlty grid items are represented as polyline soups)
-- Why does x64 binary not work
-
-
 ## Version 0.3.0, Unreleased
 
 - Improvements to the console:

@@ -606,7 +606,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     clamp_user_settings();
 
     // @Hack to display all text in the columns
-    ImGui.Text("                                                                                   ");
+    ImGui.Text("                                                                                     ");
 
     SHOW_CHANGELOG :: "Show Changelog";
     HIDE_CHANGELOG :: "Hide Changelog";
