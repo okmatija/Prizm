@@ -11,6 +11,7 @@
   - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code
   - When tab-completion yields a unique result the command documentation is printed to the console log
   - Renamed console-specific commands to start with a `console_` prefix
+  - Console command error checking now supports unsigned integers
 - Added some new commands to the console:
   - `find_open_edges` adds an item containing the soup of edges belonging to only one triangle in the given mesh item
   - `perturb_positions` modifies the position data of an item to randomly chosen new positions on a sphere of a given radius centered on the original position

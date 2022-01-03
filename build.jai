@@ -241,6 +241,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
             }
         }
 
+        // @Refactor its confusing that we're Print
         assign_argument :: (arg : *Code_Declaration, arg_index : int) #expand {
             indent := "    ";
             if arg.expression {
@@ -253,6 +254,13 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     // @Incomplete Check for overflow?
                     Print("%if args[%].type.type == .INTEGER {\n", indent, arg_index);
                     Print("%    a%2 = xx <<cast(*s64)(args[%2].value_pointer);\n", indent, arg_index);
+                    integer_arg := cast(*Type_Info_Integer)arg.type;
+                    if integer_arg.signed == false {
+                        Print("%    if a%2 < 0 {\n", indent, arg_index);
+                        Print("%        log_error(\"Argument %2 is unsigned but passed value was %%\", a%2);\n", indent, arg_index);
+                        Print("%        return;\n", indent);
+                        Print("%    }\n", indent);
+                    }
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not an int, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
@@ -298,7 +306,9 @@ generate_code_to_register_console_commands :: (w : Workspace) {
             Print("    %(", command.name);
             for arg_index : 0..arg_count-1 {
                 comma := ifx arg_index != arg_count-1 then ", " else "";
-                Print("a%1%", arg_index, comma);
+                arg := command.arguments[arg_index];
+                auto_cast := ifx arg.type.type == .INTEGER then "xx " else ""; // Could use xx,nocheck here since we catch integer overflow..?
+                Print("%3a%1%2", arg_index, comma, auto_cast);
             }
             Print(");\n");
         }

@@ -68,33 +68,37 @@ normalize_or_x_axis :: inline (using v: *Vector2) -> float {
     return normalize(v, fallback=.{x=1});
 } @NoProfile
 
-Vector2i :: struct {
-    x, y : int;
+Tuple2 :: struct (T : Type) {
+    x, y : T;
 #place x;
-    component : [2] int = ---;
+    component : [2] T = ---;
 }
 
-Vector3i :: struct {
-    x, y, z : int;
+Tuple3 :: struct (T : Type) {
+    x, y, z : T;
 #place x;
-    component : [3] int = ---;
+    component : [3] T = ---;
 }
 
-make_Vector2i :: (x : int, y : int) -> Vector2i {
-    result : Vector2i = ---;
+make_Tuple2 :: (x : $T, y : T) -> Tuple2(T) {
+    result : Tuple2(T) = ---;
     result.x = x;
     result.y = y;
     return result;
 }
 
-make_Vector3i :: (x : int, y : int, z : int) -> Vector3i {
-    result : Vector3i = ---;
+make_Tuple3 :: (x : $T, y : T, z : T) -> Tuple3(T) {
+    result : Tuple3(T) = ---;
     result.x = x;
     result.y = y;
     result.z = z;
     return result;
 }
 
-operator == :: (a : Vector2i, b : Vector2i) -> bool {
+operator == :: (a : $T/Tuple2, b : T) -> bool {
     return a.x == b.x && a.y == b.y;
+}
+
+operator == :: (a : $T/Tuple3, b : T) -> bool {
+    return a.x == b.x && a.y == b.y && a.z == b.z;
 }

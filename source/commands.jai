@@ -184,22 +184,22 @@ find_open_edges :: (index : int) {
         return;
     }
 
-    edge_hash :: (e : Vector2i) -> u32 {
+    edge_hash :: (e : Tuple2(u32)) -> u32 {
         if e.x < e.y {
             return get_hash(e.component);
         } else {
-            return get_hash(make_Vector2i(e.y, e.x).component);
+            return get_hash(make_Tuple2(e.y, e.x).component);
         }
     }
 
-    edge_comp :: (a : Vector2i, b : Vector2i) -> bool {
+    edge_comp :: (a : Tuple2(u32), b : Tuple2(u32)) -> bool {
         if a == b return true;
-        if a == make_Vector2i(b.y, b.x) return true;
+        if a == make_Tuple2(b.y, b.x) return true;
         return false;
     }
 
-    origin_to_edge : Table(Vector2i, s64, edge_hash, edge_comp);
-    defer uninit(*origin_to_edge);
+    edge_to_origin : Table(Tuple2(u32), s64, edge_hash, edge_comp);
+    defer uninit(*edge_to_origin);
 
     mesh := app.entities[index].mesh;
     if mesh.geometry_format != .TRIANGLES {
@@ -208,14 +208,14 @@ find_open_edges :: (index : int) {
     }
 
     for :triangles_iterator mesh {
-        Process_Edge :: (i : int, j : int) #expand {
-            edge := make_Vector2i(i, j);
-            value, found := table_find(origin_to_edge, edge);
+        Process_Edge :: (i : u32, j : u32) #expand {
+            edge := make_Tuple2(i, j);
+            value, found := table_find(edge_to_origin, edge);
             if found {
-                table_remove(*origin_to_edge, edge);
+                table_remove(*edge_to_origin, edge);
             } else {
                 origin := edge.x;
-                table_add(*origin_to_edge, edge, origin);
+                table_add(*edge_to_origin, edge, origin);
             }
         }
 
@@ -224,14 +224,14 @@ find_open_edges :: (index : int) {
         Process_Edge(it.component[2], it.component[0]);
     }
 
-    if origin_to_edge.count == 0 {
+    if edge_to_origin.count == 0 {
         log("No boundary edges detected");
         return;
     }
 
     // Collect the segment soup @Incomplete weld/stitch polyline segments together
     segment_soup : Polyline_Soup3;
-    for origin, edge : origin_to_edge {
+    for origin, edge : edge_to_origin {
         segment := array_add(*segment_soup.polylines);
         array_add(*segment.points, mesh.positions[edge.x]);
         array_add(*segment.points, mesh.positions[edge.y]);
@@ -338,8 +338,10 @@ make_Grid_on_near_plane :: (spacing : float, restricted : int=1) {
     origin := app.camera.eye_position + normalize(current_look_direction()) * (app.camera.near + .001);
     name := tprint("Grid_Near_%", spacing);
 
-    Nx := cast(int)ceil((app.camera.right - app.camera.left) / spacing / 2) + 2;
-    Ny := cast(int)ceil((app.camera.top - app.camera.bottom) / spacing / 2) + 2;
+    assert(app.camera.right > app.camera.left);
+    assert(app.camera.top > app.camera.bottom);
+    Nx := cast(u32)ceil((app.camera.right - app.camera.left) / spacing / 2) + 2;
+    Ny := cast(u32)ceil((app.camera.top - app.camera.bottom) / spacing / 2) + 2;
     color := color_from_string(tprint("%", ImGui.GetFrameCount()));
 
     make_Grid_on_plane(spacing, Nx, Ny, frame, xx origin, name, color, restricted);
@@ -360,8 +362,10 @@ make_Grid_on_far_plane :: (spacing : float, restricted : int=1) {
     origin := app.camera.eye_position + normalize(current_look_direction()) * (app.camera.far - .001);
     name := tprint("Grid_Far_%", spacing); // @Cleanup Pick a good formatting here probably scientific? (and in similar places in this file)
 
-    Nx := cast(int)ceil((app.camera.right - app.camera.left) / spacing / 2) + 2;
-    Ny := cast(int)ceil((app.camera.top - app.camera.bottom) / spacing / 2) + 2;
+    assert(app.camera.right > app.camera.left);
+    assert(app.camera.top > app.camera.bottom);
+    Nx := cast(u32)ceil((app.camera.right - app.camera.left) / spacing / 2) + 2;
+    Ny := cast(u32)ceil((app.camera.top - app.camera.bottom) / spacing / 2) + 2;
     color := color_from_string(tprint("%", ImGui.GetFrameCount()));
 
     make_Grid_on_plane(spacing, Nx, Ny, frame, xx origin, name, color, restricted);
@@ -371,7 +375,7 @@ make_Grid_on_far_plane :: (spacing : float, restricted : int=1) {
 // `spacing`    is the distance between adjacent grid points in each world axes direction
 // `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
 // Note: The camera orbit may be positioned on a model using C-RMB in Selection Mode
-make_Grid_on_xy_plane :: (spacing : float, N : int, restricted : int=1) {
+make_Grid_on_xy_plane :: (spacing : float, N : u32, restricted : int=1) {
     frame := make_Frame(.{1, 0, 0}, .{0, 1, 0});
     origin := app.camera.look_position;
     name := tprint("Grid_XY_%", spacing);
@@ -383,7 +387,7 @@ make_Grid_on_xy_plane :: (spacing : float, N : int, restricted : int=1) {
 // `spacing`    is the distance between adjacent grid points in each world axes direction
 // `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
 // Note: The camera orbit may be positioned on a model using C-RMB in Selection Mode
-make_Grid_on_yz_plane :: (spacing : float, N : int, restricted : int=1) {
+make_Grid_on_yz_plane :: (spacing : float, N : u32, restricted : int=1) {
     frame := make_Frame(.{0, 1, 0}, .{0, 0, 1});
     origin := app.camera.look_position;
     name := tprint("Grid_YZ_%", spacing);
@@ -395,7 +399,7 @@ make_Grid_on_yz_plane :: (spacing : float, N : int, restricted : int=1) {
 // `spacing`    is the distance between adjacent grid points in each world axes direction
 // `restricted` by default the grid size is restricted, passing 0 will remove all restrictions
 // Note: The camera orbit may be positioned on a model using C-RMB in Selection Mode
-make_Grid_on_zx_plane :: (spacing : float, N : int, restricted : int=1) {
+make_Grid_on_zx_plane :: (spacing : float, N : u32, restricted : int=1) {
     frame := make_Frame(.{0, 0, 1}, .{1, 0, 0});
     origin := app.camera.look_position;
     name := tprint("Grid_ZX_%", spacing);
@@ -404,7 +408,7 @@ make_Grid_on_zx_plane :: (spacing : float, N : int, restricted : int=1) {
 } @RegisterCommand
 
 // Equivalent to calling each of make_Grid_on_xy/yz/zx_plane
-make_Grid_on_xyz_planes :: (spacing : float, N : int, restricted : int=1) {
+make_Grid_on_xyz_planes :: (spacing : float, N : u32, restricted : int=1) {
     make_Grid_on_xy_plane(spacing, N, restricted);
     make_Grid_on_yz_plane(spacing, N, restricted);
     make_Grid_on_zx_plane(spacing, N, restricted);
@@ -414,9 +418,9 @@ make_Grid_on_xyz_planes :: (spacing : float, N : int, restricted : int=1) {
 // `spacing`        is the distance between adjacent grid points in each world axes direction
 // `nx`, `ny`, `nz` is the number of grid points in each world axes direction
 // `ox`, `oy`, `oz` is the world position of the grid point with local coordinate {0,0,0}
-make_Grid :: (spacing : float, nx : int, ny : int, nz : int, ox : float, oy : float, oz : float) {
+make_Grid :: (spacing : float, nx : u32, ny : u32, nz : u32, ox : float, oy : float, oz : float) {
     grid := make_Grid_from_World(spacing, xx make_vector3(ox, oy, oz));
-    extents := make_Vector3i(nx, ny, nz);
+    extents := make_Tuple3(nx, ny, nz);
     name := tprint("Grid_%", grid.spacing);
     make_Grid_Entity(grid, extents, name, color_from_string(tprint("%", ImGui.GetFrameCount())));
 } @RegisterCommand
@@ -437,7 +441,7 @@ reorient_triangles_012_to_021 :: (item_index : int) {
 
 #scope_file
 
-make_Grid_on_plane :: (_spacing : float, _Nx : int, _Ny : int, frame : Frame, origin : Grid.World, name : string, color : Vector4, restricted : int=1) {
+make_Grid_on_plane :: (_spacing : float, _Nx : u32, _Ny : u32, frame : Frame, origin : Grid.World, name : string, color : Vector4, restricted : int=1) {
     Nx, Ny, spacing := _Nx, _Ny, _spacing;
 
     if restricted && spacing < .0001 {
@@ -459,12 +463,12 @@ make_Grid_on_plane :: (_spacing : float, _Nx : int, _Ny : int, frame : Frame, or
         Ny = MAX_N;
     }
 
-    extents := make_Vector3i(Nx, Ny, 1);
+    extents := make_Tuple3(Nx, Ny, 1);
 
     make_Grid_Entity(grid, extents, name, color);
 }
 
-make_Grid_Entity :: (grid : Grid, extents : Vector3i, name : string, color : Vector4) {
+make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : Vector4) {
 
     new_entity := New(Polyline_Soup3_Entity);
 

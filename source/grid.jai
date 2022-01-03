@@ -63,15 +63,15 @@ Declare_Inner_Products :: (a : Frame, b : Frame) #expand {
 
 Grid :: struct {
     // Index a single grid point, a line of grid points, or a plane of grid points
-    Point_Index_1D :: #type,isa int;      // e.g., In a 3D grid, this indexes a set of points {(x, y, Z) where x, y vary and Z is constant}
-    Point_Index_2D :: #type,isa Vector2i; // e.g., In a 3D grid, this indexes a set of points {(x, Y, Z) where x varies and Y, Z are constant}
-    Point_Index_3D :: #type,isa Vector3i;
+    Point_Index_1D :: #type,isa int;         // e.g., In a 3D grid, this indexes a set of points {(x, y, Z) where x, y vary and Z is constant}
+    Point_Index_2D :: #type,isa Tuple2(int); // e.g., In a 3D grid, this indexes a set of points {(x, Y, Z) where x varies and Y, Z are constant}
+    Point_Index_3D :: #type,isa Tuple3(int);
     Point_Index ::    #type,isa Point_Index_3D; // Common case type alias
 
     // Index a single grid cube, a column of grid cubes, or a slab of grid cubes
-    Cell_Index_1D :: #type,isa int;      // e.g., In a 3D grid, this indexes a set of cubes {(x, y, Z) where x, y vary and Z is constant}
-    Cell_Index_2D :: #type,isa Vector2i; // e.g., In a 3D grid, this indexes a set of cubes {(x, Y, Z) where x varies and Y, Z are constant}
-    Cell_Index_3D :: #type,isa Vector3i;
+    Cell_Index_1D :: #type,isa int;         // e.g., In a 3D grid, this indexes a set of cubes {(x, y, Z) where x, y vary and Z is constant}
+    Cell_Index_2D :: #type,isa Tuple2(int); // e.g., In a 3D grid, this indexes a set of cubes {(x, Y, Z) where x varies and Y, Z are constant}
+    Cell_Index_3D :: #type,isa Tuple3(int);
     Cell_Index ::    #type,isa Cell_Index_3D; // Common case type alias
 
     // Local or World position type
@@ -186,13 +186,13 @@ world_origin :: inline (using grid : Grid) -> Grid.World {
     return sample_point(grid, .{0, 0, 0});
 }
 
-to_Polyline_Soup3 :: (grid : Grid, extents : Vector3i, symmetric : bool = true) -> Polyline_Soup3 {
+to_Polyline_Soup3 :: (grid : Grid, extents : Tuple3(u32), symmetric : bool = true) -> Polyline_Soup3 {
 
     // Point count in each direction
-    maxx, maxy, maxz := extents.x, extents.y, extents.z;
-    minx, miny, minz := 0, 0, 0;
+    maxx, maxy, maxz : s64 = xx extents.x, xx extents.y, xx extents.z;
+    minx, miny, minz : s64 = 0, 0, 0;
     if symmetric {
-        minx, miny, minz = -extents.x, -extents.y, -extents.z;
+        minx, miny, minz = -maxx, -maxy, -maxz;
     }
 
     result : Polyline_Soup3;

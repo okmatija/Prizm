@@ -20,7 +20,7 @@ triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expa
         i0 := mesh.indices[3 * i + 0];
         i1 := mesh.indices[3 * i + 1];
         i2 := mesh.indices[3 * i + 2];
-        `it := make_Vector3i(xx i0, xx i1, xx i2); // nocommit @Cleanup
+        `it := make_Tuple3(i0, i1, i2);
         #insert (remove=#assert(false)) body;
         it_index += 1;
     }
