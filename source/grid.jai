@@ -38,7 +38,7 @@ Frame :: struct {
 
 WORLD_FRAME :: Frame.{};
 
-make_Frame :: (x_axis : Vector3, y_axis : Vector3, $checked := true /* nocommit */) -> Frame {
+make_Frame :: (x_axis : Vector3, y_axis : Vector3, $checked := false) -> Frame {
     z_axis := cross_product(x_axis,  y_axis);
 
 #if checked {
@@ -170,7 +170,7 @@ cell_of :: inline (using grid : Grid, local : Grid.Local) -> Grid.Cell_Index {
 
 // Return the cell containing the given world position
 cell_of :: inline (using grid : Grid, world : Grid.World) -> Grid.Cell_Index {
-    assert(grid.frame.x_axis == .{1, 0, 0} && grid.frame.y_axis == .{0, 1, 0}); // @nocommit 
+    assert(grid.frame.x_axis == .{1, 0, 0} && grid.frame.y_axis == .{0, 1, 0}); // @Incomplete Not yet implemented for non-world frame
     return cell_of(grid, to_local(grid, world));
 }
 

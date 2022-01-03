@@ -17,6 +17,10 @@ Camera :: struct {
 
     near : float;
     far :  float;
+
+    // @Incomplete
+    // near_grid : Grid;
+    // far_grid : Grid;
 }
 
 Camera_Rotation_Axis :: enum {
