@@ -674,7 +674,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
 
         // FIXME FIXME: opacity should control wireframe??
         ImGui.PushItemWidth(120);
-        set.display_mode = combo_box("", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
+        set.display_mode = combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
         ImGui.PopItemWidth();
 
         ImGui.SameLine();
@@ -913,7 +913,7 @@ combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
     for info_enum.names {
         if value == info_enum.values[it_index]  value_name = it;
     }
-    if ImGui.BeginCombo(to_c_string(label), temp_c_string(value_name)) {
+    if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name)) {
         for info_enum.names {
             is_selected := value == info_enum.values[it_index];
             if ImGui.Selectable(temp_c_string(it), is_selected) {
