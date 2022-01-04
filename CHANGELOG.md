@@ -17,6 +17,7 @@
   - Tip: The orbit points can be set on a model using C-RMB in Selection Mode, the orbit can be reset to 0,0,0 in the camera control UI.
 - Refactored UI code to use the Dear ImGui 1.85 module bundled with the Jai compiler
 - Fixed a bug where the rendering mode couldn't be switched using the combo box
+- Fixed a bug where the item generation index wasn't properly displayed when more than one item with the same name was loaded
 - Simplified the help panel, application settings have been moved there as well (press h for help)
 
 

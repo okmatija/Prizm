@@ -9,6 +9,24 @@ filetime_to_readable_date :: (filetime : u64) -> string {
     return tprint("%:%:%", formatInt(hour, minimum_digits=2), formatInt(min, minimum_digits=2), formatInt(sec, minimum_digits=2));
 }
 
+maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {
+    s := _s;
+    #if OS == .WINDOWS {
+        if s.count >= 2 && s.data[0] == #char "." && s.data[1] == #char "/" {
+            s.data += 2;
+            s.count -= 2;
+        }
+    }
+    return s;
+}
+
+canonically_formatted_path_string :: (_path : string) -> string {
+    path := _path;
+    path_overwrite_separators(path, #char "/");
+    path = maybe_trim_leading_dot_forwardslash(path);
+    return path;
+}
+
 printv :: (a : Code, loc := #caller_location) #expand {
     get_ident_name :: (code : Code) -> string {
         root := compiler_get_nodes(code);
@@ -17,7 +35,7 @@ printv :: (a : Code, loc := #caller_location) #expand {
         return ident.name;
     }
 
-#if false {
+#if true {
     print("%:% % = %\n", loc.fully_pathed_filename, loc.line_number, #run get_ident_name(a), #insert a);
 } else {
     print("% = %\n", #run get_ident_name(a), #insert a);

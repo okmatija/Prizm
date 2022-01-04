@@ -176,15 +176,36 @@ main :: () {
     SDL_Quit();
 }
 
-load_one_file :: (filename : string) {
-    found, _ := find_entity_with_max_generation_index(filename);
+load_one_file :: (filename : string, loading_from_command_line : bool) {
+    found, found_index := find_entity_with_max_generation_index(filename);
     if found {
         if #complete app.settings.duplicate_file_behaviour == {
-            case .OVERWRITE; #through;
             case .IGNORE;
-                // When loading files from the command line .OVERWRITE and .IGNORE have the same behaviour
+
                 log_warning("Skipped file: '%' (already loaded)\n", filename);
+
+            case .OVERWRITE;
+
+                if loading_from_command_line {
+
+                    // When loading files from the command line .OVERWRITE and .IGNORE have the same behaviour
+                    log_warning("Skipped file: '%' (already loaded)\n", filename);
+
+                } else {
+
+                    // Only affects the entity with maximum generation index
+                    entity := load_entity_from_file(filename);
+                    if entity {
+                        entity.generation_index = found.generation_index;
+                        entity.display_info = found.display_info;
+                        deinit(found);
+                        app.entities[found_index] = entity;
+                    }
+
+                }
+
             case .APPEND;
+
                 entity := load_entity_from_file(filename);
                 if entity {
                     entity.generation_index = found.generation_index + 1;
@@ -201,25 +222,12 @@ load_one_file :: (filename : string) {
 
 load_from_command_line :: () {
 
-    maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {
-        s := _s;
-        #if OS == .WINDOWS {
-            if s.count >= 2 && s.data[0] == #char "." && s.data[1] == #char "/" {
-                s.data += 2;
-                s.count -= 2;
-            }
-        }
-        return s;
-    }
-
     args := get_command_line_arguments();
-    defer array_free(args);
+    defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
 
         // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
-        pattern := args[it];
-        path_overwrite_separators(pattern, #char "/");
-        pattern = maybe_trim_leading_dot_forwardslash(pattern);
+        pattern := canonically_formatted_path_string(args[it]);
 
         if find_index_of_any_from_left(pattern, "*?[-]") != -1 {
             // @Cleanup This is really annoying. file_list gives different results on windows/linux
@@ -227,13 +235,13 @@ load_from_command_line :: () {
             defer array_free(files);
             for _file, file_index : files {
                 file := _file;
-                file = maybe_trim_leading_dot_forwardslash(file);
+                file = canonically_formatted_path_string(file);
                 if wildcard_match(file, pattern) {
-                    load_one_file(file);
+                    load_one_file(file, loading_from_command_line=true);
                 }
             }
         } else {
-            load_one_file(pattern);
+            load_one_file(pattern, loading_from_command_line=true);
         }
     }
     fit_scene_on_screen();
@@ -298,38 +306,9 @@ handle_events :: () {
             }
             case SDL_DROPFILE; {
                 // @Leak event.drop.file should be free'd using SDL_free
-                dropped := to_string(event.drop.file);
-                found, found_index := find_entity_with_max_generation_index(dropped);
-                if found {
-                    if #complete app.settings.duplicate_file_behaviour == {
-                        case .IGNORE;
+                dropped := canonically_formatted_path_string(to_string(event.drop.file));
 
-                            log_warning("Skipped file: '%' (already loaded)\n", dropped);
-
-                        case .OVERWRITE;
-
-                            // Only affects the entity with maximum generation index
-                            entity := load_entity_from_file(dropped);
-                            if entity {
-                                entity.generation_index = found.generation_index;
-                                entity.display_info = found.display_info;
-                                deinit(found);
-                                app.entities[found_index] = entity;
-                            }
-
-                        case .APPEND;
-                            entity := load_entity_from_file(dropped);
-                            if entity {
-                                entity.generation_index = found.generation_index + 1;
-                                array_add(*app.entities, entity);
-                            }
-                    }
-                } else {
-                    entity := load_entity_from_file(dropped);
-                    if entity {
-                        array_add(*app.entities, entity);
-                    }
-                }
+                load_one_file(dropped, loading_from_command_line=false);
 
                 if app.settings.fit_to_screen_on_file_drop_event {
                     fit_scene_on_screen();
