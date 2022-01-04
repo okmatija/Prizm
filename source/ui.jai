@@ -491,8 +491,8 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     if app.show_changelog {
         ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5});
         // ImGui.SetNextWindowSize(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}); // @Incomplete
-        flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .AlwaysHorizontalScrollbar;
-        ImGui.Begin("##changelog", flags=flags);// | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
+        flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .AlwaysHorizontalScrollbar | .AlwaysAutoResize | .NoMove | .NoNav;
+        ImGui.Begin("##changelog", flags=flags);
         ImGui.TextUnformatted(CHANGELOG);
         defer ImGui.End();
     }

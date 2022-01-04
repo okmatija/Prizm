@@ -69,7 +69,7 @@ console_load_history :: () {
             }
         }
     } else {
-        log_error("Could not load console history from 'console_history.txt' file");
+        // log("Could not load console history from 'console_history.txt' file");
     }
 }
 
