@@ -1,4 +1,4 @@
-## Version 0.3.0, Unreleased
+## Version 0.3.0, 4 January 2022
 
 - Improvements to the console:
   - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
