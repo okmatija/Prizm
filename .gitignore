@@ -7,7 +7,7 @@
 console_history.txt
 
 # ignore the shapes folder which should not be version controlled
-data/shapes-novc/
+shapes-novc/
 
 # ignore the windows icon file which is generated in build.jai
 *.ico

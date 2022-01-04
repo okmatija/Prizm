@@ -19,6 +19,7 @@
 - Fixed a bug where the rendering mode couldn't be switched using the combo box
 - Fixed a bug where the item generation index wasn't properly displayed when more than one item with the same name was loaded
 - Simplified the help panel, application settings have been moved there as well (press h for help)
+- Sample shapes are now in a top-level shapes/ folder, previously they were in a nested one (data/shapes/)
 
 
 ## Version 0.2.0, 1 December 2021
