@@ -3,6 +3,9 @@
 # *.lib
 # *.dll
 
+# ignore prism session persistence files
+console_history.txt
+
 # ignore the windows icon file which is generated in build.jai
 *.ico
 
