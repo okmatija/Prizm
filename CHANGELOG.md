@@ -1,3 +1,9 @@
+## Version 0.4.0, Unreleased
+
+- Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
+- Fixed some weirdo tooltip behaviour and added some binding hints in some tooltips
+
+
 ## Version 0.3.0, 4 January 2022
 
 - Improvements to the console:

@@ -463,7 +463,7 @@ show_camera_controls :: () {
 
     ImGui.SetNextItemWidth(-FLOAT32_MIN);
     combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-    Show_Tooltip("Camera Rotation Axis");
+    Show_Tooltip("C-RMB Camera Rotation Axis");
 
     if app.camera.look_position != Vector3.{0, 0, 0} {
         size_of_last_item := ImGui.GetItemRectSize();
@@ -517,8 +517,15 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.Text("Rotate about selected axis in the camera control pane");
     }
 
-    if ImGui.TreeNodeEx("Key bindings for the Item List") {
-        Show_Tooltip("The Item List is visible in the top right\nwhen at least one item has been loaded");
+    // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
+    Tree_Node_With_Tooltip :: (label : *u8, tooltip : string) -> bool #expand {
+        result := ImGui.TreeNodeEx(label);
+        Show_Tooltip(tooltip);
+        return result;
+    }
+
+    if Tree_Node_With_Tooltip("Key bindings for the Item List",
+                              "The Item List is visible in the top left\nwhen at least one item has been loaded") {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
@@ -542,8 +549,8 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.Text("(sweep over visibility checkbox) Focus hovered item and update camera"); ImGui.NextColumn();
     }
 
-    if ImGui.TreeNodeEx("Key bindings for Selection Mode") {
-        Show_Tooltip("Enable selection mode by toggling visibility\non the 'Selection' item");
+    if Tree_Node_With_Tooltip("Key bindings for Selection Mode",
+                              "Enable selection mode by toggling visibility\non the 'Selection' item") {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);

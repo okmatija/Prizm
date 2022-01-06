@@ -99,11 +99,11 @@ make_token :: (lex: *Lexer, type: Token.Type) -> Token {
     return t;
 }
 
-decimal_string_contains_dot :: (data: string) -> bool {
+decimal_string_contains_dot_or_e :: (data: string) -> bool {
     str := data;
 
-    while str.count && (is_number(str[0]) || str[0] == #char "_" || str[0] == #char ".") {
-        if str[0] == #char "." return true;
+    while str.count && (is_number(str[0]) || str[0] == #char "_" || str[0] == #char "." || str[0] == #char "e") {
+        if str[0] == #char "." || str[0] == #char "e" return true;
         advance(*str);
     }
 
@@ -258,7 +258,7 @@ get_token :: (lex: *Lexer) -> success: bool, tok: Token {
     // :HandleFilenames Probably also need to check that there is a number following the dot, otherwise the dot should be it's own token, and probably combined with a preceeding identifier token to make a filename
     if is_number(lex.data[0]) || lex.data[0] == #char "." {
 
-        if decimal_string_contains_dot(lex.data) {
+        if decimal_string_contains_dot_or_e(lex.data) {
 
             // decimal float
             tok := make_token(lex, .FLOAT);
