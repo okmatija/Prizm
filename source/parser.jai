@@ -103,8 +103,6 @@ expect_and_eat :: (p: *Parser, type: Token.Type, loc := #caller_location) {
 }
 
 parse_float :: (p: *Parser) -> float {
-    negate := eat_possible_token(p, #char "-");
-
     tok := peek_token(p);
     value: float;
     if tok.type == Token.Type.INTEGER {
@@ -115,15 +113,12 @@ parse_float :: (p: *Parser) -> float {
         tok := next_token(p);
         value = cast(float) tok.float_value;
     }
-    if negate value = -value;
     return xx value;
 }
 
 parse_integer :: (p: *Parser) -> s64 {
     expect(p, Token.Type.INTEGER);
     tok := next_token(p);
-
-    // @Cleanup @BugPossible handle negative here?
     return tok.integer_value;
 }
 

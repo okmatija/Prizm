@@ -105,20 +105,12 @@ console_execute_command :: (_command : string) {
     // @TODO Allow nested function calls?
     command_name : string;
     command_args : [..]Any;
-    // @Refactor Not a good way of handling signed numbers!!!!
-    // @Incomplete issue error when strings are negated etc
-    sign := 1;
     while !p.failed {
         tok := peek_token(*p);
         if tok.type == .EOF {
             break;
         } else if tok.type == .IDENTIFIER {
-            if sign < 0 {
-                p.failed = true;
-                log_error("Unexpected preceeding - token.");
-                console_add_history("%", _command);
-                return;
-            } else if command_name != "" {
+            if command_name != "" {
                 log_error("Unexpected token IDENTIFIER (%) in argument list, string arguments use single/double quotes.", to_string(tok));
                 console_add_history("%", _command);
                 return;
@@ -126,25 +118,14 @@ console_execute_command :: (_command : string) {
             command_name = tok.string_value;
             eat_token(*p);
         } else if tok.type == .SQSTRING || tok.type == .DQSTRING {
-            if sign < 0 {
-                p.failed = true;
-                log_error("Unexpected preceeding - token.");
-                console_add_history("%", _command);
-                return;
-            }
             array_add(*command_args, copy_any(tok.string_value));
-            eat_token(*p);
-        } else if tok.type == xx #char "-" {
-            sign = -1;
             eat_token(*p);
         } else if tok.type == .INTEGER {
             // @TODO Consider adding entity type with literal #NNN
-            array_add(*command_args, copy_any(sign * tok.integer_value));
-            sign = 1;
+            array_add(*command_args, copy_any(tok.integer_value));
             eat_token(*p);
         } else if tok.type == .FLOAT {
-            array_add(*command_args, copy_any(sign * tok.float_value));
-            sign = 1;
+            array_add(*command_args, copy_any(tok.float_value));
             eat_token(*p);
         } else {
             // @Cleanup Use parser.jai error function with custom logger which prints to the console

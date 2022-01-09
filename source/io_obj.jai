@@ -260,14 +260,13 @@ obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int {
 }
 
 obj_parse_index :: (p : *Parser) -> u32 {
-    // @Cleanup parse_integer never returns negative integers!!
     index := parse_integer(p);
     if index == 0 {
         error(p, peek_token(p), "Unexpected 0 index, the OBJ file format uses 1-based indices\n");
     } else if index < 0 {
         error(p, peek_token(p), "Support for OBJ files with negative indices is @Incomplete\n");
     }
-    return cast(u32)index - 1;
+    return cast,no_check(u32)(index - 1);
 }
 
 Obj_Face :: struct {
