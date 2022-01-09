@@ -1,5 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+// @Incomplete support NaN, inf, -inf
+// @Incomplete support floats in hex 0h7fbf_ffff
+// @Incomplete return errors when we have 123542abdc ie number with letters in it
+// @Incomplete support binary 0b10101001
+
 Token :: struct {
 
     // @Idea If this was an enum flags we could test for multiple token types using fewer characters and would help with printing error messages when we expect more than one token type
@@ -195,15 +200,18 @@ get_location :: (lex: *Lexer) -> Source_Code_Location {
     return s;
 }
 
-// TEST_STRING :: #string DONE
-// 12_3456_7890
-// DONE
+#run {
+    TEST_STRING :: #string DONE
+    12_3456_7890
+    1234abc # this should probably raise an error... oh well
+    1.e-4
+    1.E-3
+DONE
 
-// #run {
-//     context.logger = logger;
-//     tokens := get_tokens(#file, TEST_STRING);
-//     return;
-// };
+    tokens := get_tokens(#file, TEST_STRING, hash_character_starts_comment=true);
+    for tokens print("token [%] = '%'\n", it_index, it);
+    return;
+};
 
 get_token :: (lex: *Lexer) -> success: bool, tok: Token {
 
