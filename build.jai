@@ -21,10 +21,6 @@ build :: () {
 
     set_working_directory(#filepath);
 
-    // Create a workspace where we will compile our actual program
-    w := compiler_create_workspace(OUTPUT_EXE_NAME);
-    if !w exit(1);
-
     command_line_arguments := compiler_get_command_line_arguments();
 
     Has_Argument :: (arg : string) -> bool #expand {
@@ -35,6 +31,10 @@ build :: () {
         print(HELP_STRING);
         exit(0);
     }
+
+    // Create a workspace where we will compile our actual program
+    w := compiler_create_workspace(OUTPUT_EXE_NAME);
+    if !w exit(1);
 
     build_options := get_build_options(w);
     {
@@ -59,10 +59,9 @@ build :: () {
             // llvm_options.debug_options = .["-g"];
         }
 
-        CWD :: #run get_working_directory();
-
         // _import_path : [..]string;
         // for import_path array_add(*_import_path, it);
+        // CWD :: #run get_working_directory();
         // array_add(*_import_path, join(CWD, "source/modules", separator="/"));
         // import_path = _import_path;
     }
