@@ -8,6 +8,7 @@ load_wkt :: (filename : string) -> *Entity {
     defer free(data);
 
     if !data {
+        log("File was empty");
         return null;
     }
 
@@ -18,6 +19,7 @@ load_wkt :: (filename : string) -> *Entity {
     parser.tokens = get_tokens(filename, parser.data);
     parser.current_token = 0;
 
+    // Make sure we at least got the end-of-file token
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 

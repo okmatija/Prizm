@@ -14,6 +14,7 @@ load_obj :: (filename : string) -> *Entity {
     defer free(data);
 
     if !data {
+        log("File was empty");
         return null;
     }
 
@@ -24,6 +25,7 @@ load_obj :: (filename : string) -> *Entity {
 
     // for parser.tokens log("token[%] = %\n", it_index, it);
 
+    // Make sure we at least got the end-of-file token
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
