@@ -72,12 +72,11 @@ show_item_list_ui :: () {
             // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
             if show_entity_index {
                 ImGui.TableNextColumn();
-                label := to_c_string(tprint("#%", it_index));
                 if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-                    ImGui.Text(label);
+                    ImGui.Text("#%", it_index);
                     Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
                 } else {
-                    ImGui.TextDisabled(label);
+                    ImGui.TextDisabled("#%", it_index);
                     Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
                 }
             }
@@ -221,13 +220,11 @@ DONE // @Volatile Keep synced with keymap
 
             ImGui.Separator();
 
-            ImGui.Text(to_c_string(tprint("#points = %", it.mesh.positions.count)));
+            ImGui.Text("#points = %", it.mesh.positions.count);
 
             maybe_update_render_info(*it.render_info, *it.mesh);
             aabb := it.render_info.bounding_aabb;
-            ImGui.Text(to_c_string(tprint("AABB [%, %, %], [%, %, %]",
-                                          aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
-                                          aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
+            ImGui.Text("AABB [%, %, %], [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
         }
     }
 }
@@ -270,17 +267,17 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 case .POLYLINE_SOUP2;
 
                     using soup := cast(*Polyline_Soup2_Entity)entity;
-                    ImGui.Text(to_c_string(tprint("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count)));
+                    ImGui.Text("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
 
                 case .POLYLINE_SOUP3;
 
                     using soup := cast(*Polyline_Soup3_Entity)entity;
-                    ImGui.Text(to_c_string(tprint("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count)));
+                    ImGui.Text("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
 
                 case .POLYGON_SOUP;
 
                     using soup := cast(*Polygon_Soup_Entity)entity;
-                    ImGui.Text(to_c_string(tprint("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count)));
+                    ImGui.Text("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count);
 
                 case .UNKNOWN; #through;
                 case .MESH;
@@ -289,18 +286,16 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     if #complete mesh.mesh.geometry_format == {
                         case .UNKNOWN; #through;
                         case .POINTS;
-                            ImGui.Text(to_c_string(tprint("Mesh #points = %", mesh.mesh.positions.count)));
+                            ImGui.Text("Mesh #points = %", mesh.mesh.positions.count);
                         case .LINES;
-                            ImGui.Text(to_c_string(tprint("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2)));
+                            ImGui.Text("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2);
                         case .TRIANGLES;
-                            ImGui.Text(to_c_string(tprint("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3)));
+                            ImGui.Text("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3);
                     }
             }
             maybe_update_render_info(*entity.render_info, *entity.mesh);
             aabb := entity.render_info.bounding_aabb;
-            ImGui.Text(to_c_string(tprint("Model space AABB = [%, %, %]x[%, %, %]",
-                                          aabb.min_point.x, aabb.min_point.y, aabb.min_point.z,
-                                          aabb.max_point.x, aabb.max_point.y, aabb.max_point.z)));
+            ImGui.Text("Model space AABB = [%, %, %]x[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
 
             shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
             ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
@@ -573,16 +568,16 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.NextColumn();
         for app.keymap_keydown.mappings {
             push_allocator(temp);
-            ImGui.Text(to_c_string(tprint("%", to_string(it))));
+            ImGui.Text("%", to_string(it));
             ImGui.NextColumn();
-            ImGui.Text(to_c_string(tprint("%", app.keymap_keydown.procs[it.proc_info_index].name)));
+            ImGui.Text("%", app.keymap_keydown.procs[it.proc_info_index].name);
             ImGui.NextColumn();
         }
         for app.keymap.mappings {
             push_allocator(temp);
-            ImGui.Text(to_c_string(tprint("%", to_string(it))));
+            ImGui.Text(tprint("%", to_string(it)));
             ImGui.NextColumn();
-            ImGui.Text(to_c_string(tprint("%", app.keymap.procs[it.proc_info_index].name)));
+            ImGui.Text("%", app.keymap.procs[it.proc_info_index].name);
             ImGui.NextColumn();
         }
     }
@@ -598,7 +593,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.InputInt("Label limit", *app.label_limit);
         if app.label_limit > 2000 {
             color := ImGui.ImVec4.{1., .4, .4, 1.};
-            TextColored(color, "%", "Warning: label limit > 2000 may be slow");
+            ImGui.TextColored(color, "%", "Warning: label limit > 2000 may be slow");
         }
 
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {

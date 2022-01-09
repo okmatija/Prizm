@@ -2,6 +2,7 @@
 
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed some weirdo tooltip behaviour and added some binding hints in some tooltips
+- Updated to Jai compiler version 0.1.0 which enabled cleanup of printlike wrapper functions for ImGui functions taking a format string and varargs
 
 
 ## Version 0.3.0, 4 January 2022

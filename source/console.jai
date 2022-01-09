@@ -217,7 +217,7 @@ console_draw :: () {
         } else if begins_with(item, "[error]") {
             col = ImGui.ImVec4.{1., .4, .4, 1.};
         }
-        TextColored(col, "%", item);
+        ImGui.TextColored(col, "%", item);
     }
     ImGui.PopStyleVar();
     ImGui.EndChild();

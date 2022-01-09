@@ -96,12 +96,3 @@ log_warning :: (format_string: string, args: .. Any, loc := #caller_location, fl
     new_flags := flags | .WARNING;
     log(format_string, ..args, loc, new_flags, user_flags);
 } @PrintLike
-
-// @Cleanup The ImGui module does not yet properly support varargs bindings so this exists as a workaround
-TextColored :: (col: ImGui.ImVec4, fmt: string, args: .. Any) {
-    ImGui.PushStyleColor(.Text, col);
-    fmt_z := tprint("%\0", fmt);
-    txt := tprint(fmt_z, ..args);
-    ImGui.Text(txt.data);
-    ImGui.PopStyleColor();
-}
