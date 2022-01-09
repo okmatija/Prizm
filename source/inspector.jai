@@ -47,7 +47,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
         case .STRUCT;
 
             info_struct := cast(*Type_Info_Struct) info;
-            if ImGui.TreeNode("%", to_string(name)) {
+            if ImGui.TreeNode(data, "%", to_string(name)) {
                 defer ImGui.TreePop();
                 // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
                 // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
@@ -63,7 +63,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
             array_count, array_data := Reflection.get_array_count_and_data(data, info_array);
             array_name := to_string(name);
             element_size := info_array.element_type.runtime_size;
-            if ImGui.TreeNode("% (count = %)", array_name, array_count) {
+            if ImGui.TreeNode(data, "% (count = %)", array_name, array_count) {
                 defer ImGui.TreePop();
                 ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
                 defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
