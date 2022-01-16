@@ -24,23 +24,25 @@ init :: (using box : *$T/AxisBox) {
 AxisBox2 :: AxisBox(Vector2);
 
 Corner2 :: enum u8 {
-    XY_00 :: 0;
-    XY_01 :: 1;
-    XY_10 :: 2;
-    XY_11 :: 3;
+    // These names/values are based on the coordinate values of the corners of a unit box [0,0]x[1,1]
+    XY_00 :: 0b00;
+    XY_01 :: 0b01;
+    XY_10 :: 0b10;
+    XY_11 :: 0b11;
 }
 
 AxisBox3 :: AxisBox(Vector3);
 
 Corner3 :: enum u8 {
-    XYZ_000 :: 0;
-    XYZ_001 :: 1;
-    XYZ_010 :: 2;
-    XYZ_011 :: 3;
-    XYZ_100 :: 4;
-    XYZ_101 :: 5;
-    XYZ_110 :: 6;
-    XYZ_111 :: 7;
+    // These names/values are based on the coordinate values of the corners of a unit box [0,0,0]x[1,1,1]
+    XYZ_000 :: 0b000;
+    XYZ_001 :: 0b001;
+    XYZ_010 :: 0b010;
+    XYZ_011 :: 0b011;
+    XYZ_100 :: 0b100;
+    XYZ_101 :: 0b101;
+    XYZ_110 :: 0b110;
+    XYZ_111 :: 0b111;
 }
 
 corner :: inline (using box : $T/AxisBox, corner : T.Corner) -> T.Point
@@ -48,7 +50,7 @@ corner :: inline (using box : $T/AxisBox, corner : T.Corner) -> T.Point
     result : T.Point = ---;
 
     m := 1;
-    for d : 0..2 {
+    for d : 0..box.DIM-1 {
         if m & cast(s64)corner {
             result.component[d] = box.max_point.component[d];
         } else {
@@ -125,6 +127,20 @@ center_point :: (using box : $T/AxisBox) -> T.Point #must {
     return (max_point + min_point) / 2;
 }
 
+diagonal :: (using box : $T/AxisBox) -> T.Vector #must {
+    result : T.Vector;
+    for d : 0..box.DIM-1 {
+        if min_point.component[d] <= max_point.component[d] {
+            result.component[d] = max_point.component[d] - min_point.component[d];
+        }
+    }
+    return result;
+}
+
+get_centered_form :: (using box : $T/AxisBox) -> (center : T.Vector, extent : T.Vector) {
+    return center_point(box), diagonal(box) / 2;
+}
+
 offset :: (using box : *$T/AxisBox, increment : float) {
     vector_increment : T.Vector;
     for d : 0..box.DIM-1 {
@@ -146,16 +162,6 @@ offset :: (using box : *$T/AxisBox, increment : T.Vector) {
         // If box min/max invert after offset, use the standard representation of an empty box
         init(box);
     }
-}
-
-diagonal :: (using box : $T/AxisBox) -> T.Vector #must {
-    box_extents : T.Vector;
-    for d : 0..box.DIM-1 {
-        if min_point.component[d] <= max_point.component[d] {
-            box_extents.component[d] = max_point.component[d] - min_point.component[d];
-        }
-    }
-    return box_extents;
 }
 
 contains :: (using box : $T/AxisBox, point : T.Point) -> bool #must {

@@ -1,11 +1,14 @@
-## Version 0.4.0, Unreleased
+TODO fix release tags on github, accidentally used the wrong versioning system
+
+## Version 0.1.3, Unreleased
 
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed some weirdo tooltip behaviour and added some binding hints in some tooltips
+- Fixed version numbering, I was incrementing the minor version, rather than patch version oops
 - Updated to Jai compiler version 0.1.0 which enabled cleanup of printlike wrapper functions for ImGui functions taking a format string and varargs
 
 
-## Version 0.3.0, 4 January 2022
+## Version 0.1.2, 4 January 2022
 
 - Improvements to the console:
   - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
@@ -29,7 +32,7 @@
 - Sample shapes are now in a top-level shapes/ folder, previously they were in a nested one (data/shapes/)
 
 
-## Version 0.2.0, 1 December 2021
+## Version 0.1.1, 1 December 2021
 
 - Changed Selection Mode toggle keybinding to s from m
 - Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu

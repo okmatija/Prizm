@@ -200,18 +200,17 @@ get_location :: (lex: *Lexer) -> Source_Code_Location {
     return s;
 }
 
-#run {
-    TEST_STRING :: #string DONE
-    12_3456_7890
-    1234abc # this should probably raise an error... oh well
-    1.e-4
-    1.E-3
-DONE
-
-    tokens := get_tokens(#file, TEST_STRING, hash_character_starts_comment=true);
-    for tokens print("token [%] = '%'\n", it_index, it);
-    return;
-};
+// #run {
+//     TEST_STRING :: #string DONE
+//     12_3456_7890
+//     1234abc # this should probably raise an error... oh well
+//     1.e-4
+//     1.E-3
+// DONE
+//     tokens := get_tokens(#file, TEST_STRING, hash_character_starts_comment=true);
+//     for tokens print("token [%] = '%'\n", it_index, it);
+//     return;
+// };
 
 get_token :: (lex: *Lexer) -> success: bool, tok: Token {
 

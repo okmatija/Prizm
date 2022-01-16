@@ -17,10 +17,7 @@ triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expa
 
     `it_index := 0;
     for i : 0..mesh.indices.count/3-1 {
-        i0 := mesh.indices[3 * i + 0];
-        i1 := mesh.indices[3 * i + 1];
-        i2 := mesh.indices[3 * i + 2];
-        `it := make_Tuple3(i0, i1, i2);
+        `it := inline get_triangle_vertex_tuple(<< mesh, i);
         #insert (remove=#assert(false)) body;
         it_index += 1;
     }
@@ -35,6 +32,41 @@ Geometry_Format :: enum {
     POINTS;
     LINES;
     TRIANGLES;
+}
+
+get_triangle_vertex_tuple :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Tuple3(u32) {
+    #if checked assert(mesh.geometry_format == .TRIANGLES);
+
+    i0 := mesh.indices[3 * xx triangle_index + 0];
+    i1 := mesh.indices[3 * xx triangle_index + 1];
+    i2 := mesh.indices[3 * xx triangle_index + 2];
+    return inline make_Tuple3(i0, i1, i2);
+}
+
+get_triangle :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Triangle3 {
+    tuple := inline get_triangle_vertex_tuple(mesh, triangle_index, checked);
+
+    result : Triangle3 = ---;
+    result.a = mesh.positions[tuple.component[0]];
+    result.b = mesh.positions[tuple.component[1]];
+    result.c = mesh.positions[tuple.component[2]];
+    return result;
+}
+
+element_count :: (using mesh : Mesh) -> int {
+    if #complete geometry_format == {
+        case .UNKNOWN;
+            return -1;
+        case .POINTS;
+            assert(mesh.positions.count == mesh.indices.count);
+            return mesh.positions.count;
+        case .LINES;
+            assert(mesh.indices.count % 2 == 0);
+            return mesh.indices.count / 2;
+        case .TRIANGLES;
+            assert(mesh.indices.count % 3 == 0);
+            return mesh.indices.count / 3;
+    }
 }
 
 copy_mesh :: (using mesh : Mesh) -> *Mesh {
