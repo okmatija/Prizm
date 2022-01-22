@@ -4,6 +4,8 @@
 // https://github.com/davideberly/GeometricTools (Distributed under the Boost Software License, Version 1.0.)
 // Real-Time Collision Detection by Christer Ericson, published by Morgan Kaufmann Publishers, (c) 2005 Elsevier Inc
 
+// @Cleanup maybe these should be #type,isa?
+Point2 :: Vector2;
 Point3 :: Vector3;
 
 Triangle3 :: struct {
@@ -12,6 +14,14 @@ Triangle3 :: struct {
     c : Point3;
 #place a;
     v : [3]Point3 = ---;
+}
+
+compute_normal :: inline (t : Triangle3, $normalize : bool = false) -> Vector3 {
+    #if normalize {
+        return unit_vector(cross(t.c - t.b, t.a - t.b));
+    } else {
+        return cross(t.c - t.b, t.a - t.b);
+    }
 }
 
 // The plane is represented as Dot(U,X) = d where U is a unit-length normal
@@ -46,13 +56,16 @@ Ray3 :: struct {
 // center of the segment, D = (P1 - P0)/|P1 - P0| is a unit-length direction
 // vector for the segment, and |t| <= e.  The value e = |P1 - P0|/2 is the
 // extent (or radius or half-length) of the segment.
-Segment3 :: struct {
-    start : Point3;
-    end : Point3;
+Segment :: struct (Point : Type) {
+    start : Point;
+    end : Point;
 
 #place start;
-    p : [2]Point3 = ---;
+    p : [2]Point = ---;
 }
+
+Segment2 :: Segment(Point2);
+Segment3 :: Segment(Point3);
 
 Sphere :: struct {
     center : Point3;
@@ -263,6 +276,176 @@ find_intersect_ray3_triangle3 :: (ray : Ray3, triangle : Triangle3) -> (intersec
     return result_intersect, result_parameter, result_triangleBary, result_point;
 }
 
+
+
+// @Refactor Take intersect out of the struct and pass is as the first in a pair of arguments
+Intersection_Line3_AxisBox3 :: struct {
+    intersect : bool;
+    numIntersections : int;
+    parameter : [2]float;
+    point : [2]Point3;
+};
+
+find_intersect_line3_axis_box3 :: (line : Line3, box : AxisBox3) -> Intersection_Line3_AxisBox3 {
+
+    // Test whether the current clipped segment intersects the current
+    // test plane.  If the return value is 'true', the segment does
+    // intersect the plane and is clipped; otherwise, the segment is
+    // culled (no intersection with box).
+    Clip :: (denom : float, numer : float, t0 : *float, t1 : *float) -> bool {
+        if (denom > 0) {
+            if (numer > denom * <<t1) {
+                return false;
+            }
+            if (numer > denom * <<t0) {
+                <<t0 = numer / denom;
+            }
+            return true;
+        } else if (denom < 0) {
+            if (numer > denom * <<t0) {
+                return false;
+            }
+            if (numer > denom * <<t1) {
+                <<t1 = numer / denom;
+            }
+            return true;
+        } else {
+            return numer <= 0;
+        }
+    }
+
+    // Get the centered form of the aligned box.
+    boxCenter, boxExtent := get_centered_form(box);
+
+    // Transform the line to the aligned-box coordinate system.
+    lineOrigin := line.origin - boxCenter;
+
+    result : Intersection_Line3_AxisBox3;
+    {
+        // The line t-values are in the interval (-infinity,+infinity).
+        // Clip the line against all six planes of an aligned box in
+        // centered form. The result.numIntersections is
+        //   0, no intersection
+        //   1, intersect in a single point (t0 is line parameter of point)
+        //   2, intersect in a segment (line parameter interval is [t0,t1])
+        t0 := -FLOAT32_INFINITY;
+        t1 :=  FLOAT32_INFINITY;
+        if (Clip(+line.direction.x, -line.origin.x - boxExtent.x, *t0, *t1) &&
+            Clip(-line.direction.x, +line.origin.x - boxExtent.x, *t0, *t1) &&
+            Clip(+line.direction.y, -line.origin.y - boxExtent.y, *t0, *t1) &&
+            Clip(-line.direction.y, +line.origin.y - boxExtent.y, *t0, *t1) &&
+            Clip(+line.direction.z, -line.origin.z - boxExtent.z, *t0, *t1) &&
+            Clip(-line.direction.z, +line.origin.z - boxExtent.z, *t0, *t1))
+        {
+            result.intersect = true;
+            if (t1 > t0)
+            {
+                result.numIntersections = 2;
+                result.parameter[0] = t0;
+                result.parameter[1] = t1;
+            }
+            else
+            {
+                result.numIntersections = 1;
+                result.parameter[0] = t0;
+                result.parameter[1] = t0;
+            }
+        }
+    }
+
+    if (result.intersect) {
+        for i : 0..1 {
+            result.point[i] = line.origin + result.parameter[i] * line.direction;
+        }
+    }
+    return result;
+}
+
+Intersection_Ray3_AxisBox3 :: Intersection_Line3_AxisBox3;
+
+// @Cleanup rename to find_Intersection_Ray3_AxisBox3? since it finds the above result struct
+find_intersect_ray3_axis_box3 :: (ray : Ray3, box : AxisBox3) -> Intersection_Ray3_AxisBox3 {
+    // Get the centered form of the aligned box
+    boxCenter, boxExtent := get_centered_form(box);
+
+    // Transform the ray to the aligned-box coordinate system.
+    rayOrigin := ray.origin - boxCenter;
+
+    result : Intersection_Ray3_AxisBox3;
+
+    // DoQuery(rayOrigin, ray.direction, boxExtent, result);
+    {
+        line : Line3 = ---;
+        line.origin = ray.origin;
+        line.direction = ray.direction;
+        result = find_intersect_line3_axis_box3(line, box);
+
+        if (result.intersect) {
+            // The line containing the ray intersects the box; the
+            // t-interval is [t0,t1]. The ray intersects the box as long
+            // as [t0,t1] overlaps the ray t-interval (0,+infinity).
+            iiResult := find_intersect_interval_interval(result.parameter, 0, true);
+            if (iiResult.intersect) {
+                result.numIntersections = iiResult.numIntersections;
+                result.parameter = iiResult.overlap;
+            } else {
+                // The line containing the ray does not intersect the box.
+                // result = .{};
+                result.intersect = false;
+            }
+        }
+    }
+
+    if (result.intersect) {
+        for i : 0..1 {
+            result.point[i] = ray.origin + result.parameter[i] * ray.direction;
+        }
+    }
+    return result;
+}
+
+
+
+// The test-intersection queries use the method of separating axes.
+// https://www.geometrictools.com/Documentation/MethodOfSeparatingAxes.pdf
+// The find-intersection queries use parametric clipping against the six
+// faces of the box. The find-intersection queries use Liang-Barsky
+// clipping. The queries consider the box to be a solid. The algorithms
+// are described in
+// https://www.geometrictools.com/Documentation/IntersectionLineBox.pdf
+test_intersect_ray3_axis_box3 :: (ray : Ray3, box : AxisBox3) -> intersect : bool {
+
+    // Get the centered form of the aligned box
+    boxCenter, boxExtent := get_centered_form(box);
+
+    // Transform the ray to the aligned-box coordinate system.
+    rayOrigin := ray.origin - boxCenter;
+
+    for i : 0..2 {
+        if (abs(rayOrigin.component[i]) > boxExtent.component[i] && rayOrigin.component[i] * ray.direction.component[i] >= 0) {
+            return false;
+        }
+    }
+
+    WxD := cross(ray.direction, rayOrigin);
+    absWdU := make_vector3(abs(ray.direction.x), abs(ray.direction.y), abs(ray.direction.z));
+
+    if (abs(WxD.x) > boxExtent.y * absWdU.z + boxExtent.z * absWdU.y) {
+        return false;
+    }
+
+    if (abs(WxD.y) > boxExtent.x * absWdU.z + boxExtent.z * absWdU.x) {
+        return false;
+    }
+
+    if (abs(WxD.z) > boxExtent.x * absWdU.y + boxExtent.y * absWdU.x) {
+        return false;
+    }
+
+    return true;
+}
+
+
 Closest_Point_Ray_Segment :: struct {
     distance : float = 0;
     sqrDistance : float = 0;
@@ -464,6 +647,12 @@ bounding_sphere_ritter :: (points : []Point3) -> Sphere
     }
 
     return result;
+}
+
+expand :: (using box : *AxisBox3, triangle : Triangle3) {
+    expand(box, triangle.a);
+    expand(box, triangle.b);
+    expand(box, triangle.c);
 }
 
 #scope_file

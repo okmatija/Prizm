@@ -176,7 +176,7 @@ main :: () {
     SDL_Quit();
 }
 
-load_one_file :: (filename : string, loading_from_command_line : bool) {
+load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entity {
     found, found_index := find_entity_with_max_generation_index(filename);
     if found {
         if #complete app.settings.duplicate_file_behaviour == {
@@ -200,6 +200,7 @@ load_one_file :: (filename : string, loading_from_command_line : bool) {
                         entity.display_info = found.display_info;
                         deinit(found);
                         app.entities[found_index] = entity;
+                        return entity;
                     }
 
                 }
@@ -210,14 +211,18 @@ load_one_file :: (filename : string, loading_from_command_line : bool) {
                 if entity {
                     entity.generation_index = found.generation_index + 1;
                     array_add(*app.entities, entity);
+                    return entity;
                 }
         }
     } else {
         entity := load_entity_from_file(filename);
         if entity {
             array_add(*app.entities, entity);
+            return entity;
         }
     }
+
+    return null;
 }
 
 load_from_command_line :: () {
