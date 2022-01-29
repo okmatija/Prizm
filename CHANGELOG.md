@@ -4,6 +4,7 @@ TODO fix release tags on github, accidentally used the wrong versioning system
 
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed some weirdo tooltip behaviour and added some binding hints in some tooltips
+- Fixed bug where changes to the float labelling format on a selection of elements was ignored
 - Fixed version numbering, I was incrementing the minor version, rather than patch version oops
 - Updated to Jai compiler version 0.1.0 which enabled cleanup of printlike wrapper functions for ImGui functions taking a format string and varargs
 

@@ -774,7 +774,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
         Show_Tooltip("Number of digits following the decimal point");
 
-        set.vertex_label_style_update.format_float = combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
+        set.vertex_label_style_update.format_float |= combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
         set.vertex_label_style_update.label_scale  = ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
     }
 
