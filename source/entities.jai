@@ -23,7 +23,6 @@ Entity :: struct {
     // @Incomplete
     // user_data : *void; // Registered commands may want to attach data here
 
-    using_default_vertex_label_style : bool = true;
     fully_pathed_filename : string;
     loaded_filetime : u64;
 

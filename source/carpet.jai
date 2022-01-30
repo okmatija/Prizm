@@ -2,11 +2,11 @@
 
 // Returns a string in temporary storage
 filetime_to_readable_date :: (filetime : u64) -> string {
-    year, month, day, hour, min, sec := filetime_to_localtime(filetime);
+    lt := filetime_to_local_time(filetime);
     // return tprint("%:%:% on %-%-%",
-    //               formatInt(hour, minimum_digits=2), formatInt(min,   minimum_digits=2), formatInt(sec, minimum_digits=2),
-    //               formatInt(year, minimum_digits=4), formatInt(month, minimum_digits=2), formatInt(day, minimum_digits=2));
-    return tprint("%:%:%", formatInt(hour, minimum_digits=2), formatInt(min, minimum_digits=2), formatInt(sec, minimum_digits=2));
+    //               formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute,   minimum_digits=2), formatInt(lt.second, minimum_digits=2),
+    //               formatInt(lt.year, minimum_digits=4), formatInt(lt.month_starting_at_0, minimum_digits=2), formatInt(lt.day_starting_at_0, minimum_digits=2));
+    return tprint("%:%:%", formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2));
 }
 
 maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {

@@ -6,6 +6,7 @@ TODO fix release tags on github, accidentally used the wrong versioning system
 - Fixed some weirdo tooltip behaviour and added some binding hints in some tooltips
 - Fixed bug where changes to the float labelling format on a selection of elements was ignored
 - Fixed version numbering, I was incrementing the minor version, rather than patch version oops
+- Fixed a crash when requesting point label rendering for point clouds
 - Updated to Jai compiler version 0.1.0 which enabled cleanup of printlike wrapper functions for ImGui functions taking a format string and varargs
 
 
