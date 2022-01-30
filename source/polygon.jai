@@ -94,21 +94,21 @@ point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags) #ex
     } else {
     `it : Vector2 = ---;
     }
-    `it_index := 0;
+    `it_index := -1;
 
     // print("outer ring:\n");
     for *=BY_POINTER point, point_index : outer_ring.points {
         it = point;
-        #insert body;
         it_index += 1;
+        #insert body;
     }
 
     for inner_ring, inner_ring_index : inner_rings {
         // print("inner ring %:\n", inner_ring_index);
         for *=BY_POINTER point, point_index : inner_ring.points {
             it = point;
-            #insert body;
             it_index += 1;
+            #insert body;
         }
     }
 }
@@ -121,15 +121,13 @@ edge_iterator :: (using ring : *Ring, body : Code, flags : For_Flags) #expand {
 
     edge_count := points.count - 1;
 
-    `it_index := 0;
+    `it_index := -1;
     for 0..edge_count-1 {
         `it : Edge2 = ---;
         it.from_point = *points[it_index];
         it.to_point   = *points[it_index + 1];
-
-        #insert (remove=#assert(false)) body;
-
         it_index += 1;
+        #insert (remove=#assert(false)) body;
     }
 }
 

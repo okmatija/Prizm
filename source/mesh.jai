@@ -12,14 +12,25 @@ Mesh :: struct {
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
 }
 
+triangle_tuples_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+    #assert(flags == 0); // No options are supported
+
+    `it_index := -1;
+    for i : 0..mesh.indices.count/3-1 {
+        `it := inline get_triangle_vertex_tuple(<< mesh, i);
+        it_index += 1;
+        #insert (remove=#assert(false)) body;
+    }
+}
+
 triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
 
-    `it_index := 0;
+    `it_index := -1;
     for i : 0..mesh.indices.count/3-1 {
-        `it := inline get_triangle_vertex_tuple(<< mesh, i);
-        #insert (remove=#assert(false)) body;
+        `it := inline get_triangle(<< mesh, i);
         it_index += 1;
+        #insert (remove=#assert(false)) body;
     }
 }
 
@@ -58,7 +69,6 @@ element_count :: (using mesh : Mesh) -> int {
         case .UNKNOWN;
             return -1;
         case .POINTS;
-            assert(mesh.positions.count == mesh.indices.count);
             return mesh.positions.count;
         case .LINES;
             assert(mesh.indices.count % 2 == 0);
@@ -91,6 +101,7 @@ compute_vertex_normals_from_triangles :: (using mesh : *Mesh) -> bool, string {
             i2 := mesh.indices[3 * i + 2];
 
             if i0 < mesh.positions.count && i0 < mesh.positions.count && i0 < mesh.positions.count {
+                // @FIXME incorrect normal??, use compute_normal instead, or at least the order of points from there
                 e01 := mesh.positions[i0] - mesh.positions[i1];
                 e02 := mesh.positions[i0] - mesh.positions[i2];
                 n   := normalize(cross(e01, e02));

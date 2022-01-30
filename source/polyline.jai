@@ -88,7 +88,7 @@ point_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
 
 point_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
-    `it_index := 0;
+    `it_index := -1;
 
     for polyline_index : 0..soup.polylines.count-1 {
         point_count := soup.polylines[polyline_index].points.count;
@@ -98,8 +98,8 @@ point_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flag
             } else {
             `it : T.Point = soup.polylines[polyline_index].points[point_index];
             }
-            #insert body;
             it_index += 1;
+            #insert body;
         }
     }
 }
@@ -107,15 +107,15 @@ point_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flag
 segment_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.
 
-    `it_index := 0;
+    `it_index := -1;
     for polyline_index : 0..soup.polylines.count-1 {
         segment_count := soup.polylines[polyline_index].points.count-1;
         for segment_index : 0..segment_count-1 {
             `it : Edge(T.Point) = ---;
             it.from_point = *soup.polylines[polyline_index].points[segment_index];
             it.to_point   = *soup.polylines[polyline_index].points[segment_index + 1];
-            #insert (remove=#assert(false)) body;
             it_index += 1;
+            #insert (remove=#assert(false)) body;
         }
     }
 }

@@ -67,11 +67,11 @@ corners_iterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #e
 
     CORNER_COUNT :: 1 << T.DIM;
 
-    `it_index := 0;
+    `it_index := -1;
     for 0..CORNER_COUNT-1 {
+        it_index += 1;
         `it := corner(<<box, xx it_index);
         #insert (remove=#assert(false)) body;
-        it_index += 1;
     }
 }
 
