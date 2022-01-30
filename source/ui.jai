@@ -352,6 +352,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 if set.vertex_label_style_update.label_scale   vertex_label_style.label_scale   = other.vertex_label_style.label_scale;
                 if set.vertex_label_style_update.label_color   vertex_label_style.label_color   = other.vertex_label_style.label_color;
 
+                if set.element_label_theme_update.show_position element_label_theme.show_position = other.element_label_theme.show_position;
+                if set.element_label_theme_update.show_index    element_label_theme.show_index    = other.element_label_theme.show_index;
+                if set.element_label_theme_update.format_float  element_label_theme.format_float  = other.element_label_theme.format_float;
+                if set.element_label_theme_update.label_scale   element_label_theme.label_scale   = other.element_label_theme.label_scale;
+                if set.element_label_theme_update.label_color   element_label_theme.label_color   = other.element_label_theme.label_color;
+
                 if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
                 if set.wireframe_width      wireframe_width      = other.wireframe_width;
                 if set.surface_visible      surface_visible      = other.surface_visible;
@@ -621,7 +627,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
 
 #scope_file
 
-Vertex_Label_Style_Update :: struct {
+Label_Theme_Update :: struct {
     show_position : bool;
     show_index : bool;
     format_float : bool;
@@ -635,7 +641,8 @@ Display_Info_Update :: struct {
     points_visible : bool;
     points_color : [4]bool;
     points_size : bool;
-    vertex_label_style_update : Vertex_Label_Style_Update;
+    vertex_label_style_update : Label_Theme_Update;
+    element_label_theme_update : Label_Theme_Update;
 
     normals_visible : bool;
     normals_color : [4]bool;
@@ -757,25 +764,30 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
 
     show_clipping_ui(*set, display_info, aabb);
 
-    if ImGui.TreeNodeEx("Labeling") {
-        defer ImGui.TreePop();
-        using display_info;
-
-        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
-        // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
-
+    show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
         // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-        set.vertex_label_style_update.show_index    = ImGui.Checkbox("Index labels", *vertex_label_style.show_index);
-        set.vertex_label_style_update.show_position = ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
-        set.vertex_label_style_update.label_color   = ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
+        update.show_index    = ImGui.Checkbox("Index labels", *theme.show_index);
+        update.show_position = ImGui.Checkbox("Position labels", *theme.show_position);
+        update.label_color   = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
 
-        trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
-        set.vertex_label_style_update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
-        vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
+        trailing_width : s32 = xx theme.format_float.trailing_width;
+        update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
+        theme.format_float.trailing_width = clamp(trailing_width, 0, 12);
         Show_Tooltip("Number of digits following the decimal point");
 
-        set.vertex_label_style_update.format_float |= combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
-        set.vertex_label_style_update.label_scale  = ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
+        update.format_float |= combo_box("Float format", *theme.format_float.mode, type_info(FormatFloat.Mode));
+        update.label_scale  = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
+    }
+
+    if ImGui.TreeNodeEx("Point Labels") {
+        defer ImGui.TreePop();
+        show_label_theme_ui(*set.vertex_label_style_update, *display_info.vertex_label_style);
+    }
+
+    // @TODO Rename element to triangle/segment/segment for meshes/polylines/polygons
+    if ImGui.TreeNodeEx("Element Labels") {
+        defer ImGui.TreePop();
+        show_label_theme_ui(*set.element_label_theme_update, *display_info.element_label_theme);
     }
 
     return set;

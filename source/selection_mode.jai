@@ -26,7 +26,13 @@ do_selection_mode :: () {
         render_mesh_lines(mesh, *entity.render_info, entity.display_info);
         render_mesh_triangles(mesh, *entity.render_info, entity.display_info);
         render_normals(mesh, *entity.render_info, entity.display_info);
-        render_vertex_labels(mesh.positions, mesh.world_from_model, entity.display_info.vertex_label_style);
+
+        point_theme := entity.display_info.vertex_label_style;
+        for mesh.positions {
+            text := get_point_text(it, it_index, point_theme);
+            text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.world_from_model);
+            render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+        }
     }
 
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {

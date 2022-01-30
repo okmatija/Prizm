@@ -1,10 +1,11 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-Vertex_Label_Style :: struct {
+// @Refactor rename this Label_Theme, and use it for triangle labels (at centroid, so you can see centroids, too)
+Label_Theme :: struct {
     show_position := false;
     show_index := false;
 
-    format_float : FormatFloat;
+    format_float : FormatFloat; // We ignore the `value` field
     format_float.trailing_width = 8;
     format_float.zero_removal = .NO;
 
@@ -78,6 +79,7 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     return false;
 }
 
+
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
@@ -86,7 +88,9 @@ Display_Info :: struct {
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
     points_size : s32 = 0;
-    vertex_label_style : Vertex_Label_Style;
+    vertex_label_style : Label_Theme;
+    element_label_theme : Label_Theme;
+    element_label_theme.label_color = .{1., 1., 0., 1.};
 
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
@@ -111,6 +115,18 @@ Display_Info :: struct {
     clip_ranges[2] = .{normal=.{0,0,1}};
     clip_sphere, clip_sphere_prev : Clip_Sphere;
     clip_mode := Clip_Mode.HIDDEN;
+}
+
+is_clipped :: (display_info : Display_Info, point : Point3, test_sphere := true, test_ranges := true) -> bool {
+    if test_sphere && is_clipped(display_info.clip_sphere, point) {
+        return true;
+    }
+
+    if test_ranges && is_clipped(display_info.clip_ranges, point) {
+        return true;
+    }
+
+    return false;
 }
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
@@ -413,56 +429,37 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
     glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
-render_vertex_labels :: (points : []$T, world_from_model : Matrix4, style : Vertex_Label_Style, label_index_offset : int = 0) {
-    #assert(T == Vector2 || T == Vector3);
-    dim :: #run dimension_of(T);
+get_point_text_format_float :: (v : float) -> FormatFloat #expand {
+    f := `theme.format_float;
+    f.value = v;
+    return f;
+}
 
-    if !style.show_index && !style.show_position {
-        return;
-    }
+get_point_text :: (point : Vector2, point_index : int, theme : Label_Theme, label_index_offset : int = 0) -> string {
+    result : string;
+    f :: get_point_text_format_float;
+    if  theme.show_index &&  theme.show_position result = tprint("% (%, %)", label_index_offset + point_index, f(point.x), f(point.y));
+    if !theme.show_index &&  theme.show_position result = tprint("(%, %)", f(point.x), f(point.y));
+    if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
+    return result;
+}
 
-    glEnable(GL_BLEND);
-    defer glDisable(GL_BLEND);
-    // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
-    // glDisable(GL_CULL_FACE);
-    // defer glEnable(GL_CULL_FACE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+get_point_text :: (point : Vector3, point_index : int, theme : Label_Theme, label_index_offset : int = 0) -> string #expand {
+    result : string;
+    f :: get_point_text_format_float;
+    if  theme.show_index &&  theme.show_position result = tprint("% (%, %, %)", label_index_offset + point_index, f(point.x), f(point.y), f(point.z));
+    if !theme.show_index &&  theme.show_position result = tprint("(%, %, %)", f(point.x), f(point.y), f(point.z));
+    if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
+    return result;
+}
 
+// [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+get_text_screen_position :: (point : Vector4, world_from_model : Matrix4) -> Vector2 {
     projection_from_model := make_projection_from_world(app.camera) * world_from_model;
-
-    new_context := context;
-    push_context new_context {
-        format_float := *context.print_style.default_format_float;
-        <<format_float = style.format_float;
-
-        // @TODO call render_text_quad once with a list of points
-        for points {
-            text : string;
-#if dim == 2 {
-            if  style.show_index && style.show_position text = tprint("% (%, %)", label_index_offset + it_index, it.x, it.y);
-            if !style.show_index && style.show_position text = tprint("(%, %)", it.x, it.y);
-} else {
-            if  style.show_index && style.show_position text = tprint("% (%, %, %)", label_index_offset + it_index, it.x, it.y, it.z);
-            if !style.show_index && style.show_position text = tprint("(%, %, %)", it.x, it.y, it.z);
-}
-            if  style.show_index && !style.show_position text = tprint("%", label_index_offset + it_index);
-            if !style.show_index && !style.show_position break;
-
-            text_w := get_text_width_in_pixels(text, 1.0);
-
-            // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
-#if dim == 2 {
-            text_position_px := projection_from_model * make_vector4(it.x, it.y, 0, 1.);
-} else {
-            text_position_px := projection_from_model * make_vector4(it.x, it.y, it.z, 1.);
-}
-            text_position_px.x = cast(float)app.current_window_width * (text_position_px.x + 1) / 2;
-            text_position_px.y = cast(float)app.current_window_height * (text_position_px.y + 1) / 2;
-
-            render_text_quad(app.text_program, text, text_position_px.xy, style.label_scale, style.label_color);
-        }
-    }
+    result := projection_from_model * point;
+    result.x = cast(float)app.current_window_width *  (result.x + 1) / 2;
+    result.y = cast(float)app.current_window_height * (result.y + 1) / 2;
+    return result.xy;
 }
 
 render_entities :: () {
@@ -517,42 +514,63 @@ render_entities :: () {
     }
 
     render_entity_text :: (entity : *Entity, label_limit : *int) {
-        style := entity.display_info.vertex_label_style;
+        glEnable(GL_BLEND);
+        defer glDisable(GL_BLEND);
+        // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
+        // glDisable(GL_CULL_FACE);
+        // defer glEnable(GL_CULL_FACE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        if !style.show_index && !style.show_position {
-            return;
-        }
+        // @TODO call render_text_quad once with a list of points?
 
         if entity.type == {
             case .POLYLINE_SOUP2;
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
-                for polyline : soup.shape.polylines {
-                    <<label_limit -= polyline.points.count;
-                    if <<label_limit >= 0 {
-                        render_vertex_labels(polyline.points, soup.mesh.world_from_model, style);
+                count := point_count(soup.shape);
+                if <<label_limit - count >= 0 {
+                    <<label_limit -= count;
+                    point_theme := entity.display_info.vertex_label_style;
+                    for :point_iterator soup.shape {
+                        if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
+                        text := get_point_text(it, it_index, point_theme);
+                        text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                     }
                 }
 
             case .POLYLINE_SOUP3;
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
-                for polyline : soup.shape.polylines {
-                    <<label_limit -= polyline.points.count;
-                    if <<label_limit >= 0 {
-                        render_vertex_labels(polyline.points, soup.mesh.world_from_model, style);
+                count := point_count(soup.shape);
+                if <<label_limit - count >= 0 {
+                    <<label_limit -= count;
+                    point_theme := entity.display_info.vertex_label_style;
+                    for :point_iterator soup.shape {
+                        if is_clipped(entity.display_info, it) continue;
+                        text := get_point_text(it, it_index, point_theme);
+                        text_position_px := get_text_screen_position(make_vector4(it, 1), soup.mesh.world_from_model);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                     }
                 }
 
             case .POLYGON_SOUP;
 
+                // @Refactor @FIXME Fix label_limit logic and use iterators here
                 soup := cast(*Polygon_Soup_Entity) entity;
+                count := point_count(soup.shape);
+                point_theme := entity.display_info.vertex_label_style;
                 for polygon : soup.shape.polygons {
                     <<label_limit -= point_count(polygon);
-                    if <<label_limit >= 0 {
-                        render_vertex_labels(polygon.outer_ring.points, soup.mesh.world_from_model, style);
-                        for inner_ring : polygon.inner_rings {
-                            render_vertex_labels(inner_ring.points, soup.mesh.world_from_model, style);
+                    if <<label_limit >= 0 for polygon.outer_ring.points if !is_clipped(entity.display_info, make_vector3(it, 0)) {
+                        text := get_point_text(it, it_index, point_theme);
+                        text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        for inner_ring : polygon.inner_rings for inner_ring.points {
+                            text := get_point_text(it, it_index, point_theme);
+                            text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                            render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                         }
                     }
                 }
@@ -560,10 +578,24 @@ render_entities :: () {
             case .MESH;
 
                 mesh := cast(*Mesh_Entity) entity;
-                // @Cleanup so the transform is also available for text rendering
+                point_theme := entity.display_info.vertex_label_style;
                 <<label_limit -= mesh.mesh.positions.count;
                 if <<label_limit >= 0 || (entity == *app.user_selection) {
-                    render_vertex_labels(mesh.mesh.positions, mesh.mesh.world_from_model, style);
+                    for mesh.mesh.positions if !is_clipped(entity.display_info, it) {
+                        text := get_point_text(it, it_index, point_theme);
+                        text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.mesh.world_from_model);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    }
+                }
+
+                triangle_theme := entity.display_info.element_label_theme;
+                <<label_limit -= element_count(mesh.mesh);
+                if <<label_limit >= 0 for :triangles_iterator mesh.mesh {
+                    centroid := (it.a + it.b + it.c) / 3;
+                    if is_clipped(entity.display_info, centroid) continue;
+                    text := get_point_text(centroid, it_index, triangle_theme);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
+                    render_text_quad(app.text_program, text, text_position_px, triangle_theme.label_scale, triangle_theme.label_color);
                 }
         }
     }

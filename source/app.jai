@@ -78,7 +78,8 @@ App :: struct {
     console : Console;
     entities : [..]*Entity;
 
-    vertex_label_style : Vertex_Label_Style;
+    vertex_label_style : Label_Theme;
+    element_label_style : Label_Theme;
     label_limit : s32 = 2000;
 
     keymap : Keymap;

@@ -105,6 +105,10 @@ get_text_width_in_pixels :: (text: string, scale: float) -> int {
 render_text_quad :: (shader_program: GLuint, text: string, position: Vector2, scale: float, color: Vector4) {
     using app;
 
+    if text.count == 0 {
+        return;
+    }
+
     glUseProgram(shader_program);
 
     {

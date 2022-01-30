@@ -292,13 +292,7 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
                     if d2 < dist2 {
 
-                        sphere_clipped :: true;
-                        if sphere_clipped && is_clipped(entity.display_info.clip_sphere, p) {
-                            continue;
-                        }
-
-                        range_clipped :: true;
-                        if range_clipped && is_clipped(entity.display_info.clip_ranges, p) {
+                        if is_clipped(entity.display_info, p) {
                             continue;
                         }
 
@@ -352,11 +346,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
                 isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
                 if isect && t < t_min {
 
-                    if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
-                        continue;
-                    }
-
-                    if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                    if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                         continue;
                     }
 
@@ -407,11 +397,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
                 if d < d_min {
 
-                    if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
-                        continue;
-                    }
-
-                    if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                    if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                         continue;
                     }
 
@@ -424,11 +410,6 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         }
     }
 
-    visible_selectable_polyline_soup2 :: #bake_arguments entities_iterator(should_visit = (e) => (
-            e.is_visible &&
-            e.type == .POLYLINE_SOUP2 &&
-            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-        ));
 
     visible_selectable_polyline_soup3 :: #bake_arguments entities_iterator(should_visit = (e) => (
             e.is_visible &&
@@ -451,11 +432,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
             if d < d_min {
 
-                if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
-                    continue;
-                }
-
-                if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                     continue;
                 }
 
@@ -466,6 +443,15 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
             }
         }
     }
+
+
+
+    visible_selectable_polyline_soup2 :: #bake_arguments entities_iterator(should_visit = (e) => (
+            e.is_visible &&
+            e.type == .POLYLINE_SOUP2 &&
+            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+        ));
+
     for :visible_selectable_polyline_soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
         for :segment_iterator segment, segment_index : soup.shape {
@@ -481,11 +467,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
             if d < d_min {
 
-                if sphere_clipped && is_clipped(entity.display_info.clip_sphere, ipoint) {
-                    continue;
-                }
-
-                if range_clipped && is_clipped(entity.display_info.clip_ranges, ipoint) {
+                if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                     continue;
                 }
 
