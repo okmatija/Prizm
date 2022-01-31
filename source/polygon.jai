@@ -164,3 +164,31 @@ point_count :: (using polygon_soup : Polygon_Soup) -> int {
     }
     return count;
 }
+
+// Untested
+point_iterator :: (using soup : *Polygon_Soup, body : Code, flags : For_Flags) #expand {
+
+    BY_POINTER :: cast(bool)(flags & .POINTER);
+    #if flags & .POINTER {
+    `it : *Vector2 = ---;
+    } else {
+    `it : Vector2 = ---;
+    }
+    `it_index := -1;
+
+    for polygon, polygon_index : soup.polygons {
+        for *=BY_POINTER point, point_index : polygon.outer_ring.points {
+            it = point;
+            it_index += 1;
+            #insert body;
+        }
+
+        for inner_ring, inner_ring_index : inner_rings {
+            for *=BY_POINTER point, point_index : polygon.inner_ring.points {
+                it = point;
+                it_index += 1;
+                #insert body;
+            }
+        }
+    }
+}

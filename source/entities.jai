@@ -33,27 +33,38 @@ Entity :: struct {
 Polyline_Soup2_Entity :: struct {
     using base : Entity;
     type = .POLYLINE_SOUP2;
+    display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // @Cleanup put colors in app.jai
 
-    shape : Polyline_Soup2;
+    Shape :: Polyline_Soup2;
+    shape : Shape;
 }
 
 Polyline_Soup3_Entity :: struct {
     using base : Entity;
     type = .POLYLINE_SOUP3;
+    display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
 
-    shape : Polyline_Soup3;
+    Shape :: Polyline_Soup3;
+    shape : Shape;
 }
 
 Polygon_Soup_Entity :: struct {
     using base : Entity;
     type = .POLYGON_SOUP;
+    display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
 
-    shape : Polygon_Soup;
+    Shape :: Polygon_Soup;
+    shape : Shape;
 }
 
 Mesh_Entity :: struct {
     using base : Entity;
     type = .MESH;
+    display_info.element_label_theme.label_color = .{1., 1., 0, 1};
+
+    Shape :: Mesh;
+#place mesh;
+    shape : Shape = ---; // Alias for consistency
 }
 
 clear :: (base : *Entity) {

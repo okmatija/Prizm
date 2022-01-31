@@ -1,11 +1,10 @@
 TODO fix release tags on github, accidentally used the wrong versioning system
-TODO add labels for segments
-TODO add iterator for Polygon_Soup
 TODO add index struct with local/global point/edges for polyline/polygon soup datastructures
 
 ## Version 0.1.3, Unreleased
 
 - Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
+- Fixed labels not clipping against clipping volumes
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed some weirdo tooltip behaviour and added some binding hints in some tooltips
 - Fixed bug where changes to the float labelling format on a selection of elements was ignored

@@ -90,7 +90,6 @@ Display_Info :: struct {
     points_size : s32 = 0;
     vertex_label_style : Label_Theme;
     element_label_theme : Label_Theme;
-    element_label_theme.label_color = .{1., 1., 0., 1.};
 
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
@@ -528,46 +527,73 @@ render_entities :: () {
             case .POLYLINE_SOUP2;
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
-                count := point_count(soup.shape);
-                if <<label_limit - count >= 0 {
-                    <<label_limit -= count;
-                    point_theme := entity.display_info.vertex_label_style;
-                    for :point_iterator soup.shape {
-                        if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
-                        text := get_point_text(it, it_index, point_theme);
-                        text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
-                    }
+                point_theme := entity.display_info.vertex_label_style;
+                segment_theme := entity.display_info.element_label_theme;
+
+                for :point_iterator soup.shape {
+                    if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
+                    if <<label_limit <= 0 continue; <<label_limit -= 1;
+
+                    text := get_point_text(it, it_index, point_theme);
+                    text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                    render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                }
+
+                for :segment_iterator soup.shape {
+                    centroid := (<<it.from_point + <<it.to_point) / 2;
+                    if is_clipped(entity.display_info, make_vector3(centroid, 0)) continue;
+                    if <<label_limit <= 0 continue; <<label_limit -= 1;
+
+                    text := get_point_text(centroid, it_index, segment_theme);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 0, 1), soup.mesh.world_from_model);
+                    render_text_quad(app.text_program, text, text_position_px, segment_theme.label_scale, segment_theme.label_color);
                 }
 
             case .POLYLINE_SOUP3;
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
-                count := point_count(soup.shape);
-                if <<label_limit - count >= 0 {
-                    <<label_limit -= count;
-                    point_theme := entity.display_info.vertex_label_style;
-                    for :point_iterator soup.shape {
-                        if is_clipped(entity.display_info, it) continue;
-                        text := get_point_text(it, it_index, point_theme);
-                        text_position_px := get_text_screen_position(make_vector4(it, 1), soup.mesh.world_from_model);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
-                    }
+                point_theme := entity.display_info.vertex_label_style;
+                segment_theme := entity.display_info.element_label_theme;
+
+                for :point_iterator soup.shape {
+                    if is_clipped(entity.display_info, it) continue;
+                    if <<label_limit <= 0 continue; <<label_limit -= 1;
+
+                    text := get_point_text(it, it_index, point_theme);
+                    text_position_px := get_text_screen_position(make_vector4(it, 1), soup.mesh.world_from_model);
+                    render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                }
+
+                for :segment_iterator soup.shape {
+                    centroid := (<<it.from_point + <<it.to_point) / 2;
+                    if is_clipped(entity.display_info, centroid) continue;
+                    if <<label_limit <= 0 continue; <<label_limit -= 1;
+
+                    text := get_point_text(centroid, it_index, segment_theme);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), soup.mesh.world_from_model);
+                    render_text_quad(app.text_program, text, text_position_px, segment_theme.label_scale, segment_theme.label_color);
                 }
 
             case .POLYGON_SOUP;
 
-                // @Refactor @FIXME Fix label_limit logic and use iterators here
+                // @Refactor use iterators and label segments
                 soup := cast(*Polygon_Soup_Entity) entity;
                 count := point_count(soup.shape);
                 point_theme := entity.display_info.vertex_label_style;
+
                 for polygon : soup.shape.polygons {
-                    <<label_limit -= point_count(polygon);
-                    if <<label_limit >= 0 for polygon.outer_ring.points if !is_clipped(entity.display_info, make_vector3(it, 0)) {
+                    for polygon.outer_ring.points {
+                        if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
+                        if <<label_limit <= 0 continue; <<label_limit -= 1;
+
                         text := get_point_text(it, it_index, point_theme);
                         text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
                         render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+
                         for inner_ring : polygon.inner_rings for inner_ring.points {
+                            if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
+                            if <<label_limit <= 0 continue; <<label_limit -= 1;
+
                             text := get_point_text(it, it_index, point_theme);
                             text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
                             render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
@@ -578,25 +604,28 @@ render_entities :: () {
             case .MESH;
 
                 mesh := cast(*Mesh_Entity) entity;
+                count := mesh.mesh.positions.count;
                 point_theme := entity.display_info.vertex_label_style;
-                <<label_limit -= mesh.mesh.positions.count;
-                if <<label_limit >= 0 || (entity == *app.user_selection) {
-                    for mesh.mesh.positions if !is_clipped(entity.display_info, it) {
-                        text := get_point_text(it, it_index, point_theme);
-                        text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.mesh.world_from_model);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
-                    }
-                }
-
                 triangle_theme := entity.display_info.element_label_theme;
-                <<label_limit -= element_count(mesh.mesh);
-                if <<label_limit >= 0 for :triangles_iterator mesh.mesh {
-                    centroid := (it.a + it.b + it.c) / 3;
-                    if is_clipped(entity.display_info, centroid) continue;
-                    text := get_point_text(centroid, it_index, triangle_theme);
-                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, triangle_theme.label_scale, triangle_theme.label_color);
-                }
+
+               for mesh.mesh.positions {
+                   if is_clipped(entity.display_info, it) continue;
+                   if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
+
+                   text := get_point_text(it, it_index, point_theme);
+                   text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.mesh.world_from_model);
+                   render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+               }
+
+               for :triangles_iterator mesh.mesh {
+                   centroid := (it.a + it.b + it.c) / 3;
+                   if is_clipped(entity.display_info, centroid) continue;
+                   if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
+
+                   text := get_point_text(centroid, it_index, triangle_theme);
+                   text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
+                   render_text_quad(app.text_program, text, text_position_px, triangle_theme.label_scale, triangle_theme.label_color);
+               }
         }
     }
 
