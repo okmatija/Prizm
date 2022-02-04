@@ -517,3 +517,11 @@ reload_entity :: (entity : *Entity) -> *Entity {
 
     return entity;
 }
+
+num_selected_entities :: () -> int {
+    count := 0;
+    for :selected app.entities {
+        count += 1;
+    }
+    return count;
+}

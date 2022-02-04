@@ -46,6 +46,14 @@ AABB_Tree :: struct(Shape : Type) {
         primitive_id : Primitive_Id;
     }
 
+    Primitive_Filter :: struct {
+        // Returns true if the primitive should be skipped
+        Filter_Proc :: #type (ray : Ray3, primitive_id : int, primitive : Primitive, user_data : *void) -> bool;
+
+        proc : Filter_Proc = null;
+        data : *void = null;
+    }
+
     Intersection_Ray3_Primitive :: struct {
         t : float = FLOAT32_INFINITY;
         point : Vector;
@@ -84,10 +92,7 @@ deinit :: (using tree : *$T/AABB_Tree) {
     array_reset(*nodes);
 }
 
-
-
-// @Question should I need to qualify the return type?
-first_primitive_intersection :: (using tree : AABB_Tree(Mesh), ray : Ray3, $skip_primitive : (AABB_Tree(Mesh), Ray3, int, Triangle3) -> bool = null) -> is_hit : bool, tree.Intersection_Ray3_Primitive {
+first_primitive_intersection :: (using tree : AABB_Tree(Mesh), ray : Ray3, filter : tree.Primitive_Filter = .{}) -> is_hit : bool, tree.Intersection_Ray3_Primitive {
     result : Intersection_Ray3_Primitive;
 
     if tree.nodes.count == 0 {
@@ -106,10 +111,8 @@ first_primitive_intersection :: (using tree : AABB_Tree(Mesh), ray : Ray3, $skip
             if hit_aabb {
                 for * info : node.primitives {
                     primitive := get_primitive(tree, info.primitive_id);
-                    #if skip_primitive {
-                        if skip_primitive(tree, ray, info.primitive_id, primitive) {
-                            continue;
-                        }
+                    if filter.proc && filter.proc(ray, info.primitive_id, primitive, filter.data) {
+                        continue;
                     }
                     hit_primitive, t_primitive, point_primitive := find_intersect_primitive_ray3(primitive, ray);
                     if hit_primitive && t_primitive < result.t {
