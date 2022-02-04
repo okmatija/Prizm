@@ -497,32 +497,6 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     ImGui.Begin("##show_help_ui", flags = ImGui.WindowFlags.NoTitleBar | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
     defer ImGui.End();
 
-    NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
-
-    if ImGui.TreeNodeEx("Changelog", .DefaultOpen) {
-        defer ImGui.TreePop();
-
-        latest := app.changelog[0];
-        if ImGui.TreeNodeEx(temp_c_string(tprint("Version % (latest)", latest.name)), .DefaultOpen) {
-            defer ImGui.TreePop();
-
-            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-            ImGui.TextWrapped(latest.changes);
-            ImGui.PopStyleColor();
-        }
-
-        for 1..app.changelog.count-1 {
-            version := app.changelog[it];
-            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %", version.name))) {
-                defer ImGui.TreePop();
-
-                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-                ImGui.TextWrapped(version.changes);
-                ImGui.PopStyleColor();
-            }
-        }
-    }
-
     COLUMN_WIDTH :: 100;
 
     Show_Binding :: (binding : string, description : string) #expand {
@@ -532,7 +506,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.NextColumn();
     }
 
-    if ImGui.TreeNodeEx("Key bindings in the Viewport") {
+    if ImGui.TreeNodeEx("Key bindings in the Viewport", .DefaultOpen) {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
@@ -547,7 +521,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
 
     // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
     Tree_Node_With_Tooltip :: (label : *u8, tooltip : string) -> bool #expand {
-        result := ImGui.TreeNodeEx(label);
+        result := ImGui.TreeNodeEx(label, .DefaultOpen);
         Show_Tooltip(tooltip);
         return result;
     }
@@ -581,7 +555,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         Show_Binding("Ctrl-RMB", "Place camera orbit");
     }
 
-    if ImGui.TreeNodeEx("General key bindings") {
+    if ImGui.TreeNodeEx("General key bindings", .DefaultOpen) {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
@@ -623,8 +597,31 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     inspect("User Settings", *app.settings);
     clamp_user_settings();
 
-    // @Hack to display all text in the columns
-    ImGui.Text("                                                                                     ");
+    NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
+
+    if ImGui.TreeNodeEx("CHANGELOG", .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        latest := app.changelog[0];
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Version % (latest)", latest.name)), .DefaultOpen) {
+            defer ImGui.TreePop();
+
+            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+            ImGui.TextWrapped(latest.changes);
+            ImGui.PopStyleColor();
+        }
+
+        for 1..app.changelog.count-1 {
+            version := app.changelog[it];
+            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %", version.name))) {
+                defer ImGui.TreePop();
+
+                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+                ImGui.TextWrapped(version.changes);
+                ImGui.PopStyleColor();
+            }
+        }
+    }
 
     // @Incomplete add a message about where the keymap is for editing
 }
