@@ -1,8 +1,11 @@
-TODO fix release tags on github, accidentally used the wrong versioning system
-TODO add index struct with local/global point/edges for polyline/polygon soup datastructures
+// TODO fix release tags on github, accidentally used the wrong versioning system
+// TODO add index struct with local/global point/edges for polyline/polygon soup datastructures
+// TODO Limit the size of the item context menu window
+// TODO Make the windows follow conventions better, add cross button etc
 
-## Version 0.1.3, Unreleased
-
+PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string CHANGES
+- Various minor UI improvements related to window positioning and colors
+- Improved presentation of the changelog which is baked into the executable
 - Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
 - Fixed labels not clipping against clipping volumes
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
@@ -11,10 +14,10 @@ TODO add index struct with local/global point/edges for polyline/polygon soup da
 - Fixed version numbering, I was incrementing the minor version, rather than patch version oops
 - Fixed a crash when requesting point label rendering for point clouds
 - Updated to Jai compiler version 0.1.0 which enabled cleanup of printlike wrapper functions for ImGui functions taking a format string and varargs
+CHANGES
+};
 
-
-## Version 0.1.2, 4 January 2022
-
+PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2, 4 January 2022", #string CHANGES
 - Improvements to the console:
   - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
   - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code
@@ -35,10 +38,10 @@ TODO add index struct with local/global point/edges for polyline/polygon soup da
 - Fixed a bug where the item generation index wasn't properly displayed when more than one item with the same name was loaded
 - Simplified the help panel, application settings have been moved there as well (press h for help)
 - Sample shapes are now in a top-level shapes/ folder, previously they were in a nested one (data/shapes/)
+CHANGES
+};
 
-
-## Version 0.1.1, 1 December 2021
-
+PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1, 1 December 2021", #string CHANGES
 - Changed Selection Mode toggle keybinding to s from m
 - Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
 - Changed rendering of back faces to use an darkened version of the front face color
@@ -61,10 +64,10 @@ TODO add index struct with local/global point/edges for polyline/polygon soup da
 - Increased the default max point count for selectable entities from 100,000 to 5,000,000
 - Reduced the frequency of color changes in the default background shader
 - Various UI and widget aligment improvements to the item context menu and camera control panels
+CHANGES
+};
 
-
-## Version 0.1.0, 20 October 2021
-
+PRISM_VERSION_0_1_0 :: App.Version.{"0.1.0, 20 October 2021", #string CHANGES
 Initial release. Press h for help, features not mentioned in the help message include:
 
 - Supports simple .obj files (containing v, vn, p, l, f directives) and .wkt files (containing POINT, MULTIPOINT, LINESTRING, MULTILINESTRING directives)
@@ -75,3 +78,12 @@ Initial release. Press h for help, features not mentioned in the help message in
   - Files which become empty/invalid after reloading are displayed with faded-out grey text
 - World axes orientation (left-handed for now) renders in the bottom left of the screen
 - Console commands can be registered adding a @RegisterCommand note to procedures
+CHANGES
+};
+
+init_changelog :: () {
+    array_add(*app.changelog, PRISM_VERSION_WIP);
+    array_add(*app.changelog, PRISM_VERSION_0_1_2);
+    array_add(*app.changelog, PRISM_VERSION_0_1_1);
+    array_add(*app.changelog, PRISM_VERSION_0_1_0);
+}

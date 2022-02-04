@@ -230,6 +230,11 @@ DONE // @Volatile Keep synced with keymap
 }
 
 show_item_context_menu :: (entity : *Entity, entity_index : s64) {
+    current_pos := ImGui.GetWindowPos();
+    current_size := ImGui.GetWindowSize();
+    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+    ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+
     if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
         defer ImGui.EndPopup();
 
@@ -302,33 +307,34 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
 
         } else {
-            for :selected app.entities {
-                if it.fully_pathed_filename.count {
-                    if ImGui.Button(imgui_label("Reload", it)) {
+            if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s"))) {
+                defer ImGui.TreePop();
+                for :selected app.entities {
+                    if it.fully_pathed_filename.count {
+                        if ImGui.Button(imgui_label("Reload", it)) {
+                            app.entities[it_index] = reload_entity(it);
+                        }
+                        ImGui.SameLine();
+                        text := entity_filename(<<it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                        ImGui.TextUnformatted(text);
+                    }
+                }
+
+                if ImGui.Button("Reload Selection") {
+                    for :selected app.entities {
                         app.entities[it_index] = reload_entity(it);
                     }
-                    ImGui.SameLine();
-                    text := entity_filename(<<it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
-                    ImGui.TextUnformatted(text);
+                    // ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.SameLine();
+                if ImGui.Button("Clear Selection") {
+                    for :selected app.entities {
+                        it.is_selected = false;
+                    }
+                    ImGui.CloseCurrentPopup();
                 }
             }
-
-            if ImGui.Button("Reload Selection") {
-                for :selected app.entities {
-                    app.entities[it_index] = reload_entity(it);
-                }
-                // ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.SameLine();
-            if ImGui.Button("Clear Selection") {
-                for :selected app.entities {
-                    it.is_selected = false;
-                }
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.Separator();
 
             selection_aabb : AxisBox3;
             for :selected app.entities {
@@ -482,23 +488,49 @@ show_camera_controls :: () {
 show_help_ui :: (world_axes : *Axes_Triad) {
     if !app.show_help_ui return;
 
-    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
-    window_pivot := make_ImVec2(1, 0);
+    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},
+    cond=.ImGuiCond_Appearing);
+    ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
+                                       make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .NoCollapse;
 
-    ImGui.SetNextWindowPos(pos=window_pos, pivot=window_pivot);
     ImGui.Begin("##show_help_ui", flags = ImGui.WindowFlags.NoTitleBar | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
     defer ImGui.End();
 
-    if app.show_changelog {
-        ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5});
-        // ImGui.SetNextWindowSize(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}); // @Incomplete
-        flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .AlwaysHorizontalScrollbar | .AlwaysAutoResize | .NoMove | .NoNav;
-        ImGui.Begin("##changelog", flags=flags);
-        ImGui.TextUnformatted(CHANGELOG);
-        defer ImGui.End();
+    NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
+
+    if ImGui.TreeNodeEx("Changelog", .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        latest := app.changelog[0];
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Version % (latest)", latest.name)), .DefaultOpen) {
+            defer ImGui.TreePop();
+
+            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+            ImGui.TextWrapped(latest.changes);
+            ImGui.PopStyleColor();
+        }
+
+        for 1..app.changelog.count-1 {
+            version := app.changelog[it];
+            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %", version.name))) {
+                defer ImGui.TreePop();
+
+                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+                ImGui.TextWrapped(version.changes);
+                ImGui.PopStyleColor();
+            }
+        }
     }
 
     COLUMN_WIDTH :: 100;
+
+    Show_Binding :: (binding : string, description : string) #expand {
+        ImGui.TextColored(NICE_YELLOW, binding);
+        ImGui.NextColumn();
+        ImGui.Text(description);
+        ImGui.NextColumn();
+    }
 
     if ImGui.TreeNodeEx("Key bindings in the Viewport") {
         defer ImGui.TreePop();
@@ -506,16 +538,11 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         defer ImGui.Columns(1);
         ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
         ImGui.NextColumn(); ImGui.NextColumn();
-        ImGui.Text("MMB"); ImGui.NextColumn();
-        ImGui.Text("Pan the camera"); ImGui.NextColumn();
-        ImGui.Text("Scroll"); ImGui.NextColumn();
-        ImGui.Text("Zoom the camera into the position under the cursor"); ImGui.NextColumn();
-        ImGui.Text("Ctrl-Scroll"); ImGui.NextColumn();
-        ImGui.Text("Zoom the camera into the camera look position"); ImGui.NextColumn();
-        ImGui.Text("RMB"); ImGui.NextColumn();
-        ImGui.Text("Rotate the camera"); ImGui.NextColumn();
-        ImGui.Text("Alt-RMB"); ImGui.NextColumn();
-        ImGui.Text("Rotate about selected axis in the camera control pane");
+        Show_Binding("MMB", "Pan the camera");
+        Show_Binding("Scroll", "Zoom the camera into the position under the cursor");
+        Show_Binding("Ctrl-Scroll", "Zoom the camera into the camera look position");
+        Show_Binding("RMB", "Rotate the camera");
+        Show_Binding("Alt-RMB", "Rotate about selected axis in the camera control pane");
     }
 
     // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
@@ -532,22 +559,14 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         defer ImGui.Columns(1);
         ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
         ImGui.NextColumn(); ImGui.NextColumn();
-        ImGui.Text("LMB"); ImGui.NextColumn();
-        ImGui.Text("(on a filename) Focus an item");  ImGui.NextColumn();
-        ImGui.Text("Ctrl-LMB"); ImGui.NextColumn();
-        ImGui.Text("(on a filename) Select an item"); ImGui.NextColumn();
-        ImGui.Text("RMB"); ImGui.NextColumn();
-        ImGui.Text("(on a filename) Access item/selection context menu"); ImGui.NextColumn();
-        ImGui.Text("RMB"); ImGui.NextColumn();
-        ImGui.Text("(on a color) Cycle shading styles"); ImGui.NextColumn();
-        ImGui.Text("MMB"); ImGui.NextColumn();
-        ImGui.Text("(on a color) Reset color from the filename"); ImGui.NextColumn();
-        ImGui.Text("LMB"); ImGui.NextColumn();
-        ImGui.Text("(sweep over visibility checkbox) Update item visibility"); ImGui.NextColumn();
-        ImGui.Text("Ctrl-LMB"); ImGui.NextColumn();
-        ImGui.Text("(sweep over visibility checkbox) Focus hovered item"); ImGui.NextColumn();
-        ImGui.Text("Shift-LMB"); ImGui.NextColumn();
-        ImGui.Text("(sweep over visibility checkbox) Focus hovered item and update camera"); ImGui.NextColumn();
+        Show_Binding("LMB", "(on a filename) Focus an item");
+        Show_Binding("Ctrl-LMB", "(on a filename) Select an item");
+        Show_Binding("RMB", "(on a filename) Access item/selection context menu");
+        Show_Binding("RMB", "(on a color) Cycle shading styles");
+        Show_Binding("MMB", "(on a color) Reset color from the filename");
+        Show_Binding("LMB", "(sweep over visibility checkbox) Update item visibility");
+        Show_Binding("Ctrl-LMB", "(sweep over visibility checkbox) Focus hovered item");
+        Show_Binding("Shift-LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
     }
 
     if Tree_Node_With_Tooltip("Key bindings for Selection Mode",
@@ -557,12 +576,9 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         defer ImGui.Columns(1);
         ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
         ImGui.NextColumn(); ImGui.NextColumn();
-        ImGui.Text("Ctrl-LMB"); ImGui.NextColumn();
-        ImGui.Text("Add nearest unclipped vertex to 'Selection' item");  ImGui.NextColumn();
-        ImGui.Text("Shift-LMB"); ImGui.NextColumn();
-        ImGui.Text("Click-drag to set clipping sphere");  ImGui.NextColumn();
-        ImGui.Text("Ctrl-RMB"); ImGui.NextColumn();
-        ImGui.Text("Place camera orbit");  ImGui.NextColumn();
+        Show_Binding("Ctrl-LMB", "Add nearest unclipped vertex to 'Selection' item");
+        Show_Binding("Shift-LMB", "Click-drag to set clipping sphere");
+        Show_Binding("Ctrl-RMB", "Place camera orbit");
     }
 
     if ImGui.TreeNodeEx("General key bindings") {
@@ -574,17 +590,11 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.NextColumn();
         for app.keymap_keydown.mappings {
             push_allocator(temp);
-            ImGui.Text("%", to_string(it));
-            ImGui.NextColumn();
-            ImGui.Text("%", app.keymap_keydown.procs[it.proc_info_index].name);
-            ImGui.NextColumn();
+            Show_Binding(to_string(it), app.keymap_keydown.procs[it.proc_info_index].name);
         }
         for app.keymap.mappings {
             push_allocator(temp);
-            ImGui.Text(tprint("%", to_string(it)));
-            ImGui.NextColumn();
-            ImGui.Text("%", app.keymap.procs[it.proc_info_index].name);
-            ImGui.NextColumn();
+            Show_Binding(to_string(it), app.keymap.procs[it.proc_info_index].name);
         }
     }
 
@@ -615,12 +625,6 @@ show_help_ui :: (world_axes : *Axes_Triad) {
 
     // @Hack to display all text in the columns
     ImGui.Text("                                                                                     ");
-
-    SHOW_CHANGELOG :: "Show Changelog";
-    HIDE_CHANGELOG :: "Hide Changelog";
-    if ImGui.Button(ifx app.show_changelog then cast(*u8)HIDE_CHANGELOG else cast(*u8)SHOW_CHANGELOG) {
-        app.show_changelog = !app.show_changelog;
-    }
 
     // @Incomplete add a message about where the keymap is for editing
 }

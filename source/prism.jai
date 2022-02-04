@@ -44,7 +44,6 @@ main :: () {
 
     gl_version_major, gl_version_minor = gl_get_version();
     print ("OpenGL %.%\n", gl_version_major, gl_version_minor);
-    init_camera();
 
     // Prepare VAO for text quads.
     {
@@ -106,9 +105,11 @@ main :: () {
     TRIAD_AXIS_LENGTH :: 1;
     triad := make_axes_triad(TRIAD_AXIS_LENGTH);
 
+    init_camera();
     init_font();
     init_commands();
     init_keymap();
+    init_changelog();
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
