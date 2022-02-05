@@ -338,36 +338,39 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     intersected_triangle := false;
     has_degenerate_triangles := false;
     t_min := FLOAT32_INFINITY;
-    for :visible_selectable_triangulated entity, entity_index : app.entities {
-        for i : 0..(entity.mesh.indices.count/3)-1 {
 
-            triangle : Triangle3;
-            triangle.a = entity.mesh.positions[entity.mesh.indices[3 * i + 0]];
-            triangle.b = entity.mesh.positions[entity.mesh.indices[3 * i + 1]];
-            triangle.c = entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
-            n := cross(triangle.a - triangle.b, triangle.a - triangle.c); // No need to normalize
-
-            if n == Vector3.{0, 0, 0} {
-                has_degenerate_triangles = true;
-            } else {
-                if front_facing_only && dot(current_look_direction(), n) > 0 {
-                    continue;
-                }
-
-                isect, t, bary, ipoint := find_intersect_ray3_triangle3(ray, triangle);
-                if isect && t < t_min {
-
-                    if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
-                        continue;
-                    }
-
-                    t_min = t;
-                    result.position = ipoint;
-                    result.element_index = i;
-                    result.entity_index = entity_index;
-                    intersected_triangle = true;
-                }
+    // Warning: I hit a confusing bug using a naked continue in this function when it was defined in the body of
+    // an entities iterator for loop, and before the a triangles iterator for loop, this made the continue refer
+    // to the entities loop, and not the triangle loop. Should be explicit with macros!
+    Process_Triangle :: () #expand {
+        normal_direction := compute_normal(`triangle, normalize=false);
+        if normal_direction == Vector3.{0, 0, 0} {
+            `has_degenerate_triangles = true;
+        } else {
+            if `front_facing_only && dot(current_look_direction(), normal_direction) > 0 {
+                continue `triangle;
             }
+
+            isect, t, bary, ipoint := find_intersect_ray3_triangle3(`ray, `triangle);
+            if isect && t < `t_min {
+
+                // @CompilerBug wtf, putting backticks on test_sphere compiled?
+                if is_clipped(`entity.display_info, ipoint, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
+                    continue `triangle;
+                }
+
+                `t_min = t;
+                `result.position = ipoint;
+                `result.element_index = `triangle_index;
+                `result.entity_index = `entity_index;
+                `intersected_triangle = true;
+            }
+        }
+    }
+
+    for :visible_selectable_triangulated entity, entity_index : app.entities {
+        for :triangles_iterator triangle, triangle_index : entity.mesh {
+            Process_Triangle();
         }
     }
 

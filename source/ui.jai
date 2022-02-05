@@ -602,6 +602,9 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     if ImGui.TreeNodeEx("CHANGELOG", .DefaultOpen) {
         defer ImGui.TreePop();
 
+        COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));
+        ImGui.Text(COMPILER_VERSION_INFO);
+
         latest := app.changelog[0];
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version % (latest)", latest.name)), .DefaultOpen) {
             defer ImGui.TreePop();

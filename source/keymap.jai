@@ -242,8 +242,10 @@ toggle_clipping :: (target : Target_Items) {
 
 clear_all_labels :: (target : Target_Items) {
     for app.entities if Is_Target(it) {
-        using it.display_info.vertex_label_style;
-        show_index, show_position = false, false;
+        it.display_info.vertex_label_style.show_index = false;
+        it.display_info.vertex_label_style.show_index = false;
+        it.display_info.element_label_theme.show_index = false;
+        it.display_info.element_label_theme.show_index = false;
     }
 }
 

@@ -15,10 +15,9 @@ Mesh :: struct {
 triangle_tuples_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
 
-    `it_index := -1;
-    for i : 0..mesh.indices.count/3-1 {
+    for i : 0..(mesh.indices.count/3)-1 {
+        `it_index := i;
         `it := inline get_triangle_vertex_tuple(<< mesh, i);
-        it_index += 1;
         #insert (remove=#assert(false)) body;
     }
 }
@@ -26,10 +25,9 @@ triangle_tuples_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags)
 triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
 
-    `it_index := -1;
-    for i : 0..mesh.indices.count/3-1 {
+    for i : 0..(mesh.indices.count/3)-1 {
+        `it_index := i;
         `it := inline get_triangle(<< mesh, i);
-        it_index += 1;
         #insert (remove=#assert(false)) body;
     }
 }

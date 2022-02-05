@@ -16,11 +16,13 @@ Triangle3 :: struct {
     v : [3]Point3 = ---;
 }
 
-compute_normal :: inline (t : Triangle3, $normalize : bool = false) -> Vector3 {
+compute_normal :: inline (t : Triangle3, $normalize : bool = true) -> Vector3 {
+    ab := t.b - t.a;
+    ac := t.c - t.a;
     #if normalize {
-        return unit_vector(cross(t.c - t.b, t.a - t.b));
+    return unit_vector(cross(ab, ac));
     } else {
-        return cross(t.c - t.b, t.a - t.b);
+    return cross(ab, ac);
     }
 }
 
@@ -124,6 +126,7 @@ make_hyperplane3 :: (plane_normal : Vector3, point_on_plane: Point3) -> Hyperpla
 make_normalized_hyperplane3_from_points :: (a : Point3, b : Point3, c : Point3) -> Hyperplane3 {
     result : Hyperplane3 = ---;
 
+    // @Cleanup Make this consistent with triangle compute_normal! use ab and bc edges??
     normal := unit_vector(cross(c - b, a - b));
     result.normal = normal;
     result.d = -dot_product(normal, a);
