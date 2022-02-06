@@ -379,7 +379,7 @@ find_intersect_ray3_axis_box3 :: (ray : Ray3, box : AxisBox3) -> Intersection_Ra
     // DoQuery(rayOrigin, ray.direction, boxExtent, result);
     {
         line : Line3 = ---;
-        line.origin = ray.origin;
+        line.origin = rayOrigin;
         line.direction = ray.direction;
         result = find_intersect_line3_axis_box3(line, box);
 
