@@ -37,6 +37,7 @@ Polyline_Soup2_Entity :: struct {
 
     Shape :: Polyline_Soup2;
     shape : Shape;
+    spatial : AABB_Tree(Shape);
 }
 
 Polyline_Soup3_Entity :: struct {
@@ -46,6 +47,7 @@ Polyline_Soup3_Entity :: struct {
 
     Shape :: Polyline_Soup3;
     shape : Shape;
+    spatial : AABB_Tree(Shape);
 }
 
 Polygon_Soup_Entity :: struct {
@@ -55,6 +57,7 @@ Polygon_Soup_Entity :: struct {
 
     Shape :: Polygon_Soup;
     shape : Shape;
+    spatial : AABB_Tree(Shape);
 }
 
 Mesh_Entity :: struct {
@@ -63,6 +66,7 @@ Mesh_Entity :: struct {
     display_info.element_label_theme.label_color = .{1., 1., 0, 1};
 
     Shape :: Mesh;
+    spatial : AABB_Tree(Shape);
 #place mesh;
     shape : Shape = ---; // Alias for consistency
 }
@@ -114,32 +118,34 @@ deinit :: (base : *Entity) {
             entity := cast(*Polyline_Soup2_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
+            deinit(*entity.spatial);
 
         case .POLYLINE_SOUP3;
 
             entity := cast(*Polyline_Soup3_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
+            deinit(*entity.spatial);
 
         case .POLYGON_SOUP;
 
             entity := cast(*Polygon_Soup_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
+            deinit(*entity.spatial);
 
         case .MESH;
 
             entity := cast(*Mesh_Entity)base;
             deinit(*entity.mesh);
+            deinit(*entity.spatial);
     }
 
     // Remove data from gpu memory as well
     if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
     if base.render_info.ibo glDeleteBuffers(1, *base.render_info.ibo);
     base.render_info = .{};
-
     free(base.fully_pathed_filename);
-
     base = null;
 }
 

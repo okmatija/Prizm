@@ -162,6 +162,7 @@ load_obj :: (filename : string) -> *Entity {
         return null;
     }
 
+    // @Cleanup it's annoying that init_entity_base_parameters must happen after the new and before the init
     result : *Entity;
     {
         if #complete mesh.geometry_format == {
@@ -176,6 +177,8 @@ load_obj :: (filename : string) -> *Entity {
                     if !ok {
                         deinit(result);
                     }
+                    init_entity_base_parameters(result, filename, mesh);
+                    init(*e.spatial, *e.shape);
                 } else if dim == 3 {
                     result = New(Polyline_Soup3_Entity);
                     e := cast(*Polyline_Soup3_Entity)result;
@@ -183,14 +186,18 @@ load_obj :: (filename : string) -> *Entity {
                     if !ok {
                         deinit(result);
                     }
+                    init_entity_base_parameters(result, filename, mesh);
+                    init(*e.spatial, *e.shape);
                 }
             case .POINTS; #through;
             case .TRIANGLES;
                 result = New(Mesh_Entity);
+                e := cast(*Mesh_Entity)result;
+                init_entity_base_parameters(result, filename, mesh);
+                init(*e.spatial, *e.shape);
             case .UNKNOWN;
                 assert(false, "Should have handled UNKNOWN geometry format by now\n");
         }
-        init_entity_base_parameters(result, filename, mesh);
     }
 
     return result;

@@ -4,6 +4,7 @@
 // TODO add index struct with local/global point/edges for polyline/polygon soup datastructures
 // TODO Limit the size of the item context menu window
 // TODO Make the windows follow conventions better, add cross button etc
+// TODO point cloud should be an explict entity type
 
 PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
 - Various minor UI improvements related to window positioning and colors
