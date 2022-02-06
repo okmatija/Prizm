@@ -235,7 +235,8 @@ load_from_command_line :: () {
         // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
         pattern := canonically_formatted_path_string(args[it]);
 
-        if find_index_of_any_from_left(pattern, "*?[-]") != -1 {
+        // Note: Previously we also searched for #char "-" but this was confusing since some folder names use this as a separator, if we want to find that one make sure its also within square brackets
+        if find_index_of_any_from_left(pattern, "*") != -1 {
             // @Cleanup This is really annoying. file_list gives different results on windows/linux
             files := file_list(".", recursive=true, follow_symlinks=false);
             defer array_free(files);
