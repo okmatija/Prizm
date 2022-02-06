@@ -597,8 +597,6 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     inspect("User Settings", *app.settings);
     clamp_user_settings();
 
-    NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
-
     if ImGui.TreeNodeEx("CHANGELOG", .DefaultOpen) {
         defer ImGui.TreePop();
 
@@ -1046,5 +1044,7 @@ make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
     v.w = d;
     return v;
 }
+
+NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
