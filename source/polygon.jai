@@ -22,6 +22,7 @@ is_empty :: (shape : Ring) -> bool #must {
 deinit :: (shape : *Ring) {
     if !shape return;
     array_reset(*shape.points);
+    shape = null;
 }
 
 area :: (using ring : Ring) -> float {
@@ -61,6 +62,7 @@ deinit :: (shape : *Polygon) {
     deinit(*shape.outer_ring);
     for * shape.inner_rings deinit(it);
     array_reset(*shape.inner_rings);
+    shape = null;
 }
 
 bounding_box :: (using polygon : Polygon) -> AxisBox2 {

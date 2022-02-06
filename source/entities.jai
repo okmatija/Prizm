@@ -139,6 +139,8 @@ deinit :: (base : *Entity) {
     base.render_info = .{};
 
     free(base.fully_pathed_filename);
+
+    base = null;
 }
 
 is_empty :: (entity : Entity) -> bool {
@@ -227,7 +229,7 @@ color_from_string :: (str : string) -> Vector4 {
     return make_vector4(r, g, b, 1.);
 }
 
-init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh) {
+init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh, loc := #caller_location) {
     if !entity return;
 
     entity.fully_pathed_filename = copy_string(filename);
@@ -257,8 +259,7 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
 
         case .UNKNOWN;
 
-            log_warning("Skipped (Could not detect mesh geometry format)\n");
-            deinit(entity);
+            log_warning("Unexpected unknown geometry format in init_entity_base_parameters, called from %", loc);
     }
 }
 
@@ -269,6 +270,12 @@ load_entity_from_file :: (filename : string) -> *Entity {
         result = load_obj(filename);
     } else if ends_with_nocase(filename, "wkt") {
         result = load_wkt(filename);
+    }
+
+    if result {
+        log("Loaded file '%', with type %", filename, result.type);
+    } else {
+        log_error("Could not load file '%'", filename);
     }
 
     return result;

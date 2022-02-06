@@ -21,6 +21,7 @@ clear :: (shape : *$T/Polyline) {
 deinit :: (shape : *$T/Polyline) {
     if !shape return;
     array_reset(*shape.points);
+    shape = null;
 }
 
 is_empty :: (polyline : $T/Polyline) -> bool #must {
@@ -58,6 +59,7 @@ deinit :: (shape : *$T/Polyline_Soup) {
     if !shape return;
     for * shape.polylines deinit(it);
     array_reset(*shape.polylines);
+    shape = null;
 }
 
 is_empty :: (polyline_soup : $T/Polyline_Soup) -> bool #must {

@@ -83,13 +83,13 @@ load_wkt :: (filename : string) -> *Entity {
                 empty_mesh : Mesh;
                 empty_mesh.geometry_format = .LINES;
                 entity = New(Polyline_Soup3_Entity);
-                e : *Polyline_Soup3_Entity = xx entity; // @CompilerBug???????
+                e : *Polyline_Soup3_Entity = xx entity;
                 e.shape = empty_shape;
                 e.mesh = empty_mesh;
 
             } else if dim == 2 {
 
-                entity = New(Polyline_Soup2_Entity); // @CompilerBug???????
+                entity = New(Polyline_Soup2_Entity);
                 e : *Polyline_Soup2_Entity = xx entity;
                 array_add(*e.shape.polylines).points = points2;
                 e.mesh = to_Mesh(e.shape);
@@ -97,7 +97,7 @@ load_wkt :: (filename : string) -> *Entity {
             } else if dim == 3 {
 
                 entity = New(Polyline_Soup3_Entity);
-                e : *Polyline_Soup3_Entity = xx entity; // @CompilerBug???????
+                e : *Polyline_Soup3_Entity = xx entity;
                 array_add(*e.shape.polylines).points = points3;
                 e.mesh = to_Mesh(e.shape);
 
@@ -119,14 +119,14 @@ load_wkt :: (filename : string) -> *Entity {
             } else if dim == 2 {
 
                 entity = New(Polyline_Soup2_Entity);
-                e : *Polyline_Soup2_Entity = xx entity; // @CompilerBug???????
+                e : *Polyline_Soup2_Entity = xx entity;
                 e.shape = polyline_soup2;
                 e.mesh = to_Mesh(e.shape);
 
             } else if dim == 3 {
 
                 entity = New(Polyline_Soup3_Entity);
-                e : *Polyline_Soup3_Entity = xx entity; // @CompilerBug???????
+                e : *Polyline_Soup3_Entity = xx entity;
                 e.shape = polyline_soup3;
                 e.mesh = to_Mesh(e.shape);
 
@@ -171,7 +171,7 @@ load_wkt :: (filename : string) -> *Entity {
     }
 
     if parser.failed || (entity && entity.type == .UNKNOWN) {
-        if entity deinit(entity);
+        deinit(entity);
         return null;
     }
 

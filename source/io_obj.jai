@@ -30,6 +30,12 @@ load_obj :: (filename : string) -> *Entity {
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
     mesh : Mesh;
+    defer {
+        if parser.failed {
+            deinit(*mesh);
+        }
+    }
+
     ok : bool = true;
 
     while peek_token(*parser).type != .EOF && !parser.failed {
@@ -135,34 +141,6 @@ load_obj :: (filename : string) -> *Entity {
         }
     }
 
-    result : *Entity;
-
-    dim := 2;
-    for mesh.positions if it.z != 0 dim = 3;
-
-    if #complete mesh.geometry_format == {
-        case .UNKNOWN;
-            log_warning("Skipped (Could not detect mesh geometry format)\n");
-            parser.failed = true;
-        case .LINES;
-            if dim == 2 {
-                result = New(Polyline_Soup2_Entity);
-                e := cast(*Polyline_Soup2_Entity)result; // @CompilerBug? Why do we need to do this?
-                e.shape, ok = to_Polyline_Soup2(mesh);
-                if !ok parser.failed = true;
-            } else if dim == 3 {
-                result = New(Polyline_Soup3_Entity);
-                e := cast(*Polyline_Soup3_Entity)result; // @CompilerBug? Why do we need to do this?
-                e.shape, ok = to_Polyline_Soup3(mesh);
-                if !ok parser.failed = true;
-            }
-        case .POINTS; #through;
-        case .TRIANGLES;
-            result = New(Mesh_Entity);
-    }
-
-    init_entity_base_parameters(result, filename, mesh);
-
     // Check obj indices
     max_index : s64 = -1;
     for mesh.indices max_index = max(max_index, it);
@@ -174,13 +152,45 @@ load_obj :: (filename : string) -> *Entity {
         parser.failed = true;
     }
 
-    if result {
-        if parser.failed {
-            deinit(result);
-            result = null;
-        } else {
-            log("Parsing successful. Inferred entity type '%'", result.type);
+    // Check inferred geometry format
+    if mesh.geometry_format == .UNKNOWN {
+        log_warning("Skipped (Could not detect mesh geometry format)\n");
+        parser.failed = true;
+    }
+
+    if parser.failed {
+        return null;
+    }
+
+    result : *Entity;
+    {
+        if #complete mesh.geometry_format == {
+            case .LINES;
+                dim := 2;
+                for mesh.positions if it.z != 0 dim = 3;
+
+                if dim == 2 {
+                    result = New(Polyline_Soup2_Entity);
+                    e := cast(*Polyline_Soup2_Entity)result;
+                    e.shape, ok = to_Polyline_Soup2(mesh);
+                    if !ok {
+                        deinit(result);
+                    }
+                } else if dim == 3 {
+                    result = New(Polyline_Soup3_Entity);
+                    e := cast(*Polyline_Soup3_Entity)result;
+                    e.shape, ok = to_Polyline_Soup3(mesh);
+                    if !ok {
+                        deinit(result);
+                    }
+                }
+            case .POINTS; #through;
+            case .TRIANGLES;
+                result = New(Mesh_Entity);
+            case .UNKNOWN;
+                assert(false, "Should have handled UNKNOWN geometry format by now\n");
         }
+        init_entity_base_parameters(result, filename, mesh);
     }
 
     return result;

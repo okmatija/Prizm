@@ -136,6 +136,7 @@ deinit :: (using mesh : *Mesh) {
     array_reset(*indices);
 
     geometry_format = .UNKNOWN;
+    mesh = null;
 }
 
 bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {
