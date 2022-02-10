@@ -309,6 +309,11 @@ perturb_positions :: (index : int, radius : float = .001) {
                 Perturb3(point);
             }
             entity.mesh = to_Mesh(entity.shape);
+        case .POINT_CLOUD;
+            entity := cast(*Point_Cloud_Entity)base;
+            for * point : entity.mesh.positions {
+                Perturb3(point);
+            }
         case .MESH;
             entity := cast(*Mesh_Entity)base;
             for * point : entity.mesh.positions {

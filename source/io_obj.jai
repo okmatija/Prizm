@@ -167,6 +167,7 @@ load_obj :: (filename : string) -> *Entity {
     {
         if #complete mesh.geometry_format == {
             case .LINES;
+
                 dim := 2;
                 for mesh.positions if it.z != 0 dim = 3;
 
@@ -189,13 +190,23 @@ load_obj :: (filename : string) -> *Entity {
                     init_entity_base_parameters(result, filename, mesh);
                     init(*e.spatial, *e.shape);
                 }
-            case .POINTS; #through;
+
+            case .POINTS;
+
+                result = New(Point_Cloud_Entity);
+                e := cast(*Point_Cloud_Entity)result;
+                init_entity_base_parameters(result, filename, mesh);
+                init(*e.spatial, *e.shape);
+
             case .TRIANGLES;
+
                 result = New(Mesh_Entity);
                 e := cast(*Mesh_Entity)result;
                 init_entity_base_parameters(result, filename, mesh);
                 init(*e.spatial, *e.shape);
+
             case .UNKNOWN;
+
                 assert(false, "Should have handled UNKNOWN geometry format by now\n");
         }
     }

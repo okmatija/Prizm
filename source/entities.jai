@@ -1,10 +1,12 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 Entity_Type :: enum {
+    // GENERAL_OBJ; // See what the snake example does
     MESH;
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
     POLYGON_SOUP;
+    POINT_CLOUD;
     UNKNOWN;
 }
 
@@ -60,10 +62,28 @@ Polygon_Soup_Entity :: struct {
     spatial : AABB_Tree(Shape);
 }
 
+Point_Cloud_Entity :: struct {
+    using base : Entity;
+    type = .POINT_CLOUD;
+    display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
+    mesh.geometry_format = .POINTS;
+
+    Shape :: Point_Cloud;
+    spatial : AABB_Tree(Shape);
+#place mesh;
+    shape : Shape = ---; // Alias for consistency
+}
+
 Mesh_Entity :: struct {
     using base : Entity;
     type = .MESH;
     display_info.element_label_theme.label_color = .{1., 1., 0, 1};
+
+    // // nocommit
+    display_info.wireframe_visible = true;
+    display_info.wireframe_width = 2;
+    // display_info.element_label_theme.show_index = true;
+    // display_info.vertex_label_style.show_position = true;
 
     Shape :: Mesh;
     spatial : AABB_Tree(Shape);
@@ -75,6 +95,11 @@ clear :: (base : *Entity) {
     if #complete base.type == {
         case .UNKNOWN;
             // do nothing
+
+        case .POINT_CLOUD;
+
+            entity := cast(*Point_Cloud_Entity)base;
+            clear(*entity.mesh);
 
         case .POLYLINE_SOUP2;
 
@@ -134,6 +159,12 @@ deinit :: (base : *Entity) {
             deinit(*entity.shape);
             deinit(*entity.spatial);
 
+        case .POINT_CLOUD;
+
+            entity := cast(*Point_Cloud_Entity)base;
+            deinit(*entity.mesh);
+            deinit(*entity.spatial);
+
         case .MESH;
 
             entity := cast(*Mesh_Entity)base;
@@ -158,7 +189,8 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4 {
         case .POLYLINE_SOUP2; return *display_info.wireframe_color;
         case .POLYLINE_SOUP3; return *display_info.wireframe_color;
         case .POLYGON_SOUP;   return *display_info.surface_color;
-        case .UNKNOWN; #through;
+        case .POINT_CLOUD;    return *display_info.points_color;
+        case .UNKNOWN;     #through;
         case .MESH;
             if #complete mesh.geometry_format == {
                 case .POINTS;    return *display_info.points_color;
@@ -382,9 +414,32 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     }
 
     for :visible_selectable_triangulated entity, entity_index : app.entities {
+#if false { // nocommit
         for :triangles_iterator triangle, triangle_index : entity.mesh {
             Process_Triangle();
         }
+} else {
+        // @CompilerBug Quick lambda didn't work here (tree, ray, id, tri) => {return true;}
+        skip_backfacing :: (ray : Ray3, id : int, tri : Triangle3, unused : *void) -> bool {
+            return dot_product(compute_normal(tri), ray.direction) > 0;
+        }
+
+        assert(entity.type == .MESH);
+        entity_mesh := cast(*Mesh_Entity)entity;
+        filter : entity_mesh.spatial.Primitive_Filter;
+        filter.proc = skip_backfacing;
+        is_hit, intersection := first_primitive_intersection(*entity_mesh.spatial, ray, filter);
+
+        if is_hit && intersection.t < t_min {
+            if is_clipped(entity.display_info, intersection.point, test_sphere=sphere_clipped, test_ranges=range_clipped) == false {
+                t_min = intersection.t;
+                result.position = intersection.point;
+                result.element_index = intersection.primitive_id;
+                result.entity_index = entity_index;
+                intersected_triangle = true;
+            }
+        }
+}
     }
 
     if intersected_triangle {

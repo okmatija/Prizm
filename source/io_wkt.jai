@@ -29,8 +29,7 @@ load_wkt :: (filename : string) -> *Entity {
 
         if eat_possible_directive(*parser, "POINT") {
 
-            entity = New(Mesh_Entity);
-            entity.mesh.geometry_format = .POINTS;
+            entity = New(Point_Cloud_Entity);
 
             expect_and_eat(*parser, xx #char "(");
             point2 : Vector2 = ---;
@@ -50,8 +49,7 @@ load_wkt :: (filename : string) -> *Entity {
 
         } else if eat_possible_directive(*parser, "MULTIPOINT") {
 
-            entity = New(Mesh_Entity);
-            entity.mesh.geometry_format = .POINTS;
+            entity = New(Point_Cloud_Entity);
 
             points2 : [..]Vector2;
             points3 : [..]Vector3;

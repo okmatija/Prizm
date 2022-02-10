@@ -250,7 +250,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             ImGui.Separator();
 
-            normals_ui :=  entity.type == .MESH;
+            normals_ui :=  entity.type == .MESH || entity.type == .POINT_CLOUD;
             lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
             faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES) || entity.type == .POLYGON_SOUP;
             maybe_update_render_info(*entity.render_info, *entity.mesh);
@@ -284,7 +284,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     using soup := cast(*Polygon_Soup_Entity)entity;
                     ImGui.Text("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count);
 
-                case .UNKNOWN; #through;
+                case .POINT_CLOUD;
+
+                    cloud := cast(*Point_Cloud_Entity)entity;
+                    ImGui.Text("PointCloud #points = %", cloud.mesh.positions.count);
+
+                case .UNKNOWN;     #through;
                 case .MESH;
 
                     mesh := cast(*Mesh_Entity)entity;
@@ -597,7 +602,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     inspect("User Settings", *app.settings);
     clamp_user_settings();
 
-    if ImGui.TreeNodeEx("CHANGELOG", .DefaultOpen) {
+    if ImGui.TreeNodeEx("CHANGELOG") {
         defer ImGui.TreePop();
 
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));

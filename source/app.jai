@@ -179,6 +179,7 @@ ImGui :: #import "ImGui";
 #load "axis_box.jai";
 #load "polyline.jai";
 #load "polygon.jai";
+#load "point_cloud.jai";
 #load "edge.jai";
 #load "mesh.jai";
 #load "aabb_tree.jai";

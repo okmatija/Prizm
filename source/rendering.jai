@@ -469,7 +469,7 @@ render_entities :: () {
         old_display_info := entity.display_info;
         defer entity.display_info = old_display_info;
 
-        if entity.type == {
+        if #complete entity.type == {
             case .POLYLINE_SOUP2;
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
@@ -491,6 +491,13 @@ render_entities :: () {
                 render_mesh_triangles(*soup.mesh, ri, di);
                 render_aabb(*soup.mesh, ri, di);
 
+            case .POINT_CLOUD;
+
+                cloud := cast(*Point_Cloud_Entity) entity;
+                render_mesh_points(*cloud.mesh, ri, di);
+                render_normals(*cloud.mesh, ri, di);
+                render_aabb(*cloud.mesh, ri, di);
+
             case .MESH;
 
                 mesh := cast(*Mesh_Entity) entity;
@@ -509,6 +516,8 @@ render_entities :: () {
                 render_mesh_lines(*mesh.mesh, ri, di);
                 render_normals(*mesh.mesh, ri, di);
                 render_aabb(*mesh.mesh, ri, di);
+
+            case .UNKNOWN;
         }
     }
 
@@ -523,7 +532,8 @@ render_entities :: () {
 
         // @TODO call render_text_quad once with a list of points?
 
-        if entity.type == {
+        if #complete entity.type == {
+            case .UNKNOWN;
             case .POLYLINE_SOUP2;
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
@@ -600,6 +610,21 @@ render_entities :: () {
                         }
                     }
                 }
+
+            case .POINT_CLOUD;
+
+                cloud := cast(*Point_Cloud_Entity) entity;
+                count := cloud.mesh.positions.count;
+                point_theme := entity.display_info.vertex_label_style;
+
+               for cloud.mesh.positions {
+                   if is_clipped(entity.display_info, it) continue;
+                   if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
+
+                   text := get_point_text(it, it_index, point_theme);
+                   text_position_px := get_text_screen_position(make_vector4(it, 1), cloud.mesh.world_from_model);
+                   render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+               }
 
             case .MESH;
 
