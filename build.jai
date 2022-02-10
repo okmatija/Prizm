@@ -46,15 +46,18 @@ build :: () {
         output_executable_name = OUTPUT_EXE_NAME;
 
         if Has_Argument("checks") {
+            print("[Prism] Compiling with checks enabled\n");
             array_bounds_check = .ON;
             cast_bounds_check  = .FATAL;
             math_bounds_check  = .FATAL;
         }
 
         if Has_Argument("release") {
+            print("[Prism] Compiling release configuration\n");
             set_optimization_level(*build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
             // build_options.stack_trace = false;
         } else {
+            print("[Prism] Compiling debug configuration\n");
             // memory_debugger = true;
             // llvm_options.debug_options = .["-g"];
         }
@@ -84,7 +87,10 @@ build :: () {
 
             if message.kind == .COMPLETE {
                 if Has_Argument("set_icon") {
+                    print("[Prism] Setting application icon\n");
                     set_icon_and_manifest(build_options);
+                } else {
+                    print("[Prism] Did not set application icon\n");
                 }
                 break;
             }
