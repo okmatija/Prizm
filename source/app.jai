@@ -183,6 +183,7 @@ ImGui :: #import "ImGui";
 #load "edge.jai";
 #load "mesh.jai";
 #load "aabb_tree.jai";
+#load "aabb_tree_impl.jai";
 #load "grid.jai";
 #load "axes.jai";
 #load "selection_mode.jai";

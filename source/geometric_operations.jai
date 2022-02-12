@@ -282,6 +282,7 @@ find_intersect_ray3_triangle3 :: (ray : Ray3, triangle : Triangle3) -> (intersec
 
 
 // @Refactor Take intersect out of the struct and pass is as the first in a pair of arguments
+// This was this struct always represents an intersection
 Intersection_Line3_AxisBox3 :: struct {
     intersect : bool;
     numIntersections : int;

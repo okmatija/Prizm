@@ -18,10 +18,9 @@
 // find_closest_point
 //
 // @Incomplete maybe we should have function pointers stored in a struct for the above, could test if some operations are supported by checking if the pointer is null
-// nocommit @Incomplete Handle point clouds
 AABB_Tree :: struct(Shape : Type) {
 
-    // Implment object median split?
+    // Implment round-robin object median split?
 
     LEAF_MAX_PRIMITIVES_COUNT :: 10_000_000; // nocommit @Incomplete make this configurable e.g., see Hash_Table.jai implementation
 
@@ -42,15 +41,17 @@ AABB_Tree :: struct(Shape : Type) {
     // This is an index into `shape`, it is defined implicitly by the `get_primitive` function overload
     Primitive_Id :: int;
 
-    Primitive_Info :: struct {
-        aabb : AABB;
-        center : Vector;
-        primitive_id : Primitive_Id;
-    }
-
     Primitive_Filter :: struct {
         // Returns true if the primitive should be skipped
         Filter_Proc :: #type (ray : Ray3, primitive_id : int, primitive : Primitive, user_data : *void) -> bool;
+
+        proc : Filter_Proc = null;
+        data : *void = null;
+    }
+
+    Intersection_Filter :: struct {
+        // Returns true if the intersection point should be skipped
+        Filter_Proc :: #type (point : Vector, user_data : *void) -> bool;
 
         proc : Filter_Proc = null;
         data : *void = null;
@@ -62,43 +63,73 @@ AABB_Tree :: struct(Shape : Type) {
         primitive_id : Primitive_Id = -1;
     }
 
+    primitive_info_iterator :: (range : *Primitive_Range, body : Code, flags : For_Flags) #expand {
+        #assert(flags == 0);
+        for i : 0..range.count-1 {
+            `it_index := range.first + i;
+            `it := `tree.primitive_info[it_index];
+            #insert (remove=#assert(false), break=break i) body;
+        }
+    }
+
+    Primitive_Range :: struct {
+        first : int;
+        count : int; // @Cleanup make type just large enough to address at most LEAF_MAX_PRIMITIVES_COUNT primitives
+    }
+
     // @Speed Could reduce the size of this struct e.g., by storing indices into `nodes`, rather than 64 bit pointers
     Node :: struct {
-        primitives : [..]Primitive_Info;
         aabb : AABB; 
+        range : Primitive_Range;
 
-        // These point into the `nodes` array, they are not owning pointers
+        // These point into the `nodes` array, not owning pointers
         left : *Node;
         right : *Node;
     }
-
     nodes : [..]Node;
-    shape : *Shape;
+
+    Primitive_Info :: struct {
+        aabb : AABB;
+        center : Vector;
+        primitive_id : Primitive_Id;
+    }
+    primitive_info : [..]Primitive_Info;
+
+    shape : *Shape; // not owning pointer
 }
 
 init :: (using tree : *$T/AABB_Tree, target : *T.Shape) {
     // nocommit
     if T.Shape != Mesh return;
 
+    tree.shape = target;
+
+    // @Cleanup Implement this via an iterator over `target` rather than allocating primitive_ids array?
     primitive_ids := get_primitive_index_array(<< target);
     defer array_free(primitive_ids);
 
-    // Sort by 
+    for primitive_ids {
+        primitive := get_primitive(<<tree, it);
 
-    tree.shape = target;
+        info := array_add(*tree.primitive_info);
+        info.aabb = get_primitive_aabb(primitive);
+        info.center = get_primitive_center(primitive);
+        info.primitive_id = it; // tree.primitive_info will get jumbled
+    }
 
-    build(tree, primitive_ids);
+    range : T.Primitive_Range = ---;
+    range.first = 0;
+    range.count = tree.primitive_info.count;
+    build(tree, range);
 }
 
 deinit :: (using tree : *$T/AABB_Tree) {
-    for node : nodes {
-        array_reset(*node.primitives);
-    }
+    array_reset(*primitive_info);
     array_reset(*nodes);
 }
 
-// @CompilerBug We pass a pointer here due to a bug??
-first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, filter : tree.Primitive_Filter = .{}) -> is_hit : bool, tree.Intersection_Ray3_Primitive {
+// @CompilerBug We need to pass a pointer to the tree here due to a bug??
+first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, primitive_filter : tree.Primitive_Filter = .{}, intersection_filter : tree.Intersection_Filter = .{}) -> is_hit : bool, tree.Intersection_Ray3_Primitive {
     result : Intersection_Ray3_Primitive;
 
     if tree.nodes.count == 0 {
@@ -106,6 +137,7 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, filt
     }
 
     stack : [..]*AABB_Tree(Mesh).Node;
+    defer array_reset(*stack);
 
     // Push the root node onto the stack
     array_add(*stack, *tree.nodes[0]);
@@ -115,17 +147,27 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, filt
         if is_leaf(<<node) {
             hit_aabb, t_aabb, point_aabb := find_intersect_aabb_ray3(node.aabb, ray);
             if hit_aabb {
-                for * info : node.primitives {
+                iterator :: tree.primitive_info_iterator; // @CompilerBug Why did this not work?
+                for :iterator info : node.range {
                     primitive := get_primitive(<<tree, info.primitive_id);
-                    if filter.proc && filter.proc(ray, info.primitive_id, primitive, filter.data) {
+
+                    if primitive_filter.proc && primitive_filter.proc(ray, info.primitive_id, primitive, primitive_filter.data) {
                         continue;
                     }
-                    hit_primitive, t_primitive, point_primitive := find_intersect_primitive_ray3(primitive, ray);
-                    if hit_primitive && t_primitive < result.t {
-                        result.t = t_primitive;
-                        result.point = point_primitive;
-                        result.primitive_id = info.primitive_id;
+
+                    is_hit, t, point := find_intersect_primitive_ray3(primitive, ray);
+
+                    if is_hit == false || t >= result.t {
+                        continue;
                     }
+
+                    if intersection_filter.proc && intersection_filter.proc(point, intersection_filter.data) {
+                        continue;
+                    }
+
+                    result.t = t;
+                    result.point = point;
+                    result.primitive_id = info.primitive_id;
                 }
             }
         } else {
@@ -136,174 +178,24 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, filt
             // hit1 := intersect(ray, child1.bbox);
         }
     }
-    
+
     is_hit := result.primitive_id >= 0;
     return is_hit, result;
 }
 
-#scope_file // AABB_Tree(Mesh) implementation
-
-get_primitive :: (tree : AABB_Tree(Mesh), triangle_index : int) -> Triangle3 {
-    return inline get_triangle(<<tree.shape, triangle_index);
-}
-
-get_primitive_center :: (triangle : Triangle3) -> Vector3 {
-    return (triangle.a + triangle.b + triangle.c) / 3.;
-}
-
-get_primitive_aabb :: (triangle : Triangle3) -> AxisBox3 {
-    result : AxisBox3;
-    expand(*result, triangle);
-    return result;
-}
-
-get_primitive_index_array :: (mesh : Mesh) -> [..]int {
-    assert(mesh.geometry_format == .TRIANGLES, "Wanted % geometry format, got %", Geometry_Format.TRIANGLES, mesh.geometry_format);
-    assert(mesh.indices.count % 3 == 0);
-
-    result : [..]int;
-
-    triangle_count := element_count(mesh);
-    array_reserve(*result, triangle_count);
-    for 0..triangle_count-1 {
-        array_add(*result, it);
-    }
-
-    return result;
-}
-
-find_intersect_primitive_ray3 :: (triangle : Triangle3, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3 {
-    intersect, t, bary, point := find_intersect_ray3_triangle3(ray, triangle); 
-    return intersect, t, point;
-}
-
-find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : float, point : Vector3 {
-    result := find_intersect_ray3_axis_box3(ray, aabb);
-    i := ifx result.parameter[0] < result.parameter[1] then 0 else 1;
-    return result.intersect, result.parameter[i], result.point[i];
-}
-
-#scope_file // AABB_Tree(Point_Cloud) implementation
-
-get_primitive :: (tree : AABB_Tree(Point_Cloud), point_index : int) -> Vector3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_center :: (point : Vector3) -> Vector3 {
-    return point;
-}
-
-get_primitive_aabb :: (point : Vector3) -> AxisBox3 {
-    return make_axis_box3(point, point);
-}
-
-get_primitive_index_array :: (cloud : Point_Cloud) -> [..]int {
-    result : [..]int;
-    array_reserve(*result, cloud.positions.count);
-    for 0..cloud.positions.count-1 {
-        array_add(*result, it);
-    }
-    return result;
-}
-
-find_intersect_primitive_ray3 :: (point : Vector3, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3 {
-    assert(false, "@Incomplete");
-    return false, 0, .{};
-}
-
-// find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : float, point : Vector3
-
-#scope_file // AABB_Tree(Polyline_Soup3) implementation
-
-get_primitive :: (tree : AABB_Tree(Polyline_Soup3), triangle_index : int) -> Segment3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_center :: (segment : Segment3) -> Vector3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_aabb :: (segment : Segment3) -> AxisBox3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_index_array :: (soup : Polyline_Soup3) -> [..]int {
-    assert(false, "@Incomplete");
-    dummy : [..]int;
-    return dummy;
-}
-
-find_intersect_primitive_ray3 :: (segment : Segment3, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3 {
-    assert(false, "@Incomplete");
-    return false, 0, .{};
-}
-
-// find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : float, point : Vector3
-
-#scope_file // AABB_Tree(Polyline_Soup2) implementation
-
-get_primitive :: (tree : AABB_Tree(Polyline_Soup2), triangle_index : int) -> Segment2 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_center :: (segment : Segment2) -> Vector3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_aabb :: (segment : Segment2) -> AxisBox3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_index_array :: (soup : Polyline_Soup2) -> [..]int {
-    assert(false, "@Incomplete");
-    dummy : [..]int;
-    return dummy;
-}
-
-find_intersect_primitive_ray3 :: (segment : Segment2, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3 {
-    assert(false, "@Incomplete");
-    return false, 0, .{};
-}
-
-find_intersect_aabb_ray3 :: (aabb : AxisBox2, ray : Ray3) -> is_hit : bool, t : float, point : Vector3 {
-    assert(false, "@Incomplete");
-    return false, 0, .{};
-}
-
-#scope_file // AABB_Tree(Polygon_Soup) implementation
-
-get_primitive :: (tree : AABB_Tree(Polygon_Soup), triangle_index : int) -> Segment3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-// get_primitive_center :: (segment : Segment3) -> Vector3
-
-// get_primitive_aabb :: (segment : Segment3) -> AxisBox3
-
-get_primitive_index_array :: (soup : Polygon_Soup) -> [..]int {
-    assert(false, "@Incomplete");
-    dummy : [..]int;
-    return dummy;
-}
-
-// find_intersect_primitive_ray3 :: (segment : Segment3, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3
-
-// find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : float, point : Vector3
-
 #scope_file // AABB_Tree implementation details
 
-build :: (using tree : *$T/AABB_Tree, primitive_ids : [..]int) {
+build :: (using tree : *$T/AABB_Tree, range : T.Primitive_Range) {
 
-    if primitive_ids.count <= LEAF_MAX_PRIMITIVES_COUNT {
-        add_leaf_node(tree, primitive_ids);
+    if range.count <= LEAF_MAX_PRIMITIVES_COUNT {
+        iterator :: tree.primitive_info_iterator;
+
+        node := array_add(*tree.nodes);
+        node.range = range;
+        for :iterator info : range {
+            expand(*node.aabb, info.aabb);
+        }
+
         return;
     }
 
@@ -323,19 +215,4 @@ build :: (using tree : *$T/AABB_Tree, primitive_ids : [..]int) {
 // is_leaf :: (node : AABB_Tree($T).Node) -> bool { // @CompilerBug
 is_leaf :: (node : $T) -> bool {
     return node.left == null /* && node.right == null */;
-}
-
-add_leaf_node :: (using tree : *$T/AABB_Tree, primitive_ids : [..]int) {
-    node := array_add(*tree.nodes);
-
-    for primitive_ids {
-        primitive := get_primitive(<<tree, it);
-
-        info := array_add(*node.primitives);
-        info.aabb = get_primitive_aabb(primitive);
-        info.center = get_primitive_center(primitive);
-        info.primitive_id = it;
-
-        expand(*node.aabb, info.aabb);
-    }
 }
