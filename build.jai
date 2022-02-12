@@ -7,7 +7,6 @@ HELP_STRING :: #string DONE
 Build Options:
   debug      build debug mode (default)
   release    build release mode
-  checks     enable array bounds checks and fatal cast and math bounds checks
   set_icon   set the app icon when compiling
 DONE
 
@@ -45,19 +44,15 @@ build :: () {
 
         output_executable_name = OUTPUT_EXE_NAME;
 
-        if Has_Argument("checks") {
-            print("[Prism] Compiling with checks enabled\n");
-            array_bounds_check = .ON;
-            cast_bounds_check  = .FATAL;
-            math_bounds_check  = .FATAL;
-        }
-
         if Has_Argument("release") {
             print("[Prism] Compiling release configuration\n");
             set_optimization_level(*build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
             // build_options.stack_trace = false;
         } else {
             print("[Prism] Compiling debug configuration\n");
+            array_bounds_check = .ON;
+            cast_bounds_check  = .FATAL;
+            math_bounds_check  = .FATAL;
             // memory_debugger = true;
             // llvm_options.debug_options = .["-g"];
         }
