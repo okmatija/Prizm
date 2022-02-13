@@ -62,6 +62,13 @@ deinit :: (shape : *$T/Polyline_Soup) {
     shape = null;
 }
 
+append_copy :: (dest : *$T/Polyline_Soup, to_copy : T) {
+    for polyline_to_copy : to_copy.polylines {
+        new_polyline := array_add(*dest.polylines);
+        new_polyline = array_copy(polyline_to_copy);
+    }
+}
+
 is_empty :: (polyline_soup : $T/Polyline_Soup) -> bool #must {
     for polyline_soup.polylines {
         if !is_empty(it) {

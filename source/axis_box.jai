@@ -100,6 +100,29 @@ to_polyline :: (using box : AxisBox2) -> Polyline2 #must {
     return polyline;
 }
 
+to_polyline_soup :: (using box : AxisBox3) -> Polyline_Soup3 #must {
+    result : Polyline_Soup3;
+
+    Add_Face_Polyline :: (a : Corner3, b : Corner3, c : Corner3, d : Corner3) #expand {
+        face_polyline := array_add(*result.polylines);
+        array_add(*face_polyline.points,
+                  corner(box, a),
+                  corner(box, b),
+                  corner(box, c),
+                  corner(box, d),
+                  corner(box, a));
+    }
+
+    Add_Face_Polyline(.XYZ_000, .XYZ_100, .XYZ_110, .XYZ_010); // XY, Z=0
+    Add_Face_Polyline(.XYZ_001, .XYZ_101, .XYZ_111, .XYZ_011); // XY, Z=1
+    Add_Face_Polyline(.XYZ_000, .XYZ_010, .XYZ_011, .XYZ_001); // YZ, X=0
+    Add_Face_Polyline(.XYZ_100, .XYZ_110, .XYZ_111, .XYZ_101); // YZ, X=1
+    Add_Face_Polyline(.XYZ_000, .XYZ_100, .XYZ_101, .XYZ_001); // XZ, Y=0
+    Add_Face_Polyline(.XYZ_010, .XYZ_110, .XYZ_111, .XYZ_011); // XZ, Y=1
+
+    return result;
+}
+
 is_empty :: (using box : $T/AxisBox) -> bool #must {
     for d : 0..box.DIM-1 {
         if min_point.component[d] > max_point.component[d] {

@@ -43,17 +43,22 @@ AABB_Tree :: struct(Shape : Type) {
 
     Primitive_Filter :: struct {
         // Returns true if the primitive should be skipped
-        Filter_Proc :: #type (ray : Ray3, primitive_id : int, primitive : Primitive, user_data : *void) -> bool;
-
-        proc : Filter_Proc = null;
+        Proc :: #type (ray : Ray3, primitive_id : int, primitive : Primitive, user_data : *void) -> bool;
+        proc :  Proc = null;
         data : *void = null;
     }
 
     Intersection_Filter :: struct {
         // Returns true if the intersection point should be skipped
-        Filter_Proc :: #type (point : Vector, user_data : *void) -> bool;
+        Proc :: #type (point : Vector, user_data : *void) -> bool;
+        proc :  Proc = null;
+        data : *void = null;
+    }
 
-        proc : Filter_Proc = null;
+    Node_Visitor :: struct {
+        // Returns true if the visitation should proceed
+        Proc :: #type (node : Node, depth : int, user_data : *void) -> bool;
+        proc :  Proc = null;
         data : *void = null;
     }
 
@@ -204,6 +209,48 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
 
     is_hit := result.primitive_id >= 0;
     return is_hit, result;
+}
+
+// Simple tree traversal, if you want more precise control e.g., over which child is visited first (see first_primitive_intersection)
+// you may want to write a sepecialized function
+depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
+    if tree.nodes.count == 0 {
+        return;
+    }
+
+    assert(visitor.proc != null);
+
+    Entry :: struct {
+        node_index : int;
+        depth : int;
+    }
+
+    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+
+    stack : [..]Entry;
+    defer array_free(stack);
+    array_add(*stack, .{0, 0});
+
+    while stack.count {
+        entry := pop(*stack);
+        node := *nodes[entry.node_index];
+
+        if visitor.proc(<<node, entry.depth, visitor.data) == false {
+            break;
+        }
+
+        if node.child_lhs != -1 {
+            assert(node.child_rhs != -1); // @Refactor Implement an ensure-like macro which just logs a warning
+
+            child_lhs_entry := array_add(*stack);
+            child_lhs_entry.node_index = node.child_lhs;
+            child_lhs_entry.depth = entry.depth + 1;
+
+            child_rhs_entry := array_add(*stack);
+            child_rhs_entry.node_index = node.child_rhs;
+            child_rhs_entry.depth = entry.depth + 1;
+        }
+    }
 }
 
 #scope_file // AABB_Tree implementation details
