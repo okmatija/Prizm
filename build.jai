@@ -6,8 +6,7 @@ HELP_STRING :: #string DONE
 
 Build Options:
   debug      build debug mode (default)
-  release    build release mode
-  set_icon   set the app icon when compiling
+  release    build release mode (optimized, checks disabled and application icon set)
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
@@ -81,11 +80,9 @@ build :: () {
             }
 
             if message.kind == .COMPLETE {
-                if Has_Argument("set_icon") {
+                if Has_Argument("release") {
                     print("[Prism] Setting application icon\n");
                     set_icon_and_manifest(build_options);
-                } else {
-                    print("[Prism] Did not set application icon\n");
                 }
                 break;
             }
