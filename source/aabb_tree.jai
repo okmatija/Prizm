@@ -1,5 +1,5 @@
 // Axis-Aligned Bounding Box tree to accelerate spatial queries.
-// 
+//
 // To add support for a new `Shape` you need to implement the following functions:
 //
 // get_primitive
@@ -22,7 +22,7 @@ AABB_Tree :: struct(Shape : Type) {
 
     // Implment round-robin object median split?
 
-    LEAF_MAX_PRIMITIVES_COUNT :: 10_000_000; // nocommit @Incomplete make this configurable e.g., see Hash_Table.jai implementation
+    LEAF_MAX_PRIMITIVES_COUNT :: 32; // nocommit @Incomplete make this configurable e.g., see Hash_Table.jai implementation
 
     // Types that depend on the Shape (Index is included since its interpretation depends on the Shape)
     // @CompilerBug Unable to use #run syntactic abbreviation here
@@ -74,33 +74,34 @@ AABB_Tree :: struct(Shape : Type) {
 
     Primitive_Range :: struct {
         first : int;
-        count : int; // @Cleanup make type just large enough to address at most LEAF_MAX_PRIMITIVES_COUNT primitives
+        count : int; // @Cleanup Make type just large enough to address at most LEAF_MAX_PRIMITIVES_COUNT primitives
     }
 
     // @Speed Could reduce the size of this struct e.g., by storing indices into `nodes`, rather than 64 bit pointers
     Node :: struct {
-        aabb : AABB; 
         range : Primitive_Range;
+        aabb : AABB;
 
-        // These point into the `nodes` array, not owning pointers
-        left : *Node;
-        right : *Node;
+        // These are indices, not pointers, because pointers are invalidated when the nodes array resizes
+        child_lhs : int = -1;
+        child_rhs : int = -1;
     }
     nodes : [..]Node;
 
     Primitive_Info :: struct {
+        primitive_id : Primitive_Id;
+
+        // @Cleanup No need to store these
         aabb : AABB;
         center : Vector;
-        primitive_id : Primitive_Id;
     }
     primitive_info : [..]Primitive_Info;
 
-    shape : *Shape; // not owning pointer
+    shape : *Shape; // Not an owning pointer
 }
 
 init :: (using tree : *$T/AABB_Tree, target : *T.Shape) {
-    // nocommit
-    if T.Shape != Mesh return;
+    if T.Shape != Mesh return; // nocommit @Incomplete implement other primitive types
 
     tree.shape = target;
 
@@ -117,10 +118,13 @@ init :: (using tree : *$T/AABB_Tree, target : *T.Shape) {
         info.primitive_id = it; // tree.primitive_info will get jumbled
     }
 
-    range : T.Primitive_Range = ---;
-    range.first = 0;
-    range.count = tree.primitive_info.count;
-    build(tree, range);
+    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+
+    root := array_add(*tree.nodes);
+    root.range.first = 0;
+    root.range.count = tree.primitive_info.count;
+    for :iterator root.range expand(*root.aabb, it.aabb);
+    build(tree, 0, 0);
 }
 
 deinit :: (using tree : *$T/AABB_Tree) {
@@ -136,46 +140,65 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
         return false, .{};
     }
 
-    stack : [..]*AABB_Tree(Mesh).Node;
+    // Only nodes whose AABBs are intersected by the ray will be pushed onto the stack
+    stack : [..]int;
     defer array_reset(*stack);
 
-    // Push the root node onto the stack
-    array_add(*stack, *tree.nodes[0]);
+    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+
+    root := *tree.nodes[0];
+    root_hit_aabb, root_t_aabb, root_point_aabb := find_intersect_aabb_ray3(root.aabb, ray);
+    if root_hit_aabb {
+        array_add(*stack, 0);
+    }
 
     while stack.count {
-        node := pop(*stack);
-        if is_leaf(<<node) {
-            hit_aabb, t_aabb, point_aabb := find_intersect_aabb_ray3(node.aabb, ray);
-            if hit_aabb {
-                iterator :: tree.primitive_info_iterator; // @CompilerBug Why did this not work?
-                for :iterator info : node.range {
-                    primitive := get_primitive(<<tree, info.primitive_id);
+        node_index := pop(*stack);
+        node := nodes[node_index];
+        if node.child_lhs == -1 /* && node.child_rhs == - 1 */ {
+            // Visit primitives in leaf node
 
-                    if primitive_filter.proc && primitive_filter.proc(ray, info.primitive_id, primitive, primitive_filter.data) {
-                        continue;
-                    }
+            for :iterator info : node.range {
+                primitive := get_primitive(<<tree, info.primitive_id);
 
-                    is_hit, t, point := find_intersect_primitive_ray3(primitive, ray);
-
-                    if is_hit == false || t >= result.t {
-                        continue;
-                    }
-
-                    if intersection_filter.proc && intersection_filter.proc(point, intersection_filter.data) {
-                        continue;
-                    }
-
-                    result.t = t;
-                    result.point = point;
-                    result.primitive_id = info.primitive_id;
+                if primitive_filter.proc && primitive_filter.proc(ray, info.primitive_id, primitive, primitive_filter.data) {
+                    continue;
                 }
+
+                is_hit, t, point := find_intersect_primitive_ray3(primitive, ray);
+
+                if is_hit == false || t >= result.t {
+                    continue;
+                }
+
+                if intersection_filter.proc && intersection_filter.proc(point, intersection_filter.data) {
+                    continue;
+                }
+
+                result.t = t;
+                result.point = point;
+                result.primitive_id = info.primitive_id;
             }
         } else {
-            assert(false); // @Incomplete
+            // Traverse internal node
 
-            // child0 := *tree.nodes[node.child[0]];
-            // child1 := *tree.nodes[node.child[1]];
-            // hit1 := intersect(ray, child1.bbox);
+            lhs_hit_aabb, lhs_t_aabb, lhs_point_aabb := find_intersect_aabb_ray3(nodes[node.child_lhs].aabb, ray);
+            rhs_hit_aabb, rhs_t_aabb, rhs_point_aabb := find_intersect_aabb_ray3(nodes[node.child_rhs].aabb, ray);
+
+            if lhs_hit_aabb && rhs_hit_aabb {
+                // Recurse closer box first
+                if lhs_t_aabb < rhs_t_aabb {
+                    array_add(*stack, node.child_lhs);
+                    array_add(*stack, node.child_rhs);
+                } else {
+                    array_add(*stack, node.child_rhs);
+                    array_add(*stack, node.child_lhs);
+                }
+            } else if  lhs_hit_aabb && !rhs_hit_aabb {
+                array_add(*stack, node.child_lhs);
+            } else if !lhs_hit_aabb &&  rhs_hit_aabb {
+                array_add(*stack, node.child_rhs);
+            }
         }
     }
 
@@ -185,34 +208,59 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
 
 #scope_file // AABB_Tree implementation details
 
-build :: (using tree : *$T/AABB_Tree, range : T.Primitive_Range) {
+build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
-    if range.count <= LEAF_MAX_PRIMITIVES_COUNT {
-        iterator :: tree.primitive_info_iterator;
-
-        node := array_add(*tree.nodes);
-        node.range = range;
-        for :iterator info : range {
-            expand(*node.aabb, info.aabb);
-        }
-
-        return;
+    if nodes[parent].range.count <= LEAF_MAX_PRIMITIVES_COUNT {
+        return; // parent is a leaf node
     }
 
-    assert(false); // @Incomplete, testing aabb intersection
-    return;
+    Compare_Data :: struct {
+        axis : int;
+    }
 
-    // make an array of indices identifying primitives in the shape
-    // call build with this array:
-    //   find aabb of all primitives
-    //   if the number of primitives is less than LEAF_MAX_PRIMITIVES_COUNT
-    //     make a leaf
-    //   else 
-    //     using a splitting rule e.g., primitive count along an axis sort the primitives into two batches
-    //     recurse to build function
-}
+    compare_data : Compare_Data;
+    compare_data.axis = depth % 3;
 
-// is_leaf :: (node : AABB_Tree($T).Node) -> bool { // @CompilerBug
-is_leaf :: (node : $T) -> bool {
-    return node.left == null /* && node.right == null */;
+    info_to_scalar :: (info : T.Primitive_Info, data : *void) -> float {
+        using compare_data := cast(*Compare_Data)data;
+        return info.center.component[axis];
+    }
+
+    primitive_info_range := array_view(tree.primitive_info, nodes[parent].range.first, nodes[parent].range.count);
+    primitive_info_range = quick_sort_with_user_data(primitive_info_range, info_to_scalar, *compare_data);
+
+    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+
+    child_lhs_index : int = -1;
+    {
+        child_lhs_index = tree.nodes.count;
+        child_lhs := array_add(*tree.nodes);
+
+        child_lhs.range.first = nodes[parent].range.first;
+        child_lhs.range.count = primitive_info_range.count / 2;
+        for :iterator child_lhs.range {
+            expand(*child_lhs.aabb, it.aabb);
+        }
+    }
+    nodes[parent].child_lhs = child_lhs_index;
+
+    child_rhs_index : int = -1;
+    {
+        // Scoping intentional here, previous child_lhs is invalid because tree.nodes may resize
+        child_lhs := tree.nodes[child_lhs_index];
+
+        child_rhs_index = tree.nodes.count;
+        child_rhs := array_add(*tree.nodes);
+
+        child_rhs.range.first = child_lhs.range.first + child_lhs.range.count;
+        child_rhs.range.count = nodes[parent].range.count - child_lhs.range.count;
+        for :iterator child_rhs.range {
+            expand(*child_rhs.aabb, it.aabb);
+        }
+
+    }
+    nodes[parent].child_rhs = child_rhs_index;
+
+    build(tree, depth + 1, child_lhs_index);
+    build(tree, depth + 1, child_rhs_index);
 }
