@@ -126,14 +126,14 @@ do_selection_mode :: () {
                 sphere.radius = 0;
                 for :visible entity : app.entities {
                     for * entity.mesh.positions {
-                        p := (entity.mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
+                        p := (entity.mesh.world_from_model * make_vector4(it, 1.)).xyz;
                         sphere.radius = max(sphere.radius, length_squared(closest.position - p));
                     }
                 }
                 if app.user_selection.is_visible {
                     mesh := *app.user_selection.mesh;
                     for * mesh.positions {
-                        p := (mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
+                        p := (mesh.world_from_model * make_vector4(it, 1.)).xyz;
                         sphere.radius = max(sphere.radius, length_squared(closest.position - p));
                     }
                 }

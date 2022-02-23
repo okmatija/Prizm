@@ -420,7 +420,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     skip_clipped_intersections :: (point : Point3, data : *void) -> bool {
         using clipping_data := cast(*Clipping_Data)data;
-        if is_clipped(<<display_info, point, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+        if is_clipped(display_info, point, test_sphere=sphere_clipped, test_ranges=range_clipped) {
             return true;;
         }
         return false;

@@ -170,7 +170,7 @@ render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display
     glUseProgram(app.normals_program);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(app.normals_program, <<mesh);
+    set_model_view_projection_uniforms(app.normals_program, mesh);
     glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
     glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
 
@@ -221,7 +221,7 @@ render_aabb :: (mesh : *Mesh, using render_info : *Render_Info, using display_in
     maybe_update_render_info(render_info, mesh);
 
     glUseProgram(app.aabb_program);
-    set_model_view_projection_uniforms(app.aabb_program, <<mesh);
+    set_model_view_projection_uniforms(app.aabb_program, mesh);
 
     r, g, b, a : float = 0, 0, 1, 1;
     glUniform4f(glGetUniformLocation(app.aabb_program, "color"), r, g, b, a);
@@ -301,7 +301,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
 
     glUseProgram(app.mesh_program);
 
-    set_model_view_projection_uniforms(app.mesh_program, <<mesh);
+    set_model_view_projection_uniforms(app.mesh_program, mesh);
 
     wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
     glUniform1f(glGetUniformLocation(app.mesh_program, "wave"), wave);
@@ -368,7 +368,7 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
 
     glUseProgram(app.simple_mesh_program);
 
-    set_model_view_projection_uniforms(app.simple_mesh_program, <<mesh);
+    set_model_view_projection_uniforms(app.simple_mesh_program, mesh);
 
     wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
     glUniform1f(glGetUniformLocation(app.simple_mesh_program, "wave"), wave);

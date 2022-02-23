@@ -39,8 +39,6 @@ build :: () {
     {
         using build_options;
 
-        enable_auto_dereference = false; // nocommit
-
         output_type = .EXECUTABLE;
         lazy_foreign_function_lookups = true;
 

@@ -112,7 +112,7 @@ update_camera :: (delta_time : float) {
     // Mouse delta is zero when current or previous mouse positions were invalid
     mouse_move_valid := !(io().MouseDelta.x == 0 && io().MouseDelta.y == 0);
 
-    world_from_projection := inverse(make_projection_from_world(<<camera));
+    world_from_projection := inverse(make_projection_from_world(camera));
 
     // Pan with middle down.
     if io_mouse_middle_down() && mouse_move_valid {
@@ -134,8 +134,8 @@ update_camera :: (delta_time : float) {
         }
 
         // Shoot ray through pixel along the look vector to hit a plane through the look position with the same normal
-        curr_pan_point, curr_ok := get_pan_position(make_Vector2(io().MousePos), world_from_projection, <<camera);
-        prev_pan_point, prev_ok := get_pan_position(make_Vector2(io().MousePos) - make_Vector2(io().MouseDelta), world_from_projection, <<camera);
+        curr_pan_point, curr_ok := get_pan_position(make_Vector2(io().MousePos), world_from_projection, camera);
+        prev_pan_point, prev_ok := get_pan_position(make_Vector2(io().MousePos) - make_Vector2(io().MouseDelta), world_from_projection, camera);
         if curr_ok && prev_ok {
             increment := -(curr_pan_point - prev_pan_point) / 2; // @Cleanup WHY this divide by 2, there is probably a bug elsewhere... ?
 
@@ -201,7 +201,7 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 
     camera := *app.camera;
 
-    view_from_clip := inverse(make_orthographic_projection_matrix(<<camera));
+    view_from_clip := inverse(make_orthographic_projection_matrix(camera));
 
     previous_clip := to_ndc(previous_pos);
     zoomed_clip := previous_clip / zoom_factor;
@@ -215,7 +215,7 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
     camera.left   = -camera.right;
 
     if follow_cursor && camera.top < camera_top_max() {
-        world_from_view := inverse(make_look_at_matrix(<< camera));
+        world_from_view := inverse(make_look_at_matrix(camera));
         delta_world := zoom_factor *(world_from_view * (zoomed_view - previous_view)).xyz;
         camera.eye_position += delta_world;
         camera.look_position += delta_world;
@@ -451,7 +451,7 @@ visible_entities_bounding_sphere_accurate :: () -> Sphere
         if warn log_warning("Updating the bounding sphere doesn't yet properly consider clipping planes @Incomplete");
 
         for * entity.mesh.positions {
-            p := (entity.mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
+            p := (entity.mesh.world_from_model * make_vector4(it, 1.)).xyz;
             array_add(*points_vs, p);
         }
     }
@@ -459,7 +459,7 @@ visible_entities_bounding_sphere_accurate :: () -> Sphere
     if app.user_selection.is_visible {
         mesh := *app.user_selection.mesh;
         for * mesh.positions {
-            p := (mesh.world_from_model * make_vector4(<<it, 1.)).xyz;
+            p := (mesh.world_from_model * make_vector4(it, 1.)).xyz;
             array_add(*points_vs, p);
         }
     }

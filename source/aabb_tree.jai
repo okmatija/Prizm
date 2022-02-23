@@ -112,11 +112,11 @@ init :: (using tree : *$T/AABB_Tree, target : *T.Shape) {
     tree.shape = target;
 
     // @Cleanup Implement this via an iterator over `target` rather than allocating primitive_ids array?
-    primitive_ids := get_primitive_index_array(<< target);
+    primitive_ids := get_primitive_index_array(target);
     defer array_free(primitive_ids);
 
     for primitive_ids {
-        primitive := get_primitive(<<tree, it);
+        primitive := get_primitive(tree, it);
 
         info := array_add(*tree.primitive_info);
         info.aabb = get_primitive_aabb(primitive);
@@ -167,7 +167,7 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
             // Visit primitives in leaf node
 
             for :iterator info : node.range {
-                primitive := get_primitive(<<tree, info.primitive_id);
+                primitive := get_primitive(tree, info.primitive_id);
 
                 if primitive_filter.proc && primitive_filter.proc(ray, info.primitive_id, primitive, primitive_filter.data) {
                     continue;
@@ -238,7 +238,7 @@ depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
         entry := pop(*stack);
         node := *nodes[entry.node_index];
 
-        if visitor.proc(<<node, entry.depth, visitor.data) == false {
+        if visitor.proc(node, entry.depth, visitor.data) == false {
             break;
         }
 

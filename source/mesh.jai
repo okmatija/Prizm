@@ -17,7 +17,7 @@ triangle_tuples_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags)
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
-        `it := inline get_triangle_vertex_tuple(<< mesh, i);
+        `it := inline get_triangle_vertex_tuple(mesh, i);
         #insert (remove=#assert(false)) body;
     }
 }
@@ -27,7 +27,7 @@ triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expa
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
-        `it := inline get_triangle(<< mesh, i);
+        `it := inline get_triangle(mesh, i);
         #insert (remove=#assert(false)) body;
     }
 }
@@ -169,7 +169,7 @@ merge :: (dst : Mesh, src : Mesh) {
 bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {
     box : AxisBox3;
     for * mesh.positions {
-        expand(*box, <<it);
+        expand(*box, it);
     }
     return box;
 }
@@ -187,13 +187,13 @@ transform :: (using mesh : *Mesh, transform : Matrix4) {
     if !mesh return;
 
     for * mesh.positions {
-        <<it = (transform * make_vector4(<<it, 1.)).xyz;
+        <<it = (transform * make_vector4(it, 1.)).xyz;
     }
 
     if mesh.normals.count {
         inverse_transpose := transpose(inverse(transform));
         for * mesh.normals {
-            <<it = (inverse_transpose * make_vector4(<<it, 0.)).xyz;
+            <<it = (inverse_transpose * make_vector4(it, 0.)).xyz;
         }
     }
 }

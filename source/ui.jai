@@ -85,11 +85,11 @@ show_item_list_ui :: () {
             ImGui.TableNextColumn();
             // ImGui.SetNextItemWidth(-FLOAT32_MIN);
             if it.fully_pathed_filename.count {
-                text := entity_filename(<<it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
+                text := entity_filename(it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
 
                 delta_time := get_current_file_time() - it.loaded_filetime;
                 FADE_TIME_SECS := 1;
-                base_color := ifx is_empty(<<it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
+                base_color := ifx is_empty(it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
                 color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
                 if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
                     alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
@@ -109,7 +109,7 @@ show_item_list_ui :: () {
                 ImGui.Selectable("---", *it.is_selected);
             }
             if ImGui.IsItemClicked() {
-                if !io().KeyCtrl && !is_empty(<<it) {
+                if !io().KeyCtrl && !is_empty(it) {
                     fit_on_screen(it);
                 }
             }
@@ -244,7 +244,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     app.entities[entity_index] = reload_entity(entity);
                 }
                 ImGui.SameLine();
-                text := entity_filename(<<entity, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                text := entity_filename(entity, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
                 ImGui.TextUnformatted(text);
             }
 
@@ -320,7 +320,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                             app.entities[it_index] = reload_entity(it);
                         }
                         ImGui.SameLine();
-                        text := entity_filename(<<it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                        text := entity_filename(it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
                         ImGui.TextUnformatted(text);
                     }
                 }

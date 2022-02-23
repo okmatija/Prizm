@@ -70,7 +70,7 @@ corners_iterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #e
     `it_index := -1;
     for 0..CORNER_COUNT-1 {
         it_index += 1;
-        `it := corner(<<box, xx it_index);
+        `it := corner(<<box, xx it_index); // @CompilerBug Cannot use autodereference. Attempt to use a type restriction
         #insert (remove=#assert(false)) body;
     }
 }
@@ -173,7 +173,7 @@ offset :: (using box : *$T/AxisBox, increment : float) {
 }
 
 offset :: (using box : *$T/AxisBox, increment : T.Vector) {
-    if !is_empty(<<box) {
+    if !is_empty(box) {
         for d : 0..box.DIM-1 {
             assert(is_finite(increment.component[d]));
             min_point.component[d] -= increment.component[d];
@@ -181,7 +181,7 @@ offset :: (using box : *$T/AxisBox, increment : T.Vector) {
         }
     }
 
-    if is_empty(<<box) {
+    if is_empty(box) {
         // If box min/max invert after offset, use the standard representation of an empty box
         init(box);
     }

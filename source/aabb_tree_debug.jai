@@ -52,7 +52,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
 
                 // Leaf
 
-                found := table_find_pointer(<<entity_at_depth, depth);
+                found := table_find_pointer(entity_at_depth, depth);
 
                 if found == null {
                     entity := New(Mesh_Entity);
@@ -65,7 +65,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
                         using primitives : Mesh;
                         defer deinit(*primitives);
                         for :Iterator info : node.range {
-                            tri := get_primitive(<<tree, info.primitive_id);
+                            tri := get_primitive(tree, info.primitive_id);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.a);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.b);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.c);
@@ -84,7 +84,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
                         using primitives : Mesh;
                         defer deinit(*primitives);
                         for :Iterator info : node.range {
-                            tri := get_primitive(<<tree, info.primitive_id);
+                            tri := get_primitive(tree, info.primitive_id);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.a);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.b);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.c);
@@ -104,7 +104,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
             } else {
                 // Internal
 
-                found := table_find_pointer(<<entity_at_depth, depth);
+                found := table_find_pointer(entity_at_depth, depth);
 
                 if found == null {
                     entity := New(Mesh_Entity);
@@ -143,7 +143,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         visitor : spatial.Node_Visitor;
         visitor.proc = append_to_entity_at_depth;
         visitor.data = *visitor_data;
-        depth_first_visit(<<spatial, visitor);
+        depth_first_visit(<<spatial, visitor); // @CompilerBug why can't I implicit pointer dereference here?
 
         Entity_At_Depth :: struct {
             depth : int;

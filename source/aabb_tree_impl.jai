@@ -2,7 +2,7 @@
 // AABB_Tree(Mesh) implementation
 
 get_primitive :: (tree : AABB_Tree(Mesh), triangle_index : int) -> Triangle3 {
-    return inline get_triangle(<<tree.shape, triangle_index);
+    return inline get_triangle(tree.shape, triangle_index);
 }
 
 get_primitive_center :: (triangle : Triangle3) -> Vector3 {

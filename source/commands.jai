@@ -34,7 +34,7 @@ help :: () {
 select_if :: (should_select : (Entity)->bool) {
     count := 0;
     for app.entities {
-        if should_select(<<it) {
+        if should_select(it) {
             it.is_selected = true;
             count += 1;
         } else {
@@ -83,7 +83,7 @@ select_if_empty :: () {
 select_if_match :: (pattern : string) {
     count := 0;
     for app.entities {
-        text := entity_filename(<<it, false, true, false);
+        text := entity_filename(it, false, true, false);
         if wildcard_match(text, pattern) {
             it.is_selected = true;
             count += 1;
