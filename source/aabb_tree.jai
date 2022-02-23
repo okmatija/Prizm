@@ -68,6 +68,7 @@ AABB_Tree :: struct(Shape : Type) {
         primitive_id : Primitive_Id = -1;
     }
 
+    // nocommit @Cleanup Rename to Primitive_Info_Iterator
     primitive_info_iterator :: (range : *Primitive_Range, body : Code, flags : For_Flags) #expand {
         #assert(flags == 0);
         for i : 0..range.count-1 {
@@ -91,7 +92,6 @@ AABB_Tree :: struct(Shape : Type) {
         child_lhs : int = -1;
         child_rhs : int = -1;
     }
-    nodes : [..]Node;
 
     Primitive_Info :: struct {
         primitive_id : Primitive_Id;
@@ -100,8 +100,9 @@ AABB_Tree :: struct(Shape : Type) {
         aabb : AABB;
         center : Vector;
     }
-    primitive_info : [..]Primitive_Info;
 
+    nodes : [..]Node;
+    primitive_info : [..]Primitive_Info;
     shape : *Shape; // Not an owning pointer
 }
 
@@ -160,7 +161,9 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
     while stack.count {
         node_index := pop(*stack);
         node := nodes[node_index];
-        if node.child_lhs == -1 /* && node.child_rhs == - 1 */ {
+        if node.child_lhs == -1 {
+            assert(node.child_rhs == -1); // @Refactor Implement an ensure-like macro which just logs a warning
+
             // Visit primitives in leaf node
 
             for :iterator info : node.range {
@@ -275,6 +278,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
     primitive_info_range := array_view(tree.primitive_info, nodes[parent].range.first, nodes[parent].range.count);
     primitive_info_range = quick_sort_with_user_data(primitive_info_range, info_to_scalar, *compare_data);
+    // primitive_info_range = quick_sort(primitive_info_range, x=>x.center.component[depth%3]); // @CompilerBug infinite loop in the compiler here??
 
     iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
 

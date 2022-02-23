@@ -118,6 +118,8 @@ compute_vertex_normals_from_triangles :: (using mesh : *Mesh) -> bool, string {
     return true, "";
 }
 
+// nocommit @Cleanup, Don't need to pass pointers here, and remove setting to null
+
 clear :: (using mesh : *Mesh) {
     // Zeros all the counts, but keeps the memory
     array_reset_keeping_memory(*positions);
@@ -137,6 +139,31 @@ deinit :: (using mesh : *Mesh) {
 
     geometry_format = .UNKNOWN;
     mesh = null;
+}
+
+merge :: (dst : Mesh, src : Mesh) {
+    poffset := dst.positions.count;
+    toffset := dst.indices.count;
+
+    npoints := dst.positions.count + src.positions.count;
+    ntriangles := dst.indices.count + src.indices.count;
+
+    array_resize(*dst.positions, npoints);
+    for i : 0..src.positions.count-1 {
+        dst.positions[poffset + i] = src.positions[i];
+    }
+
+    if src.normals.count || dst.normals.count {
+        array_resize(*dst.normals, npoints);
+        for i : 0..src.normals.count-1 {
+            dst.normals[poffset + i] = src.normals[i];
+        }
+    }
+
+    array_resize(*dst.indices, ntriangles);
+    for i : 0..src.indices.count-1 {
+        dst.indices[toffset + i] = xx poffset + src.indices[i];
+    }
 }
 
 bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {

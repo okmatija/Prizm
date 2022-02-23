@@ -93,7 +93,7 @@ show_item_list_ui :: () {
                 color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
                 if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
                     alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
-                    color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, alpha);
+                    color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
                     color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
                 }
 

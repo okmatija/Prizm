@@ -19,6 +19,8 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         return;
     }
 
+    Iterator :: spatial.primitive_info_iterator; // nocommit @Cleanup
+
     if jumbo_item {
         // Put all AABBs into a single polyline soup
         shape : Polyline_Soup3;
@@ -43,13 +45,61 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         entity_at_depth : Table(int, *Entity);
 
         append_to_entity_at_depth :: (node : spatial.Node, depth : int, user_data : *void) -> bool {
-            entity_at_depth := cast(*Table(int, *Entity))user_data;
+            using data := cast(*Visitor_Data)user_data;
 
             if node.child_lhs == -1 {
                 assert(node.child_rhs == -1); // @Refactor Implement an ensure-like macro which just logs a warning
 
                 // Leaf
-                // @Incomplete
+
+                found := table_find_pointer(<<entity_at_depth, depth);
+
+                if found == null {
+                    entity := New(Mesh_Entity);
+                    assert(entity != null);
+
+                    entity.mesh = to_edge_Mesh(node.aabb);
+                    init_entity_base_parameters(entity, tprint("%_debug_spatial_%", fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
+
+                    {
+                        using primitives : Mesh;
+                        defer deinit(*primitives);
+                        for :Iterator info : node.range {
+                            tri := get_primitive(<<tree, info.primitive_id);
+                            array_add(*indices, xx indices.count); array_add(*positions, tri.a);
+                            array_add(*indices, xx indices.count); array_add(*positions, tri.b);
+                            array_add(*indices, xx indices.count); array_add(*positions, tri.c);
+                        }
+                        merge(entity.mesh, primitives);
+                    }
+
+                    table_add(entity_at_depth, depth, entity);
+                } else {
+                    entity_base := <<found;
+                    assert(entity_base.type == .MESH);
+                    entity := cast(*Mesh_Entity)entity_base;
+                    entity.render_info.is_dirty = true; // Redundant
+
+                    {
+                        using primitives : Mesh;
+                        defer deinit(*primitives);
+                        for :Iterator info : node.range {
+                            tri := get_primitive(<<tree, info.primitive_id);
+                            array_add(*indices, xx indices.count); array_add(*positions, tri.a);
+                            array_add(*indices, xx indices.count); array_add(*positions, tri.b);
+                            array_add(*indices, xx indices.count); array_add(*positions, tri.c);
+                        }
+                        merge(entity.mesh, primitives);
+                    }
+
+                    {
+                        using edges : Mesh = to_edge_Mesh(node.aabb);
+                        defer deinit(*edges);
+                        merge(entity.mesh, edges);
+                    }
+
+                }
+
 
             } else {
                 // Internal
@@ -57,28 +107,22 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
                 found := table_find_pointer(<<entity_at_depth, depth);
 
                 if found == null {
-                    entity := New(Polyline_Soup3_Entity);
+                    entity := New(Mesh_Entity);
                     assert(entity != null);
 
-                    entity.shape = to_polyline_soup(node.aabb);
-                    entity.mesh = to_Mesh(entity.shape);
-                    init_entity_base_parameters(entity, tprint("%_debug_spatial_%", entity.fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
+                    entity.mesh = to_edge_Mesh(node.aabb);
+                    init_entity_base_parameters(entity, tprint("%_debug_spatial_%", fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
                     entity_base := <<found;
-                    assert(entity_base.type == .POLYLINE_SOUP3);
+                    assert(entity_base.type == .MESH);
 
-                    entity := cast(*Polyline_Soup3_Entity)entity_base;
+                    other := to_edge_Mesh(node.aabb);
+                    defer deinit(*other);
 
-                    // Update shape and overwrite mesh
-                    shape := to_polyline_soup(node.aabb);
-                    for polyline : shape.polylines {
-                        shape_polyline := array_add(*entity.shape.polylines);
-                        <<shape_polyline = polyline;
-                    }
-                    deinit(*entity.mesh); // @Speed maybe we just keep the memory
-                    entity.mesh = to_Mesh(entity.shape);
+                    entity := cast(*Mesh_Entity)entity_base;
+                    merge(entity.mesh, other);
                     entity.render_info.is_dirty = true; // Redundant
                 }
             }
@@ -86,9 +130,19 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
             return true; // Continue visitation
         }
 
+        Visitor_Data :: struct {
+            entity_at_depth : *Table(int, *Entity);
+            fully_pathed_filename : string;
+            tree : *AABB_Tree(Mesh); // Needed so iterator can work
+        }
+        visitor_data : Visitor_Data;
+        visitor_data.entity_at_depth = *entity_at_depth;
+        visitor_data.fully_pathed_filename = mesh_entity.fully_pathed_filename;
+        visitor_data.tree = spatial;
+
         visitor : spatial.Node_Visitor;
         visitor.proc = append_to_entity_at_depth;
-        visitor.data = *entity_at_depth;
+        visitor.data = *visitor_data;
         depth_first_visit(<<spatial, visitor);
 
         Entity_At_Depth :: struct {
@@ -99,6 +153,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         sorted_by_depth : [..]Entity_At_Depth;
         defer array_free(sorted_by_depth);
 
+        // nocommit what the heck is going on, is depth the index??
         for entity, depth : entity_at_depth {
             entry := array_add(*sorted_by_depth);
             entry.depth = depth;
@@ -112,3 +167,40 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         }
     }
 } @RegisterCommand
+
+#scope_file
+
+to_edge_Mesh :: (using box : AxisBox3) -> Mesh #must {
+    mesh : Mesh;
+    mesh.geometry_format = .TRIANGLES;
+
+    Add_Edge_As_Degenerate_Triangle :: (a : Corner3, b : Corner3) #expand {
+        offset : u32 = xx mesh.positions.count;
+        array_add(*mesh.positions, corner(box, a));
+        array_add(*mesh.indices, offset);
+        array_add(*mesh.positions, corner(box, b));
+        array_add(*mesh.indices, offset + 1);
+        array_add(*mesh.positions, corner(box, a));
+        array_add(*mesh.indices, offset + 2);
+    }
+
+    // Edges starting in the XY plane extending from Z=0 to Z=1
+    Add_Edge_As_Degenerate_Triangle(.XYZ_000, .XYZ_001);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_010, .XYZ_011);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_100, .XYZ_101);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_110, .XYZ_111);
+
+    // Edges starting in the XZ plane extending from Y=0 to Y=1
+    Add_Edge_As_Degenerate_Triangle(.XYZ_000, .XYZ_010);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_001, .XYZ_011);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_100, .XYZ_110);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_101, .XYZ_111);
+
+    // Edges starting in the YZ plane extending from X=0 to X=1
+    Add_Edge_As_Degenerate_Triangle(.XYZ_000, .XYZ_100);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_001, .XYZ_101);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_010, .XYZ_110);
+    Add_Edge_As_Degenerate_Triangle(.XYZ_011, .XYZ_111);
+
+    return mesh;
+}
