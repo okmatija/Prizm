@@ -6,7 +6,8 @@ HELP_STRING :: #string DONE
 
 Build Options:
   debug      build debug mode (default)
-  release    build release mode (optimized, checks disabled and application icon set)
+  release    build release mode (like debug, but optimized, with checks disabled, application icon set and OS console disabled)
+  gui        set build options using a graphical interface (@Incomplete)
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
@@ -38,6 +39,8 @@ build :: () {
     {
         using build_options;
 
+        enable_auto_dereference = false; // nocommit
+
         output_type = .EXECUTABLE;
         lazy_foreign_function_lookups = true;
 
@@ -66,7 +69,6 @@ build :: () {
 
     {
         compiler_begin_intercept(w);
-        defer compiler_end_intercept(w);
 
         add_build_string(tprint("VERSION_STRING  :: \"%\";", VERSION_STRING), w);
         add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", OUTPUT_EXE_NAME), w);
@@ -122,6 +124,8 @@ build :: () {
                 }
             }
         }
+
+        compiler_end_intercept(w);
     }
 }
 
