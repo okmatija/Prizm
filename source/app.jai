@@ -68,10 +68,7 @@ App :: struct {
     clipping_sphere_mode_entity_index : int = -1; // The entity which set the clipping sphere center
 
     // Checkbox sweep mode is enabled while LMB is held down if it was clicked on a sweepable checkbox, the mouse will be constrained to move only up and down and the inverse of the state of the checkbox just before the click will be set on all the checkboxes that get swept
-    checkbox_sweep_mode := false;
-    checkbox_sweep_mode_mouse_min_x : s32;
-    checkbox_sweep_mode_mouse_max_x : s32;
-    checkbox_sweep_mode_state_to_set := false;
+    sweep_state : Checkbox_Sweep_Mode_State;
 
     camera : Camera;
     console : Console;

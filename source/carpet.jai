@@ -99,6 +99,7 @@ log_warning :: (format_string: string, args: .. Any, loc := #caller_location, fl
 
 // Returns a sorted array given a function mapping array elements to scalar values
 // @Duplication This is copied from the Sort.jai module and modified to pass some user data to the scalar mapping function
+// @Refactor Use a Code parameter and make this a macro (see jblow's suggestions in the discord)
 quick_sort_with_user_data :: (array: [] $T, f: (T, *void) -> $R, user_data : *void) -> [] T {
     quicksort_helper :: (a: *$T, n: s64, f: (T, *void) -> $R, user_data : *void) {
         if n < 2 return;
@@ -130,3 +131,160 @@ quick_sort_with_user_data :: (array: [] $T, f: (T, *void) -> $R, user_data : *vo
     quicksort_helper(array.data, array.count, f, user_data);
     return array;
 }
+
+//
+// ImGui Widgets
+//
+
+
+io :: () -> *ImGui.IO {return ImGui.GetIO(); }
+
+
+imgui_label :: (label : string, ptr : *void) -> *u8 {
+    push_allocator(temp);
+    return to_c_string(join(label, tprint("##%", ptr)));
+}
+
+// Combo box to select display mode enum value
+combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
+    changed := false;
+    value := get_enum_value(data, info_enum);
+    value_name := "";
+    for info_enum.names {
+        if value == info_enum.values[it_index]  value_name = it;
+    }
+    if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name)) {
+        for info_enum.names {
+            is_selected := value == info_enum.values[it_index];
+            if ImGui.Selectable(temp_c_string(it), is_selected) {
+                set_enum_value(data, info_enum, info_enum.values[it_index]);
+                changed = true;
+            }
+            if is_selected ImGui.SetItemDefaultFocus();
+        }
+
+        ImGui.EndCombo();
+    }
+    return changed;
+}
+
+Checkbox_Sweep_Mode_State :: struct {
+    sweep_active := false;
+    state_to_set := false;
+    mouse_min_x : s32;
+    mouse_max_x : s32;
+}
+
+// Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
+checkbox_press_or_sweep_to_toggle :: (
+    state : *bool,
+    hovered : *bool,
+    label : *u8,
+    sweep_state : *Checkbox_Sweep_Mode_State,
+    window : *SDL_Window
+    ) -> bool {
+
+    old_state := <<state;
+    if ImGui.Checkbox(label, *old_state) { // @Hack Why do we need to pass old_state? To mimic a PressedOnClick checkbox? Explain this better/reimplement it
+        // Get here when the LMB is released after going down while hovering the checkbox
+        // So we don't get stuck in a state where this mode is on we don't reach the toggle off in IsMouseReleased branch. @Cleanup
+        sweep_state.sweep_active = false;
+        return true;
+    }
+
+    // ImGui Rects position min in upper left and max in lower right
+    checkbox_upper_left := make_Vector2(ImGui.GetItemRectMin());
+    checkbox_lower_right := make_Vector2(ImGui.GetItemRectMax());
+
+    previous_frame_hovered := <<hovered;
+    <<hovered = ImGui.IsItemHovered(.RectOnly);
+    current_frame_hovered := <<hovered;
+
+    // Enter checkbox sweep mode on lmb down
+    if ImGui.IsItemClicked(.Left) {
+        sweep_state.sweep_active = true;
+        sweep_state.state_to_set = <<state;
+        sweep_state.mouse_min_x = xx checkbox_upper_left.x;
+        sweep_state.mouse_max_x = xx checkbox_lower_right.x;
+    }
+
+    // Exit checkbox sweep mode on lmb release
+    if ImGui.IsMouseReleased(.Left) {
+        sweep_state.sweep_active = false;
+    }
+
+    if sweep_state.sweep_active {
+        // When in checkbox sweep mode, provide a nice UX
+
+        assert(ImGui.IsMouseDown(.Left), "Expected checkbox sweep mode only when lmb is down");
+
+        // Issue an SDL event to warps the mouse cursor position to keep it from
+        // drifting outside the checkbox column. We snap to the middle half of
+        // the checkbox since using the whole checkbox means you can sometimes
+        // skip around the checkbox boundary.
+        //
+        // @Cleanup This code is currently disabled since it was broken in build_gui,
+        //   also it requires this function know about SDL, we should rethink the
+        //   implementation to avoid that dependency
+        //
+        // margin : s32 = (sweep_state.mouse_max_x - sweep_state.mouse_min_x) / 4;
+        // if io().MousePos.x < xx (sweep_state.mouse_min_x + margin) {
+        //     SDL_WarpMouseInWindow(window, sweep_state.mouse_min_x + margin, xx io().MousePos.y);
+        // }
+        // if io().MousePos.x > xx (sweep_state.mouse_max_x - margin) {
+        //     SDL_WarpMouseInWindow(window, sweep_state.mouse_max_x - margin, xx io().MousePos.y);
+        // }
+
+        if io().KeyCtrl || io().KeyShift {
+            // When control/shift are pressed make the focus the hovered item, hiding others that are swept through
+            if !previous_frame_hovered && current_frame_hovered {
+                <<state = true;
+            } else if previous_frame_hovered && !current_frame_hovered {
+                <<state = false;
+            }
+            if io().KeyShift {
+                fit_scene_on_screen(); // Also update the camera when shift is pressed
+            }
+        } else {
+            // Update any checkbox intersecting the mouse sweep so none are missed if the mouse is moved a lot in a single frame
+            frame_sweep_start, frame_sweep_end := make_Vector2(io().MousePos) - make_Vector2(io().MouseDelta), io().MousePos;
+            swept_up   := frame_sweep_start.y < checkbox_lower_right.y && frame_sweep_end.y > checkbox_upper_left.y;
+            swept_down := frame_sweep_start.y > checkbox_upper_left.y  && frame_sweep_end.y < checkbox_lower_right.y;
+            if swept_up || swept_down {
+                <<state = !sweep_state.state_to_set;
+            }
+        }
+    }
+
+    return old_state != <<state;
+}
+
+
+// @Incomplete add a delay before popup
+Show_Tooltip :: (description : string) #expand {
+    if (ImGui.IsItemHovered()) {
+        ImGui.BeginTooltip();
+        // ImGui.PushTextWrapPos(450);
+        ImGui.TextUnformatted(description);
+        // ImGui.PopTextWrapPos();
+        ImGui.EndTooltip();
+    }
+}
+
+make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
+    v: ImGui.ImVec2 = ---;
+    v.x = a;
+    v.y = b;
+    return v;
+}
+
+make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
+    v: ImGui.ImVec4 = ---;
+    v.x = a;
+    v.y = b;
+    v.z = c;
+    v.w = d;
+    return v;
+}
+
+NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};

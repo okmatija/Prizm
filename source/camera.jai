@@ -339,7 +339,6 @@ make_projection_from_world :: (using camera : Camera) -> Matrix4 #must {
     return projection_from_view * view_from_world;
 }
 
-io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 io_mouse_left_down :: () -> bool { return io().MouseDown[0]; }
 io_mouse_right_down :: () -> bool { return io().MouseDown[1]; }
 io_mouse_middle_down :: () -> bool { return io().MouseDown[2]; }

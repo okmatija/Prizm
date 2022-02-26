@@ -143,8 +143,6 @@ main :: () {
             // inspect("Debug", *app.camera, true);
         }
 
-        io :: () -> *ImGui.IO {return ImGui.GetIO(); }
-
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);

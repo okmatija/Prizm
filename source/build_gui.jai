@@ -50,11 +50,15 @@ build_gui :: (
 
 
     enable_console_command : [..]bool;
+    sweep_hover_console_command : [..]bool;
+    sweep_state : Checkbox_Sweep_Mode_State;
+    defer array_reset(*enable_console_command);
+    defer array_reset(*sweep_hover_console_command);
     if chosen_console_commands {
         quick_sort(<<chosen_console_commands, (a, b) => compare_strings(a.name, b.name));
-        array_resize(*enable_console_command, chosen_console_commands.count);
-        for * enable_console_command {
-            <<it = true;
+        for <<chosen_console_commands {
+            array_add(*enable_console_command, true);
+            array_add(*sweep_hover_console_command, false);
         }
     }
 
@@ -79,13 +83,17 @@ build_gui :: (
 
             if chosen_console_commands {
                 for command, command_index : <<chosen_console_commands {
-                    ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
+                    // ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
+                    checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], *sweep_hover_console_command[command_index], imgui_label(command.name, *command), *sweep_state, window);
                 }
+            }
+
+            if chosen_build_mode {
+                inspect("Chosen Build Mode (Auto Generated UI)", chosen_build_mode);
             }
 
             if ImGui.Button("Submit") {
                 done = true;
-
                 if chosen_console_commands {
                     assert(chosen_console_commands.count == enable_console_command.count);
                     for command, command_index : <<chosen_console_commands {
@@ -124,11 +132,9 @@ build_gui :: (
     SDL_Quit();
 }
 
-// @Cleanup
-imgui_label :: (label : string, ptr : *void) -> *u8 {
-    push_allocator(temp);
-    return to_c_string(join(label, tprint("##%", ptr)));
-}
 
 #load "imgui_sdl_gl.jai";
+#load "inspector.jai";
 
+fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
+#load "carpet.jai";

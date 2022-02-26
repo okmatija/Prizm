@@ -436,6 +436,8 @@ set_icon_and_manifest :: (options: Build_Options) {
 #import "File";
 #import "File_Utilities";
 #import "Hash_Table";
+#import "Time";
+#import "Reflection";
 
 #if OS == .WINDOWS {
 #import "Windows_Resources";

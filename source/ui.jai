@@ -9,7 +9,7 @@ show_item_list_ui :: () {
     if !entities.count return;
 
     ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
-    ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | ImGui.WindowFlags.NoTitleBar);
+    ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
     defer ImGui.End();
 
     any_visibility_changed := false;
@@ -55,7 +55,7 @@ show_item_list_ui :: () {
             {
                 ImGui.TableNextColumn();
                 was_visible := it.is_visible;
-                visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it));
+                visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it), *app.sweep_state, app.window);
                 any_visibility_changed = any_visibility_changed || visibility_changed;
                 Show_Tooltip("Visible");
 
@@ -919,137 +919,5 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
         }
     }
 }
-
-
-imgui_label :: (label : string, ptr : *void) -> *u8 {
-    push_allocator(temp);
-    return to_c_string(join(label, tprint("##%", ptr)));
-}
-
-// Combo box to select display mode enum value
-combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
-    changed := false;
-    value := get_enum_value(data, info_enum);
-    value_name := "";
-    for info_enum.names {
-        if value == info_enum.values[it_index]  value_name = it;
-    }
-    if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name)) {
-        for info_enum.names {
-            is_selected := value == info_enum.values[it_index];
-            if ImGui.Selectable(temp_c_string(it), is_selected) {
-                set_enum_value(data, info_enum, info_enum.values[it_index]);
-                changed = true;
-            }
-            if is_selected ImGui.SetItemDefaultFocus();
-        }
-
-        ImGui.EndCombo();
-    }
-    return changed;
-}
-
-
-// Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
-checkbox_press_or_sweep_to_toggle :: (state : *bool, hovered : *bool, label : *u8) -> bool {
-
-    old_state := <<state;
-    if ImGui.Checkbox(label, *old_state) { // @Hack Why do we need to pass old_state? To mimic a PressedOnClick checkbox? Explain this better/reimplement it
-        // Get here when the LMB is released after going down while hovering the checkbox
-        app.checkbox_sweep_mode = false; // So we don't get stuck in a state where this mode is on we don't reach the toggle off in IsMouseReleased branch. @Cleanup
-        return true;
-    }
-
-    // ImGui Rects position min in upper left and max in lower right
-    checkbox_upper_left := make_Vector2(ImGui.GetItemRectMin());
-    checkbox_lower_right := make_Vector2(ImGui.GetItemRectMax());
-
-    previous_frame_hovered := <<hovered;
-    <<hovered = ImGui.IsItemHovered(.RectOnly);
-    current_frame_hovered := <<hovered;
-
-    // Enter checkbox sweep mode on lmb down
-    if ImGui.IsItemClicked(.Left) {
-        app.checkbox_sweep_mode = true;
-        app.checkbox_sweep_mode_state_to_set = <<state;
-        app.checkbox_sweep_mode_mouse_min_x = xx checkbox_upper_left.x;
-        app.checkbox_sweep_mode_mouse_max_x = xx checkbox_lower_right.x;
-    }
-
-    // Exit checkbox sweep mode on lmb release
-    if ImGui.IsMouseReleased(.Left) {
-        app.checkbox_sweep_mode = false;
-    }
-
-    if app.checkbox_sweep_mode {
-        // When in checkbox sweep mode, provide a nice UX
-
-        assert(ImGui.IsMouseDown(.Left), "Expected checkbox sweep mode only when lmb is down");
-
-        // Issue an SDL event to warps the mouse cursor position to keep it from drifting outside the checkbox column
-        // We snap to the middle half of the checkbox since using the whole checkbox means you can sometimes skip around the checkbox boundary
-        margin : s32 = (app.checkbox_sweep_mode_mouse_max_x - app.checkbox_sweep_mode_mouse_min_x) / 4;
-        if io().MousePos.x < xx (app.checkbox_sweep_mode_mouse_min_x + margin) {
-            SDL_WarpMouseInWindow(app.window, app.checkbox_sweep_mode_mouse_min_x + margin, xx io().MousePos.y);
-        }
-        if io().MousePos.x > xx (app.checkbox_sweep_mode_mouse_max_x - margin) {
-            SDL_WarpMouseInWindow(app.window, app.checkbox_sweep_mode_mouse_max_x - margin, xx io().MousePos.y);
-        }
-
-        if io().KeyCtrl || io().KeyShift {
-            // When control/shift are pressed make the focus the hovered item, hiding others that are swept through
-            if !previous_frame_hovered && current_frame_hovered {
-                <<state = true;
-            } else if previous_frame_hovered && !current_frame_hovered {
-                <<state = false;
-            }
-            if io().KeyShift {
-                fit_scene_on_screen(); // Also update the camera when shift is pressed
-            }
-        } else {
-            // Update any checkbox intersecting the mouse sweep so none are missed if the mouse is moved a lot in a single frame
-            frame_sweep_start, frame_sweep_end := make_Vector2(io().MousePos) - make_Vector2(io().MouseDelta), io().MousePos;
-            swept_up   := frame_sweep_start.y < checkbox_lower_right.y && frame_sweep_end.y > checkbox_upper_left.y;
-            swept_down := frame_sweep_start.y > checkbox_upper_left.y  && frame_sweep_end.y < checkbox_lower_right.y;
-            if swept_up || swept_down {
-                <<state = !app.checkbox_sweep_mode_state_to_set;
-            }
-        }
-    }
-
-    return old_state != <<state;
-}
-
-
-// @Incomplete add a delay before popup
-Show_Tooltip :: (description : string) #expand {
-    if (ImGui.IsItemHovered()) {
-        ImGui.BeginTooltip();
-        // ImGui.PushTextWrapPos(450);
-        ImGui.TextUnformatted(description);
-        // ImGui.PopTextWrapPos();
-        ImGui.EndTooltip();
-    }
-}
-
-#scope_file
-
-make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
-    v: ImGui.ImVec2 = ---;
-    v.x = a;
-    v.y = b;
-    return v;
-}
-
-make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
-    v: ImGui.ImVec4 = ---;
-    v.x = a;
-    v.y = b;
-    v.z = c;
-    v.w = d;
-    return v;
-}
-
-NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
