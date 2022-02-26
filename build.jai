@@ -5,9 +5,10 @@
 HELP_STRING :: #string DONE
 
 Build Options:
+  help       print this help message
   debug      build debug mode (default)
-  release    build release mode (like debug, but optimized, with checks disabled, application icon set and OS console disabled)
-  gui        set build options using a graphical interface (@Incomplete)
+  release    build release mode (optimized, checks disabled, application icon set)
+  custom     build with custom build options set in a gui
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
@@ -35,41 +36,60 @@ build :: () {
     w := compiler_create_workspace(OUTPUT_EXE_NAME);
     if !w exit(1);
 
-    build_options := get_build_options(w);
     {
-        using build_options;
-
-        output_type = .EXECUTABLE;
-        lazy_foreign_function_lookups = true;
-
-        output_executable_name = OUTPUT_EXE_NAME;
-
-        if Has_Argument("release") {
-            print("[Prism] Compiling release configuration\n");
-            set_optimization_level(*build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
-            // build_options.stack_trace = false;
-        } else {
-            print("[Prism] Compiling debug configuration\n");
-            array_bounds_check = .ON;
-            cast_bounds_check  = .FATAL;
-            math_bounds_check  = .FATAL;
-            // memory_debugger = true;
-            // llvm_options.debug_options = .["-g"];
+        mode : Build_Mode;
+        mode.set_icon = false;
+        mode.build_options = get_build_options(w);
+        {
+            using mode.build_options;
+            output_type                   = .EXECUTABLE;
+            lazy_foreign_function_lookups = true;
+            output_executable_name        = OUTPUT_EXE_NAME;
+            array_bounds_check            = .ON;
+            cast_bounds_check             = .FATAL;
+            math_bounds_check             = .FATAL;
+            null_pointer_check            = .ON;
+            stack_trace                   = false;
         }
-
-        // _import_path : [..]string;
-        // for import_path array_add(*_import_path, it);
-        // CWD :: #run get_working_directory();
-        // array_add(*_import_path, join(CWD, "source/modules", separator="/"));
-        // import_path = _import_path;
+        table_add(*preset_build_modes, "debug", mode);
     }
-    set_build_options(build_options, w);
+
+    {
+        mode : Build_Mode;
+        mode.set_icon = true;
+        mode.build_options = get_build_options(w);
+        {
+            using mode.build_options;
+            output_type                   = .EXECUTABLE;
+            lazy_foreign_function_lookups = true;
+            output_executable_name        = OUTPUT_EXE_NAME;
+            set_optimization_level(*mode.build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
+        }
+        table_add(*preset_build_modes, "release", mode);
+    }
+
+    build_mode : Build_Mode;
+    build_mode_found : bool;
+    if Has_Argument("custom") {
+        print("[Prism] Compiling with custom build options.\n");
+        build_mode, build_mode_found = table_find(preset_build_modes, "debug");
+        build_gui(preset_build_modes, chosen_build_mode=*build_mode);
+    } else if Has_Argument("release") {
+        print("[Prism] Compiling with release build options.\n");
+        build_mode, build_mode_found = table_find(preset_build_modes, "release");
+    } else {
+        print("[Prism] Compiling with debug build options.\n");
+        build_mode, build_mode_found = table_find(preset_build_modes, "debug");
+    }
+    assert(build_mode_found);
+
+    set_build_options(build_mode.build_options, w);
 
     {
         compiler_begin_intercept(w);
 
         add_build_string(tprint("VERSION_STRING  :: \"%\";", VERSION_STRING), w);
-        add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", OUTPUT_EXE_NAME), w);
+        add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_mode.build_options.output_executable_name), w);
         add_build_file("source/prism.jai", w);
 
         while true {
@@ -80,9 +100,9 @@ build :: () {
             }
 
             if message.kind == .COMPLETE {
-                if Has_Argument("release") {
+                if build_mode.set_icon {
                     print("[Prism] Setting application icon\n");
-                    set_icon_and_manifest(build_options);
+                    set_icon_and_manifest(build_mode.build_options);
                 }
                 break;
             }
@@ -112,6 +132,9 @@ build :: () {
                         phase := cast(*Message_Phase) message;
                         if phase.phase == .TYPECHECKED_ALL_WE_CAN {
                             if !generated_code {
+                                if Has_Argument("custom") {
+                                    build_gui(preset_build_modes, chosen_console_commands=*registered_console_commands);
+                                }
                                 generate_code_to_register_console_commands(message.workspace);
                                 generated_code = true;
                             }
@@ -127,12 +150,21 @@ build :: () {
     }
 }
 
+Build_Mode :: struct {
+    build_options : Build_Options;
+    set_icon : bool;
+}
+
+preset_build_modes : Table(string, Build_Mode);
+
 generated_code := false;
 registered_console_commands : [..]*Code_Procedure_Header;
 
 generate_code_to_register_console_commands :: (w : Workspace) {
 
-    // @Refactor make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
+    // @Refactor
+    // - Make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
+    // - Rename to Add_Line
     Print :: (format_string : string, args : ..Any) #expand {
         print_to_builder(*builder, format_string, ..args);
     }
@@ -379,7 +411,7 @@ set_icon_and_manifest :: (options: Build_Options) {
 
         success := set_icon_by_filename(exe_path, icon_path);
         if success {
-            print("The icon of '%' has been set successfully to '%'.", exe_path, icon_path);
+            print("The icon of '%' has been set successfully to '%'.\n", exe_path, icon_path);
         } else {
             compiler_report("Failure to set the icon.");
         }
@@ -392,6 +424,7 @@ set_icon_and_manifest :: (options: Build_Options) {
     }
 }
 
+// @Cleanup Make this run in release and OS console disabled
 // #run { #if OS == .WINDOWS { disable_runtime_console(); } } // IMPORTANT: Enabling this hides prints to the console!
 
 #import "Basic";
@@ -400,10 +433,13 @@ set_icon_and_manifest :: (options: Build_Options) {
 #import "Program_Print";
 #import "Sort";
 #import "String";
-
-#if OS == .WINDOWS {
-    #import "Windows_Resources";
-    #import "Ico_File";
-}
 #import "File";
 #import "File_Utilities";
+#import "Hash_Table";
+
+#if OS == .WINDOWS {
+#import "Windows_Resources";
+#import "Ico_File";
+}
+
+#load "source/build_gui.jai";
