@@ -12,9 +12,9 @@ build_gui :: (
 
     task : string;
     if chosen_build_mode {
-        task = "Choose Build Configuration";
+        task = "Configure Build Options";
     } else if chosen_console_commands {
-        task = "Choose Console Commands";
+        task = "Configure Console Commands";
     }
     window := SDL_CreateWindow(temp_c_string(tprint("Prism Builder: %", task)), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if window == null {
@@ -67,7 +67,9 @@ build_gui :: (
         event: SDL_Event;
         while SDL_PollEvent(*event) {
             ImGui_ImplSdl_ProcessEvent(*event);
-            if event.type == SDL_QUIT done = true;
+            if event.type == SDL_QUIT {
+                compiler_report("Compilation manually aborted.");
+            }
             if event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window) {
                 done = true;
             }
@@ -89,6 +91,68 @@ build_gui :: (
             }
 
             if chosen_build_mode {
+                using chosen_build_mode.build_options;
+
+                // Note: Use of get_ident_name is only possible at compile-time, so this code
+                // cannot be used at runtime which precludes debugging except via the bytecode
+                // debugger
+
+                Combo_Box :: (code : Code) -> bool #expand {
+                    return combo_box(get_ident_name(code), *#insert_internal code, type_info(type_of(#insert_internal code)));
+                }
+
+                Check_Box :: (code : Code) -> bool #expand {
+                    return ImGui.Checkbox(temp_c_string(get_ident_name(code)), *#insert_internal code);
+                }
+
+                Input_Int :: (code : Code) -> bool #expand {
+                    return ImGui.InputInt(temp_c_string(get_ident_name(code)), *#insert_internal code);
+                }
+
+                //output_type : enum;
+                Combo_Box(optimization_level);
+
+                Check_Box(write_added_strings);
+                Check_Box(runtime_storageless_type_info);
+                Check_Box(shorten_filenames_in_error_messages);
+                Check_Box(use_visual_studio_message_format);
+                //use_custom_link_command : bool
+                Check_Box(lazy_foreign_function_lookups);
+                Check_Box(enable_bytecode_inliner);
+                Check_Box(stack_trace);
+                Check_Box(enable_auto_dereference);
+
+                Combo_Box(array_bounds_check);
+                Combo_Box(cast_bounds_check);
+                Combo_Box(math_bounds_check);
+                Combo_Box(null_pointer_check);
+                Combo_Box(dead_code_elimination);
+
+                // @CompilerBug Using any InputText widgets causes compilation to crash in realloc, but the same code works at runtime
+                InputText("output_executable_name", *output_executable_name, .EnterReturnsTrue); Show_Tooltip("Unpathed, does not include extension such as \".exe\"");
+                InputText("output_path", *output_path, .EnterReturnsTrue);
+                InputText("intermediate_path", *intermediate_path, .EnterReturnsTrue); Show_Tooltip("The place for temporary files, such as .added_strings_*, intermediate object files, etc.");
+                InputText("entry_point_name", *entry_point_name, .EnterReturnsTrue);
+
+                Input_Int(temporary_storage_size);
+                //info_flags : enum_flags;
+                //text_output_flags : enum_flags;
+                //os_target := OS;
+                Combo_Box(#code backend);
+                //machine_type: enum;
+                //machine_options: Machine_Options;
+                Combo_Box(#code emit_debug_info);
+                //maximum_polymorph_depth := 100;
+                //maximum_array_count_before_compile_time_returns_are_not_reflected_in_ast := 5000;
+                //import_path: [] string;
+                //additional_linker_arguments: [] string;
+                //user_data_u64:          u64;
+                //user_data_string:       string;
+                //user_data_pointer:      *void;
+                //user_data_pointer_size: s32;
+                //x64_options:  X64_Options;
+                //llvm_options: Llvm_Options;
+
                 inspect("Chosen Build Mode (Auto Generated UI)", chosen_build_mode);
             }
 
