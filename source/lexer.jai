@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // @Incomplete support NaN, inf, -inf
 // @Incomplete support floats in hex 0h7fbf_ffff
 // @Incomplete return errors when we have 123542abdc ie number with letters in it

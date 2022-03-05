@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Keymap_Proc_Info :: struct {
     name: string;
     proc: #type () -> ();

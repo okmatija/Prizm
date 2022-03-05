@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Tests
 

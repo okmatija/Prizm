@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // A uniform infinite grid data-structure.
 // This data-structure is defined in reference to an infinite 'background' grid.
 // The background grid has the same spacing as the desired grid but its [0,0,0]-th sample point is located at world space zero.

@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh {
     #assert(T == Polyline_Soup2 || T == Polyline_Soup3);
 

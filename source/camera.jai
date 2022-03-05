@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Camera :: struct {
     // Data to transfrom from world to view coordinates
     eye_position :  Vector3; // world

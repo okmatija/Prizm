@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // @Refactor rename this Label_Theme, and use it for triangle labels (at centroid, so you can see centroids, too)
 Label_Theme :: struct {
     show_position := false;

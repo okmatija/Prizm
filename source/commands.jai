@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // Procedures tagged with @RegisterCommand will have their documentation appear
 // in the console when the user calls `help <command-name>`. Every line starting
 // with // above the procedure will be included in the documentation

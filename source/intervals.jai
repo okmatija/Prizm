@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // Parts of this file are based on:
 // https://github.com/davideberly/GeometricTools (Distributed under the Boost Software License, Version 1.0.)
 

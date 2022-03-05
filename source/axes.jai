@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Axes_Triad :: struct {
     x_axis : Mesh_Entity;
     y_axis : Mesh_Entity;

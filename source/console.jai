@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Command_Info :: struct {
     name : string;
     usage : string;
@@ -243,8 +241,8 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
     new_context.logger_data = *app.console.log;
     push_context new_context {
 
-        // @Cleanup Why does this fail? app is global so I expected we could pass null and just read it directly.
-        // assert(cast(*void) data == cast(*void) *app.console);
+        // We pass *app.console as user data but use it directly since its global... whatever
+        assert(cast(*void) data.UserData == cast(*void) *app.console);
 
         if data.EventFlag == {
             case .CallbackCompletion; {

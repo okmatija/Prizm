@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.

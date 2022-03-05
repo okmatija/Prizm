@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 FONT_SIZE :: 58;
 ASCII_COUNT :: 128;
 

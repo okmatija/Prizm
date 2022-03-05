@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #import "Basic";
 
 par_shapes_mesh :: struct

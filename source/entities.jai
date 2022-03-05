@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Entity_Type :: enum {
     // GENERAL_OBJ; // See what the snake example does
     MESH;

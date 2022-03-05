@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Parser :: struct {
     tokens: [] Token;
     current_token: s64;

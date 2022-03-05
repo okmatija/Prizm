@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Mesh :: struct {
     geometry_format := Geometry_Format.UNKNOWN;
 

@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // @Incomplete extend to 3d polygons which are also useful even though they may not be planar
 
 //

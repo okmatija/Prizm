@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 // @TODO Separate clipping mode
 
 do_clip_radius_mode :: (clicked : bool = false) -> bool {

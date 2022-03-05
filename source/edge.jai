@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 Edge :: struct ($Point : Type) {
     from_point : *Point;
     to_point   : *Point;

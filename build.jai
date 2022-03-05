@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #run build();
 
 HELP_STRING :: #string DONE
