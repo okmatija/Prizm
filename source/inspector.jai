@@ -34,14 +34,14 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
 
         case .STRING;
 
-            string_data := Reflection.get_string_data(data, xx info);
-            string_count := Reflection.get_string_count(data, xx info);
+            str := cast(*string)data;
+            str_c := temp_c_string(<<str);
 
             // @Incomplete We could allow editing of strings too.
-            if string_data {
-                ImGui.InputText(name, string_data, xx string_count, ImGui.InputTextFlags.ReadOnly);
+            if str {
+                ImGui.InputText(name, str_c, xx (str.count + 1), .ReadOnly);
             } else {
-                ImGui.InputText(name, "(null)", 6, ImGui.InputTextFlags.ReadOnly);
+                ImGui.InputText(name, "(null)", 7, .ReadOnly);
             }
 
         case .STRUCT;
