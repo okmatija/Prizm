@@ -27,14 +27,14 @@ canonically_formatted_path_string :: (_path : string) -> string {
     return path;
 }
 
-printv :: (a : Code, loc := #caller_location) #expand {
-    get_ident_name :: (code : Code) -> string {
-        root := compiler_get_nodes(code);
-        assert(root.kind == .IDENT);
-        ident := cast(*Code_Ident) root;
-        return ident.name;
-    }
+get_ident_name :: (code : Code) -> string {
+    root := compiler_get_nodes(code);
+    assert(root.kind == .IDENT);
+    ident := cast(*Code_Ident) root;
+    return ident.name;
+}
 
+printv :: (a : Code, loc := #caller_location) #expand {
 #if true {
     print("%:% % = %\n", loc.fully_pathed_filename, loc.line_number, #run get_ident_name(a), #insert a);
 } else {
@@ -288,3 +288,55 @@ make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
 }
 
 NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
+
+// See: https://github.com/ocornut/imgui/blob/0f14933577a1de01d90f8e87622296c466146f21/misc/cpp/imgui_stdlib.cpp#L38-L48
+InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None, callback: ImGui.InputTextCallback = null, user_data: *void = null) -> bool {
+
+    string_resize :: (s : *string, new_count: s64) {
+        old_count := s.count;
+        if old_count == new_count return;
+        s.data = cast(*u8) realloc(s.data, new_count * size_of(u8), old_count * size_of(u8));
+        s.count = new_count;
+    }
+
+    InputTextCallback_UserData :: struct {
+        Str : *string;
+        ChainCallback : ImGui.InputTextCallback;
+        ChainCallbackUserData : *void;
+    };
+
+    InputTextCallback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
+        new_context : Context;
+        push_context new_context {
+            user_data := cast(*InputTextCallback_UserData)data.UserData;
+            if data.EventFlag == .CallbackResize {
+                // Resize string callback
+                // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+                s := cast(*string)user_data.Str;
+                string_resize(s, data.BufSize);
+                // Ensure that we can use user_data.Str.data as a c-string too
+                s.count = data.BufTextLen;
+                s.data[s.count] = 0;
+                data.Buf = s.data;
+            } else if user_data.ChainCallback {
+                // Forward to user callback, if any
+                data.UserData = user_data.ChainCallbackUserData;
+                return user_data.ChainCallback(data);
+            }
+
+            return 0;
+        }
+    }
+
+    assert((flags & .CallbackResize) == 0);
+    flags |= .CallbackResize;
+
+    cb_user_data : InputTextCallback_UserData;
+    cb_user_data.Str = str;
+    cb_user_data.ChainCallback = callback;
+    cb_user_data.ChainCallbackUserData = user_data;
+
+    str_c := temp_c_string(<<str);
+    label_c := temp_c_string(label); // @Incomplete only do this if label is not constant
+    return ImGui.InputText(label_c, str_c, xx (str.count + 1), flags, InputTextCallback, *cb_user_data);
+}
