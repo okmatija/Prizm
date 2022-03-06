@@ -69,7 +69,7 @@ AABB_Tree :: struct(Shape : Type) {
         primitive_id : Primitive_Id = -1;
     }
 
-    // nocommit @Cleanup Rename to Primitive_Info_Iterator
+    // @Cleanup Rename to Primitive_Info_Iterator
     primitive_info_iterator :: (range : *Primitive_Range, body : Code, flags : For_Flags) #expand {
         #assert(flags == 0);
         for i : 0..range.count-1 {
@@ -108,7 +108,10 @@ AABB_Tree :: struct(Shape : Type) {
 }
 
 init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
-    if T.Shape != Mesh return; // nocommit @Incomplete implement other primitive types
+    if T.Shape != Mesh {
+        log_warning("@Incomplete Building AABB not yet implemented for % primitives, queries will be brute force", T.Primitive);
+        return;
+    }
 
     tree.shape = target;
 

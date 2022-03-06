@@ -116,7 +116,7 @@ compute_vertex_normals_from_triangles :: (using mesh : *Mesh) -> bool, string {
     return true, "";
 }
 
-// nocommit @Cleanup, Don't need to pass pointers here, and remove setting to null
+// @Cleanup, Don't need to pass pointers here, and remove setting to null
 
 clear :: (using mesh : *Mesh) {
     // Zeros all the counts, but keeps the memory

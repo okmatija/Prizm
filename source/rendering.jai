@@ -520,6 +520,16 @@ render_entities :: () {
     }
 
     render_entity_text :: (entity : *Entity, label_limit : *int) {
+
+        point_theme := entity.display_info.vertex_label_style;
+        element_theme := entity.display_info.element_label_theme;
+        if point_theme.show_position   == false &&
+           point_theme.show_index      == false &&
+           element_theme.show_position == false &&
+           element_theme.show_index    == false {
+            return;
+        }
+
         glEnable(GL_BLEND);
         defer glDisable(GL_BLEND);
         // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
@@ -535,8 +545,6 @@ render_entities :: () {
             case .POLYLINE_SOUP2;
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
-                point_theme := entity.display_info.vertex_label_style;
-                segment_theme := entity.display_info.element_label_theme;
 
                 for :point_iterator soup.shape {
                     if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
@@ -552,16 +560,14 @@ render_entities :: () {
                     if is_clipped(entity.display_info, make_vector3(centroid, 0)) continue;
                     if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                    text := get_point_text(centroid, it_index, segment_theme);
+                    text := get_point_text(centroid, it_index, element_theme);
                     text_position_px := get_text_screen_position(make_vector4(centroid, 0, 1), soup.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, segment_theme.label_scale, segment_theme.label_color);
+                    render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
                 }
 
             case .POLYLINE_SOUP3;
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
-                point_theme := entity.display_info.vertex_label_style;
-                segment_theme := entity.display_info.element_label_theme;
 
                 for :point_iterator soup.shape {
                     if is_clipped(entity.display_info, it) continue;
@@ -577,9 +583,9 @@ render_entities :: () {
                     if is_clipped(entity.display_info, centroid) continue;
                     if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                    text := get_point_text(centroid, it_index, segment_theme);
+                    text := get_point_text(centroid, it_index, element_theme);
                     text_position_px := get_text_screen_position(make_vector4(centroid, 1), soup.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, segment_theme.label_scale, segment_theme.label_color);
+                    render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
                 }
 
             case .POLYGON_SOUP;
@@ -587,7 +593,6 @@ render_entities :: () {
                 // @Refactor use iterators and label segments
                 soup := cast(*Polygon_Soup_Entity) entity;
                 count := point_count(soup.shape);
-                point_theme := entity.display_info.vertex_label_style;
 
                 for polygon : soup.shape.polygons {
                     for polygon.outer_ring.points {
@@ -613,7 +618,6 @@ render_entities :: () {
 
                 cloud := cast(*Point_Cloud_Entity) entity;
                 count := cloud.mesh.positions.count;
-                point_theme := entity.display_info.vertex_label_style;
 
                for cloud.mesh.positions {
                    if is_clipped(entity.display_info, it) continue;
@@ -628,8 +632,6 @@ render_entities :: () {
 
                 mesh := cast(*Mesh_Entity) entity;
                 count := mesh.mesh.positions.count;
-                point_theme := entity.display_info.vertex_label_style;
-                triangle_theme := entity.display_info.element_label_theme;
 
                for mesh.mesh.positions {
                    if is_clipped(entity.display_info, it) continue;
@@ -645,9 +647,9 @@ render_entities :: () {
                    if is_clipped(entity.display_info, centroid) continue;
                    if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
 
-                   text := get_point_text(centroid, it_index, triangle_theme);
+                   text := get_point_text(centroid, it_index, element_theme);
                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
-                   render_text_quad(app.text_program, text, text_position_px, triangle_theme.label_scale, triangle_theme.label_color);
+                   render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
                }
         }
     }

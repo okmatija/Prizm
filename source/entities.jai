@@ -78,7 +78,6 @@ Mesh_Entity :: struct {
     type = .MESH;
     display_info.element_label_theme.label_color = .{1., 1., 0, 1};
 
-    // // nocommit
     display_info.wireframe_visible = true;
     display_info.wireframe_width = 2;
     // display_info.element_label_theme.show_index = true;
@@ -433,9 +432,11 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         entity_mesh := cast(*Mesh_Entity)entity;
 
         if entity_mesh.spatial == null {
+
             for :triangles_iterator triangle, triangle_index : entity.mesh {
                 Process_Triangle();
             }
+
         } else {
 
             // @Refactor this when/if closures become available
@@ -523,6 +524,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     for :visible_selectable_polyline_soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
+        // @Incomplete If available, use the spatial index
         for :segment_iterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = <<segment.from_point;
@@ -558,6 +560,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     for :visible_selectable_polyline_soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
+        // @Incomplete If available, use the spatial index
         for :segment_iterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);

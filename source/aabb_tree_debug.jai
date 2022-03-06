@@ -19,7 +19,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         return;
     }
 
-    Iterator :: spatial.primitive_info_iterator; // nocommit @Cleanup
+    Iterator :: spatial.primitive_info_iterator; // @Cleanup
 
     if jumbo_item {
         // Put all AABBs into a single polyline soup
@@ -166,6 +166,22 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
             array_add(*app.entities, it.entity);
         }
     }
+} @RegisterCommand
+
+debug_delete_spatial_index :: (index : int) {
+    if !check_geometry_index(index) {
+        return;
+    }
+
+    if app.entities[index].type != .MESH {
+        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[index].type);
+        return;
+    }
+
+    mesh_entity := cast(*Mesh_Entity)app.entities[index];
+    deinit(mesh_entity.spatial);
+    mesh_entity.spatial = null;
+
 } @RegisterCommand
 
 #scope_file

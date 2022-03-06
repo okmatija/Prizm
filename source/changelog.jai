@@ -4,10 +4,13 @@
 // TODO add index struct with local/global point/edges for polyline/polygon soup datastructures
 // TODO Limit the size of the item context menu window
 // TODO Make the windows follow conventions better, add cross button etc
+// TODO Color scheme like vacation?
+// TODO Replace snake case with capital words space separated in build_gui
+// TODO Handle transforms in ray casting computations
+// TODO Implement AABBs for other shape types esp polylines
 
 PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
-- Various minor UI improvements related to window positioning and colors
-- Improved presentation of the changelog which is baked into the executable
+- Improved performance of ray intersection queries against Mesh items
 - Added a 'custom' build option which runs a gui at compile-time where the user can set build options and choose which console commands are available
 - Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
 - Fixed labels not clipping against clipping volumes
@@ -16,7 +19,10 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
 - Fixed bug where changes to the float labelling format on a selection of elements was ignored
 - Fixed version numbering, I was incrementing the minor version, rather than patch version oops
 - Fixed a crash when requesting point label rendering for point clouds
-- Improved portability by disabling cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position which is a little bit weird but not too bad :/
+- Fixed some performance problems related to text rendering... still more to do though.
+- Improved portability by disabling cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
+- Improved presentation of the changelog which is baked into the executable
+- Various minor UI improvements related to window positioning and colors
 - Simplified build metaprogram
 DONE
 };

@@ -45,6 +45,11 @@ load_wkt :: (filename : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
+            e := cast(*Point_Cloud_Entity)entity;
+            init_entity_base_parameters(entity, filename, entity.mesh);
+            e.spatial = New(AABB_Tree(e.Shape));
+            init(e.spatial, *e.shape);
+
         } else if eat_possible_directive(*parser, "MULTIPOINT") {
 
             entity = New(Point_Cloud_Entity);
@@ -65,6 +70,11 @@ load_wkt :: (filename : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
+            e := cast(*Point_Cloud_Entity)entity;
+            init_entity_base_parameters(entity, filename, entity.mesh);
+            e.spatial = New(AABB_Tree(e.Shape));
+            init(e.spatial, *e.shape);
+
         } else if eat_possible_directive(*parser, "LINESTRING") {
 
             points2 : [..]Vector2;
@@ -82,6 +92,8 @@ load_wkt :: (filename : string) -> *Entity {
                 e : *Polyline_Soup3_Entity = xx entity;
                 e.shape = empty_shape;
                 e.mesh = empty_mesh;
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             } else if dim == 2 {
 
@@ -89,6 +101,8 @@ load_wkt :: (filename : string) -> *Entity {
                 e : *Polyline_Soup2_Entity = xx entity;
                 array_add(*e.shape.polylines).points = points2;
                 e.mesh = to_Mesh(e.shape);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             } else if dim == 3 {
 
@@ -96,6 +110,8 @@ load_wkt :: (filename : string) -> *Entity {
                 e : *Polyline_Soup3_Entity = xx entity;
                 array_add(*e.shape.polylines).points = points3;
                 e.mesh = to_Mesh(e.shape);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -118,6 +134,8 @@ load_wkt :: (filename : string) -> *Entity {
                 e : *Polyline_Soup2_Entity = xx entity;
                 e.shape = polyline_soup2;
                 e.mesh = to_Mesh(e.shape);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             } else if dim == 3 {
 
@@ -125,6 +143,8 @@ load_wkt :: (filename : string) -> *Entity {
                 e : *Polyline_Soup3_Entity = xx entity;
                 e.shape = polyline_soup3;
                 e.mesh = to_Mesh(e.shape);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -137,6 +157,8 @@ load_wkt :: (filename : string) -> *Entity {
             e := New(Polygon_Soup_Entity);
             array_add(*e.shape.polygons, polygon);
             e.mesh = to_Mesh(e.shape);
+            e.spatial = New(AABB_Tree(e.Shape));
+            init(e.spatial, *e.shape);
 
             if !is_empty(e.shape) && e.mesh.positions.count == 0 {
                 log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
@@ -152,6 +174,8 @@ load_wkt :: (filename : string) -> *Entity {
             e := New(Polygon_Soup_Entity);
             e.shape = polygon_soup;
             e.mesh = to_Mesh(e.shape);
+            e.spatial = New(AABB_Tree(e.Shape));
+            init(e.spatial, *e.shape);
 
             if !is_empty(e.shape) && e.mesh.positions.count == 0 {
                 log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
