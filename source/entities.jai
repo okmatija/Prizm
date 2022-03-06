@@ -38,7 +38,7 @@ Polyline_Soup2_Entity :: struct {
 
     Shape :: Polyline_Soup2;
     shape : Shape;
-    spatial : AABB_Tree(Shape);
+    spatial : *AABB_Tree(Shape);
 }
 
 Polyline_Soup3_Entity :: struct {
@@ -48,7 +48,7 @@ Polyline_Soup3_Entity :: struct {
 
     Shape :: Polyline_Soup3;
     shape : Shape;
-    spatial : AABB_Tree(Shape);
+    spatial : *AABB_Tree(Shape);
 }
 
 Polygon_Soup_Entity :: struct {
@@ -58,7 +58,7 @@ Polygon_Soup_Entity :: struct {
 
     Shape :: Polygon_Soup;
     shape : Shape;
-    spatial : AABB_Tree(Shape);
+    spatial : *AABB_Tree(Shape);
 }
 
 Point_Cloud_Entity :: struct {
@@ -68,7 +68,7 @@ Point_Cloud_Entity :: struct {
     mesh.geometry_format = .POINTS;
 
     Shape :: Point_Cloud;
-    spatial : AABB_Tree(Shape);
+    spatial : *AABB_Tree(Shape);
 #place mesh;
     shape : Shape = ---; // Alias for consistency
 }
@@ -85,7 +85,7 @@ Mesh_Entity :: struct {
     // display_info.vertex_label_style.show_position = true;
 
     Shape :: Mesh;
-    spatial : AABB_Tree(Shape);
+    spatial : *AABB_Tree(Shape);
 #place mesh;
     shape : Shape = ---; // Alias for consistency
 }
@@ -142,33 +142,33 @@ deinit :: (base : *Entity) {
             entity := cast(*Polyline_Soup2_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
-            deinit(*entity.spatial);
+            deinit(entity.spatial);
 
         case .POLYLINE_SOUP3;
 
             entity := cast(*Polyline_Soup3_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
-            deinit(*entity.spatial);
+            deinit(entity.spatial);
 
         case .POLYGON_SOUP;
 
             entity := cast(*Polygon_Soup_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
-            deinit(*entity.spatial);
+            deinit(entity.spatial);
 
         case .POINT_CLOUD;
 
             entity := cast(*Point_Cloud_Entity)base;
             deinit(*entity.mesh);
-            deinit(*entity.spatial);
+            deinit(entity.spatial);
 
         case .MESH;
 
             entity := cast(*Mesh_Entity)base;
             deinit(*entity.mesh);
-            deinit(*entity.spatial);
+            deinit(entity.spatial);
     }
 
     // Remove data from gpu memory as well
@@ -373,9 +373,9 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     result : Point_On_Entity;
 
-    visible_selectable_triangulated :: #bake_arguments entities_iterator(should_visit = (e) => (
+    visible_selectable_mesh :: #bake_arguments entities_iterator(should_visit = (e) => (
             e.is_visible &&
-            (e.type == .MESH || e.type == .POLYGON_SOUP) &&
+            e.type == .MESH &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
 
@@ -429,40 +429,39 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         return dot_product(compute_normal(tri), ray.direction) > 0;
     }
 
-    for :visible_selectable_triangulated entity, entity_index : app.entities {
-#if false { // nocommit
-        for :triangles_iterator triangle, triangle_index : entity.mesh {
-            Process_Triangle();
-        }
-} else {
-
-        assert(entity.type == .MESH);
+    for :visible_selectable_mesh entity, entity_index : app.entities {
         entity_mesh := cast(*Mesh_Entity)entity;
 
-        // @Refactor this when/if closures become available
-        clipping_data : Clipping_Data = ---;
-        clipping_data.sphere_clipped = sphere_clipped;
-        clipping_data.range_clipped = range_clipped;
-        clipping_data.display_info = *entity.display_info;
+        if entity_mesh.spatial == null {
+            for :triangles_iterator triangle, triangle_index : entity.mesh {
+                Process_Triangle();
+            }
+        } else {
 
-        intersection_filter : entity_mesh.spatial.Intersection_Filter;
-        intersection_filter.data = *clipping_data;
-        intersection_filter.proc = skip_clipped_intersections;
+            // @Refactor this when/if closures become available
+            clipping_data : Clipping_Data = ---;
+            clipping_data.sphere_clipped = sphere_clipped;
+            clipping_data.range_clipped = range_clipped;
+            clipping_data.display_info = *entity.display_info;
 
-        primitive_filter : entity_mesh.spatial.Primitive_Filter;
-        primitive_filter.data = null;
-        primitive_filter.proc = ifx front_facing_only then skip_backfacing_primitives else null;
+            intersection_filter : entity_mesh.spatial.Intersection_Filter;
+            intersection_filter.data = *clipping_data;
+            intersection_filter.proc = skip_clipped_intersections;
 
-        is_hit, intersection := first_primitive_intersection(*entity_mesh.spatial, ray, primitive_filter, intersection_filter);
+            primitive_filter : entity_mesh.spatial.Primitive_Filter;
+            primitive_filter.data = null;
+            primitive_filter.proc = ifx front_facing_only then skip_backfacing_primitives else null;
 
-        if is_hit && intersection.t < t_min {
-            t_min = intersection.t;
-            result.position = intersection.point;
-            result.element_index = intersection.primitive_id;
-            result.entity_index = entity_index;
-            intersected_triangle = true;
+            is_hit, intersection := first_primitive_intersection(entity_mesh.spatial, ray, primitive_filter, intersection_filter);
+
+            if is_hit && intersection.t < t_min {
+                t_min = intersection.t;
+                result.position = intersection.point;
+                result.element_index = intersection.primitive_id;
+                result.entity_index = entity_index;
+                intersected_triangle = true;
+            }
         }
-}
     }
 
     if intersected_triangle {
@@ -471,7 +470,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     d_min := FLOAT32_INFINITY;
     if (has_degenerate_triangles) {
-        for :visible_selectable_triangulated entity, entity_index : app.entities {
+        for :visible_selectable_mesh entity, entity_index : app.entities {
             for i : 0..(entity.mesh.indices.count/3)-1 {
 
                 triangle : Triangle3;

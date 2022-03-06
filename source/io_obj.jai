@@ -177,7 +177,8 @@ load_obj :: (filename : string) -> *Entity {
                         deinit(result);
                     }
                     init_entity_base_parameters(result, filename, mesh);
-                    init(*e.spatial, *e.shape);
+                    e.spatial = New(AABB_Tree(e.Shape));
+                    init(e.spatial, *e.shape);
                 } else if dim == 3 {
                     result = New(Polyline_Soup3_Entity);
                     e := cast(*Polyline_Soup3_Entity)result;
@@ -186,7 +187,8 @@ load_obj :: (filename : string) -> *Entity {
                         deinit(result);
                     }
                     init_entity_base_parameters(result, filename, mesh);
-                    init(*e.spatial, *e.shape);
+                    e.spatial = New(AABB_Tree(e.Shape));
+                    init(e.spatial, *e.shape);
                 }
 
             case .POINTS;
@@ -194,14 +196,16 @@ load_obj :: (filename : string) -> *Entity {
                 result = New(Point_Cloud_Entity);
                 e := cast(*Point_Cloud_Entity)result;
                 init_entity_base_parameters(result, filename, mesh);
-                init(*e.spatial, *e.shape);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             case .TRIANGLES;
 
                 result = New(Mesh_Entity);
                 e := cast(*Mesh_Entity)result;
                 init_entity_base_parameters(result, filename, mesh);
-                init(*e.spatial, *e.shape);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
 
             case .UNKNOWN;
 

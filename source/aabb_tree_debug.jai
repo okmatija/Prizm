@@ -13,7 +13,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
     }
 
     mesh_entity := cast(*Mesh_Entity)app.entities[index];
-    spatial := *mesh_entity.spatial;
+    spatial := mesh_entity.spatial;
 
     if spatial.nodes.count == 0 {
         return;

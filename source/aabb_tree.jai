@@ -107,7 +107,7 @@ AABB_Tree :: struct(Shape : Type) {
     shape : *Shape; // Not an owning pointer
 }
 
-init :: (using tree : *$T/AABB_Tree, target : *T.Shape) {
+init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
     if T.Shape != Mesh return; // nocommit @Incomplete implement other primitive types
 
     tree.shape = target;
@@ -134,9 +134,11 @@ init :: (using tree : *$T/AABB_Tree, target : *T.Shape) {
     build(tree, 0, 0);
 }
 
-deinit :: (using tree : *$T/AABB_Tree) {
-    array_reset(*primitive_info);
-    array_reset(*nodes);
+deinit :: (tree : *$T/AABB_Tree) {
+    if !tree return;
+    array_reset(*tree.primitive_info);
+    array_reset(*tree.nodes);
+    free(tree);
 }
 
 // @Refactor make this a macro and implement the filters as Code
