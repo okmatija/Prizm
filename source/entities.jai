@@ -14,7 +14,6 @@ Entity :: struct {
     type : Entity_Type = .UNKNOWN;
 
     is_visible := true;
-    is_visible_sweep_hovered := false;
     is_selected := false;
     is_hovered := false;
 

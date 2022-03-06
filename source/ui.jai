@@ -53,7 +53,7 @@ show_item_list_ui :: () {
             {
                 ImGui.TableNextColumn();
                 was_visible := it.is_visible;
-                visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, *it.is_visible_sweep_hovered, imgui_label("##Visible", it), *app.sweep_state, app.window);
+                visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, imgui_label("##Visible", it), *app.sweep_state, app.window);
                 any_visibility_changed = any_visibility_changed || visibility_changed;
                 Show_Tooltip("Visible");
 

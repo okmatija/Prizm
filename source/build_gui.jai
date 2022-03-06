@@ -50,15 +50,12 @@ build_gui :: (
 
 
     enable_console_command : [..]bool;
-    sweep_hover_console_command : [..]bool;
     sweep_state : Checkbox_Sweep_Mode_State;
     defer array_reset(*enable_console_command);
-    defer array_reset(*sweep_hover_console_command);
     if chosen_console_commands {
         quick_sort(<<chosen_console_commands, (a, b) => compare_strings(a.name, b.name));
         for <<chosen_console_commands {
             array_add(*enable_console_command, true);
-            array_add(*sweep_hover_console_command, false);
         }
     }
 
@@ -86,7 +83,7 @@ build_gui :: (
             if chosen_console_commands {
                 for command, command_index : <<chosen_console_commands {
                     // ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
-                    checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], *sweep_hover_console_command[command_index], imgui_label(command.name, *command), *sweep_state, window);
+                    checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], imgui_label(command.name, *command), *sweep_state, window);
                 }
             }
 

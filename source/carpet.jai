@@ -142,13 +142,7 @@ Checkbox_Sweep_Mode_State :: struct {
 }
 
 // Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
-checkbox_press_or_sweep_to_toggle :: (
-    state : *bool,
-    hovered : *bool,
-    label : *u8,
-    sweep_state : *Checkbox_Sweep_Mode_State,
-    window : *SDL_Window
-    ) -> bool {
+checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : *Checkbox_Sweep_Mode_State, window : *SDL_Window) -> bool {
 
     old_state := <<state;
     if ImGui.Checkbox(label, *old_state) { // @Hack Why do we need to pass old_state? To mimic a PressedOnClick checkbox? Explain this better/reimplement it
@@ -161,10 +155,6 @@ checkbox_press_or_sweep_to_toggle :: (
     // ImGui Rects position min in upper left and max in lower right
     checkbox_upper_left := make_Vector2(ImGui.GetItemRectMin());
     checkbox_lower_right := make_Vector2(ImGui.GetItemRectMax());
-
-    previous_frame_hovered := <<hovered;
-    <<hovered = ImGui.IsItemHovered(.RectOnly);
-    current_frame_hovered := <<hovered;
 
     // Enter checkbox sweep mode on lmb down
     if ImGui.IsItemClicked(.Left) {
@@ -201,11 +191,15 @@ checkbox_press_or_sweep_to_toggle :: (
         //     SDL_WarpMouseInWindow(window, sweep_state.mouse_max_x - margin, xx io().MousePos.y);
         // }
 
+        mouse_prev, mouse_curr := make_Vector2(io().MousePos) - make_Vector2(io().MouseDelta), io().MousePos;
+        prev_frame_hovered     := mouse_prev.y < checkbox_lower_right.y && mouse_prev.y > checkbox_upper_left.y;
+        curr_frame_hovered     := mouse_curr.y < checkbox_lower_right.y && mouse_curr.y > checkbox_upper_left.y;
+
         if io().KeyCtrl || io().KeyShift {
-            // When control/shift are pressed make the focus the hovered item, hiding others that are swept through
-            if !previous_frame_hovered && current_frame_hovered {
+            // When control/shift are pressed make the focus the y-hovered item, hiding others that are swept through
+            if !prev_frame_hovered && curr_frame_hovered {
                 <<state = true;
-            } else if previous_frame_hovered && !current_frame_hovered {
+            } else if prev_frame_hovered && !curr_frame_hovered {
                 <<state = false;
             }
             if io().KeyShift {
@@ -213,9 +207,8 @@ checkbox_press_or_sweep_to_toggle :: (
             }
         } else {
             // Update any checkbox intersecting the mouse sweep so none are missed if the mouse is moved a lot in a single frame
-            frame_sweep_start, frame_sweep_end := make_Vector2(io().MousePos) - make_Vector2(io().MouseDelta), io().MousePos;
-            swept_up   := frame_sweep_start.y < checkbox_lower_right.y && frame_sweep_end.y > checkbox_upper_left.y;
-            swept_down := frame_sweep_start.y > checkbox_upper_left.y  && frame_sweep_end.y < checkbox_lower_right.y;
+            swept_down := mouse_prev.y < checkbox_lower_right.y && mouse_curr.y > checkbox_upper_left.y;
+            swept_up   := mouse_prev.y > checkbox_upper_left.y  && mouse_curr.y < checkbox_lower_right.y;
             if swept_up || swept_down {
                 <<state = !sweep_state.state_to_set;
             }
