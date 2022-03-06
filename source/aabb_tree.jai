@@ -271,6 +271,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
         return; // parent is a leaf node
     }
 
+    // @Bug FIXME Changing this to modulo 2 triggers an assert for the flat shield mesh
     axis := depth % 3;
 
     primitive_info_range := array_view(tree.primitive_info, nodes[parent].range.first, nodes[parent].range.count);

@@ -151,7 +151,6 @@ main :: () {
         render_axes_triad(*triad);
         do_selection_mode();
 
-
         // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
 
         // Rendering

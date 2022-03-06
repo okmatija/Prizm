@@ -153,7 +153,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         sorted_by_depth : [..]Entity_At_Depth;
         defer array_free(sorted_by_depth);
 
-        // nocommit what the heck is going on, is depth the index??
+        // @Cleanup what the heck is going on, is depth the index??
         for entity, depth : entity_at_depth {
             entry := array_add(*sorted_by_depth);
             entry.depth = depth;

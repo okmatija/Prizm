@@ -501,11 +501,11 @@ render_entities :: () {
                 mesh := cast(*Mesh_Entity) entity;
                 render_mesh_points(*mesh.mesh, ri, di);
                 if do_clip_radius_mode() {
-                    di.wireframe_visible, di.wireframe_width = true, 1.5;
+                    di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
                 }
                 render_mesh_triangles(*mesh.mesh, ri, di);
                 if do_clip_radius_mode() {
-                    di.wireframe_visible, di.wireframe_width = true, 1.0;
+                    di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
                 } else if di.surface_visible && di.wireframe_width >= 1 {
                     // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
                     // smooth version drawn in the render_mesh_triangles call
