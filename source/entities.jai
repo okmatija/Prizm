@@ -8,6 +8,8 @@ Entity_Type :: enum {
     UNKNOWN;
 }
 
+// @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
+
 Entity :: struct {
     type : Entity_Type = .UNKNOWN;
 

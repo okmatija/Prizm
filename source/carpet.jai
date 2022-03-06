@@ -97,40 +97,6 @@ log_warning :: (format_string: string, args: .. Any, loc := #caller_location, fl
     log(format_string, ..args, loc, new_flags, user_flags);
 } @PrintLike
 
-// Returns a sorted array given a function mapping array elements to scalar values
-// @Duplication This is copied from the Sort.jai module and modified to pass some user data to the scalar mapping function
-// @Refactor Use a Code parameter and make this a macro (see jblow's suggestions in the discord)
-quick_sort_with_user_data :: (array: [] $T, f: (T, *void) -> $R, user_data : *void) -> [] T {
-    quicksort_helper :: (a: *$T, n: s64, f: (T, *void) -> $R, user_data : *void) {
-        if n < 2 return;
-
-        p := a[n / 2];
-
-        i := 0;
-        j := n-1;
-
-        while true {
-            fp := f(p, user_data);
-            while f(a[i], user_data) < fp  {i += 1;}
-            while fp < f(a[j], user_data)  {j -= 1;}
-
-            if i >= j break;
-
-            t := a[i];
-            a[i] = a[j];
-            a[j] = t;
-
-            i += 1;
-            j -= 1;
-        }
-
-        quicksort_helper(a, i, f, user_data);
-        quicksort_helper(a + i, n - i, f, user_data);
-    }
-
-    quicksort_helper(array.data, array.count, f, user_data);
-    return array;
-}
 
 //
 // ImGui Widgets

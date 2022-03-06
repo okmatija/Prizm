@@ -22,13 +22,14 @@ AABB_Tree :: struct(Shape : Type) {
 
     // Implment round-robin object median split?
 
-    LEAF_MAX_PRIMITIVES_COUNT :: 32; // nocommit @Incomplete make this configurable e.g., see Hash_Table.jai implementation
+    LEAF_MAX_PRIMITIVES_COUNT :: 32; // @Incomplete make this configurable e.g., see Hash_Table.jai implementation
 
     // Types that depend on the Shape (Index is included since its interpretation depends on the Shape)
     // @CompilerBug Unable to use #run syntactic abbreviation here
     Primitive, Vector, AABB :: #run () -> (Type, Type, Type) {
         if Shape == {
-            case; compiler_report(tprint("AABB_Tree unsupported for shape with type '%'.", Shape)); #through;
+            case; compiler_report(tprint("AABB_Tree unsupported for shape with type '%'.", Shape));
+            #through; // So all control paths return a value
 
             case Polyline_Soup3; return Segment3,  Vector3, AxisBox3;
             case Polyline_Soup2; return Segment2,  Vector3, AxisBox3;
@@ -138,6 +139,7 @@ deinit :: (using tree : *$T/AABB_Tree) {
     array_reset(*nodes);
 }
 
+// @Refactor make this a macro and implement the filters as Code
 // @CompilerBug We need to pass a pointer to the tree here due to a bug??
 first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, primitive_filter : tree.Primitive_Filter = .{}, intersection_filter : tree.Intersection_Filter = .{}) -> is_hit : bool, tree.Intersection_Ray3_Primitive {
     result : Intersection_Ray3_Primitive;
@@ -264,21 +266,38 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
         return; // parent is a leaf node
     }
 
-    Compare_Data :: struct {
-        axis : int;
-    }
-
-    compare_data : Compare_Data;
-    compare_data.axis = depth % 3;
-
-    info_to_scalar :: (info : T.Primitive_Info, data : *void) -> float {
-        using compare_data := cast(*Compare_Data)data;
-        return info.center.component[axis];
-    }
+    axis := depth % 3;
 
     primitive_info_range := array_view(tree.primitive_info, nodes[parent].range.first, nodes[parent].range.count);
-    primitive_info_range = quick_sort_with_user_data(primitive_info_range, info_to_scalar, *compare_data);
-    // primitive_info_range = quick_sort(primitive_info_range, x=>x.center.component[depth%3]); // @CompilerBug infinite loop in the compiler here??
+
+    interval : [2]float = .[FLOAT32_MAX, -FLOAT32_MAX];
+    for *info : primitive_info_range {
+        interval[0] = min(interval[0], info.center.component[axis]);
+        interval[1] = max(interval[1], info.center.component[axis]);
+    }
+
+    midindex := primitive_info_range.count  / 2; // Default to object median split
+
+    if abs(interval[1] - interval[0]) > 1.e-6 {
+        // Partition at midpoint by walking inwards from each side swapping if primitive center < midpoint
+        midpoint := (interval[1] + interval[0]) / 2;
+        lower, upper := 0, primitive_info_range.count-1;
+        while lower < upper {
+            while primitive_info_range[lower].center.component[axis] <= midpoint {
+                lower += 1;
+            }
+            while primitive_info_range[upper].center.component[axis] >  midpoint {
+                upper -= 1;
+            }
+            if lower >= upper {
+                break;
+            } else {
+                primitive_info_range[lower], primitive_info_range[upper] = swap(primitive_info_range[lower], primitive_info_range[upper]);
+            }
+        }
+
+        midindex = lower;
+    }
 
     iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
 
@@ -288,7 +307,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
         child_lhs := array_add(*tree.nodes);
 
         child_lhs.range.first = nodes[parent].range.first;
-        child_lhs.range.count = primitive_info_range.count / 2;
+        child_lhs.range.count = midindex;
         for :iterator child_lhs.range {
             expand(*child_lhs.aabb, it.aabb);
         }
@@ -297,11 +316,11 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
     child_rhs_index : int = -1;
     {
-        // Scoping intentional here, previous child_lhs is invalid because tree.nodes may resize
-        child_lhs := tree.nodes[child_lhs_index];
-
         child_rhs_index = tree.nodes.count;
         child_rhs := array_add(*tree.nodes);
+
+        // Scoping intentional here, previous child_lhs is invalid because tree.nodes may resize
+        child_lhs := tree.nodes[child_lhs_index];
 
         child_rhs.range.first = child_lhs.range.first + child_lhs.range.count;
         child_rhs.range.count = nodes[parent].range.count - child_lhs.range.count;
