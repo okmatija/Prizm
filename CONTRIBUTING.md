@@ -6,7 +6,7 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - Macro_Names
 - Structs_And_Types
 - COMPILE_TIME_CONSTANTS (including enum names)
-- Using a single space between an identifier and the ::, : or := (this makes searching declarations easier)
+- Using a single space between an identifier and the ::, : or := and don't use backslashes in identifiers. These rules are indended to make searching easier)
 
 # Release process
 

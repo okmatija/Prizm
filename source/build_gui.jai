@@ -90,6 +90,7 @@ build_gui :: (
             if chosen_build_mode {
                 using chosen_build_mode.build_options;
 
+                // @Refactor This can lookup a string in the Build_Options struct using reflection, so usage can be Check_Box("optimization_level"), and we insert the string as code, too
                 // Note: Use of get_ident_name is only possible at compile-time, so this code
                 // cannot be used at runtime which precludes debugging except via the bytecode
                 // debugger

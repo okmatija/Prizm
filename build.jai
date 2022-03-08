@@ -70,7 +70,7 @@ build :: () {
     build_mode_found : bool;
     if Has_Argument("custom") {
         print("[Prism] Compiling with custom build options.\n");
-        build_mode, build_mode_found = table_find(preset_build_modes, "debug");
+        build_mode, build_mode_found = table_find(preset_build_modes, "debug"); // Start from debug options
         build_gui(preset_build_modes, chosen_build_mode=*build_mode);
     } else if Has_Argument("release") {
         print("[Prism] Compiling with release build options.\n");
