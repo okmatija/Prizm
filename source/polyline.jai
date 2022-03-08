@@ -101,7 +101,7 @@ segment_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
-point_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
+Point_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
     `it_index := -1;
 
@@ -119,7 +119,7 @@ point_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flag
     }
 }
 
-segment_iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
+Segment_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.
 
     `it_index := -1;

@@ -70,7 +70,7 @@ do_selection_mode :: () {
         new_sphere.radius = speed * d;
 
         entity.display_info.clip_sphere = new_sphere;
-        for :selected app.entities {
+        for :Selected app.entities {
             it.display_info.clip_sphere = new_sphere;
         }
         app.selection_display_info.clip_sphere = new_sphere;
@@ -107,7 +107,7 @@ do_selection_mode :: () {
                 // @Cleanup Make this into two calls to an update sphere function!
                 entity.display_info.clip_sphere = new_sphere;
                 entity.display_info.clip_sphere_prev = old_sphere;
-                for :selected app.entities {
+                for :Selected app.entities {
                     it.display_info.clip_sphere = new_sphere;
                     it.display_info.clip_sphere_prev = old_sphere;
                 }
@@ -122,7 +122,7 @@ do_selection_mode :: () {
 
                 // Compute the bounding sphere of the points in the scene
                 sphere.radius = 0;
-                for :visible entity : app.entities {
+                for :Visible entity : app.entities {
                     for * entity.mesh.positions {
                         p := (entity.mesh.world_from_model * make_vector4(it, 1.)).xyz;
                         sphere.radius = max(sphere.radius, length_squared(closest.position - p));

@@ -69,8 +69,7 @@ AABB_Tree :: struct(Shape : Type) {
         primitive_id : Primitive_Id = -1;
     }
 
-    // @Cleanup Rename to Primitive_Info_Iterator
-    primitive_info_iterator :: (range : *Primitive_Range, body : Code, flags : For_Flags) #expand {
+    Primitive_Info_Iterator :: (range : *Primitive_Range, body : Code, flags : For_Flags) #expand {
         #assert(flags == 0);
         for i : 0..range.count-1 {
             `it_index := range.first + i;
@@ -128,12 +127,12 @@ init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
         info.primitive_id = it; // tree.primitive_info will get jumbled
     }
 
-    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
 
     root := array_add(*tree.nodes);
     root.range.first = 0;
     root.range.count = tree.primitive_info.count;
-    for :iterator root.range expand(*root.aabb, it.aabb);
+    for :Iterator root.range expand(*root.aabb, it.aabb);
     build(tree, 0, 0);
 }
 
@@ -157,7 +156,7 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
     stack : [..]int;
     defer array_reset(*stack);
 
-    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
 
     root := *tree.nodes[0];
     root_hit_aabb, root_t_aabb, root_point_aabb := find_intersect_aabb_ray3(root.aabb, ray);
@@ -173,7 +172,7 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
 
             // Visit primitives in leaf node
 
-            for :iterator info : node.range {
+            for :Iterator info : node.range {
                 primitive := get_primitive(tree, info.primitive_id);
 
                 if primitive_filter.proc && primitive_filter.proc(ray, info.primitive_id, primitive, primitive_filter.data) {
@@ -235,7 +234,7 @@ depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
         depth : int;
     }
 
-    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
 
     stack : [..]Entry;
     defer array_free(stack);
@@ -305,7 +304,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
         midindex = lower;
     }
 
-    iterator :: tree.primitive_info_iterator; // @Cleanup @CompilerBug Should be unecessary
+    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
 
     child_lhs_index : int = -1;
     {
@@ -314,7 +313,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
         child_lhs.range.first = nodes[parent].range.first;
         child_lhs.range.count = midindex;
-        for :iterator child_lhs.range {
+        for :Iterator child_lhs.range {
             expand(*child_lhs.aabb, it.aabb);
         }
     }
@@ -330,7 +329,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
         child_rhs.range.first = child_lhs.range.first + child_lhs.range.count;
         child_rhs.range.count = nodes[parent].range.count - child_lhs.range.count;
-        for :iterator child_rhs.range {
+        for :Iterator child_rhs.range {
             expand(*child_rhs.aabb, it.aabb);
         }
 

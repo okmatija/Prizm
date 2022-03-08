@@ -546,7 +546,7 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
 
-                for :point_iterator soup.shape {
+                for :Point_Iterator soup.shape {
                     if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
                     if <<label_limit <= 0 continue; <<label_limit -= 1;
 
@@ -555,7 +555,7 @@ render_entities :: () {
                     render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                 }
 
-                for :segment_iterator soup.shape {
+                for :Segment_Iterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, make_vector3(centroid, 0)) continue;
                     if <<label_limit <= 0 continue; <<label_limit -= 1;
@@ -569,7 +569,7 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
 
-                for :point_iterator soup.shape {
+                for :Point_Iterator soup.shape {
                     if is_clipped(entity.display_info, it) continue;
                     if <<label_limit <= 0 continue; <<label_limit -= 1;
 
@@ -578,7 +578,7 @@ render_entities :: () {
                     render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                 }
 
-                for :segment_iterator soup.shape {
+                for :Segment_Iterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, centroid) continue;
                     if <<label_limit <= 0 continue; <<label_limit -= 1;
@@ -642,7 +642,7 @@ render_entities :: () {
                    render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                }
 
-               for :triangles_iterator mesh.mesh {
+               for :Triangles_Iterator mesh.mesh {
                    centroid := (it.a + it.b + it.c) / 3;
                    if is_clipped(entity.display_info, centroid) continue;
                    if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
@@ -658,21 +658,21 @@ render_entities :: () {
     is_visible_transparent :: (e : *Entity) -> bool { return e.is_visible && !e.is_hovered && e.display_info.surface_color.w != 1.; }
     is_visible_hovered ::     (e : *Entity) -> bool { return e.is_visible &&  e.is_hovered; }
 
-    visible_opaque ::      #bake_arguments entities_iterator(should_visit = is_visible_opaque);
-    visible_transparent :: #bake_arguments entities_iterator(should_visit = is_visible_transparent);
-    visible_hovered ::     #bake_arguments entities_iterator(should_visit = is_visible_hovered);
+    Visible_Opaque ::      #bake_arguments Entities_Iterator(should_visit = is_visible_opaque);
+    Visible_Transparent :: #bake_arguments Entities_Iterator(should_visit = is_visible_transparent);
+    Visible_Hovered ::     #bake_arguments Entities_Iterator(should_visit = is_visible_hovered);
 
-    for :visible_opaque      app.entities render_entity_geometry(it);
-    for :visible_transparent app.entities render_entity_geometry(it);
+    for :Visible_Opaque      app.entities render_entity_geometry(it);
+    for :Visible_Transparent app.entities render_entity_geometry(it);
 
     glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
 
     label_limit : int = app.label_limit;
-    for :visible_opaque      app.entities render_entity_text(it, *label_limit);
-    for :visible_transparent app.entities render_entity_text(it, *label_limit);
-    for :visible_hovered     app.entities render_entity_text(it, *label_limit);
+    for :Visible_Opaque      app.entities render_entity_text(it, *label_limit);
+    for :Visible_Transparent app.entities render_entity_text(it, *label_limit);
+    for :Visible_Hovered     app.entities render_entity_text(it, *label_limit);
 
-    for :visible_hovered     app.entities render_entity_geometry(it);
+    for :Visible_Hovered     app.entities render_entity_geometry(it);
 }
 
 render_background :: () {

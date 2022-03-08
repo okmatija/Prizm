@@ -27,7 +27,7 @@ area :: (using ring : Ring) -> float {
     // See http://geomalgorithms.com/a01-_area.html#2D%20Polygons
     // A more efficient version needs to iterate over triples of vertices
     area := 0.;
-    for :edge_iterator edge, index : ring {
+    for :Edge_Iterator edge, index : ring {
         using edge;
         area += (from_point.x + to_point.x) * (to_point.y - from_point.y);
     }
@@ -87,7 +87,7 @@ point_count :: (using polygon : Polygon) -> int {
 // Iterators.
 //
 
-point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags) #expand {
+Point_Iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
     #if flags & .POINTER {
     `it : *Vector2 = ---;
@@ -113,10 +113,10 @@ point_iterator :: (using polygon : *Polygon, body : Code, flags : For_Flags) #ex
     }
 }
 
-// point_forward_iterator :: #bake_arguments point_iterator(reverse=false);
-// point_reverse_iterator :: #bake_arguments point_iterator(reverse=true);
+// Point_Forward_Iterator :: #bake_arguments Point_Iterator(reverse=false);
+// Point_Reverse_Iterator :: #bake_arguments Point_Iterator(reverse=true);
 
-edge_iterator :: (using ring : *Ring, body : Code, flags : For_Flags) #expand {
+Edge_Iterator :: (using ring : *Ring, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.
 
     edge_count := points.count - 1;
@@ -165,8 +165,8 @@ point_count :: (using polygon_soup : Polygon_Soup) -> int {
     return count;
 }
 
-// Untested
-point_iterator :: (using soup : *Polygon_Soup, body : Code, flags : For_Flags) #expand {
+// Warning: Untested
+Point_Iterator :: (using soup : *Polygon_Soup, body : Code, flags : For_Flags) #expand {
 
     BY_POINTER :: cast(bool)(flags & .POINTER);
     #if flags & .POINTER {

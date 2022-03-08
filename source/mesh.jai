@@ -10,7 +10,7 @@ Mesh :: struct {
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
 }
 
-triangle_tuples_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+Triangle_Tuples_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
 
     for i : 0..(mesh.indices.count/3)-1 {
@@ -20,8 +20,9 @@ triangle_tuples_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags)
     }
 }
 
-triangles_iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+Triangles_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
+    assert(mesh.geometry_format == .TRIANGLES);
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;

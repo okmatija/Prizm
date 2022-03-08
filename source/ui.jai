@@ -312,7 +312,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         } else {
             if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s"))) {
                 defer ImGui.TreePop();
-                for :selected app.entities {
+                for :Selected app.entities {
                     if it.fully_pathed_filename.count {
                         if ImGui.Button(imgui_label("Reload", it)) {
                             app.entities[it_index] = reload_entity(it);
@@ -324,7 +324,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 }
 
                 if ImGui.Button("Reload Selection") {
-                    for :selected app.entities {
+                    for :Selected app.entities {
                         app.entities[it_index] = reload_entity(it);
                     }
                     // ImGui.CloseCurrentPopup();
@@ -332,7 +332,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                 ImGui.SameLine();
                 if ImGui.Button("Clear Selection") {
-                    for :selected app.entities {
+                    for :Selected app.entities {
                         it.is_selected = false;
                     }
                     ImGui.CloseCurrentPopup();
@@ -340,7 +340,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             }
 
             selection_aabb : AxisBox3;
-            for :selected app.entities {
+            for :Selected app.entities {
                 maybe_update_render_info(*it.render_info, *it.mesh);
                 // @Volatile @Cleanup only works for a shift
                 aabb := it.render_info.bounding_aabb;
@@ -351,7 +351,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             set := display_info_ui(*app.selection_display_info, selection_aabb);
 
-            for :selected app.entities {
+            for :Selected app.entities {
                 other := *app.selection_display_info;
                 using it.display_info;
 
@@ -877,7 +877,7 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                     if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
                         p.min = POSITIVE_INF;
                         p.max = NEGATIVE_INF;
-                        for :corners_iterator aabb {
+                        for :Corners_Iterator aabb {
                             plane := make_hyperplane3(p.normal, Vector3.{0, 0, 0});
                             dist := signed_distance_point3_plane3(it, plane);
                             p.min = min(p.min, dist);

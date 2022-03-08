@@ -19,7 +19,7 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
         return;
     }
 
-    Iterator :: spatial.primitive_info_iterator; // @Cleanup
+    Iterator :: spatial.Primitive_Info_Iterator; // @Cleanup
 
     if jumbo_item {
         // Put all AABBs into a single polyline soup

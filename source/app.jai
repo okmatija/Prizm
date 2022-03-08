@@ -95,7 +95,7 @@ current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;
 }
 
-entities_iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, should_visit : (*Entity)->bool) #expand {
+Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, should_visit : (*Entity)->bool) #expand {
     #assert(flags == 0); // No options are supported
 
     for entity, entity_index : <<entities {
@@ -107,8 +107,8 @@ entities_iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, s
     }
 }
 
-visible :: #bake_arguments entities_iterator(should_visit = (e)=>(e.is_visible));
-selected :: #bake_arguments entities_iterator(should_visit = (e)=>(e.is_selected));
+Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_visible));
+Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected));
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {

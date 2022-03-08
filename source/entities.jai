@@ -372,7 +372,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     result : Point_On_Entity;
 
-    visible_selectable_mesh :: #bake_arguments entities_iterator(should_visit = (e) => (
+    Visible_Selectable_Mesh :: #bake_arguments Entities_Iterator(should_visit = (e) => (
             e.is_visible &&
             e.type == .MESH &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
@@ -428,12 +428,12 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         return dot_product(compute_normal(tri), ray.direction) > 0;
     }
 
-    for :visible_selectable_mesh entity, entity_index : app.entities {
+    for :Visible_Selectable_Mesh entity, entity_index : app.entities {
         entity_mesh := cast(*Mesh_Entity)entity;
 
         if entity_mesh.spatial == null {
 
-            for :triangles_iterator triangle, triangle_index : entity.mesh {
+            for :Triangles_Iterator triangle, triangle_index : entity.mesh {
                 Process_Triangle();
             }
 
@@ -471,7 +471,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     d_min := FLOAT32_INFINITY;
     if (has_degenerate_triangles) {
-        for :visible_selectable_mesh entity, entity_index : app.entities {
+        for :Visible_Selectable_Mesh entity, entity_index : app.entities {
             for i : 0..(entity.mesh.indices.count/3)-1 {
 
                 triangle : Triangle3;
@@ -516,16 +516,16 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     }
 
 
-    visible_selectable_polyline_soup3 :: #bake_arguments entities_iterator(should_visit = (e) => (
+    Visible_Selectable_Polyline_Soup3 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
             e.is_visible &&
             e.type == .POLYLINE_SOUP3 &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
 
-    for :visible_selectable_polyline_soup3 entity, entity_index : app.entities {
+    for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
         // @Incomplete If available, use the spatial index
-        for :segment_iterator segment, segment_index : soup.shape {
+        for :Segment_Iterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = <<segment.from_point;
             segment3.end = <<segment.to_point;
@@ -552,16 +552,16 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
 
 
-    visible_selectable_polyline_soup2 :: #bake_arguments entities_iterator(should_visit = (e) => (
+    Visible_Selectable_Polyline_Soup2 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
             e.is_visible &&
             e.type == .POLYLINE_SOUP2 &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
 
-    for :visible_selectable_polyline_soup2 entity, entity_index : app.entities {
+    for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
         // @Incomplete If available, use the spatial index
-        for :segment_iterator segment, segment_index : soup.shape {
+        for :Segment_Iterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
             segment3.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
@@ -616,7 +616,7 @@ reload_entity :: (entity : *Entity) -> *Entity {
 
 num_selected_entities :: () -> int {
     count := 0;
-    for :selected app.entities {
+    for :Selected app.entities {
         count += 1;
     }
     return count;

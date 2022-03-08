@@ -422,7 +422,7 @@ visible_entities_bounding_sphere_fast :: () -> Sphere
     result : Sphere;
 
     first := true;
-    for :visible app.entities {
+    for :Visible app.entities {
         expand_sphere(*result, *it.mesh, *it.render_info, it.display_info, first);
         first = false;
     }
@@ -440,7 +440,7 @@ visible_entities_bounding_sphere_accurate :: () -> Sphere
 {
     // Compute the bounding sphere the points in the scene
     points_vs : [..]Point3;
-    for :visible entity : app.entities {
+    for :Visible entity : app.entities {
 
         warn := false;
         for entity.display_info.clip_ranges if it.is_active warn = true;

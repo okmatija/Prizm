@@ -250,7 +250,7 @@ clear_all_labels :: (target : Target_Items) {
 cycle_selection_point_index_labels :: () {
     app_style := *app.selection_display_info.vertex_label_style;
     app_style.show_index = !app_style.show_index;
-    for :selected app.entities {
+    for :Selected app.entities {
         it.display_info.vertex_label_style.show_index = app_style.show_index;
     }
 }
@@ -258,7 +258,7 @@ cycle_selection_point_index_labels :: () {
 cycle_selection_point_position_labels :: () {
     app_style := *app.selection_display_info.vertex_label_style;
     app_style.show_position = !app_style.show_position;
-    for :selected app.entities {
+    for :Selected app.entities {
         it.display_info.vertex_label_style.show_position = app_style.show_position;
     }
 }

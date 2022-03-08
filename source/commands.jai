@@ -205,7 +205,7 @@ find_open_edges :: (index : int) {
         return;
     }
 
-    for :triangle_tuples_iterator mesh {
+    for :Triangle_Tuples_Iterator mesh {
         Process_Edge :: (i : u32, j : u32) #expand {
             edge := make_Tuple2(i, j);
             value, found := table_find(edge_to_origin, edge);
@@ -289,21 +289,21 @@ perturb_positions :: (index : int, radius : float = .001) {
     if #complete base.type == {
         case .POLYLINE_SOUP2;
             entity := cast(*Polyline_Soup2_Entity)base;
-            for * :point_iterator point : entity.shape {
+            for * :Point_Iterator point : entity.shape {
                 Perturb2(point);
             }
             entity.mesh = to_Mesh(entity.shape);
         case .POLYGON_SOUP;
             entity := cast(*Polygon_Soup_Entity)base;
             for polygon : entity.shape.polygons {
-                for * :point_iterator point : polygon {
+                for * :Point_Iterator point : polygon {
                     Perturb2(point);
                 }
             }
             entity.mesh = to_Mesh(entity.shape);
         case .POLYLINE_SOUP3;
             entity := cast(*Polyline_Soup3_Entity)base;
-            for * :point_iterator point : entity.shape {
+            for * :Point_Iterator point : entity.shape {
                 Perturb3(point);
             }
             entity.mesh = to_Mesh(entity.shape);
