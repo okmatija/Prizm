@@ -154,11 +154,12 @@ init_keymap :: () {
     // Reserved! Do not change this binding
     add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
 
-    add_key :: (keymap : *Keymap, proc : ()->(),
+    add_key :: (keymap : *Keymap,
+                proc : ()->(),
                 name : string,
                 key_code : u32,
                 modifier_flags : Modifier_Flags = .{},
-                override_WantCaptureKeyboard := false,
+                override_WantCaptureKeyboard := false, // @Refactor, remove this boolean and have a separate array of bindings with this bool as true
                 loc := #caller_location) {
 
         // Check that the binding is available
