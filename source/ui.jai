@@ -471,17 +471,34 @@ show_camera_controls :: () {
         }
     }
 
-    ImGui.SetNextItemWidth(-FLOAT32_MIN);
-    combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-    Show_Tooltip("Alt RMB Camera Rotation Axis");
+    // @FIXME Having this combo box here screws up the UI when you close the Settings tree :(
+    // ImGui.SetNextItemWidth(-FLOAT32_MIN);
+    // combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+    // Show_Tooltip("Alt RMB Camera Rotation Axis");
 
-    if app.camera.look_position != Vector3.{0, 0, 0} {
-        size_of_last_item := ImGui.GetItemRectSize();
-        if ImGui.Button("Reset Orbit", size=size_of_last_item) {
-            look_direction := current_look_direction();
-            app.camera.look_position = .{0, 0, 0};
-            app.camera.eye_position = app.camera.look_position - look_direction;
-        }
+    if ImGui.TreeNodeEx("Settings") {
+        defer ImGui.TreePop();
+
+        // @TODO Would be better to set the look direction vector I think
+        ImGui.DragFloat( "Near ", *app.camera.near, .05);
+        ImGui.DragFloat( "Far  ", *app.camera.far, .05);
+        ImGui.DragFloat3("Orbit", *app.camera.look_position.component);
+        ImGui.DragFloat3("Eye  ", *app.camera.eye_position.component);
+        ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
+
+        ImGui.SetNextItemWidth(-FLOAT32_MIN);
+        combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+        Show_Tooltip("Alt RMB Camera Rotation Axis");
+
+        // Not really needed if you can explicitly set the orbit position
+        // if app.camera.look_position != Vector3.{0, 0, 0} {
+        //     size_of_last_item := ImGui.GetItemRectSize();
+        //     if ImGui.Button("Reset Orbit", size=size_of_last_item) {
+        //         look_direction := current_look_direction();
+        //         app.camera.look_position = .{0, 0, 0};
+        //         app.camera.eye_position = app.camera.look_position - look_direction;
+        //     }
+        // }
     }
 
     // @Incomplete add perspective/orthographic toggle

@@ -4,6 +4,7 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
 - Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
 - Added `focus_on_triangle` and `focus_on_vertex` commands to position the camera so the triangle/vertex of index mostly fills the screen
 - Added an experimental @KnownIssue note which can be attached to top-level constant string declarations which describe known issues in the code, these issues can be viewed in the help menu
+- Added a Settings menu to the camera control UI to expose fine control over the camera. Probably control over the look direction would be better than eye/up control but... I'll do that later
 - Fixed labels not clipping against clipping volumes
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed a crash when requesting point label rendering for point clouds
