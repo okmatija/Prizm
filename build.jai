@@ -112,10 +112,15 @@ build :: () {
                     return false;
                 }
 
+                // @Cleanup
+                has_note :: (header: *Code_Declaration, note: string) -> bool {
+                    for header.notes  if it.text == note  return true;
+                    return false;
+                }
+
                 if message.kind == {
                     case .TYPECHECKED;
-                        do_error_checking(message);
-                        // do_error_checking(message, check_bindings=true); // @Cleanup fix these errors
+                        do_error_checking(message, check_bindings=true);
 
                         typechecked := cast(*Message_Typechecked) message;
 
@@ -123,6 +128,20 @@ build :: () {
                             header := tc.expression;
                             if has_note(header, "RegisterCommand") {
                                 array_add(*registered_console_commands, header);
+                            }
+                        }
+
+                        for tc: typechecked.declarations {
+                            decl := tc.expression;
+                            if decl.expression && decl.expression.kind == .LITERAL && has_note(decl, "KnownIssue") {
+                                literal := cast(*Code_Literal)decl.expression;
+                                if decl.flags == .IS_CONSTANT && literal.value_type == .STRING {
+                                    array_add(*registered_known_issues, decl);
+                                    // print("%", message.fully_pathed_filename);
+                                    // print("Found issue '%' (%)\n", literal._string, decl.name);
+                                } else {
+                                    compiler_report("@KnownIssue note only allowed on constant string declarations");
+                                }
                             }
                         }
 
@@ -134,6 +153,7 @@ build :: () {
                                     build_gui(preset_build_modes, chosen_console_commands=*registered_console_commands);
                                 }
                                 generate_code_to_register_console_commands(message.workspace);
+                                generate_code_to_register_known_issues(message.workspace);
                                 generated_code = true;
                             }
                         }
@@ -155,24 +175,44 @@ Build_Mode :: struct {
 
 preset_build_modes : Table(string, Build_Mode);
 
+// @Refactor
+// - Make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
+// - Rename to Add_Line
+Print :: (format_string : string, args : ..Any) #expand {
+    print_to_builder(*`builder, format_string, ..args);
+}
+
+registered_known_issues : [..]*Code_Declaration;
+
+generate_code_to_register_known_issues :: (w : Workspace) {
+    builder: String_Builder;
+    defer free_buffers(*builder);
+    Print("init_known_issues :: () {\n");
+    for decl : registered_known_issues {
+        if decl.expression && decl.expression.kind == .LITERAL {
+            literal := cast(*Code_Literal)decl.expression;
+            if decl.flags == .IS_CONSTANT && literal.value_type == .STRING {
+                Print("    array_add(*app.known_issues, .{\"%\", \"%\"});\n", decl.name, literal._string);
+            }
+        }
+    }
+    Print("    quick_sort(app.known_issues, (a,b)=>compare_strings(a.name, b.name));\n");
+    Print("}\n");
+
+    add_build_string(builder_to_string(*builder), w);
+}
+
 generated_code := false;
 registered_console_commands : [..]*Code_Procedure_Header;
 
 generate_code_to_register_console_commands :: (w : Workspace) {
 
-    // @Refactor
-    // - Make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
-    // - Rename to Add_Line
-    Print :: (format_string : string, args : ..Any) #expand {
-        print_to_builder(*builder, format_string, ..args);
-    }
-
     // @Cleanup
-#if OS == .WINDOWS {
-    SEPARATOR :: "\r\n";
-} else {
-    SEPARATOR :: "\n";
-}
+    #if OS == .WINDOWS {
+        SEPARATOR :: "\r\n";
+    } else {
+        SEPARATOR :: "\n";
+    }
 
     builder: String_Builder;
     defer free_buffers(*builder);

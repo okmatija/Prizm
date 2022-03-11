@@ -108,6 +108,7 @@ main :: () {
     init_commands();
     init_keymap();
     init_changelog();
+    init_known_issues();
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();

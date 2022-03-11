@@ -85,10 +85,16 @@ App :: struct {
 
 
     Version :: struct {
-        name : string;
-        changes : string;
+        name :        string;
+        description : string;
     }
     changelog : [..]Version;
+
+    Known_Issue :: struct {
+        name :        string;
+        description : string;
+    }
+    known_issues : [..]Known_Issue;
 }
 
 current_window_aspect_ratio_width_over_height :: () -> float {

@@ -611,7 +611,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-            ImGui.TextWrapped(latest.changes);
+            ImGui.TextWrapped(latest.description);
             ImGui.PopStyleColor();
         }
 
@@ -621,9 +621,20 @@ show_help_ui :: (world_axes : *Axes_Triad) {
                 defer ImGui.TreePop();
 
                 ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-                ImGui.TextWrapped(version.changes);
+                ImGui.TextWrapped(version.description);
                 ImGui.PopStyleColor();
             }
+        }
+    }
+
+    if ImGui.TreeNodeEx("KNOWN ISSUES") {
+        defer ImGui.TreePop();
+        for app.known_issues {
+            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+            ImGui.TextWrapped(it.name);
+            ImGui.PopStyleColor();
+            ImGui.SameLine();
+            ImGui.TextWrapped(it.description);
         }
     }
 

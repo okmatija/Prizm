@@ -7,6 +7,7 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
 - Fixed a crash when requesting point label rendering for point clouds
 - Fixed a bug where changes to the float labelling format on a selection of elements was ignored
 - Fixed a performance problem caused by a missing early-out of text rendering code
+- Added an experimental @KnownIssue note which can be attached to top-level constant string declarations which describe known issues in the code, these issues can be viewed in the help menu
 - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
 - Various minor UI improvements related to window positioning, colors and tooltips
 DONE
