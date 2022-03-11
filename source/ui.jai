@@ -165,9 +165,9 @@ show_item_list_ui :: () {
             any_visibility_changed = any_visibility_changed || visibility_changed;
 
             SELECTION_MODE_TOOLTIP :: #string DONE
-C-LMB Add nearest unclipped vertex to Selection item
-S-LMB Click-drag to set clipping sphere on selected items
-C-RMB Place camera orbit
+Ctrl LMB  Add nearest unclipped vertex to Selection item
+Ctrl RMB  Place camera orbit
+Shift LMB Click-drag to set clipping sphere on selected items
 DONE // @Volatile Keep synced with keymap
             Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Show Selection\nEnable Selection and Clipping Modes");
         }
@@ -473,7 +473,7 @@ show_camera_controls :: () {
 
     ImGui.SetNextItemWidth(-FLOAT32_MIN);
     combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-    Show_Tooltip("C-RMB Camera Rotation Axis");
+    Show_Tooltip("Alt RMB Camera Rotation Axis");
 
     if app.camera.look_position != Vector3.{0, 0, 0} {
         size_of_last_item := ImGui.GetItemRectSize();
@@ -517,9 +517,9 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.NextColumn(); ImGui.NextColumn();
         Show_Binding("MMB", "Pan the camera");
         Show_Binding("Scroll", "Zoom the camera into the position under the cursor");
-        Show_Binding("Ctrl-Scroll", "Zoom the camera into the camera look position");
+        Show_Binding("Ctrl Scroll", "Zoom the camera into the camera look position");
         Show_Binding("RMB", "Rotate the camera");
-        Show_Binding("Alt-RMB", "Rotate about selected axis in the camera control pane");
+        Show_Binding("Alt RMB", "Rotate about selected axis in the camera control pane");
     }
 
     // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
@@ -537,13 +537,13 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
         ImGui.NextColumn(); ImGui.NextColumn();
         Show_Binding("LMB", "(on a filename) Focus an item");
-        Show_Binding("Ctrl-LMB", "(on a filename) Select an item");
+        Show_Binding("Ctrl LMB", "(on a filename) Select an item");
         Show_Binding("RMB", "(on a filename) Access item/selection context menu");
         Show_Binding("RMB", "(on a color) Cycle shading styles");
         Show_Binding("MMB", "(on a color) Reset color from the filename");
         Show_Binding("LMB", "(sweep over visibility checkbox) Update item visibility");
-        Show_Binding("Ctrl-LMB", "(sweep over visibility checkbox) Focus hovered item");
-        Show_Binding("Shift-LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
+        Show_Binding("Ctrl LMB", "(sweep over visibility checkbox) Focus hovered item");
+        Show_Binding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
     }
 
     if Tree_Node_With_Tooltip("Key bindings for Selection Mode",
@@ -553,9 +553,9 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         defer ImGui.Columns(1);
         ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
         ImGui.NextColumn(); ImGui.NextColumn();
-        Show_Binding("Ctrl-LMB", "Add nearest unclipped vertex to 'Selection' item");
-        Show_Binding("Shift-LMB", "Click-drag to set clipping sphere");
-        Show_Binding("Ctrl-RMB", "Place camera orbit");
+        Show_Binding("Ctrl LMB", "Add nearest unclipped vertex to 'Selection' item");
+        Show_Binding("Shift LMB", "Click-drag to set clipping sphere");
+        Show_Binding("Ctrl RMB", "Place camera orbit");
     }
 
     if ImGui.TreeNodeEx("General key bindings", .DefaultOpen) {

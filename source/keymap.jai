@@ -49,9 +49,9 @@ Special_Key_Code :: enum u32 #specified {
 to_string :: (using mapping : Single_Key_Mapping) -> string {
     builder : String_Builder;
     defer free_buffers(*builder);
-    if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl-");
-    if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt-");
-    if modifier_flags.shift_pressed   print_to_builder(*builder, "Shift-");
+    if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl ");
+    if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt ");
+    if modifier_flags.shift_pressed   print_to_builder(*builder, "Shift ");
     if key_code == 32 {
         print_to_builder(*builder, "Space");
     } else if key_code > 32 {
