@@ -170,6 +170,92 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
+// Update the camera so that the triangle with the given `triangle_index`, belonging to the mesh
+// with the given `item_index`, fills the screen. The current look direction is preserved and the
+// orbit/focus of the camera is positioned on the triangle centroid.
+//
+// If `radius` is less than zero (the default) then 2x triangle bounding sphere radius is used to
+// update the camera, otherwise the given value is used as the bounding sphere radius.
+focus_on_triangle :: (item_index : int, triangle_index : int, radius := -1.) {
+
+    if !check_geometry_index(item_index) {
+        return;
+    }
+
+    entity := app.entities[item_index];
+
+    if entity.type != .MESH {
+        log_error("Expected MESH type item, got %.", entity.type);
+        return;
+    }
+
+    if entity.mesh.geometry_format != .TRIANGLES {
+        // @CompilerBug Using .TRIANGLES as the second argument crashed the compiler!
+        log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
+        return;
+    }
+
+    tid_max := element_count(entity.mesh) - 1;
+    if triangle_index < 0 || triangle_index > tid_max {
+        log_error("Expected a triangle index in the range [0, %], got %.", tid_max, triangle_index);
+        return;
+    }
+
+    tri := get_triangle(entity.mesh, triangle_index, true);
+
+    sphere : Sphere = ---;
+    sphere.center = (tri.a + tri.b + tri.c) / 3;
+
+    if radius >= 0 {
+        sphere.radius = radius;
+    } else {
+        sphere.radius = distance(sphere.center, tri.a);
+        sphere.radius = max(sphere.radius, distance(sphere.center, tri.b));
+        sphere.radius = max(sphere.radius, distance(sphere.center, tri.c));
+        sphere.radius *= 2;
+    }
+
+    look_length := dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position); // @Cleanup
+    fit_sphere_on_screen(sphere, look_length);
+
+} @RegisterCommand
+
+// Update the camera so that a sphere with the given `radius`, centered on the vertex with the given
+// `vertex_index`, belonging to the mesh with the given `item_index`, fills the screen. The current
+// look direction is preserved.
+focus_on_vertex :: (item_index : int, vertex_index : int, radius := 1.) {
+
+    if !check_geometry_index(item_index) {
+        return;
+    }
+
+    entity := app.entities[item_index];
+
+    if entity.type != .MESH {
+        log_error("Expected MESH type item, got %. Support for other item types is @Incomplete", entity.type);
+        return;
+    }
+
+    vid_max := entity.mesh.positions.count - 1;
+    if vertex_index < 0 || vertex_index >= vid_max {
+        log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
+        return;
+    }
+
+    if radius < 0 {
+        log_error("Expected a positive non-zero bounding sphere radius, got %.", radius);
+        return;
+    }
+
+    sphere : Sphere = ---;
+    sphere.center = entity.mesh.positions[vertex_index];
+    sphere.radius = radius;
+
+    look_length := dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position); // @Cleanup
+    fit_sphere_on_screen(sphere, look_length);
+
+} @RegisterCommand
+
 // Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `index`
 find_open_edges :: (index : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
