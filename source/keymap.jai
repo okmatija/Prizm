@@ -46,7 +46,7 @@ Special_Key_Code :: enum u32 #specified {
     F12     :: 22; // unused
 }
 
-to_string :: (using mapping : Single_Key_Mapping) -> string {
+to_string :: (key_code : u32, modifier_flags : Modifier_Flags) -> string {
     builder : String_Builder;
     defer free_buffers(*builder);
     if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl ");
@@ -80,7 +80,7 @@ to_string :: (using mapping : Single_Key_Mapping) -> string {
         case .F12;    print_to_builder(*builder, "F12");
     }
 
-    return builder_to_string(*builder);
+    return builder_to_string(*builder); // @Leak pass temp??
 }
 
 Keymap :: struct {
@@ -89,6 +89,29 @@ Keymap :: struct {
 
     mappings : [..] Single_Key_Mapping;
 }
+
+Operation :: struct {
+    proc : ()->();
+    description : string;
+    key_code : u32;
+    modifier_flags : Modifier_Flags = .{};
+}
+
+TOGGLE_CLIPPING_SELECTED_OP ::  Operation.{()=>{toggle_clipping(.SELECTED);},  "Toggle clipping on selected items", #char "c", .{}};
+TOGGLE_CLIPPING_ALL_ITEMS_OP :: Operation.{()=>{toggle_clipping(.ALL_ITEMS);}, "Toggle clipping on all items", #char "c", .{control_pressed=true}};
+TOGGLE_CLIPPING_VISIBLE_OP ::   Operation.{()=>{toggle_clipping(.VISIBLE);},   "Toggle clipping on visible items", #char "c", .{shift_pressed=true}};
+
+TOGGLE_NORMALS_SELECTED_OP ::  Operation.{()=>{toggle_normals_visibility(.SELECTED);},  "Toggle normals visibility for selected items", #char "n", .{}};
+TOGGLE_NORMALS_ALL_ITEMS_OP :: Operation.{()=>{toggle_normals_visibility(.ALL_ITEMS);}, "Toggle normals visibility for all items", #char "n", .{control_pressed=true}};
+TOGGLE_NORMALS_VISIBLE_OP ::   Operation.{()=>{toggle_normals_visibility(.VISIBLE);},   "Toggle normals visibility for visible items", #char "n", .{shift_pressed=true}};
+
+CYCLE_POINT_SIZE_SELECTED_OP ::  Operation.{()=>{cycle_point_size(.SELECTED);},  "Cycle point size for selected items", #char "p", .{}};
+CYCLE_POINT_SIZE_ALL_ITEMS_OP :: Operation.{()=>{cycle_point_size(.ALL_ITEMS);}, "Cycle point size for all items", #char "p", .{control_pressed=true}};
+CYCLE_POINT_SIZE_VISIBLE_OP ::   Operation.{()=>{cycle_point_size(.VISIBLE);},   "Cycle point size for visible items", #char "p", .{shift_pressed=true}};
+
+CYCLE_LINE_WIDTH_SELECTED_OP ::  Operation.{()=>{cycle_wireframe_width(.SELECTED);},  "Cycle line width for selected items", #char "l", .{}};
+CYCLE_LINE_WIDTH_ALL_ITEMS_OP :: Operation.{()=>{cycle_wireframe_width(.ALL_ITEMS);}, "Cycle line width for all items", #char "l", .{control_pressed=true}};
+CYCLE_LINE_WIDTH_VISIBLE_OP ::   Operation.{()=>{cycle_wireframe_width(.VISIBLE);},   "Cycle line width for visible items", #char "l", .{shift_pressed=true}};
 
 init_keymap :: () {
 
@@ -109,37 +132,39 @@ init_keymap :: () {
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
 
-    add_key(*app.keymap, reload_selection, "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
 
-    // @Volatile Sync with SELECTION_MODE_TOOLTIP
-    add_key(*app.keymap, ()=>{toggle_clipping(.SELECTED);}, "Toggle clipping on selected items", xx #char "c");
-    add_key(*app.keymap, ()=>{toggle_clipping(.ALL);},      "Toggle clipping on all      items", xx #char "c", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{toggle_clipping(.VISIBLE);},  "Toggle clipping on visible  items", xx #char "c", .{shift_pressed=true});
+    // add_key(*app.keymap, reload_selection(.SELECTED),  "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
+    // add_key(*app.keymap, reload_selection(.ALL_ITEMS), "Reload all items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
+    // add_key(*app.keymap, reload_selection(.VISIBLE),   "Reload selected items", xx Special_Key_Code.F5, override_WantCaptureKeyboard=true);
 
-    add_key(*app.keymap, ()=>{toggle_is_visible(.SELECTED);}, "Toggle visibility on selected items", xx #char "v");
-    add_key(*app.keymap, ()=>{toggle_is_visible(.ALL);},      "Toggle visibility on all      items", xx #char "v", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{toggle_is_visible(.VISIBLE);},  "Toggle visibility on visible  items (Hide all items)", xx #char "v", .{shift_pressed=true});
+    add_key(*app.keymap, TOGGLE_CLIPPING_SELECTED_OP);
+    add_key(*app.keymap, TOGGLE_CLIPPING_ALL_ITEMS_OP);
+    add_key(*app.keymap, TOGGLE_CLIPPING_VISIBLE_OP);
 
-    add_key(*app.keymap, ()=>{cycle_opacity(.SELECTED);}, "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
-    add_key(*app.keymap, ()=>{cycle_opacity(.ALL);},      "Cycle opacity 20%%/50%%/100%% for all      items", xx #char "o", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{cycle_opacity(.VISIBLE);},  "Cycle opacity 20%%/50%%/100%% for visible  items", xx #char "o", .{shift_pressed=true});
+    add_key(*app.keymap, TOGGLE_NORMALS_SELECTED_OP);
+    add_key(*app.keymap, TOGGLE_NORMALS_ALL_ITEMS_OP);
+    add_key(*app.keymap, TOGGLE_NORMALS_VISIBLE_OP);
 
-    add_key(*app.keymap, ()=>{cycle_normals_visibility(.SELECTED);}, "Cycle normals visibility for selected items", xx #char "n");
-    add_key(*app.keymap, ()=>{cycle_normals_visibility(.ALL);},      "Cycle normals visibility for all      items", xx #char "n", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{cycle_normals_visibility(.VISIBLE);},  "Cycle normals visibility for visible  items", xx #char "n", .{shift_pressed=true});
+    add_key(*app.keymap, CYCLE_POINT_SIZE_SELECTED_OP);
+    add_key(*app.keymap, CYCLE_POINT_SIZE_ALL_ITEMS_OP);
+    add_key(*app.keymap, CYCLE_POINT_SIZE_VISIBLE_OP);
 
-    add_key(*app.keymap, ()=>{cycle_wireframe_width(.SELECTED);}, "Cycle line width for selected items", xx #char "l");
-    add_key(*app.keymap, ()=>{cycle_wireframe_width(.ALL);},      "Cycle line width for all      items", xx #char "l", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{cycle_wireframe_width(.VISIBLE);},  "Cycle line width for visible  items", xx #char "l", .{shift_pressed=true});
+    add_key(*app.keymap, CYCLE_LINE_WIDTH_SELECTED_OP);
+    add_key(*app.keymap, CYCLE_LINE_WIDTH_ALL_ITEMS_OP);
+    add_key(*app.keymap, CYCLE_LINE_WIDTH_VISIBLE_OP);
 
-    add_key(*app.keymap, ()=>{cycle_point_size(.SELECTED);}, "Cycle point size for selected items", xx #char "p");
-    add_key(*app.keymap, ()=>{cycle_point_size(.ALL);},      "Cycle point size for all      items", xx #char "p", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{cycle_point_size(.VISIBLE);},  "Cycle point size for visible  items", xx #char "p", .{shift_pressed=true});
+    add_key(*app.keymap, ()=>{toggle_is_visible(.SELECTED);},  "Toggle visibility on selected items", xx #char "v");
+    add_key(*app.keymap, ()=>{toggle_is_visible(.ALL_ITEMS);}, "Toggle visibility on all items", xx #char "v", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{toggle_is_visible(.VISIBLE);},   "Toggle visibility on visible items (Hide all items)", xx #char "v", .{shift_pressed=true});
 
-    add_key(*app.keymap, ()=>{clear_all_labels(.SELECTED);}, "Clear labels for selected items", xx #char "x");
-    add_key(*app.keymap, ()=>{clear_all_labels(.ALL);},      "Clear labels for all      items", xx #char "x", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{clear_all_labels(.VISIBLE);},  "Clear labels for visible  items", xx #char "x", .{shift_pressed=true});
+    add_key(*app.keymap, ()=>{cycle_opacity(.SELECTED);},  "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "o");
+    add_key(*app.keymap, ()=>{cycle_opacity(.ALL_ITEMS);}, "Cycle opacity 20%%/50%%/100%% for all items", xx #char "o", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{cycle_opacity(.VISIBLE);},   "Cycle opacity 20%%/50%%/100%% for visible items", xx #char "o", .{shift_pressed=true});
+
+    add_key(*app.keymap, ()=>{clear_all_labels(.SELECTED);},  "Clear labels for selected items", xx #char "x");
+    add_key(*app.keymap, ()=>{clear_all_labels(.ALL_ITEMS);}, "Clear labels for all items", xx #char "x", .{control_pressed=true});
+    add_key(*app.keymap, ()=>{clear_all_labels(.VISIBLE);},   "Clear labels for visible items", xx #char "x", .{shift_pressed=true});
 
     // @Speed These are both extremely slow (on Windows?) so currently disabled
     // add_key(*app.keymap, cycle_selection_point_index_labels, "Cycle point index labels for selected items", xx #char "p", .{shift_pressed=true});
@@ -155,8 +180,15 @@ init_keymap :: () {
     add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
 
     add_key :: (keymap : *Keymap,
+                op : Operation, 
+                override_WantCaptureKeyboard := false, // @Refactor, remove this boolean and have a separate array of bindings with this bool as true
+                loc := #caller_location) {
+        add_key(keymap, op.proc, op.description, op.key_code, op.modifier_flags, override_WantCaptureKeyboard, loc);
+    }
+
+    add_key :: (keymap : *Keymap,
                 proc : ()->(),
-                name : string,
+                description : string,
                 key_code : u32,
                 modifier_flags : Modifier_Flags = .{},
                 override_WantCaptureKeyboard := false, // @Refactor, remove this boolean and have a separate array of bindings with this bool as true
@@ -165,12 +197,12 @@ init_keymap :: () {
         // Check that the binding is available
         for keymap.mappings {
             if it.key_code == key_code && it.modifier_flags == modifier_flags {
-                assert(false, tprint("\nError at %:%:%: Key binding for \"%\" already exists!", loc.fully_pathed_filename, loc.line_number, loc.character_number, name));
+                assert(false, tprint("\nError at %:%:%: Key binding for \"%\" already exists!", loc.fully_pathed_filename, loc.line_number, loc.character_number, description));
             }
         }
 
         info := array_add(*keymap.procs);
-        info.name = name;
+        info.name = description;
         info.proc = proc;
 
         // @Incomplete: This should be read from a keymap file
@@ -181,8 +213,6 @@ init_keymap :: () {
         mapping.override_WantCaptureKeyboard = override_WantCaptureKeyboard;
     }
 }
-
-#scope_file
 
 //
 // Bindable procedures
@@ -201,17 +231,11 @@ rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
-Target_Items :: enum {
-    ALL;
-    VISIBLE;
-    SELECTED;
-}
-
 Is_Target :: (e : *Entity) -> bool #expand {
     if #complete `target == {
-        case .SELECTED; return (e.is_selected == true);
-        case .VISIBLE;  return (e.is_visible  == true);
-        case .ALL;      return true;
+        case .SELECTED;  return (e.is_selected == true);
+        case .VISIBLE;   return (e.is_visible  == true);
+        case .ALL_ITEMS; return true;
     }
 }
 
@@ -318,7 +342,7 @@ cycle_opacity :: (target : Target_Items) {
     }
 }
 
-cycle_normals_visibility :: (target : Target_Items) {
+toggle_normals_visibility :: (target : Target_Items) {
 
     app_info := *app.selection_display_info;
     app_info.normals_visible = !app_info.normals_visible;

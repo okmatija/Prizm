@@ -1,13 +1,13 @@
 Prism
 =====
 
-A computational geometry debugging tool written in [Jai](https://youtu.be/TH9VCN6UkyQ).  Press h for help, see the CHANGELOG for a feature list.
+A computational geometry debugging tool written in [Jai](https://youtu.be/TH9VCN6UkyQ).  Press h for help, see the `source/changelog.jai` for a feature list.
 
 The intended workflow is:
 
 1. Run Prism and load geometry files or reload your previous debugging state
 2. View the geometry to debug your algorithm
-3. Write a Jai function and tag it with the @RegisterCommand note
+3. Write a Jai function and tag it with the `@RegisterCommand` note
 4. Save your state and close Prism
 5. Recompile and goto 1. The function you wrote in step 3 will now be available in the console
 

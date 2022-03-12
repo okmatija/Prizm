@@ -97,6 +97,12 @@ App :: struct {
     known_issues : [..]Known_Issue;
 }
 
+Target_Items :: enum {
+    ALL_ITEMS;
+    VISIBLE;
+    SELECTED;
+}
+
 current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;
 }

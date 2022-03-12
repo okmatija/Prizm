@@ -4,7 +4,7 @@ WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 show_item_list_ui :: () {
     using app;
 
-    if !entities.count return;
+    // if !entities.count return;
 
     ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
@@ -164,12 +164,18 @@ show_item_list_ui :: () {
             visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
             any_visibility_changed = any_visibility_changed || visibility_changed;
 
-            SELECTION_MODE_TOOLTIP :: #string DONE
-Ctrl LMB  Add nearest unclipped vertex to Selection item
-Ctrl RMB  Place camera orbit
-Shift LMB Click-drag to set clipping sphere on selected items
-DONE // @Volatile Keep synced with keymap
-            Show_Tooltip(ifx it.is_visible then SELECTION_MODE_TOOLTIP else "Show Selection\nEnable Selection and Clipping Modes");
+            if it.is_visible {
+                if (ImGui.IsItemHovered()) {
+                    ImGui.BeginTooltip();
+                    // @Volatile Keep synced with keymap
+                    ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB"); ImGui.SameLine(); ImGui.Text("Add nearest unclipped vertex to Selection item");
+                    ImGui.TextColored(KEYBINDING_COLOR, "Ctrl RMB"); ImGui.SameLine(); ImGui.Text("Place camera orbit");
+                    ImGui.TextColored(KEYBINDING_COLOR, "Shift LMB"); ImGui.SameLine(); ImGui.Text("Click-drag to set clipping sphere on selected items");
+                    ImGui.EndTooltip();
+                }
+            } else {
+                Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
+            }
         }
 
         ImGui.TableNextColumn();
@@ -224,6 +230,120 @@ DONE // @Volatile Keep synced with keymap
             aabb := it.render_info.bounding_aabb;
             ImGui.Text("AABB [%, %, %], [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
         }
+    }
+
+    ImGui.Separator();
+
+    if ImGui.TreeNodeEx("Operations") {
+        defer ImGui.TreePop();
+
+        ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+        defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+
+        target_items := Target_Items.SELECTED;
+        if io().KeyCtrl target_items = .ALL_ITEMS;
+        else if io().KeyShift target_items = .VISIBLE;
+        // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
+
+        if app.entities.count {
+            if #complete target_items == {
+                case .ALL_ITEMS;
+                    count := app.entities.count;
+                    ImGui.Text("Target all % item%", count, ifx count == 1 then "" else "s");
+                case .VISIBLE;
+                    count := 0; for :Visible app.entities count += 1;
+                    ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
+                case .SELECTED;
+                    count := 0; for :Selected app.entities count += 1;
+                    ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
+            }
+        }
+
+        // TODO change the convention so that with no key pressed the target is the visible items
+        // TODO make item list collapsable
+        // TODO add some separators
+        // TODO Make UI look nice when there are no items loaded, probably we should still show operations
+        // TODO Grey out label buttons when there are too many labels so perf would be made, add a tooltip pointing out where you can change the limit and also suggest clipping to a sphere
+        // TODO Change the button colors depending on what modifier is pressed
+
+        Operation_Button :: (label : string, ops : ..Operation, disabled_tooltip := "") #expand {
+            mod : Modifier_Flags;
+            mod.shift_pressed = io().KeyShift;
+            mod.control_pressed = io().KeyCtrl;
+            mod.alt_pressed = io().KeyAlt;
+
+            op : *Operation;
+            for * ops {
+                if it.modifier_flags == mod {
+                    op = it;
+                }
+            }
+
+            if op {
+                if ImGui.Button(imgui_label(label, op)) {
+                    op.proc();
+                }
+                Show_Tooltip_Binding(op.description, to_string(op.key_code, op.modifier_flags));
+            } else {
+                DISABLED_COLOR :: ImGui.ImVec4.{.5, .5, .5, 1.};
+                // // ImGui.PushStyleColor(xx ImGui.Col.Button | .ButtonHovered | .ButtonActive, DISABLED_COLOR);
+                // ImGui.PushStyleColor(xx ImGui.Col.Button, DISABLED_COLOR);
+                ImGui.BeginDisabled();
+                ImGui.Button(imgui_label(label, op));
+                ImGui.EndDisabled();
+                // ImGui.PopStyleColor();
+                if disabled_tooltip Show_Tooltip(disabled_tooltip);
+            }
+        }
+
+        Operation_Button("Cyc Line Width", CYCLE_LINE_WIDTH_SELECTED_OP, CYCLE_LINE_WIDTH_ALL_ITEMS_OP, CYCLE_LINE_WIDTH_VISIBLE_OP);
+        ImGui.SameLine();
+        Operation_Button("Cyc Vert Size", CYCLE_POINT_SIZE_SELECTED_OP, CYCLE_POINT_SIZE_ALL_ITEMS_OP, CYCLE_POINT_SIZE_VISIBLE_OP);
+        Operation_Button("Tgl Clipping  ", TOGGLE_CLIPPING_SELECTED_OP, TOGGLE_CLIPPING_ALL_ITEMS_OP, TOGGLE_CLIPPING_VISIBLE_OP);
+        ImGui.SameLine();
+        Operation_Button("Tgl Normals  ", TOGGLE_NORMALS_SELECTED_OP, TOGGLE_NORMALS_ALL_ITEMS_OP, TOGGLE_NORMALS_VISIBLE_OP);
+
+        // [              ] [Cyc Opacity  ]
+        // [Cyc Line Width] [Cyc Vert Size]
+        // [Tgl Elem IDs  ] [Tgl Vert IDs ] 
+        // [Tgl Elem XYZ  ] [Tgl Vert XYZ ] 
+        // [Tgl Clipping  ] [Tgl Normals  ]
+        // [Focus Items   ] [Reload Items ]
+        // -------------------------------
+        // [Tgl Console  ] [Tgl Help Menu]
+
+
+        // if ImGui.Button("Tgl Vert IDs ") { }
+        // ImGui.SameLine();
+        // if ImGui.Button("Tgl Vert XYZ ") { }
+        // if ImGui.Button("Tgl Elem IDs ") { }
+        // ImGui.SameLine();
+        // if ImGui.Button("Tgl Elem XYZ ") { }
+        // if ImGui.Button("Cyc Vert Size") { }
+        // ImGui.SameLine();
+        // if ImGui.Button("Cyc Line Size") { }
+        // if ImGui.Button("Cyc Line Opac") { }
+        // if ImGui.Button("Cyc Elem Opac") { }
+        // if ImGui.Button("Cyc Opacity  ") { }
+        // ImGui.SameLine();
+        // if ImGui.Button("Clear Labels ") { }
+        // if ImGui.Button("Fit on Screen") { }
+        // ImGui.SameLine();
+        // if ImGui.Button("Reload Items ") { }
+        // ImGui.Separator();
+        // if ImGui.Button("Tgl Console  ") { }
+        // ImGui.SameLine();
+        // if ImGui.Button("Tgl Help Menu") { }
+
+        // ImGui.Separator();
+        // if ImGui.Button("Toggle Console  ") { }
+
+        // ImGui.BeginTable("Operations", 5, flags=ImGui.TableFlags.NoBordersInBody) {
+        // defer ImGui.EndTable();
+        // it := *app.user_selection;
+        // ImGui.TableNextRow();
+        // // Remove button
+        // ImGui.TableNextColumn();
     }
 }
 
@@ -479,6 +599,9 @@ show_camera_controls :: () {
     if ImGui.TreeNodeEx("Settings") {
         defer ImGui.TreePop();
 
+        ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+        defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+
         // @TODO Would be better to set the look direction vector I think
         ImGui.DragFloat( "Near ", *app.camera.near, .05);
         ImGui.DragFloat( "Far  ", *app.camera.far, .05);
@@ -486,9 +609,8 @@ show_camera_controls :: () {
         ImGui.DragFloat3("Eye  ", *app.camera.eye_position.component);
         ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
 
-        ImGui.SetNextItemWidth(-FLOAT32_MIN);
-        combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        Show_Tooltip("Alt RMB Camera Rotation Axis");
+        combo_box("Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+        Show_Tooltip_Binding("Camera Rotation Axis", "Alt RMB");
 
         // Not really needed if you can explicitly set the orbit position
         // if app.camera.look_position != Vector3.{0, 0, 0} {
@@ -520,7 +642,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     COLUMN_WIDTH :: 100;
 
     Show_Binding :: (binding : string, description : string) #expand {
-        ImGui.TextColored(NICE_YELLOW, binding);
+        ImGui.TextColored(KEYBINDING_COLOR, binding);
         ImGui.NextColumn();
         ImGui.Text(description);
         ImGui.NextColumn();
@@ -584,11 +706,11 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.NextColumn();
         for app.keymap_keydown.mappings {
             push_allocator(temp);
-            Show_Binding(to_string(it), app.keymap_keydown.procs[it.proc_info_index].name);
+            Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
         }
         for app.keymap.mappings {
             push_allocator(temp);
-            Show_Binding(to_string(it), app.keymap.procs[it.proc_info_index].name);
+            Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
         }
     }
 
@@ -617,7 +739,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
     inspect("User Settings", *app.settings);
     clamp_user_settings();
 
-    if ImGui.TreeNodeEx("CHANGELOG") {
+    if ImGui.TreeNodeEx("Changelog") {
         defer ImGui.TreePop();
 
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));
@@ -627,7 +749,7 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version % (latest)", latest.name)), .DefaultOpen) {
             defer ImGui.TreePop();
 
-            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+            ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
             ImGui.TextWrapped(latest.description);
             ImGui.PopStyleColor();
         }
@@ -637,17 +759,17 @@ show_help_ui :: (world_axes : *Axes_Triad) {
             if ImGui.TreeNodeEx(temp_c_string(tprint("Version %", version.name))) {
                 defer ImGui.TreePop();
 
-                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+                ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
                 ImGui.TextWrapped(version.description);
                 ImGui.PopStyleColor();
             }
         }
     }
 
-    if ImGui.TreeNodeEx("KNOWN ISSUES") {
+    if ImGui.TreeNodeEx("Known Issues") {
         defer ImGui.TreePop();
         for app.known_issues {
-            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+            ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
             ImGui.TextWrapped(it.name);
             ImGui.PopStyleColor();
             ImGui.SameLine();

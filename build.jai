@@ -10,7 +10,7 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
-VERSION_STRING  :: "0.1.3-rc";
+VERSION_STRING  :: "0.2.0-rc";
 
 build :: () {
 
@@ -131,6 +131,7 @@ build :: () {
                             }
                         }
 
+                        // @KnownIssue note which can be attached to top-level constant string declarations which describe known issues in the code
                         for tc: typechecked.declarations {
                             decl := tc.expression;
                             if decl.expression && decl.expression.kind == .LITERAL && has_note(decl, "KnownIssue") {

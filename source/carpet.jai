@@ -219,7 +219,7 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
 }
 
 
-// @Incomplete add a delay before popup
+// @Incomplete add a delay before popup, see https://github.com/ocornut/imgui/issues/1485
 Show_Tooltip :: (description : string) #expand {
     if (ImGui.IsItemHovered()) {
         ImGui.BeginTooltip();
@@ -229,6 +229,17 @@ Show_Tooltip :: (description : string) #expand {
         ImGui.EndTooltip();
     }
 }
+
+Show_Tooltip_Binding :: (description : string, binding : string) #expand {
+    if (ImGui.IsItemHovered()) {
+        ImGui.BeginTooltip();
+        ImGui.TextColored(KEYBINDING_COLOR, binding);
+        ImGui.SameLine();
+        ImGui.Text(description);
+        ImGui.EndTooltip();
+    }
+}
+
 
 make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
     v: ImGui.ImVec2 = ---;
@@ -247,6 +258,8 @@ make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
 }
 
 NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
+KEYBINDING_COLOR :: NICE_YELLOW;
+CHANGELOG_COLOR :: NICE_YELLOW;
 
 // See: https://github.com/ocornut/imgui/blob/0f14933577a1de01d90f8e87622296c466146f21/misc/cpp/imgui_stdlib.cpp#L38-L48
 InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None, callback: ImGui.InputTextCallback = null, user_data: *void = null) -> bool {

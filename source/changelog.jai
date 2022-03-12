@@ -1,17 +1,29 @@
+// TODO make a minimum sphere radius, its annoying to have everything disappear because this was wrong
+// TODO Add some more UI buttons
+// TODO Make combo box clean up all caps underscores
+// TODO Fix opacity not affecting wireframe rendering
+
 PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
 - Improved performance of ray intersection queries against Mesh items
 - Added a 'custom' build option which runs a gui at compile-time where the user can set build options and choose which console commands are available
 - Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
 - Added `focus_on_triangle` and `focus_on_vertex` commands to position the camera so the triangle/vertex of index mostly fills the screen
-- Added an experimental @KnownIssue note which can be attached to top-level constant string declarations which describe known issues in the code, these issues can be viewed in the help menu
-- Added a Settings menu to the camera control UI to expose fine control over the camera. Probably control over the look direction would be better than eye/up control but... I'll do that later
 - Fixed labels not clipping against clipping volumes
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed a crash when requesting point label rendering for point clouds
 - Fixed a bug where changes to the float labelling format on a selection of elements was ignored
 - Fixed a performance problem caused by a missing early-out of text rendering code
-- Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
-- Various minor UI improvements related to window positioning, colors and tooltips
+- Major UI/UX overhaul/improvements:
+  - Changed the key-binding modifier pattern introduced in Version 0.1.1
+    - Key-only bindings act on visible items, this allows the corresponding buttons to do something by default
+    - Control modified bindings act on selected items, this is consistent with control LMB selecting items in the Item List
+    - Shift modified bindings act on all items
+  - Added a Settings menu to the camera UI, in particular near/far planes can be adjusted
+  - Added a Operations menu to the Item List with operations buttons whose behaviour is modified according to the key-binding pattern above
+  - Added a 'known issues' section to the help menu
+  - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
+  - Changed the initial camera look direction to be along .{-1,-1,-1}
+  - Various minor improvements related to window positioning, colors and tooltips
 DONE
 };
 
