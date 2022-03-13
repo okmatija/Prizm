@@ -290,6 +290,11 @@ handle_events :: () {
                         }
                     }
                 }
+
+                if event.key.keysym.sym == .SDLK_ESCAPE {
+                    app.show_console_ui = false;
+                    app.show_help_ui = false;
+                }
             }
             case SDL_KEYUP; {
 

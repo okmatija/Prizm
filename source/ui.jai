@@ -4,7 +4,7 @@ WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 show_item_list_ui :: () {
     using app;
 
-    // if !entities.count return;
+    if !entities.count return;
 
     ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
@@ -232,9 +232,14 @@ show_item_list_ui :: () {
         }
     }
 
+    show_item_list_operations_ui();
+}
+
+show_item_list_operations_ui :: () {
+
     ImGui.Separator();
 
-    if ImGui.TreeNodeEx("Operations", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Actions", .DefaultOpen) {
         defer ImGui.TreePop();
 
         ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
@@ -248,6 +253,7 @@ show_item_list_ui :: () {
         // TODO change the convention so that with no key pressed the target is the visible items
         // TODO make item list collapsable
         // TODO add some separators
+        // TODO Make tooltips over item color square show the shortcuts
         // TODO Make UI look nice when there are no items loaded, probably we should still show operations
         // TODO Grey out label buttons when there are too many labels so perf would be made, add a tooltip pointing out where you can change the limit and also suggest clipping to a sphere
         // TODO Change the button colors depending on what modifier is pressed
@@ -282,30 +288,12 @@ show_item_list_ui :: () {
             }
         }
 
-        // [              ] [Cyc Opacity  ]
-        // [Cyc Line Width] [Cyc Vert Size]
-        // [Tgl Elem IDs  ] [Tgl Vert IDs ] 
-        // [Tgl Elem XYZ  ] [Tgl Vert XYZ ] 
-        // [Tgl Clipping  ] [Tgl Normals  ]
-        // [Focus Items   ] [Reload Items ]
-        // -------------------------------
-        // [Tgl Console   ] [Tgl Help Menu]
-
-        Operation_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);
-        ImGui.SameLine();
-        Operation_Button("Cyc Vert Size", ..CYCLE_POINT_SIZE_OPS);
-
-        Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);
-        ImGui.SameLine();
-        Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
-
-        Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS);
-        ImGui.SameLine();
-        Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_POSITIONS_OPS);
-
-        Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);
-        ImGui.SameLine();
-        Operation_Button("Tgl Normals  ", ..TOGGLE_NORMAL_OPS);
+        Operation_Button("Tgl Item Viz  ", ..TOGGLE_VISIBILITY_OPS);        ImGui.SameLine(); Operation_Button("Cyc Opacity  ", ..CYCLE_OPACITY_OPS);
+        Operation_Button("Tgl Item Viz  ", ..TOGGLE_VISIBILITY_OPS);        ImGui.SameLine(); Operation_Button("Cyc Opacity  ", ..CYCLE_OPACITY_OPS);
+        Operation_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Operation_Button("Cyc Vert Size", ..CYCLE_POINT_SIZE_OPS);
+        Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);       ImGui.SameLine(); Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
+        Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS); ImGui.SameLine(); Operation_Button("Tgl Vert XYZ ", ..TOGGLE_VERTEX_POSITIONS_OPS);
+        Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Operation_Button("Tgl Normals  ", ..TOGGLE_NORMALS_OPS);
 
         // @Incomplete
         // @Incomplete
@@ -326,13 +314,13 @@ show_item_list_ui :: () {
             if #complete target_items == {
                 case .ALL_ITEMS;
                     count := app.entities.count;
-                    ImGui.Text("Target all % item%", count, ifx count == 1 then "" else "s");
+                    ImGui.Text("Operating on all % item%", count, ifx count == 1 then "" else "s");
                 case .VISIBLE;
                     count := 0; for :Visible app.entities count += 1;
-                    ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
+                    ImGui.Text("Operating on % visible item%", count, ifx count == 1 then "" else "s");
                 case .SELECTED;
                     count := 0; for :Selected app.entities count += 1;
-                    ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
+                    ImGui.Text("Operating on % selected item%", count, ifx count == 1 then "" else "s");
             }
         }
 
@@ -904,12 +892,8 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
                 Show_Tooltip("Frontface Color");
                 for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
             }
-            ImGui.SameLine();
-            set.screentone_backfaces = ImGui.Checkbox(imgui_label("##screentone_backfaces", display_info), *display_info.screentone_backfaces);
-            Show_Tooltip("Backface dots");
-            ImGui.SameLine();
-            set.flat_shading = ImGui.Checkbox(imgui_label("##flat_shading", display_info), *display_info.flat_shading);
-            Show_Tooltip("Flat shading");
+            set.screentone_backfaces = ImGui.Checkbox(imgui_label("Backface Dots", display_info), *display_info.screentone_backfaces);
+            set.flat_shading = ImGui.Checkbox(imgui_label("Flat Shading", display_info), *display_info.flat_shading);
         }
     }
 

@@ -98,50 +98,64 @@ Operation :: struct {
     override_WantCaptureKeyboard := false;
 }
 
-TOGGLE_CLIPPING_SELECTED_OP ::  Operation.{proc=()=>{toggle_clipping(.SELECTED);},  desc="Toggle clipping on selected items", key=#char "c"};
-TOGGLE_CLIPPING_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_clipping(.ALL_ITEMS);}, desc="Toggle clipping on all items",      key=#char "c", mod=.{control_pressed=true}};
-TOGGLE_CLIPPING_VISIBLE_OP ::   Operation.{proc=()=>{toggle_clipping(.VISIBLE);},   desc="Toggle clipping on visible items",  key=#char "c", mod=.{shift_pressed=true}};
+ALL_ITEMS_MOD :: Modifier_Flags.{shift_pressed=true};
+SELECTED_MOD :: Modifier_Flags.{control_pressed=true};
+VISIBLE_MOD :: Modifier_Flags.{};
+
+TOGGLE_CLIPPING_SELECTED_OP ::  Operation.{proc=()=>{toggle_clipping(.SELECTED);},  desc="Toggle clipping on selected items", key=#char "c", mod=SELECTED_MOD};
+TOGGLE_CLIPPING_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_clipping(.ALL_ITEMS);}, desc="Toggle clipping on all items",      key=#char "c", mod=ALL_ITEMS_MOD};
+TOGGLE_CLIPPING_VISIBLE_OP ::   Operation.{proc=()=>{toggle_clipping(.VISIBLE);},   desc="Toggle clipping on visible items",  key=#char "c", mod=VISIBLE_MOD};
 TOGGLE_CLIPPING_OPS :: Operation.[TOGGLE_CLIPPING_SELECTED_OP, TOGGLE_CLIPPING_ALL_ITEMS_OP, TOGGLE_CLIPPING_VISIBLE_OP];
 
-TOGGLE_NORMALS_SELECTED_OP ::  Operation.{proc=()=>{toggle_normals_visibility(.SELECTED);},  desc="Toggle normals visibility for selected items", key=#char "n"};
-TOGGLE_NORMALS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_normals_visibility(.ALL_ITEMS);}, desc="Toggle normals visibility for all items",      key=#char "n", mod=.{control_pressed=true}};
-TOGGLE_NORMALS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_normals_visibility(.VISIBLE);},   desc="Toggle normals visibility for visible items",  key=#char "n", mod=.{shift_pressed=true}};
-TOGGLE_NORMAL_OPS :: Operation.[TOGGLE_NORMALS_SELECTED_OP, TOGGLE_NORMALS_ALL_ITEMS_OP, TOGGLE_NORMALS_VISIBLE_OP];
+TOGGLE_NORMALS_SELECTED_OP ::  Operation.{proc=()=>{toggle_normals_visibility(.SELECTED);},  desc="Toggle normals visibility for selected items", key=#char "n", mod=SELECTED_MOD};
+TOGGLE_NORMALS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_normals_visibility(.ALL_ITEMS);}, desc="Toggle normals visibility for all items",      key=#char "n", mod=ALL_ITEMS_MOD};
+TOGGLE_NORMALS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_normals_visibility(.VISIBLE);},   desc="Toggle normals visibility for visible items",  key=#char "n", mod=VISIBLE_MOD};
+TOGGLE_NORMALS_OPS :: Operation.[TOGGLE_NORMALS_SELECTED_OP, TOGGLE_NORMALS_ALL_ITEMS_OP, TOGGLE_NORMALS_VISIBLE_OP];
 
-CYCLE_POINT_SIZE_SELECTED_OP ::  Operation.{proc=()=>{cycle_point_size(.SELECTED);},  desc="Cycle point size for selected items", key=#char "p"};
-CYCLE_POINT_SIZE_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_point_size(.ALL_ITEMS);}, desc="Cycle point size for all items",      key=#char "p", mod=.{control_pressed=true}};
-CYCLE_POINT_SIZE_VISIBLE_OP ::   Operation.{proc=()=>{cycle_point_size(.VISIBLE);},   desc="Cycle point size for visible items",  key=#char "p", mod=.{shift_pressed=true}};
+CYCLE_POINT_SIZE_SELECTED_OP ::  Operation.{proc=()=>{cycle_point_size(.SELECTED);},  desc="Cycle point size for selected items", key=#char "p", mod=SELECTED_MOD};
+CYCLE_POINT_SIZE_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_point_size(.ALL_ITEMS);}, desc="Cycle point size for all items",      key=#char "p", mod=ALL_ITEMS_MOD};
+CYCLE_POINT_SIZE_VISIBLE_OP ::   Operation.{proc=()=>{cycle_point_size(.VISIBLE);},   desc="Cycle point size for visible items",  key=#char "p", mod=VISIBLE_MOD};
 CYCLE_POINT_SIZE_OPS :: Operation.[CYCLE_POINT_SIZE_SELECTED_OP, CYCLE_POINT_SIZE_ALL_ITEMS_OP, CYCLE_POINT_SIZE_VISIBLE_OP];
 
-CYCLE_LINE_WIDTH_SELECTED_OP ::  Operation.{proc=()=>{cycle_wireframe_width(.SELECTED);},  desc="Cycle line width for selected items", key=#char "l"};
-CYCLE_LINE_WIDTH_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_wireframe_width(.ALL_ITEMS);}, desc="Cycle line width for all items",      key=#char "l", mod=.{control_pressed=true}};
-CYCLE_LINE_WIDTH_VISIBLE_OP ::   Operation.{proc=()=>{cycle_wireframe_width(.VISIBLE);},   desc="Cycle line width for visible items",  key=#char "l", mod=.{shift_pressed=true}};
+CYCLE_LINE_WIDTH_SELECTED_OP ::  Operation.{proc=()=>{cycle_wireframe_width(.SELECTED);},  desc="Cycle line width for selected items", key=#char "l", mod=SELECTED_MOD};
+CYCLE_LINE_WIDTH_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_wireframe_width(.ALL_ITEMS);}, desc="Cycle line width for all items",      key=#char "l", mod=ALL_ITEMS_MOD};
+CYCLE_LINE_WIDTH_VISIBLE_OP ::   Operation.{proc=()=>{cycle_wireframe_width(.VISIBLE);},   desc="Cycle line width for visible items",  key=#char "l", mod=VISIBLE_MOD};
 CYCLE_LINE_WIDTH_OPS :: Operation.[CYCLE_LINE_WIDTH_SELECTED_OP, CYCLE_LINE_WIDTH_ALL_ITEMS_OP, CYCLE_LINE_WIDTH_VISIBLE_OP];
 
-RELOAD_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{reload_items(.SELECTED);},  desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, override_WantCaptureKeyboard=true};
-RELOAD_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{reload_items(.ALL_ITEMS);}, desc="Reload all items",      key=cast(u32) Special_Key_Code.F5, mod=.{control_pressed=true}, override_WantCaptureKeyboard=true};
-RELOAD_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{reload_items(.VISIBLE);},   desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=.{shift_pressed=true}, override_WantCaptureKeyboard=true};
+RELOAD_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{reload_items(.SELECTED);},  desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=SELECTED_MOD, override_WantCaptureKeyboard=true};
+RELOAD_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{reload_items(.ALL_ITEMS);}, desc="Reload all items",      key=cast(u32) Special_Key_Code.F5, mod=ALL_ITEMS_MOD, override_WantCaptureKeyboard=true};
+RELOAD_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{reload_items(.VISIBLE);},   desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=VISIBLE_MOD, override_WantCaptureKeyboard=true};
 RELOAD_ITEMS_OPS :: Operation.[RELOAD_ITEMS_SELECTED_OP, RELOAD_ITEMS_ALL_ITEMS_OP, RELOAD_ITEMS_VISIBLE_OP];
 
-TOGGLE_ELEMENT_IDS_SELECTED_OP ::  Operation.{proc=()=>{toggle_element_ids(.SELECTED);},  desc="Toggle element ids for selected items", key=#char "i"};
-TOGGLE_ELEMENT_IDS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_element_ids(.ALL_ITEMS);}, desc="Toggle element ids for all items",      key=#char "i", mod=.{control_pressed=true}};
-TOGGLE_ELEMENT_IDS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_element_ids(.VISIBLE);},   desc="Toggle element ids for visible items",  key=#char "i", mod=.{shift_pressed=true}};
+TOGGLE_ELEMENT_IDS_SELECTED_OP ::  Operation.{proc=()=>{toggle_element_ids(.SELECTED);},  desc="Toggle element ids for selected items", key=#char "i", mod=SELECTED_MOD};
+TOGGLE_ELEMENT_IDS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_element_ids(.ALL_ITEMS);}, desc="Toggle element ids for all items",      key=#char "i", mod=ALL_ITEMS_MOD};
+TOGGLE_ELEMENT_IDS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_element_ids(.VISIBLE);},   desc="Toggle element ids for visible items",  key=#char "i", mod=VISIBLE_MOD};
 TOGGLE_ELEMENT_IDS_OPS :: Operation.[TOGGLE_ELEMENT_IDS_SELECTED_OP, TOGGLE_ELEMENT_IDS_ALL_ITEMS_OP, TOGGLE_ELEMENT_IDS_VISIBLE_OP];
 
-TOGGLE_ELEMENT_POSITIONS_SELECTED_OP ::  Operation.{proc=()=>{toggle_element_positions(.SELECTED);},  desc="Toggle element positions for selected items", key=#char "o"};
-TOGGLE_ELEMENT_POSITIONS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_element_positions(.ALL_ITEMS);}, desc="Toggle element positions for all items",      key=#char "o", mod=.{control_pressed=true}};
-TOGGLE_ELEMENT_POSITIONS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_element_positions(.VISIBLE);},   desc="Toggle element positions for visible items",  key=#char "o", mod=.{shift_pressed=true}};
+TOGGLE_ELEMENT_POSITIONS_SELECTED_OP ::  Operation.{proc=()=>{toggle_element_positions(.SELECTED);},  desc="Toggle element positions for selected items", key=#char "o", mod=SELECTED_MOD};
+TOGGLE_ELEMENT_POSITIONS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_element_positions(.ALL_ITEMS);}, desc="Toggle element positions for all items",      key=#char "o", mod=ALL_ITEMS_MOD};
+TOGGLE_ELEMENT_POSITIONS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_element_positions(.VISIBLE);},   desc="Toggle element positions for visible items",  key=#char "o", mod=VISIBLE_MOD};
 TOGGLE_ELEMENT_POSITIONS_OPS :: Operation.[TOGGLE_ELEMENT_POSITIONS_SELECTED_OP, TOGGLE_ELEMENT_POSITIONS_ALL_ITEMS_OP, TOGGLE_ELEMENT_POSITIONS_VISIBLE_OP];
 
-TOGGLE_VERTEX_IDS_SELECTED_OP ::  Operation.{proc=()=>{toggle_vertex_ids(.SELECTED);},  desc="Toggle vertex ids for selected items", key=#char "j"};
-TOGGLE_VERTEX_IDS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_vertex_ids(.ALL_ITEMS);}, desc="Toggle vertex ids for all items",      key=#char "j", mod=.{control_pressed=true}};
-TOGGLE_VERTEX_IDS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_vertex_ids(.VISIBLE);},   desc="Toggle vertex ids for visible items",  key=#char "j", mod=.{shift_pressed=true}};
+TOGGLE_VERTEX_IDS_SELECTED_OP ::  Operation.{proc=()=>{toggle_vertex_ids(.SELECTED);},  desc="Toggle vertex ids for selected items", key=#char "j", mod=SELECTED_MOD};
+TOGGLE_VERTEX_IDS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_vertex_ids(.ALL_ITEMS);}, desc="Toggle vertex ids for all items",      key=#char "j", mod=ALL_ITEMS_MOD};
+TOGGLE_VERTEX_IDS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_vertex_ids(.VISIBLE);},   desc="Toggle vertex ids for visible items",  key=#char "j", mod=VISIBLE_MOD};
 TOGGLE_VERTEX_IDS_OPS :: Operation.[TOGGLE_VERTEX_IDS_SELECTED_OP, TOGGLE_VERTEX_IDS_ALL_ITEMS_OP, TOGGLE_VERTEX_IDS_VISIBLE_OP];
 
-TOGGLE_VERTEX_POSITIONS_SELECTED_OP ::  Operation.{proc=()=>{toggle_vertex_positions(.SELECTED);},  desc="Toggle vertex positions for selected items", key=#char "k"};
-TOGGLE_VERTEX_POSITIONS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_vertex_positions(.ALL_ITEMS);}, desc="Toggle vertex positions for all items",      key=#char "k", mod=.{control_pressed=true}};
-TOGGLE_VERTEX_POSITIONS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_vertex_positions(.VISIBLE);},   desc="Toggle vertex positions for visible items",  key=#char "k", mod=.{shift_pressed=true}};
+TOGGLE_VERTEX_POSITIONS_SELECTED_OP ::  Operation.{proc=()=>{toggle_vertex_positions(.SELECTED);},  desc="Toggle vertex positions for selected items", key=#char "k", mod=SELECTED_MOD};
+TOGGLE_VERTEX_POSITIONS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_vertex_positions(.ALL_ITEMS);}, desc="Toggle vertex positions for all items",      key=#char "k", mod=ALL_ITEMS_MOD};
+TOGGLE_VERTEX_POSITIONS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_vertex_positions(.VISIBLE);},   desc="Toggle vertex positions for visible items",  key=#char "k", mod=VISIBLE_MOD};
 TOGGLE_VERTEX_POSITIONS_OPS :: Operation.[TOGGLE_VERTEX_POSITIONS_SELECTED_OP, TOGGLE_VERTEX_POSITIONS_ALL_ITEMS_OP, TOGGLE_VERTEX_POSITIONS_VISIBLE_OP];
+
+CYCLE_OPACITY_SELECTED_OP ::  Operation.{proc=()=>{cycle_opacity(.SELECTED);},  desc="Cycle opacity 20%%/50%%/100%% for selected items", key=#char "t", mod=SELECTED_MOD};
+CYCLE_OPACITY_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_opacity(.ALL_ITEMS);}, desc="Cycle opacity 20%%/50%%/100%% for all items",      key=#char "t", mod=ALL_ITEMS_MOD};
+CYCLE_OPACITY_VISIBLE_OP ::   Operation.{proc=()=>{cycle_opacity(.VISIBLE);},   desc="Cycle opacity 20%%/50%%/100%% for visible items",  key=#char "t", mod=VISIBLE_MOD};
+CYCLE_OPACITY_OPS :: Operation.[CYCLE_OPACITY_SELECTED_OP, CYCLE_OPACITY_ALL_ITEMS_OP, CYCLE_OPACITY_VISIBLE_OP];
+
+TOGGLE_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items",                 key=#char "v", mod=SELECTED_MOD};
+TOGGLE_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_is_visible(.ALL_ITEMS);}, desc="Toggle visibility on all items",                      key=#char "v", mod=ALL_ITEMS_MOD};
+TOGGLE_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{toggle_is_visible(.VISIBLE);},   desc="Toggle visibility on visible items (Hide all items)", key=#char "v", mod=VISIBLE_MOD};
+TOGGLE_VISIBILITY_OPS :: Operation.[TOGGLE_VISIBILITY_SELECTED_OP, TOGGLE_VISIBILITY_ALL_ITEMS_OP, TOGGLE_VISIBILITY_VISIBLE_OP];
 
 init_keymap :: () {
 
@@ -164,49 +178,17 @@ init_keymap :: () {
 
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
 
-    add_key(*app.keymap, TOGGLE_CLIPPING_SELECTED_OP);
-    add_key(*app.keymap, TOGGLE_CLIPPING_ALL_ITEMS_OP);
-    add_key(*app.keymap, TOGGLE_CLIPPING_VISIBLE_OP);
-
-    add_key(*app.keymap, TOGGLE_NORMALS_SELECTED_OP);
-    add_key(*app.keymap, TOGGLE_NORMALS_ALL_ITEMS_OP);
-    add_key(*app.keymap, TOGGLE_NORMALS_VISIBLE_OP);
-
-    add_key(*app.keymap, CYCLE_POINT_SIZE_SELECTED_OP);
-    add_key(*app.keymap, CYCLE_POINT_SIZE_ALL_ITEMS_OP);
-    add_key(*app.keymap, CYCLE_POINT_SIZE_VISIBLE_OP);
-
-    add_key(*app.keymap, CYCLE_LINE_WIDTH_SELECTED_OP);
-    add_key(*app.keymap, CYCLE_LINE_WIDTH_ALL_ITEMS_OP);
-    add_key(*app.keymap, CYCLE_LINE_WIDTH_VISIBLE_OP);
-
-    add_key(*app.keymap, RELOAD_ITEMS_SELECTED_OP);
-    add_key(*app.keymap, RELOAD_ITEMS_ALL_ITEMS_OP);
-    add_key(*app.keymap, RELOAD_ITEMS_VISIBLE_OP);
-
-    add_key(*app.keymap, TOGGLE_ELEMENT_IDS_SELECTED_OP);
-    add_key(*app.keymap, TOGGLE_ELEMENT_IDS_ALL_ITEMS_OP);
-    add_key(*app.keymap, TOGGLE_ELEMENT_IDS_VISIBLE_OP);
-
-    add_key(*app.keymap, TOGGLE_VERTEX_IDS_SELECTED_OP);
-    add_key(*app.keymap, TOGGLE_VERTEX_IDS_ALL_ITEMS_OP);
-    add_key(*app.keymap, TOGGLE_VERTEX_IDS_VISIBLE_OP);
-
-    add_key(*app.keymap, TOGGLE_ELEMENT_POSITIONS_SELECTED_OP);
-    add_key(*app.keymap, TOGGLE_ELEMENT_POSITIONS_ALL_ITEMS_OP);
-    add_key(*app.keymap, TOGGLE_ELEMENT_POSITIONS_VISIBLE_OP);
-
-    add_key(*app.keymap, TOGGLE_VERTEX_POSITIONS_SELECTED_OP);
-    add_key(*app.keymap, TOGGLE_VERTEX_POSITIONS_ALL_ITEMS_OP);
-    add_key(*app.keymap, TOGGLE_VERTEX_POSITIONS_VISIBLE_OP);
-
-    add_key(*app.keymap, ()=>{toggle_is_visible(.SELECTED);},  "Toggle visibility on selected items", xx #char "v");
-    add_key(*app.keymap, ()=>{toggle_is_visible(.ALL_ITEMS);}, "Toggle visibility on all items", xx #char "v", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{toggle_is_visible(.VISIBLE);},   "Toggle visibility on visible items (Hide all items)", xx #char "v", .{shift_pressed=true});
-
-    add_key(*app.keymap, ()=>{cycle_opacity(.SELECTED);},  "Cycle opacity 20%%/50%%/100%% for selected items", xx #char "t");
-    add_key(*app.keymap, ()=>{cycle_opacity(.ALL_ITEMS);}, "Cycle opacity 20%%/50%%/100%% for all items", xx #char "t", .{control_pressed=true});
-    add_key(*app.keymap, ()=>{cycle_opacity(.VISIBLE);},   "Cycle opacity 20%%/50%%/100%% for visible items", xx #char "t", .{shift_pressed=true});
+    add_key(*app.keymap, ..TOGGLE_VISIBILITY_OPS);
+    add_key(*app.keymap, ..CYCLE_OPACITY_OPS);
+    add_key(*app.keymap, ..TOGGLE_CLIPPING_OPS);
+    add_key(*app.keymap, ..TOGGLE_NORMALS_OPS);
+    add_key(*app.keymap, ..CYCLE_POINT_SIZE_OPS);
+    add_key(*app.keymap, ..CYCLE_LINE_WIDTH_OPS);
+    add_key(*app.keymap, ..RELOAD_ITEMS_OPS);
+    add_key(*app.keymap, ..TOGGLE_ELEMENT_IDS_OPS);
+    add_key(*app.keymap, ..TOGGLE_VERTEX_IDS_OPS);
+    add_key(*app.keymap, ..TOGGLE_ELEMENT_POSITIONS_OPS);
+    add_key(*app.keymap, ..TOGGLE_VERTEX_POSITIONS_OPS);
 
     // @Volatile button text in camera control pane should be kept in sync with keymap!
     add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  15 deg about selected rotation axis", xx #char "]");
@@ -218,9 +200,11 @@ init_keymap :: () {
     add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
 
     add_key :: (keymap : *Keymap,
-                op : Operation, 
+                ops : ..Operation, 
                 loc := #caller_location) {
-        add_key(keymap, op.proc, op.desc, op.key, op.mod, op.override_WantCaptureKeyboard, loc);
+        for op : ops {
+            add_key(keymap, op.proc, op.desc, op.key, op.mod, op.override_WantCaptureKeyboard, loc);
+        }
     }
 
     add_key :: (keymap : *Keymap,
@@ -349,6 +333,8 @@ cycle_point_size :: (target : Target_Items) {
             points_visible = true;
             points_size = 2;
         } else if points_size == 2 {
+            points_size += 2;
+        } else if points_size == 4 {
             points_size += 2;
         } else {
             points_visible = false;

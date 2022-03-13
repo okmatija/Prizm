@@ -247,21 +247,20 @@ fit_on_screen :: (entity : *Entity, accurate : bool = false)
     scene_sphere := visible_entities_bounding_sphere(accurate);
     sphere.radius += distance(sphere.center, scene_sphere.center);
 
-    look_length := dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position);
-
-    fit_sphere_on_screen(sphere, look_length);
+    fit_sphere_on_screen(sphere);
 }
 
 // Adjust the camera position and viewing volume to fit the world space sphere while preserving the camera look direction
-fit_sphere_on_screen :: (_sphere : Sphere, look_length : float) {
+fit_sphere_on_screen :: (_sphere : Sphere, _look_length : float = 0) {
     sphere := _sphere;
+    look_length := _look_length;
 
     if sphere.radius <= 0. {
         sphere.radius = 1.;
     }
 
     if look_length == 0. {
-        look_length = 1.;
+        look_length = dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position);
     }
 
     app.camera.scene_bounding_sphere = sphere;

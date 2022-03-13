@@ -134,7 +134,7 @@ User_Settings :: struct {
     // camera_zoom_dragging_ratio           := .8;
     camera_zoom_min_screen_filling_length_mm := .0001; // .1um
     camera_zoom_max_screen_filling_length_factor := 4.; // multiplies a visible scene bounding sphere radius
-    camera_zoom_max_limited_by_scene_bounding_sphere := true;
+    camera_zoom_max_limited_by_scene_bounding_sphere := false;
 
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;

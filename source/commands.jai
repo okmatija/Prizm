@@ -215,8 +215,7 @@ focus_on_triangle :: (item_index : int, triangle_index : int, radius := -1.) {
         sphere.radius *= 2;
     }
 
-    look_length := dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position); // @Cleanup
-    fit_sphere_on_screen(sphere, look_length);
+    fit_sphere_on_screen(sphere);
 
 } @RegisterCommand
 
@@ -251,8 +250,7 @@ focus_on_vertex :: (item_index : int, vertex_index : int, radius := 1.) {
     sphere.center = entity.mesh.positions[vertex_index];
     sphere.radius = radius;
 
-    look_length := dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position); // @Cleanup
-    fit_sphere_on_screen(sphere, look_length);
+    fit_sphere_on_screen(sphere);
 
 } @RegisterCommand
 
