@@ -234,7 +234,7 @@ show_item_list_ui :: () {
 
     ImGui.Separator();
 
-    if ImGui.TreeNodeEx("Operations") {
+    if ImGui.TreeNodeEx("Operations", .DefaultOpen) {
         defer ImGui.TreePop();
 
         ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
@@ -244,20 +244,6 @@ show_item_list_ui :: () {
         if io().KeyCtrl target_items = .ALL_ITEMS;
         else if io().KeyShift target_items = .VISIBLE;
         // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
-
-        if app.entities.count {
-            if #complete target_items == {
-                case .ALL_ITEMS;
-                    count := app.entities.count;
-                    ImGui.Text("Target all % item%", count, ifx count == 1 then "" else "s");
-                case .VISIBLE;
-                    count := 0; for :Visible app.entities count += 1;
-                    ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
-                case .SELECTED;
-                    count := 0; for :Selected app.entities count += 1;
-                    ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
-            }
-        }
 
         // TODO change the convention so that with no key pressed the target is the visible items
         // TODO make item list collapsable
@@ -274,7 +260,7 @@ show_item_list_ui :: () {
 
             op : *Operation;
             for * ops {
-                if it.modifier_flags == mod {
+                if it.mod == mod {
                     op = it;
                 }
             }
@@ -283,7 +269,7 @@ show_item_list_ui :: () {
                 if ImGui.Button(imgui_label(label, op)) {
                     op.proc();
                 }
-                Show_Tooltip_Binding(op.description, to_string(op.key_code, op.modifier_flags));
+                Show_Tooltip_Binding(op.desc, to_string(op.key, op.mod));
             } else {
                 DISABLED_COLOR :: ImGui.ImVec4.{.5, .5, .5, 1.};
                 // // ImGui.PushStyleColor(xx ImGui.Col.Button | .ButtonHovered | .ButtonActive, DISABLED_COLOR);
@@ -296,13 +282,6 @@ show_item_list_ui :: () {
             }
         }
 
-        Operation_Button("Cyc Line Width", CYCLE_LINE_WIDTH_SELECTED_OP, CYCLE_LINE_WIDTH_ALL_ITEMS_OP, CYCLE_LINE_WIDTH_VISIBLE_OP);
-        ImGui.SameLine();
-        Operation_Button("Cyc Vert Size", CYCLE_POINT_SIZE_SELECTED_OP, CYCLE_POINT_SIZE_ALL_ITEMS_OP, CYCLE_POINT_SIZE_VISIBLE_OP);
-        Operation_Button("Tgl Clipping  ", TOGGLE_CLIPPING_SELECTED_OP, TOGGLE_CLIPPING_ALL_ITEMS_OP, TOGGLE_CLIPPING_VISIBLE_OP);
-        ImGui.SameLine();
-        Operation_Button("Tgl Normals  ", TOGGLE_NORMALS_SELECTED_OP, TOGGLE_NORMALS_ALL_ITEMS_OP, TOGGLE_NORMALS_VISIBLE_OP);
-
         // [              ] [Cyc Opacity  ]
         // [Cyc Line Width] [Cyc Vert Size]
         // [Tgl Elem IDs  ] [Tgl Vert IDs ] 
@@ -310,40 +289,57 @@ show_item_list_ui :: () {
         // [Tgl Clipping  ] [Tgl Normals  ]
         // [Focus Items   ] [Reload Items ]
         // -------------------------------
-        // [Tgl Console  ] [Tgl Help Menu]
+        // [Tgl Console   ] [Tgl Help Menu]
 
+        Operation_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);
+        ImGui.SameLine();
+        Operation_Button("Cyc Vert Size", ..CYCLE_POINT_SIZE_OPS);
 
-        // if ImGui.Button("Tgl Vert IDs ") { }
-        // ImGui.SameLine();
-        // if ImGui.Button("Tgl Vert XYZ ") { }
-        // if ImGui.Button("Tgl Elem IDs ") { }
-        // ImGui.SameLine();
-        // if ImGui.Button("Tgl Elem XYZ ") { }
-        // if ImGui.Button("Cyc Vert Size") { }
-        // ImGui.SameLine();
-        // if ImGui.Button("Cyc Line Size") { }
-        // if ImGui.Button("Cyc Line Opac") { }
-        // if ImGui.Button("Cyc Elem Opac") { }
-        // if ImGui.Button("Cyc Opacity  ") { }
-        // ImGui.SameLine();
-        // if ImGui.Button("Clear Labels ") { }
-        // if ImGui.Button("Fit on Screen") { }
-        // ImGui.SameLine();
-        // if ImGui.Button("Reload Items ") { }
+        Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);
+        ImGui.SameLine();
+        Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
+
+        Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS);
+        ImGui.SameLine();
+        Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_POSITIONS_OPS);
+
+        Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);
+        ImGui.SameLine();
+        Operation_Button("Tgl Normals  ", ..TOGGLE_NORMAL_OPS);
+
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        // @Incomplete
+        Operation_Button("Focus Items   ", TOGGLE_NORMALS_SELECTED_OP);
+
+        ImGui.SameLine();
+        Operation_Button("Reload Items ", ..RELOAD_ITEMS_OPS);
+
+        if app.entities.count {
+            if #complete target_items == {
+                case .ALL_ITEMS;
+                    count := app.entities.count;
+                    ImGui.Text("Target all % item%", count, ifx count == 1 then "" else "s");
+                case .VISIBLE;
+                    count := 0; for :Visible app.entities count += 1;
+                    ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
+                case .SELECTED;
+                    count := 0; for :Selected app.entities count += 1;
+                    ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
+            }
+        }
+
         // ImGui.Separator();
-        // if ImGui.Button("Tgl Console  ") { }
+        // if ImGui.Button("Tgl Console   ") { }
         // ImGui.SameLine();
         // if ImGui.Button("Tgl Help Menu") { }
-
-        // ImGui.Separator();
-        // if ImGui.Button("Toggle Console  ") { }
-
-        // ImGui.BeginTable("Operations", 5, flags=ImGui.TableFlags.NoBordersInBody) {
-        // defer ImGui.EndTable();
-        // it := *app.user_selection;
-        // ImGui.TableNextRow();
-        // // Remove button
-        // ImGui.TableNextColumn();
     }
 }
 
