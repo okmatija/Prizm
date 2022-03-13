@@ -245,9 +245,10 @@ show_item_list_operations_ui :: () {
         ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
         defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
 
-        target_items := Target_Items.SELECTED;
-        if io().KeyCtrl target_items = .ALL_ITEMS;
-        else if io().KeyShift target_items = .VISIBLE;
+        target_items := Target_Items.VISIBLE;
+        if current_modifier_flags() == VISIBLE_MOD   target_items = .VISIBLE;
+        if current_modifier_flags() == SELECTED_MOD  target_items = .SELECTED;
+        if current_modifier_flags() == ALL_ITEMS_MOD target_items = .ALL_ITEMS;
         // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
 
         // TODO change the convention so that with no key pressed the target is the visible items
@@ -259,10 +260,7 @@ show_item_list_operations_ui :: () {
         // TODO Change the button colors depending on what modifier is pressed
 
         Operation_Button :: (label : string, ops : ..Operation, disabled_tooltip := "") #expand {
-            mod : Modifier_Flags;
-            mod.shift_pressed = io().KeyShift;
-            mod.control_pressed = io().KeyCtrl;
-            mod.alt_pressed = io().KeyAlt;
+            mod := current_modifier_flags();
 
             op : *Operation;
             for * ops {
@@ -289,26 +287,12 @@ show_item_list_operations_ui :: () {
         }
 
         Operation_Button("Tgl Item Viz  ", ..TOGGLE_VISIBILITY_OPS);        ImGui.SameLine(); Operation_Button("Cyc Opacity  ", ..CYCLE_OPACITY_OPS);
-        Operation_Button("Tgl Item Viz  ", ..TOGGLE_VISIBILITY_OPS);        ImGui.SameLine(); Operation_Button("Cyc Opacity  ", ..CYCLE_OPACITY_OPS);
         Operation_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Operation_Button("Cyc Vert Size", ..CYCLE_POINT_SIZE_OPS);
         Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);       ImGui.SameLine(); Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
         Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS); ImGui.SameLine(); Operation_Button("Tgl Vert XYZ ", ..TOGGLE_VERTEX_POSITIONS_OPS);
         Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Operation_Button("Tgl Normals  ", ..TOGGLE_NORMALS_OPS);
-
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        // @Incomplete
-        Operation_Button("Focus Items   ", TOGGLE_NORMALS_SELECTED_OP);
-
-        ImGui.SameLine();
-        Operation_Button("Reload Items ", ..RELOAD_ITEMS_OPS);
+        FOCUS_ITEMS_OPS :: TOGGLE_CLIPPING_OPS; // @Incomplete
+        Operation_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Operation_Button("Reload Items ", ..RELOAD_ITEMS_OPS);
 
         if app.entities.count {
             if #complete target_items == {

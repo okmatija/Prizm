@@ -9,6 +9,14 @@ Modifier_Flags :: struct {
     alt_pressed     := false;
 }
 
+current_modifier_flags :: () -> Modifier_Flags {
+    result : Modifier_Flags;
+    result.shift_pressed = io().KeyShift;
+    result.control_pressed = io().KeyCtrl;
+    result.alt_pressed = io().KeyAlt;
+    return result;
+}
+
 operator== :: (a : Modifier_Flags, b : Modifier_Flags) -> bool {
     // @Cleanup: reimplement using reflection
     control_equal := (a.control_pressed == b.control_pressed);

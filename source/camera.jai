@@ -408,9 +408,14 @@ visible_entities_bounding_sphere_fast :: () -> Sphere
             clipped = true;
         }
 
-        for display_info.clip_ranges if it.is_active log_warning("@Incomplete Updating the bounding sphere ignoring clipping planes");
+        for display_info.clip_ranges {
+            if it.is_active {
+                log_warning("@Incomplete Updating the bounding sphere ignoring clipping planes");
+                break;
+            }
+        }
 
-        if !clipped {
+        if clipped == false {
             sphere := info.bounding_sphere;
             transform(*sphere, mesh.world_from_model);
             if first {
