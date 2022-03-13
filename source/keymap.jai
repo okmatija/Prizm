@@ -36,6 +36,7 @@ Single_Key_Mapping :: struct {
 #assert(enum_highest_value(Special_Key_Code) < 32);
 
 Special_Key_Code :: enum u32 #specified {
+    EMPTY  :: 0;
     ESCAPE :: 1;
     ENTER  :: 2; // unused
     TAB    :: 3; // unused
@@ -70,6 +71,7 @@ to_string :: (key_code : u32, modifier_flags : Modifier_Flags) -> string {
         cstr.count = 1;
         print_to_builder(*builder, "%", cstr);
     } else if #complete cast(Special_Key_Code)key_code == {
+        case .EMPTY;  // Do nothing
         case .ESCAPE; print_to_builder(*builder, "Esc");
         case .ENTER;  print_to_builder(*builder, "Enter");
         case .TAB;    print_to_builder(*builder, "Tab");
@@ -176,8 +178,8 @@ init_keymap :: () {
 
     add_key(*app.keymap_keydown, toggle_fullscreen, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_show_help_ui, "Toggle help UI",  xx #char "h");
-    add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`");
-    add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", .{control_pressed=true}, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
+    add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "s"); // @Volatile keep synced with SELECTION_MODE_TOOLTIP
 
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});

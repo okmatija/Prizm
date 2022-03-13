@@ -163,23 +163,32 @@ show_item_list_ui :: () {
             ImGui.TableNextColumn();
             visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
             any_visibility_changed = any_visibility_changed || visibility_changed;
-
-            if it.is_visible {
-                if (ImGui.IsItemHovered()) {
-                    ImGui.BeginTooltip();
-                    // @Volatile Keep synced with keymap
-                    ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB"); ImGui.SameLine(); ImGui.Text("Add nearest unclipped vertex to Selection item");
-                    ImGui.TextColored(KEYBINDING_COLOR, "Ctrl RMB"); ImGui.SameLine(); ImGui.Text("Place camera orbit");
-                    ImGui.TextColored(KEYBINDING_COLOR, "Shift LMB"); ImGui.SameLine(); ImGui.Text("Click-drag to set clipping sphere on selected items");
-                    ImGui.EndTooltip();
-                }
-            } else {
-                Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
-            }
         }
 
         ImGui.TableNextColumn();
         ImGui.Text("Selection");
+        if it.is_visible {
+            if (ImGui.IsItemHovered()) {
+                ImGui.BeginTooltip();
+                ImGui.BeginTable("", 3, flags=ImGui.TableFlags.NoBordersInBody);
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextColored(KEYBINDING_COLOR, "RMB");
+                ImGui.TableNextColumn();
+                ImGui.Text("Open context menu for the current Selection");
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
+                ImGui.TableNextColumn();
+                ImGui.Text("Add nearest unclipped vertex to Selection item");
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextColored(KEYBINDING_COLOR, "Shift LMB");
+                ImGui.TableNextColumn();
+                ImGui.Text("Click-drag to set clipping sphere on selected items");
+                ImGui.EndTable();
+                ImGui.EndTooltip();
+            }
+        } else {
+            Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
+        }
         if ImGui.IsItemClicked() {
             fit_on_screen(it);
         }
@@ -191,6 +200,10 @@ show_item_list_ui :: () {
             it.display_info.flash_wave_dt = 0;
         }
 
+        current_pos := ImGui.GetWindowPos();
+        current_size := ImGui.GetWindowSize();
+        window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+        ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
         if ImGui.BeginPopupContextItem(imgui_label("##context_menu", it)) {
             defer ImGui.EndPopup();
 
@@ -218,7 +231,7 @@ show_item_list_ui :: () {
             ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
 
             ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
-            Show_Tooltip("Format is '#E,I {X,Y,Z}'\n X,Y,Z are the coordinates of the closest vertex\n E is entity index to which it belongs\n I is the vertex index within the entity");
+            Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
             ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
             ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
 
@@ -297,7 +310,7 @@ show_item_list_operations_ui :: () {
             if #complete target_items == {
                 case .ALL_ITEMS;
                     count := app.entities.count;
-                    ImGui.Text("Operating on all % item%", count, ifx count == 1 then "" else "s");
+                    ImGui.Text("Operating on all items (%)", count);
                 case .VISIBLE;
                     count := 0; for :Visible app.entities count += 1;
                     ImGui.Text("Operating on % visible item%", count, ifx count == 1 then "" else "s");
@@ -305,6 +318,21 @@ show_item_list_operations_ui :: () {
                     count := 0; for :Selected app.entities count += 1;
                     ImGui.Text("Operating on % selected item%", count, ifx count == 1 then "" else "s");
             }
+        }
+        if (ImGui.IsItemHovered()) {
+            ImGui.BeginTooltip();
+            ImGui.Text("Change Action targets with modifier keys");
+            ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, to_string(0, ALL_ITEMS_MOD));
+            ImGui.TableNextColumn();
+            ImGui.Text("Target all items");
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, to_string(0, SELECTED_MOD));
+            ImGui.TableNextColumn();
+            ImGui.Text("Target selected items");
+            ImGui.EndTable();
+            ImGui.EndTooltip();
         }
 
         // ImGui.Separator();

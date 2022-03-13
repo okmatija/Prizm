@@ -347,6 +347,7 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 
     special_key_code : Special_Key_Code = xx key_code;
     if #complete special_key_code == {
+        case Special_Key_Code.EMPTY;  return SDLK_UNKNOWN;
         case Special_Key_Code.ESCAPE; return SDLK_ESCAPE;
         case Special_Key_Code.ENTER;  return SDLK_RETURN;
         case Special_Key_Code.TAB;    return SDLK_TAB;

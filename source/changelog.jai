@@ -23,6 +23,7 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
   - Changed the initial camera look direction to be along .{-1,-1,-1}
   - Changed defaults so the camera max zoom out is not limited by the scene bounding sphere, this can be toggled the help menu User Settings
   - Changed the binding to fit the visible items on screen from 'r' to 'f'
+  - Changed the bindings to toggle the console and entire UI to '`' and 'Ctrl `', previously they were swapped
   - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
   - Various minor improvements related to window positioning, colors and tooltips
 DONE
