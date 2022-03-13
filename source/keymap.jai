@@ -165,6 +165,11 @@ TOGGLE_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_is_visible(.ALL_IT
 TOGGLE_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{toggle_is_visible(.VISIBLE);},   desc="Toggle visibility on visible items (Hide all items)", key=#char "v", mod=VISIBLE_MOD};
 TOGGLE_VISIBILITY_OPS :: Operation.[TOGGLE_VISIBILITY_SELECTED_OP, TOGGLE_VISIBILITY_ALL_ITEMS_OP, TOGGLE_VISIBILITY_VISIBLE_OP];
 
+FOCUS_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{focus_items(.SELECTED);},  desc="Focus camera on selected items", key=#char "f", mod=SELECTED_MOD};
+FOCUS_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{focus_items(.ALL_ITEMS);}, desc="Focus camera on all items",      key=#char "f", mod=ALL_ITEMS_MOD};
+FOCUS_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{focus_items(.VISIBLE);},   desc="Focus camera on visible items",  key=#char "f", mod=VISIBLE_MOD};
+FOCUS_ITEMS_OPS :: Operation.[FOCUS_ITEMS_SELECTED_OP, FOCUS_ITEMS_ALL_ITEMS_OP, FOCUS_ITEMS_VISIBLE_OP];
+
 init_keymap :: () {
 
     // TODO Add options here for behaviour customizations?
@@ -175,16 +180,11 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", .{control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "s"); // @Volatile keep synced with SELECTION_MODE_TOOLTIP
 
-    add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap, call_fit_on_screen, "Fit on screen", xx #char "r");
-    add_key(*app.keymap, reset_camera, "Reset camera", xx #char "r", .{shift_pressed=true});
-
-    // @Incomplete Refactor these to fit the k, C-k, S-k pattern?
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
-
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
+    add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap, ..TOGGLE_VISIBILITY_OPS);
     add_key(*app.keymap, ..CYCLE_OPACITY_OPS);
@@ -265,6 +265,24 @@ Is_Target :: (e : *Entity) -> bool #expand {
         case .SELECTED;  return (e.is_selected == true);
         case .VISIBLE;   return (e.is_visible  == true);
         case .ALL_ITEMS; return true;
+    }
+}
+
+focus_items :: (target : Target_Items) {
+
+    sphere : Sphere;
+
+    if #complete target == {
+        case .ALL_ITEMS;
+            sphere = entities_bounding_sphere();
+        case .VISIBLE;
+            sphere = entities_bounding_sphere((e)=>(e.is_visible));
+        case .SELECTED;
+            sphere = entities_bounding_sphere((e)=>(e.is_selected));
+    }
+
+    if sphere.radius > 0 {
+        fit_sphere_on_screen(sphere, sphere.radius);
     }
 }
 

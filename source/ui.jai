@@ -291,7 +291,6 @@ show_item_list_operations_ui :: () {
         Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);       ImGui.SameLine(); Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
         Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS); ImGui.SameLine(); Operation_Button("Tgl Vert XYZ ", ..TOGGLE_VERTEX_POSITIONS_OPS);
         Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Operation_Button("Tgl Normals  ", ..TOGGLE_NORMALS_OPS);
-        FOCUS_ITEMS_OPS :: TOGGLE_CLIPPING_OPS; // @Incomplete
         Operation_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Operation_Button("Reload Items ", ..RELOAD_ITEMS_OPS);
 
         if app.entities.count {
@@ -564,20 +563,22 @@ show_camera_controls :: () {
     // combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
     // Show_Tooltip("Alt RMB Camera Rotation Axis");
 
-    if ImGui.TreeNodeEx("Settings") {
+    if ImGui.TreeNodeEx("Advanced") {
         defer ImGui.TreePop();
 
         ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
         defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
 
         // @TODO Would be better to set the look direction vector I think
-        ImGui.DragFloat( "Near ", *app.camera.near, .05);
-        ImGui.DragFloat( "Far  ", *app.camera.far, .05);
-        ImGui.DragFloat3("Orbit", *app.camera.look_position.component);
-        ImGui.DragFloat3("Eye  ", *app.camera.eye_position.component);
-        ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
+        ImGui.DragFloat( "##Near ", *app.camera.near, .05);
+        Show_Tooltip("Near plane offset");
+        ImGui.DragFloat( "##Far  ", *app.camera.far, .05);
+        Show_Tooltip("Far plane offset");
+        // ImGui.DragFloat3("Orbit", *app.camera.look_position.component);
+        // ImGui.DragFloat3("Eye  ", *app.camera.eye_position.component);
+        // ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
 
-        combo_box("Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
         Show_Tooltip_Binding("Camera Rotation Axis", "Alt RMB");
 
         // Not really needed if you can explicitly set the orbit position

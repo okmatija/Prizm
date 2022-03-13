@@ -17,12 +17,13 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
     - Key-only bindings act on visible items, this allows the corresponding buttons to do something by default
     - Control modified bindings act on selected items, this is consistent with control LMB selecting items in the Item List
     - Shift modified bindings act on all items
-  - Added a Settings menu to the camera UI, in particular near/far planes can be adjusted
+  - Added a menu to the camera UI where e.g., near/far planes can be adjusted
   - Added a Operations menu to the Item List with operations buttons whose behaviour is modified according to the key-binding pattern above
   - Added a 'known issues' section to the help menu
-  - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
   - Changed the initial camera look direction to be along .{-1,-1,-1}
   - Changed defaults so the camera max zoom out is not limited by the scene bounding sphere, this can be toggled the help menu User Settings
+  - Changed the binding to fit the visible items on screen from 'r' to 'f'
+  - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
   - Various minor improvements related to window positioning, colors and tooltips
 DONE
 };

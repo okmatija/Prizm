@@ -227,7 +227,7 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 
 // Adjust the camera position and viewing volume to fit the visible geometry while preserving the camera look direction
 fit_scene_on_screen :: (accurate : bool = false) {
-    sphere := visible_entities_bounding_sphere(accurate);
+    sphere := entities_bounding_sphere((e)=>(e.is_visible), accurate);
     fit_sphere_on_screen(sphere, sphere.radius);
 }
 
@@ -244,7 +244,7 @@ fit_on_screen :: (entity : *Entity, accurate : bool = false)
         sphere = entity.display_info.clip_sphere;
     }
 
-    scene_sphere := visible_entities_bounding_sphere(accurate);
+    scene_sphere := entities_bounding_sphere((e)=>(e.is_visible), accurate);
     sphere.radius += distance(sphere.center, scene_sphere.center);
 
     fit_sphere_on_screen(sphere);
@@ -373,18 +373,18 @@ make_camera_ray :: () -> Ray3 {
     return ray;
 }
 
-#scope_file
-
-visible_entities_bounding_sphere :: (accurate : bool = false) -> Sphere
+entities_bounding_sphere :: ($filter : (*Entity)->bool = (e)=>(true), accurate : bool = false) -> Sphere
 {
     if accurate {
-        return visible_entities_bounding_sphere_accurate();
+        return entities_bounding_sphere_accurate(filter);
     }
-    return visible_entities_bounding_sphere_fast();
+    return entities_bounding_sphere_fast(filter);
 }
 
+#scope_file
+
 // Returns a bounding sphere of the visible items in the scene in world space, considers clipping sphere/planes
-visible_entities_bounding_sphere_fast :: () -> Sphere
+entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sphere
 {
     expand_sphere :: (result : *Sphere, mesh : *Mesh, info : *Render_Info, display_info : Display_Info, first : bool) {
         if mesh.positions.count == 0 return;
@@ -426,10 +426,12 @@ visible_entities_bounding_sphere_fast :: () -> Sphere
         }
     }
 
+    Iterator :: #bake_arguments Entities_Iterator(should_visit=filter);
+
     result : Sphere;
 
     first := true;
-    for :Visible app.entities {
+    for :Iterator app.entities {
         expand_sphere(*result, *it.mesh, *it.render_info, it.display_info, first);
         first = false;
     }
@@ -443,11 +445,13 @@ visible_entities_bounding_sphere_fast :: () -> Sphere
 }
 
 // Returns a bounding sphere of the visible items in the scene in world space
-visible_entities_bounding_sphere_accurate :: () -> Sphere
+entities_bounding_sphere_accurate :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sphere
 {
+    Iterator :: #bake_arguments Entities_Iterator(should_visit=filter);
+
     // Compute the bounding sphere the points in the scene
     points_vs : [..]Point3;
-    for :Visible entity : app.entities {
+    for :Iterator entity : app.entities {
 
         warn := false;
         for entity.display_info.clip_ranges if it.is_active warn = true;
