@@ -175,7 +175,6 @@ console_draw :: () {
     footer_height_to_reserve := ImGui.GetStyle().ItemSpacing.y + ImGui.GetFrameHeightWithSpacing(); // 1 separator, 1 input text
 
     scrolling_region_size : ImGui.ImVec2;
-    scrolling_region_size.x = -footer_height_to_reserve;
     scrolling_region_size.y = -footer_height_to_reserve;
     ImGui.BeginChild("ScrollingRegion", scrolling_region_size, false, .HorizontalScrollbar); // Leave room for 1 separator + 1 InputText
     if (ImGui.BeginPopupContextWindow()) {

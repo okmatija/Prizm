@@ -1,17 +1,9 @@
 // TODO make a minimum sphere radius, its annoying to have everything disappear because this was wrong
 // TODO Make combo box clean up all caps underscores
 // TODO Fix opacity not affecting wireframe rendering
+// TODO Allow sphere clipping without selection mode, but don't ray cast more than necessary
 
 PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
-- Improved performance of ray intersection queries against Mesh items
-- Added a 'custom' build option which runs a gui at compile-time where the user can set build options and choose which console commands are available
-- Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
-- Added `focus_on_triangle` and `focus_on_vertex` commands to position the camera so the triangle/vertex of index mostly fills the screen
-- Fixed labels not clipping against clipping volumes
-- Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
-- Fixed a crash when requesting point label rendering for point clouds
-- Fixed a bug where changes to the float labelling format on a selection of elements was ignored
-- Fixed a performance problem caused by a missing early-out of text rendering code
 - Major UI/UX overhaul/improvements:
   - Changed the key-binding modifier pattern introduced in Version 0.1.1
     - Key-only bindings act on visible items, this allows the corresponding buttons to do something by default
@@ -26,6 +18,15 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
   - Changed the bindings to toggle the console and entire UI to '`' and 'Ctrl `', previously they were swapped
   - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
   - Various minor improvements related to window positioning, colors and tooltips
+- Improved performance of ray intersection queries against Mesh items
+- Added a 'custom' build option which runs a gui at compile-time where the user can set build options and choose which console commands are available
+- Added option to add index/centroid labels to triangles and segments for mesh or polyline/polygon items respectively
+- Added `focus_on_triangle` and `focus_on_vertex` commands to position the camera so the triangle/vertex of index mostly fills the screen
+- Fixed labels not clipping against clipping volumes
+- Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
+- Fixed a crash when requesting point label rendering for point clouds
+- Fixed a bug where changes to the float labelling format on a selection of elements was ignored
+- Fixed a performance problem caused by a missing early-out of text rendering code
 DONE
 };
 
