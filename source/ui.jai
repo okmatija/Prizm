@@ -545,6 +545,10 @@ show_camera_controls :: () {
         if ImGui.Button("+Z ") {
             set_look_direction(direction=Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
         }
+        // ImGui.TableNextColumn();
+        ImGui.SameLine();
+        ImGui.DragFloat( "##Near ", *app.camera.near, .05);
+        Show_Tooltip("Near plane offset");
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -559,6 +563,10 @@ show_camera_controls :: () {
         if ImGui.Button("-Z ") {
             set_look_direction(direction=-Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
         }
+        // ImGui.TableNextColumn();
+        ImGui.SameLine();
+        ImGui.DragFloat( "##Far  ", *app.camera.far, .05);
+        Show_Tooltip("Far plane offset");
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -584,6 +592,10 @@ show_camera_controls :: () {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, -amount);
         }
+        // ImGui.TableNextColumn();
+        ImGui.SameLine();
+        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+        Show_Tooltip_Binding("Camera Rotation Axis", "Alt RMB");
     }
 
     // @FIXME Having this combo box here screws up the UI when you close the Settings tree :(
@@ -591,6 +603,9 @@ show_camera_controls :: () {
     // combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
     // Show_Tooltip("Alt RMB Camera Rotation Axis");
 
+    // compiler_report("Move this menu next to the other buttons and update the changelog")
+
+    /*
     if ImGui.TreeNodeEx("Advanced") {
         defer ImGui.TreePop();
 
@@ -619,6 +634,7 @@ show_camera_controls :: () {
         //     }
         // }
     }
+    */
 
     // @Incomplete add perspective/orthographic toggle
     // @Incomplete add button to reset look position

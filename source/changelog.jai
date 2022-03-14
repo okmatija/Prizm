@@ -1,8 +1,3 @@
-// TODO make a minimum sphere radius, its annoying to have everything disappear because this was wrong
-// TODO Make combo box clean up all caps underscores
-// TODO Fix opacity not affecting wireframe rendering
-// TODO Allow sphere clipping without selection mode, but don't ray cast more than necessary
-
 PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
 - Major UI/UX overhaul/improvements:
   - Changed the key-binding modifier pattern introduced in Version 0.1.1
