@@ -251,6 +251,22 @@ load_from_command_line :: () {
 }
 
 handle_events :: () {
+
+    // @Cleanup The parameters here are a bit weird, I think the loops that call this function should not be over the mappings, but the keymaps 
+    maybe_run_binding :: (sdl_keycode : SDL_Keycode, mapping : Single_Key_Mapping, keymap : Keymap) {
+        if to_sdl_keycode(mapping.key_code) == sdl_keycode {
+            if io().KeyShift == mapping.modifier_flags.shift_pressed   &&
+               io().KeyCtrl  == mapping.modifier_flags.control_pressed &&
+               io().KeyAlt   == mapping.modifier_flags.alt_pressed {
+                if io().WantCaptureKeyboard && !mapping.override_WantCaptureKeyboard {
+                    return;
+                }
+                keymap.procs[mapping.proc_info_index].proc();
+                return;
+            }
+        }
+    }
+
     event: SDL_Event;
     while SDL_PollEvent(*event) {
         ImGui_ImplSDL2_ProcessEvent(*event);
@@ -278,19 +294,10 @@ handle_events :: () {
             case SDL_KEYDOWN; {
 
                 for app.keymap_keydown.mappings {
-                    if to_sdl_keycode(it.key_code) == event.key.keysym.sym {
-                        if io().KeyShift == it.modifier_flags.shift_pressed   &&
-                           io().KeyCtrl  == it.modifier_flags.control_pressed &&
-                           io().KeyAlt   == it.modifier_flags.alt_pressed {
-                            if io().WantCaptureKeyboard && !it.override_WantCaptureKeyboard {
-                                continue;
-                            }
-                            app.keymap_keydown.procs[it.proc_info_index].proc();
-                            break;
-                        }
-                    }
+                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_keydown);
                 }
 
+                // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
                     app.show_console_ui = false;
                     app.show_help_ui = false;
@@ -299,17 +306,11 @@ handle_events :: () {
             case SDL_KEYUP; {
 
                 for app.keymap.mappings {
-                    if to_sdl_keycode(it.key_code) == event.key.keysym.sym {
-                        if io().KeyShift == it.modifier_flags.shift_pressed   &&
-                           io().KeyCtrl  == it.modifier_flags.control_pressed &&
-                           io().KeyAlt   == it.modifier_flags.alt_pressed {
-                            if io().WantCaptureKeyboard && !it.override_WantCaptureKeyboard {
-                                continue;
-                            }
-                            app.keymap.procs[it.proc_info_index].proc();
-                            break;
-                        }
-                    }
+                    maybe_run_binding(event.key.keysym.sym, it, app.keymap);
+                }
+
+                for app.keymap_actions.mappings {
+                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_actions);
                 }
             }
             case SDL_DROPFILE; {

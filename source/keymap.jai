@@ -188,18 +188,18 @@ init_keymap :: () {
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
-    add_key(*app.keymap, ..TOGGLE_VISIBILITY_OPS);
-    add_key(*app.keymap, ..CYCLE_OPACITY_OPS);
-    add_key(*app.keymap, ..CYCLE_LINE_WIDTH_OPS);
-    add_key(*app.keymap, ..CYCLE_POINT_SIZE_OPS);
-    add_key(*app.keymap, ..TOGGLE_ELEMENT_IDS_OPS);
-    add_key(*app.keymap, ..TOGGLE_VERTEX_IDS_OPS);
-    add_key(*app.keymap, ..TOGGLE_ELEMENT_POSITIONS_OPS);
-    add_key(*app.keymap, ..TOGGLE_VERTEX_POSITIONS_OPS);
-    add_key(*app.keymap, ..TOGGLE_CLIPPING_OPS);
-    add_key(*app.keymap, ..TOGGLE_NORMALS_OPS);
-    add_key(*app.keymap, ..FOCUS_ITEMS_OPS);
-    add_key(*app.keymap, ..RELOAD_ITEMS_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_VISIBILITY_OPS);
+    add_key(*app.keymap_actions, ..CYCLE_OPACITY_OPS);
+    add_key(*app.keymap_actions, ..CYCLE_LINE_WIDTH_OPS);
+    add_key(*app.keymap_actions, ..CYCLE_POINT_SIZE_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_ELEMENT_IDS_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_VERTEX_IDS_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_ELEMENT_POSITIONS_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_VERTEX_POSITIONS_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_CLIPPING_OPS);
+    add_key(*app.keymap_actions, ..TOGGLE_NORMALS_OPS);
+    add_key(*app.keymap_actions, ..FOCUS_ITEMS_OPS);
+    add_key(*app.keymap_actions, ..RELOAD_ITEMS_OPS);
 
     // @Volatile button text in camera control pane should be kept in sync with keymap!
     add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  15 deg about selected rotation axis", xx #char "]");

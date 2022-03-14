@@ -77,6 +77,7 @@ App :: struct {
     label_limit : s32 = 2000;
 
     keymap : Keymap;
+    keymap_actions : Keymap;
     keymap_keydown : Keymap;
     settings : User_Settings;
 

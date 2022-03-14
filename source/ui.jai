@@ -252,7 +252,24 @@ show_item_list_operations_ui :: () {
 
     ImGui.Separator();
 
-    if ImGui.TreeNodeEx("Actions", .DefaultOpen) {
+    do_actions_tree := ImGui.TreeNodeEx("Actions", .DefaultOpen); // We do this so we can have the tooltip below appear when the tree is open AND closed
+    if (ImGui.IsItemHovered()) {
+        ImGui.BeginTooltip();
+        ImGui.Text("Change Action targets with modifier keys");
+        ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
+        ImGui.TableNextRow(); ImGui.TableNextColumn();
+        ImGui.TextColored(KEYBINDING_COLOR, to_string(0, ALL_ITEMS_MOD));
+        ImGui.TableNextColumn();
+        ImGui.Text("Target all items");
+        ImGui.TableNextRow(); ImGui.TableNextColumn();
+        ImGui.TextColored(KEYBINDING_COLOR, to_string(0, SELECTED_MOD));
+        ImGui.TableNextColumn();
+        ImGui.Text("Target selected items");
+        ImGui.EndTable();
+        ImGui.EndTooltip();
+    }
+
+    if do_actions_tree {
         defer ImGui.TreePop();
 
         ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
@@ -318,21 +335,6 @@ show_item_list_operations_ui :: () {
                     count := 0; for :Selected app.entities count += 1;
                     ImGui.Text("Operating on % selected item%", count, ifx count == 1 then "" else "s");
             }
-        }
-        if (ImGui.IsItemHovered()) {
-            ImGui.BeginTooltip();
-            ImGui.Text("Change Action targets with modifier keys");
-            ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, to_string(0, ALL_ITEMS_MOD));
-            ImGui.TableNextColumn();
-            ImGui.Text("Target all items");
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, to_string(0, SELECTED_MOD));
-            ImGui.TableNextColumn();
-            ImGui.Text("Target selected items");
-            ImGui.EndTable();
-            ImGui.EndTooltip();
         }
 
         // ImGui.Separator();
@@ -690,7 +692,8 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         ImGui.NextColumn(); ImGui.NextColumn();
         Show_Binding("LMB", "(on a filename) Focus an item");
         Show_Binding("Ctrl LMB", "(on a filename) Select an item");
-        Show_Binding("RMB", "(on a filename) Access item/selection context menu");
+        Show_Binding("RMB", "(on a filename) Open context menu which modifies only clicked item");
+        Show_Binding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
         Show_Binding("RMB", "(on a color) Cycle shading styles");
         Show_Binding("MMB", "(on a color) Reset color from the filename");
         Show_Binding("LMB", "(sweep over visibility checkbox) Update item visibility");
@@ -724,6 +727,19 @@ show_help_ui :: (world_axes : *Axes_Triad) {
         for app.keymap.mappings {
             push_allocator(temp);
             Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+        }
+    }
+
+    if ImGui.TreeNodeEx("Key bindings for item Actions", .DefaultOpen) {
+        defer ImGui.TreePop();
+        ImGui.Columns(2);
+        defer ImGui.Columns(1);
+        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
+        ImGui.NextColumn();
+        ImGui.NextColumn();
+        for app.keymap_actions.mappings {
+            push_allocator(temp);
+            Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
         }
     }
 
