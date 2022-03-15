@@ -4,13 +4,13 @@ PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
     - Key-only bindings act on visible items, this allows the corresponding buttons to do something by default
     - Control modified bindings act on selected items, this is consistent with control LMB selecting items in the Item List
     - Shift modified bindings act on all items
-  - Added a menu to the camera UI where e.g., near/far planes can be adjusted
-  - Added a Operations menu to the Item List with operations buttons whose behaviour is modified according to the key-binding pattern above
-  - Added a 'known issues' section to the help menu
+  - Added a sliders to the camera UI so that the near and far clippings planes can be adjusted
+  - Added a Actions menu to the Item List with buttons whose behaviour can be modified with modifier keys following pattern described above
+  - Added a 'Known issues' section to the help menu
   - Changed the initial camera look direction to be along .{-1,-1,-1}
   - Changed defaults so the camera max zoom out is not limited by the scene bounding sphere, this can be toggled the help menu User Settings
   - Changed the binding to fit the visible items on screen from 'r' to 'f'
-  - Changed the bindings to toggle the console and entire UI to '`' and 'Ctrl `', previously they were swapped
+  - Changed the bindings to toggle the console and entire UI to '`' and 'Ctrl `', previously these were the other way around
   - Removed cursor warping when sweeping over checkboxes, sweeping still works but only uses the cursor y position
   - Various minor improvements related to window positioning, colors and tooltips
 - Improved performance of ray intersection queries against Mesh items
