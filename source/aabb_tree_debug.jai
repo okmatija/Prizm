@@ -2,7 +2,7 @@
 
 // Adds items to visualize the spatial index of the given item
 // `jumbo_item`    if true only one item is added is the distance between adjacent grid points in each world axes direction
-debug_spatial_index :: (index : int, jumbo_item : int = 1) {
+debug_spatial_index :: (index : int, jumbo_item : int = 0) {
     if !check_geometry_index(index) {
         return;
     }
@@ -79,6 +79,8 @@ debug_spatial_index :: (index : int, jumbo_item : int = 1) {
                     assert(entity_base.type == .MESH);
                     entity := cast(*Mesh_Entity)entity_base;
                     entity.render_info.is_dirty = true; // Redundant
+                    entity.display_info.wireframe_visible = true;
+                    entity.display_info.wireframe_width = 2;
 
                     {
                         using primitives : Mesh;
