@@ -172,6 +172,11 @@ FOCUS_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{focus_items(.ALL_ITEMS);}, desc
 FOCUS_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{focus_items(.VISIBLE);},   desc="Focus camera on visible items",  key=#char "f", mod=VISIBLE_MOD};
 FOCUS_ITEMS_OPS :: Operation.[FOCUS_ITEMS_SELECTED_OP, FOCUS_ITEMS_ALL_ITEMS_OP, FOCUS_ITEMS_VISIBLE_OP];
 
+CYCLE_BACKFACE_MODE_SELECTED_OP ::  Operation.{proc=()=>{cycle_backface_mode(.SELECTED);},  desc="Cycle backface rendering mode for selected items", key=#char "b", mod=SELECTED_MOD};
+CYCLE_BACKFACE_MODE_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_backface_mode(.ALL_ITEMS);}, desc="Cycle backface rendering mode for all items",      key=#char "b", mod=ALL_ITEMS_MOD};
+CYCLE_BACKFACE_MODE_VISIBLE_OP ::   Operation.{proc=()=>{cycle_backface_mode(.VISIBLE);},   desc="Cycle backface rendering mode for visible items",  key=#char "b", mod=VISIBLE_MOD};
+CYCLE_BACKFACE_MODE_OPS :: Operation.[CYCLE_BACKFACE_MODE_SELECTED_OP, CYCLE_BACKFACE_MODE_ALL_ITEMS_OP, CYCLE_BACKFACE_MODE_VISIBLE_OP];
+
 init_keymap :: () {
 
     // TODO Add options here for behaviour customizations?
@@ -407,6 +412,23 @@ cycle_opacity :: (target : Target_Items) {
 
     for app.entities if Is_Target(it) {
         it.display_info.surface_color.w = app_info.surface_color.w;
+    }
+}
+
+cycle_backface_mode :: (target : Target_Items) {
+
+    app_info := *app.selection_display_info;
+    if #complete app_info.backface_mode == {
+        case .NONE;         app_info.backface_mode = .CULL;
+        case .CULL;         app_info.backface_mode = .FIXED;
+        case .FIXED;        app_info.backface_mode = .DARKEN; 
+        case .DARKEN;       app_info.backface_mode = .SCREENTONE_1;
+        case .SCREENTONE_1; app_info.backface_mode = .SCREENTONE_2;
+        case .SCREENTONE_2; app_info.backface_mode = .NONE;
+    }
+
+    for app.entities if Is_Target(it) {
+        it.display_info.backface_mode = app_info.backface_mode;
     }
 }
 

@@ -1,4 +1,13 @@
+// TODO Make sure a non -rc version has an actual date in the name
+
 PRISM_VERSION_WIP :: App.Version.{VERSION_STRING, #string DONE
+- Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
+- Added more shading modes for backfacing triangles and TODO exposed a cycle button to change them
+- TODO Added an option to the focus_on_* commands so that the clipping sphere is updated, this makes it easier to locate triangles
+DONE
+};
+
+PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0, 15 March 2022", #string DONE
 - Major UI/UX overhaul/improvements:
   - Changed the key-binding modifier pattern introduced in Version 0.1.1
     - Key-only bindings act on visible items, this allows the corresponding buttons to do something by default
@@ -91,6 +100,7 @@ DONE
 
 init_changelog :: () {
     array_add(*app.changelog, PRISM_VERSION_WIP);
+    array_add(*app.changelog, PRISM_VERSION_0_2_0);
     array_add(*app.changelog, PRISM_VERSION_0_1_2);
     array_add(*app.changelog, PRISM_VERSION_0_1_1);
     array_add(*app.changelog, PRISM_VERSION_0_1_0);

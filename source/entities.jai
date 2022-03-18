@@ -78,8 +78,8 @@ Mesh_Entity :: struct {
     type = .MESH;
     display_info.element_label_theme.label_color = .{1., 1., 0, 1};
 
-    display_info.wireframe_visible = true;
-    display_info.wireframe_width = 2;
+    // display_info.wireframe_visible = true;
+    // display_info.wireframe_width = 2;
     // display_info.element_label_theme.show_index = true;
     // display_info.vertex_label_style.show_position = true;
 

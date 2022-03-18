@@ -119,6 +119,24 @@ show_item_list_ui :: () {
                 it.display_info.flash_wave_dt = 0;
             }
 
+            /*
+            compiler_report("Enable when we have tooltip delays");
+            if (it.is_hovered) {
+                ImGui.BeginTooltip();
+                ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextColored(KEYBINDING_COLOR, "RMB");
+                ImGui.TableNextColumn();
+                ImGui.Text("Open context menu for the current %", ifx it.is_selected then "item selection" else "item");
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
+                ImGui.TableNextColumn();
+                ImGui.Text("Toggle selected state of the hovered item");
+                ImGui.EndTable();
+                ImGui.EndTooltip();
+            }
+            */
+
             // @Cleanup This is a horrible way to do this...
             it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
 
@@ -245,10 +263,10 @@ show_item_list_ui :: () {
         }
     }
 
-    show_item_list_operations_ui();
+    show_item_list_actions_ui();
 }
 
-show_item_list_operations_ui :: () {
+show_item_list_actions_ui :: () {
 
     ImGui.Separator();
 
@@ -316,12 +334,14 @@ show_item_list_operations_ui :: () {
             }
         }
 
+        // @Refactor Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
         Operation_Button("Tgl Item Viz  ", ..TOGGLE_VISIBILITY_OPS);        ImGui.SameLine(); Operation_Button("Cyc Opacity  ", ..CYCLE_OPACITY_OPS);
         Operation_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Operation_Button("Cyc Vert Size", ..CYCLE_POINT_SIZE_OPS);
         Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);       ImGui.SameLine(); Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
         Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS); ImGui.SameLine(); Operation_Button("Tgl Vert XYZ ", ..TOGGLE_VERTEX_POSITIONS_OPS);
         Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Operation_Button("Tgl Normals  ", ..TOGGLE_NORMALS_OPS);
         Operation_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Operation_Button("Reload Items ", ..RELOAD_ITEMS_OPS);
+        Operation_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);
 
         if app.entities.count {
             if #complete target_items == {
@@ -488,7 +508,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 if set.wireframe_width      wireframe_width      = other.wireframe_width;
                 if set.surface_visible      surface_visible      = other.surface_visible;
                 if set.display_mode         display_mode         = other.display_mode;
-                if set.screentone_backfaces screentone_backfaces = other.screentone_backfaces;
+                if set.backface_mode        backface_mode        = other.backface_mode;
                 if set.flat_shading         flat_shading         = other.flat_shading;
                 if set.normals_visible      normals_visible      = other.normals_visible;
                 if set.normals_length       normals_length       = other.normals_length;
@@ -840,7 +860,7 @@ Display_Info_Update :: struct {
     surface_color : [4]bool;
 
     display_mode : bool;
-    screentone_backfaces : bool;
+    backface_mode : bool;
     flat_shading : bool;
 
     color_reset : bool; @NoSync
@@ -937,7 +957,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
                 Show_Tooltip("Frontface Color");
                 for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
             }
-            set.screentone_backfaces = ImGui.Checkbox(imgui_label("Backface Dots", display_info), *display_info.screentone_backfaces);
+            set.backface_mode = combo_box("Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
             set.flat_shading = ImGui.Checkbox(imgui_label("Flat Shading", display_info), *display_info.flat_shading);
         }
     }

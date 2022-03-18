@@ -21,6 +21,15 @@ Display_Mode :: enum #specified {
     BLINN_PHONG :: 2;
 }
 
+Backface_Mode :: enum #specified {
+    NONE :: 0;
+    CULL :: 1;
+    FIXED :: 2;
+    DARKEN :: 3;
+    SCREENTONE_1 :: 4;
+    SCREENTONE_2 :: 5;
+}
+
 cycle_display_mode :: (mode : *Display_Mode) {
     if #complete <<mode == {
         case .NORMALS;     <<mode = .BLINN_PHONG;
@@ -105,7 +114,7 @@ Display_Info :: struct {
     surface_color := Vector4.{1., 1., 1., 1.};
 
     display_mode := Display_Mode.BLINN_PHONG;
-    screentone_backfaces := true;
+    backface_mode := Backface_Mode.FIXED;
     flat_shading := true;
 
     aabb_visible := false; @NoSync
@@ -136,7 +145,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
             // log("Computing and assigning triangle normals to vertices\n");
             success, failure_reason := compute_vertex_normals_from_triangles(mesh);
             if !success {
-                log_error("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
+                log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
             }
         }
 
@@ -265,7 +274,7 @@ render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using 
     render_mesh_common(mesh, render_info, display_info);
 
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "screentone_backfaces"), xx screentone_backfaces);
+    glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
     glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
     glUniform4f(glGetUniformLocation(app.mesh_program, "color"), surface_color.x, surface_color.y, surface_color.z, surface_color.w);
     glUniform4f(glGetUniformLocation(app.mesh_program, "wireframe_color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
@@ -308,6 +317,8 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
     glUniform1f(glGetUniformLocation(app.mesh_program, "wave"), wave);
     glUniform3f(glGetUniformLocation(app.mesh_program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+    look_direction := current_look_direction();
+    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
 
     {
         for 0..clip_ranges.count-1 {

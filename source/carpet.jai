@@ -112,6 +112,7 @@ imgui_label :: (label : string, ptr : *void) -> *u8 {
 }
 
 // Combo box to select display mode enum value
+// @Cleanup Deduce the info_enum from the data
 combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
     changed := false;
     value := get_enum_value(data, info_enum);

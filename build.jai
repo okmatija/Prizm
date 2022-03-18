@@ -10,7 +10,7 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
-VERSION_STRING  :: "0.2.0";
+VERSION_STRING  :: "0.2.1-rc";
 
 build :: () {
 

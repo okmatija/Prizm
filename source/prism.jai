@@ -121,6 +121,7 @@ main :: () {
     ImGui_ImplOpenGL3_Init("#version 130");
 
     ImGui.StyleColorsDark();
+    // ImGui.StyleColorsLight();
     ImGui.GetStyle().WindowRounding = 0;
 
     load_from_command_line();

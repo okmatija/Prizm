@@ -2,6 +2,7 @@
 
 struct Camera {
     vec3 eye_position;
+    vec3 look_direction;
 };
 
 struct Clip_Range {
@@ -17,23 +18,12 @@ struct Clip_Sphere {
     bool is_active;
 };
 
-struct Point_Light {
-    vec3  position;
-    vec3  color;
-    float power;
-};
-
-struct Directional_Light {
-    vec3  direction;
-    vec3  color;
-    float power;
-};
-
 uniform float wave; // time varying value in range [-1,1]
 uniform Camera camera;
 uniform int display_mode = 0;
+uniform int backface_mode = 1;
+uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
 uniform vec4 color; // rgba
-uniform bool screentone_backfaces = true;
 uniform bool flat_shading = true;
 uniform vec4 wireframe_color; // rgba
 uniform float wireframe_width;
@@ -48,25 +38,13 @@ noperspective in vec3 dist;
 
 out vec4 out_color;
 
-const int POINT_LIGHT_COUNT = 4;
-const int DIRECTIONAL_LIGHT_COUNT = 1;
 const float EPSILON = 1e-10;
-vec3 ambient_color   = 0.5 * color.xyz;
+
+vec3 ambient_color   = vec3(0.0);
 vec3 diffuse_color   = color.xyz;
 vec3 specular_color  = vec3(1.0);
 float shininess      = 16.;
 float gamma          = 2.2;
-
-Point_Light point_lights[POINT_LIGHT_COUNT] = Point_Light[POINT_LIGHT_COUNT](
-    Point_Light(vec3( 500,  500,  500), vec3(1), .1),
-    Point_Light(vec3(-500, -500,  250), vec3(1), .1),
-    Point_Light(vec3( 250, -500, -500), vec3(1), .1),
-    Point_Light(vec3(   0,  500, -500), vec3(1), .1)
-);
-
-Directional_Light directional_lights[DIRECTIONAL_LIGHT_COUNT] = Directional_Light[DIRECTIONAL_LIGHT_COUNT](
-    Directional_Light(vec3(0,  0,  1), vec3(1), .2)
-);
 
 vec3 blinn_phong_brdf(vec3 N, vec3 V, vec3 L, vec3 light_color, float light_power) {
     float n_dot_l = clamp(dot(N, L), 0., 1.);
@@ -123,8 +101,69 @@ vec3 RGBtoHSV(in vec3 rgb)
     return vec3(hcv.x, s, hcv.z);
 }
 
+vec3 darken(in vec3 color, float darken_factor)
+{
+    vec3 hsv = RGBtoHSV(color);
+    hsv.z *= darken_factor;
+    return HSVtoRGB(hsv);
+}
+
 void main() {
+
     vec4 used_color = color;
+
+    if (!gl_FrontFacing) {
+        switch (backface_mode) {
+
+            // Do nothing
+            case 0: {
+                break;
+            }
+
+            // Cull backfaces
+            case 1: {
+                discard;
+                break;
+            }
+
+            // Fixed backface color
+            case 2: {
+                used_color.xyz = backface_color.xyz;
+                break;
+            }
+
+            // Darken frontface color
+            case 3: {
+                float darken_factor = (display_mode == 0 ? .5 : .6);
+                used_color.xyz = darken(used_color.xyz, darken_factor);
+                break;
+            }
+
+            // Darken frontface color and screentone dark
+            case 4: {
+                float darken_factor = (display_mode == 0 ? .5 : .6);
+                used_color.xyz = darken(used_color.xyz, darken_factor);
+                if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
+                    used_color.xyz = darken(used_color.xyz, darken_factor);
+                }
+                break;
+            }
+
+            // Darken frontface color and screentone dark and light
+            case 5: {
+                float darken_factor = (display_mode == 0 ? .5 : .6);
+                used_color.xyz = darken(used_color.xyz, darken_factor);
+                if (int(gl_FragCoord.x) % 6 == 0 && int(gl_FragCoord.y) % 6 == 0) {
+                    used_color.xyz = darken(used_color.xyz, 1/darken_factor);
+                } else if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
+                    used_color.xyz = darken(used_color.xyz, darken_factor);
+                }
+                break;
+            }
+
+        }
+    }
+
     float clip_mode_darken_factor = 1.;
 
     for (int i = 0; i < 3; ++i) {
@@ -178,12 +217,14 @@ void main() {
         vec3 x_tangent = dFdx(fragment_position_ws);
         vec3 y_tangent = dFdy(fragment_position_ws);
         N = normalize(cross(x_tangent, y_tangent));
-        if (!gl_FrontFacing) {
-            N *= -1;
-        }
+        // if (!gl_FrontFacing) {
+        //     N *= -1;
+        // }
     }
 
-    vec4 fill_color = vec4(1, 1, 1, 1);
+    // vec4 fill_color = vec4(1, 1, 1, 1);
+    vec4 fill_color = used_color;
+    diffuse_color = used_color.xyz;
     vec4 line_color = mix(wireframe_color, vec4(1.f), wave * .5f + .5f);
     switch (display_mode) {
 
@@ -204,21 +245,16 @@ void main() {
         // Blinn-Phong shading
         case 2: {
 
+            vec3 V = normalize(camera.look_direction);
+            vec3 L = normalize(-camera.look_direction);
+            vec3 light_color = vec3(1);
+            float light_power = 1.;
+
             vec4 color_linear = vec4(0, 0, 0, 1);
+            color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power);
+            vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
 
-            vec3 V = normalize(camera.eye_position - fragment_position_ws);
-
-            for (int light_index = 0; light_index < DIRECTIONAL_LIGHT_COUNT; ++light_index) {
-                Directional_Light light = directional_lights[light_index];
-                vec3 L = normalize(-light.direction);
-                color_linear.xyz += blinn_phong_brdf(N, V, L, light.color, light.power);
-            }
-
-            for (int light_index = 0; light_index < POINT_LIGHT_COUNT; ++light_index) {
-                Point_Light light = point_lights[light_index];
-                vec3 L = normalize(light.position - fragment_position_ws);
-                color_linear.xyz += blinn_phong_brdf(N, V, L, light.color, light.power);
-            }
+            fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
 
             // // TODO: When changing shaders render the previous settings on half of the screen with the following:
             // if(gl_FragCoord.x < 400) { // e.g., for 800x600 viewport
@@ -226,9 +262,6 @@ void main() {
             // } else {
             //     FragColor = vec4(0.0, 1.0, 0.0, 1.0);
             // }
-
-            vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
-            fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
 
         } break;
     }
@@ -242,29 +275,8 @@ void main() {
         out_color = fill_color;
     }
 
-    // TODO: modify the input color instead so we get lighting on the screentone pixels too
-
-    if (!gl_FrontFacing) {
-        float darken_factor = (display_mode == 0 ? .5 : .6);
-
-        // Darken backfaces
-        vec3 hsv = RGBtoHSV(out_color.xyz);
-        hsv.z *= darken_factor;
-        out_color.xyz = HSVtoRGB(hsv);
-
-        if (screentone_backfaces) {
-            if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                vec3 hsv = RGBtoHSV(out_color.xyz);
-                hsv.z *= darken_factor;
-                out_color.xyz = HSVtoRGB(hsv);
-            }
-        }
-    }
-
     // Maybe Darken
-    vec3 hsv = RGBtoHSV(out_color.xyz);
-    hsv.z *= clip_mode_darken_factor;
-    out_color.xyz = HSVtoRGB(hsv);
+    out_color.xyz = darken(out_color.xyz, clip_mode_darken_factor);
 
     // Respect blending of input color
     out_color.w = color.w;
