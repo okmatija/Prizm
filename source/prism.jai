@@ -4,7 +4,8 @@ main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    app.window = SDL_CreateWindow(tprint("Prism %", VERSION_STRING).data,
+    init_changelog();
+    app.window = SDL_CreateWindow(tprint("Prism %", app.changelog[0].name).data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
@@ -107,7 +108,6 @@ main :: () {
     init_font();
     init_commands();
     init_keymap();
-    init_changelog();
     init_known_issues();
 
     // Setup Dear ImGui context

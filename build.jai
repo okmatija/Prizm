@@ -10,7 +10,6 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
-VERSION_STRING  :: "0.2.1-rc";
 
 build :: () {
 
@@ -86,7 +85,6 @@ build :: () {
     {
         compiler_begin_intercept(w);
 
-        add_build_string(tprint("VERSION_STRING  :: \"%\";", VERSION_STRING), w);
         add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_mode.build_options.output_executable_name), w);
         add_build_file("source/prism.jai", w);
 
