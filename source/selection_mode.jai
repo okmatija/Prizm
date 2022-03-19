@@ -81,9 +81,20 @@ do_selection_mode :: () {
     if do_clip_radius_mode() || use_result_for_adding_to_selection  || use_result_for_repositioning_camera || use_result_for_rendering_cursor_text {
 
         closest : Point_On_Entity = ---;
-        if do_clip_radius_mode() || use_result_for_repositioning_camera {
+        if do_clip_radius_mode() {
+            // We dont check against vertices here. This would be handy in some case (e.g., if we have a bunch of floating points not
+            // referenced by a triangle and we want to center the clipping sphere on one of them) but it spoils a handy workflow in
+            // more common cases where the user has an active clipping sphere and can hold shift and click off the visible surface to
+            // temporarily popup the wireframe of the rest of the mode, but wont affect the position/size of the clipping sphere
             closest = find_closest_point_on_visible_entities(); // @Volatile closest.element_index is a triangle index
+        } else if use_result_for_repositioning_camera {
+            closest = find_closest_point_on_visible_entities();
+            if closest.element_index == -1 {
+                closest = find_closest_vertex_on_visible_entities();
+            }
+            // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
         } else {
+            assert(use_result_for_rendering_cursor_text || use_result_for_adding_to_selection);
             closest = find_closest_vertex_on_visible_entities(); // @Volatile closest.element_index is now a vertex index
         }
 

@@ -336,7 +336,10 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
             if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
                 for vertex, vertex_index : entity.mesh.positions {
 
-                    front_facing_only :: true;
+                    front_facing_only :: false;
+
+                    // Note if the vertex normals are 0 the dot product will be 0 and will _not_ trigger the continue, we
+                    // want to be able to select vertices with 0 normals in all cases
                     if front_facing_only && (entity.mesh.normals.count != 0) && dot(current_look_direction(), entity.mesh.normals[vertex_index]) > 0 {
                         continue;
                     }

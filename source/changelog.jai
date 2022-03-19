@@ -2,8 +2,11 @@ PRISM_VERSION_WIP :: App.Version.{"0.2.1-rc", #string DONE
 - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
 - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
+- Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'
 - Fixed the tooltip for the 'Reload Items' button when it operates on visible items (i.e., when no modifier key is down)
+- Fixed some unituitive/strange behaviour related to selecting vertices (normals were being used, and were sometimes incorrect due to unitialized memory, now normals are ignored)
+- Fixed an issue where 'Ctrl RMB' did not allow placing the camera orbit on vertices which were not reference by a line/triangle
 - TODO Added an option to the focus_on_* commands so that the clipping sphere is updated, this makes it easier to locate triangles
 DONE
 };

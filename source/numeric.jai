@@ -74,8 +74,11 @@ Tuple2 :: struct (T : Type) {
 
 Tuple3 :: struct (T : Type) {
     x, y, z : T;
-#place x;
-    component : [3] T = ---;
+#place x; component : [3] T = ---;
+
+#place x; i : T = ---;
+#place y; j : T = ---;
+#place z; k : T = ---;
 }
 
 make_Tuple2 :: (x : $T, y : T) -> Tuple2(T) {

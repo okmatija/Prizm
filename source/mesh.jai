@@ -2,6 +2,7 @@ Mesh :: struct {
     geometry_format := Geometry_Format.UNKNOWN;
 
     // @Cleanup explicitly store allocator/allocator_data and use array views? see Hash_Table.jai
+    // This would enable loading a binary blob and pointing into that data
     positions : [..]Vector3;
     normals :  [..]Vector3;
     indices :  [..]u32;
@@ -15,6 +16,8 @@ Mesh :: struct {
 
 Triangle_Tuples_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
+    assert(mesh.geometry_format == .TRIANGLES);
+    assert(mesh.indices.count % 3 == 0);
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
@@ -26,6 +29,7 @@ Triangle_Tuples_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags)
 Triangles_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
     assert(mesh.geometry_format == .TRIANGLES);
+    assert(mesh.indices.count % 3 == 0);
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
@@ -84,7 +88,10 @@ copy_mesh :: (using mesh : Mesh) -> *Mesh {
     return result;
 }
 
-compute_vertex_normals_from_triangles :: (using mesh : *Mesh) -> bool, string {
+// Iterates over all triangles, computes the triangle normal and assigns it to the vertices
+// - Vertices which are referenced by more than one triangle, will be given the normal of the triangle with the largest triangle index
+// - Vertices which are not referenced by any triangles will be assigned [0,0,0] as the normal
+compute_vertex_normals_from_triangles :: (mesh : *Mesh) -> bool, string {
     if !mesh return false, "Null mesh";
 
     if mesh.geometry_format != .TRIANGLES {
@@ -92,29 +99,26 @@ compute_vertex_normals_from_triangles :: (using mesh : *Mesh) -> bool, string {
     }
 
     if mesh.indices.count % 3 == 0 {
-        // @FIXME This doesn't compute vertex normals properly
-        array_resize(*mesh.normals, mesh.positions.count, initialize=false);
-        for i : 0..mesh.indices.count/3-1 {
+        // Points not referenced by any triangle are assigned zero normals
+        array_resize(*mesh.normals, mesh.positions.count, initialize=true);
 
-            i0 := mesh.indices[3 * i + 0];
-            i1 := mesh.indices[3 * i + 1];
-            i2 := mesh.indices[3 * i + 2];
-
-            if i0 < mesh.positions.count && i0 < mesh.positions.count && i0 < mesh.positions.count {
-                // @FIXME incorrect normal??, use compute_normal instead, or at least the order of points from there
-                e01 := mesh.positions[i0] - mesh.positions[i1];
-                e02 := mesh.positions[i0] - mesh.positions[i2];
-                n   := normalize(cross(e01, e02));
-
-                mesh.normals[i0] = n;
-                mesh.normals[i1] = n;
-                mesh.normals[i2] = n;
+        for :Triangle_Tuples_Iterator tt : mesh {
+            if tt.i < mesh.positions.count && tt.i < mesh.positions.count && tt.i < mesh.positions.count {
+                tri : Triangle3 = ---;
+                tri.a = mesh.positions[tt.i];
+                tri.b = mesh.positions[tt.j];
+                tri.c = mesh.positions[tt.k];
+                n := compute_normal(tri, normalize=true);
+                mesh.normals[tt.i] = n;
+                mesh.normals[tt.j] = n;
+                mesh.normals[tt.k] = n;
             } else {
                 array_reset(*mesh.normals); // Clear and free memory
-                return false, "Out-of-range indices in mesh connectivity array";
+                return false, tprint("Out-of-range indices in mesh connectivity array, got %, %, %, but max index is %", tt.i, tt.j, tt.k, mesh.positions.count-1);
             }
         }
-        assert(mesh.normals.count == mesh.positions.count);
+    } else {
+        return false, "Invalid indices in mesh connectivity array";
     }
 
     return true, "";

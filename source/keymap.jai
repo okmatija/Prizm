@@ -147,9 +147,9 @@ CYCLE_VERTEX_LABEL_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_vertex_label(.ALL_
 CYCLE_VERTEX_LABEL_VISIBLE_OP ::   Operation.{proc=()=>{cycle_vertex_label(.VISIBLE);},   desc="Cycle vertex labels for visible items",  key=#char "j", mod=VISIBLE_MOD};
 CYCLE_VERTEX_LABEL_OPS :: Operation.[CYCLE_VERTEX_LABEL_SELECTED_OP, CYCLE_VERTEX_LABEL_ALL_ITEMS_OP, CYCLE_VERTEX_LABEL_VISIBLE_OP];
 
-CYCLE_OPACITY_SELECTED_OP ::  Operation.{proc=()=>{cycle_opacity(.SELECTED);},  desc="Cycle opacity 20%%/50%%/100%% for selected items", key=#char "t", mod=SELECTED_MOD};
-CYCLE_OPACITY_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_opacity(.ALL_ITEMS);}, desc="Cycle opacity 20%%/50%%/100%% for all items",      key=#char "t", mod=ALL_ITEMS_MOD};
-CYCLE_OPACITY_VISIBLE_OP ::   Operation.{proc=()=>{cycle_opacity(.VISIBLE);},   desc="Cycle opacity 20%%/50%%/100%% for visible items",  key=#char "t", mod=VISIBLE_MOD};
+CYCLE_OPACITY_SELECTED_OP ::  Operation.{proc=()=>{cycle_opacity(.SELECTED);},  desc="Cycle opacity 20%%/50%%/100%% for selected items", key=#char "o", mod=SELECTED_MOD};
+CYCLE_OPACITY_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_opacity(.ALL_ITEMS);}, desc="Cycle opacity 20%%/50%%/100%% for all items",      key=#char "o", mod=ALL_ITEMS_MOD};
+CYCLE_OPACITY_VISIBLE_OP ::   Operation.{proc=()=>{cycle_opacity(.VISIBLE);},   desc="Cycle opacity 20%%/50%%/100%% for visible items",  key=#char "o", mod=VISIBLE_MOD};
 CYCLE_OPACITY_OPS :: Operation.[CYCLE_OPACITY_SELECTED_OP, CYCLE_OPACITY_ALL_ITEMS_OP, CYCLE_OPACITY_VISIBLE_OP];
 
 EDIT_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{kinda_toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items", key=#char "v", mod=SELECTED_MOD};
