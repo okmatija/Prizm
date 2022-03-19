@@ -134,38 +134,28 @@ CYCLE_LINE_WIDTH_OPS :: Operation.[CYCLE_LINE_WIDTH_SELECTED_OP, CYCLE_LINE_WIDT
 
 RELOAD_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{reload_items(.SELECTED);},  desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=SELECTED_MOD, override_WantCaptureKeyboard=true};
 RELOAD_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{reload_items(.ALL_ITEMS);}, desc="Reload all items",      key=cast(u32) Special_Key_Code.F5, mod=ALL_ITEMS_MOD, override_WantCaptureKeyboard=true};
-RELOAD_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{reload_items(.VISIBLE);},   desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=VISIBLE_MOD, override_WantCaptureKeyboard=true};
+RELOAD_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{reload_items(.VISIBLE);},   desc="Reload visible items",  key=cast(u32) Special_Key_Code.F5, mod=VISIBLE_MOD, override_WantCaptureKeyboard=true};
 RELOAD_ITEMS_OPS :: Operation.[RELOAD_ITEMS_SELECTED_OP, RELOAD_ITEMS_ALL_ITEMS_OP, RELOAD_ITEMS_VISIBLE_OP];
 
-TOGGLE_ELEMENT_IDS_SELECTED_OP ::  Operation.{proc=()=>{toggle_element_ids(.SELECTED);},  desc="Toggle element ids for selected items", key=#char "i", mod=SELECTED_MOD};
-TOGGLE_ELEMENT_IDS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_element_ids(.ALL_ITEMS);}, desc="Toggle element ids for all items",      key=#char "i", mod=ALL_ITEMS_MOD};
-TOGGLE_ELEMENT_IDS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_element_ids(.VISIBLE);},   desc="Toggle element ids for visible items",  key=#char "i", mod=VISIBLE_MOD};
-TOGGLE_ELEMENT_IDS_OPS :: Operation.[TOGGLE_ELEMENT_IDS_SELECTED_OP, TOGGLE_ELEMENT_IDS_ALL_ITEMS_OP, TOGGLE_ELEMENT_IDS_VISIBLE_OP];
+CYCLE_ELEMENT_LABEL_SELECTED_OP ::  Operation.{proc=()=>{cycle_element_label(.SELECTED);},  desc="Cycle element labels for selected items", key=#char "i", mod=SELECTED_MOD};
+CYCLE_ELEMENT_LABEL_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_element_label(.ALL_ITEMS);}, desc="Cycle element labels for all items",      key=#char "i", mod=ALL_ITEMS_MOD};
+CYCLE_ELEMENT_LABEL_VISIBLE_OP ::   Operation.{proc=()=>{cycle_element_label(.VISIBLE);},   desc="Cycle element labels for visible items",  key=#char "i", mod=VISIBLE_MOD};
+CYCLE_ELEMENT_LABEL_OPS :: Operation.[CYCLE_ELEMENT_LABEL_SELECTED_OP, CYCLE_ELEMENT_LABEL_ALL_ITEMS_OP, CYCLE_ELEMENT_LABEL_VISIBLE_OP];
 
-TOGGLE_ELEMENT_POSITIONS_SELECTED_OP ::  Operation.{proc=()=>{toggle_element_positions(.SELECTED);},  desc="Toggle element positions for selected items", key=#char "o", mod=SELECTED_MOD};
-TOGGLE_ELEMENT_POSITIONS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_element_positions(.ALL_ITEMS);}, desc="Toggle element positions for all items",      key=#char "o", mod=ALL_ITEMS_MOD};
-TOGGLE_ELEMENT_POSITIONS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_element_positions(.VISIBLE);},   desc="Toggle element positions for visible items",  key=#char "o", mod=VISIBLE_MOD};
-TOGGLE_ELEMENT_POSITIONS_OPS :: Operation.[TOGGLE_ELEMENT_POSITIONS_SELECTED_OP, TOGGLE_ELEMENT_POSITIONS_ALL_ITEMS_OP, TOGGLE_ELEMENT_POSITIONS_VISIBLE_OP];
-
-TOGGLE_VERTEX_IDS_SELECTED_OP ::  Operation.{proc=()=>{toggle_vertex_ids(.SELECTED);},  desc="Toggle vertex ids for selected items", key=#char "j", mod=SELECTED_MOD};
-TOGGLE_VERTEX_IDS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_vertex_ids(.ALL_ITEMS);}, desc="Toggle vertex ids for all items",      key=#char "j", mod=ALL_ITEMS_MOD};
-TOGGLE_VERTEX_IDS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_vertex_ids(.VISIBLE);},   desc="Toggle vertex ids for visible items",  key=#char "j", mod=VISIBLE_MOD};
-TOGGLE_VERTEX_IDS_OPS :: Operation.[TOGGLE_VERTEX_IDS_SELECTED_OP, TOGGLE_VERTEX_IDS_ALL_ITEMS_OP, TOGGLE_VERTEX_IDS_VISIBLE_OP];
-
-TOGGLE_VERTEX_POSITIONS_SELECTED_OP ::  Operation.{proc=()=>{toggle_vertex_positions(.SELECTED);},  desc="Toggle vertex positions for selected items", key=#char "k", mod=SELECTED_MOD};
-TOGGLE_VERTEX_POSITIONS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_vertex_positions(.ALL_ITEMS);}, desc="Toggle vertex positions for all items",      key=#char "k", mod=ALL_ITEMS_MOD};
-TOGGLE_VERTEX_POSITIONS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_vertex_positions(.VISIBLE);},   desc="Toggle vertex positions for visible items",  key=#char "k", mod=VISIBLE_MOD};
-TOGGLE_VERTEX_POSITIONS_OPS :: Operation.[TOGGLE_VERTEX_POSITIONS_SELECTED_OP, TOGGLE_VERTEX_POSITIONS_ALL_ITEMS_OP, TOGGLE_VERTEX_POSITIONS_VISIBLE_OP];
+CYCLE_VERTEX_LABEL_SELECTED_OP ::  Operation.{proc=()=>{cycle_vertex_label(.SELECTED);},  desc="Cycle vertex labels for selected items", key=#char "j", mod=SELECTED_MOD};
+CYCLE_VERTEX_LABEL_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_vertex_label(.ALL_ITEMS);}, desc="Cycle vertex labels for all items",      key=#char "j", mod=ALL_ITEMS_MOD};
+CYCLE_VERTEX_LABEL_VISIBLE_OP ::   Operation.{proc=()=>{cycle_vertex_label(.VISIBLE);},   desc="Cycle vertex labels for visible items",  key=#char "j", mod=VISIBLE_MOD};
+CYCLE_VERTEX_LABEL_OPS :: Operation.[CYCLE_VERTEX_LABEL_SELECTED_OP, CYCLE_VERTEX_LABEL_ALL_ITEMS_OP, CYCLE_VERTEX_LABEL_VISIBLE_OP];
 
 CYCLE_OPACITY_SELECTED_OP ::  Operation.{proc=()=>{cycle_opacity(.SELECTED);},  desc="Cycle opacity 20%%/50%%/100%% for selected items", key=#char "t", mod=SELECTED_MOD};
 CYCLE_OPACITY_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_opacity(.ALL_ITEMS);}, desc="Cycle opacity 20%%/50%%/100%% for all items",      key=#char "t", mod=ALL_ITEMS_MOD};
 CYCLE_OPACITY_VISIBLE_OP ::   Operation.{proc=()=>{cycle_opacity(.VISIBLE);},   desc="Cycle opacity 20%%/50%%/100%% for visible items",  key=#char "t", mod=VISIBLE_MOD};
 CYCLE_OPACITY_OPS :: Operation.[CYCLE_OPACITY_SELECTED_OP, CYCLE_OPACITY_ALL_ITEMS_OP, CYCLE_OPACITY_VISIBLE_OP];
 
-TOGGLE_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items",                 key=#char "v", mod=SELECTED_MOD};
-TOGGLE_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_is_visible(.ALL_ITEMS);}, desc="Toggle visibility on all items",                      key=#char "v", mod=ALL_ITEMS_MOD};
-TOGGLE_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{toggle_is_visible(.VISIBLE);},   desc="Toggle visibility on visible items (Hide all items)", key=#char "v", mod=VISIBLE_MOD};
-TOGGLE_VISIBILITY_OPS :: Operation.[TOGGLE_VISIBILITY_SELECTED_OP, TOGGLE_VISIBILITY_ALL_ITEMS_OP, TOGGLE_VISIBILITY_VISIBLE_OP];
+EDIT_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{kinda_toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items", key=#char "v", mod=SELECTED_MOD};
+EDIT_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{kinda_toggle_is_visible(.ALL_ITEMS);}, desc="Toggle visibility on all items",      key=#char "v", mod=ALL_ITEMS_MOD};
+EDIT_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{kinda_toggle_is_visible(.VISIBLE);},   desc="Hide all visible items",              key=#char "v", mod=VISIBLE_MOD};
+EDIT_VISIBILITY_OPS :: Operation.[EDIT_VISIBILITY_SELECTED_OP, EDIT_VISIBILITY_ALL_ITEMS_OP, EDIT_VISIBILITY_VISIBLE_OP];
 
 FOCUS_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{focus_items(.SELECTED);},  desc="Focus camera on selected items", key=#char "f", mod=SELECTED_MOD};
 FOCUS_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{focus_items(.ALL_ITEMS);}, desc="Focus camera on all items",      key=#char "f", mod=ALL_ITEMS_MOD};
@@ -193,14 +183,12 @@ init_keymap :: () {
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
-    add_key(*app.keymap_actions, ..TOGGLE_VISIBILITY_OPS);
+    add_key(*app.keymap_actions, ..EDIT_VISIBILITY_OPS);
     add_key(*app.keymap_actions, ..CYCLE_OPACITY_OPS);
     add_key(*app.keymap_actions, ..CYCLE_LINE_WIDTH_OPS);
     add_key(*app.keymap_actions, ..CYCLE_POINT_SIZE_OPS);
-    add_key(*app.keymap_actions, ..TOGGLE_ELEMENT_IDS_OPS);
-    add_key(*app.keymap_actions, ..TOGGLE_VERTEX_IDS_OPS);
-    add_key(*app.keymap_actions, ..TOGGLE_ELEMENT_POSITIONS_OPS);
-    add_key(*app.keymap_actions, ..TOGGLE_VERTEX_POSITIONS_OPS);
+    add_key(*app.keymap_actions, ..CYCLE_ELEMENT_LABEL_OPS);
+    add_key(*app.keymap_actions, ..CYCLE_VERTEX_LABEL_OPS);
     add_key(*app.keymap_actions, ..TOGGLE_CLIPPING_OPS);
     add_key(*app.keymap_actions, ..TOGGLE_NORMALS_OPS);
     add_key(*app.keymap_actions, ..FOCUS_ITEMS_OPS);
@@ -327,35 +315,49 @@ clear_all_labels :: (target : Target_Items) {
     }
 }
 
-toggle_vertex_ids :: (target : Target_Items) {
-    app_style := *app.selection_display_info.vertex_label_style;
-    app_style.show_index = !app_style.show_index;
+cycle_label_theme :: (target : Target_Items, theme : *Label_Theme) {
+
+    State :: enum {
+        INDEX_OFF_POSITION_OFF :: 0b00;
+        INDEX_ON_POSITION_OFF ::  0b01;
+        INDEX_OFF_POSITION_ON ::  0b10;
+        INDEX_ON_POSITION_ON ::   0b11;
+    }
+
+    // Get State from theme
+    state : State = xx (xx theme.show_index + 2 * xx theme.show_position);
+
+    // Cycle State (always add/remove one bit of text)
+    if #complete state == {
+        case .INDEX_OFF_POSITION_OFF; state = .INDEX_ON_POSITION_OFF;
+        case .INDEX_ON_POSITION_OFF;  state = .INDEX_ON_POSITION_ON;
+        case .INDEX_ON_POSITION_ON;   state = .INDEX_OFF_POSITION_ON;
+        case .INDEX_OFF_POSITION_ON;  state = .INDEX_OFF_POSITION_OFF;
+    }
+
+    // Set theme from State
+    theme.show_index, theme.show_position = (xx state & 0b01), (xx state & 0b10);
+}
+
+cycle_element_label :: (target : Target_Items) {
+    theme := *app.selection_display_info.element_label_theme;
+
+    cycle_label_theme(target, theme);
+
     for app.entities if Is_Target(it) {
-        it.display_info.vertex_label_style.show_index = app_style.show_index;
+        it.display_info.element_label_theme.show_position = theme.show_position;
+        it.display_info.element_label_theme.show_index = theme.show_index;
     }
 }
 
-toggle_element_ids :: (target : Target_Items) {
-    app_style := *app.selection_display_info.element_label_theme;
-    app_style.show_index = !app_style.show_index;
-    for app.entities if Is_Target(it) {
-        it.display_info.element_label_theme.show_index = app_style.show_index;
-    }
-}
+cycle_vertex_label :: (target : Target_Items) {
+    theme := *app.selection_display_info.vertex_label_style;
 
-toggle_vertex_positions :: (target : Target_Items) {
-    app_style := *app.selection_display_info.vertex_label_style;
-    app_style.show_position = !app_style.show_position;
-    for app.entities if Is_Target(it) {
-        it.display_info.vertex_label_style.show_position = app_style.show_position;
-    }
-}
+    cycle_label_theme(target, theme);
 
-toggle_element_positions :: (target : Target_Items) {
-    app_style := *app.selection_display_info.element_label_theme;
-    app_style.show_position = !app_style.show_position;
     for app.entities if Is_Target(it) {
-        it.display_info.element_label_theme.show_position = app_style.show_position;
+        it.display_info.vertex_label_style.show_position = theme.show_position;
+        it.display_info.vertex_label_style.show_index = theme.show_index;
     }
 }
 
@@ -417,18 +419,18 @@ cycle_opacity :: (target : Target_Items) {
 
 cycle_backface_mode :: (target : Target_Items) {
 
-    app_info := *app.selection_display_info;
-    if #complete app_info.backface_mode == {
-        case .NONE;         app_info.backface_mode = .CULL;
-        case .CULL;         app_info.backface_mode = .FIXED;
-        case .FIXED;        app_info.backface_mode = .DARKEN; 
-        case .DARKEN;       app_info.backface_mode = .SCREENTONE_1;
-        case .SCREENTONE_1; app_info.backface_mode = .SCREENTONE_2;
-        case .SCREENTONE_2; app_info.backface_mode = .NONE;
+    mode := *app.selection_display_info.backface_mode;
+    if #complete <<mode == {
+        case .NONE;         <<mode = .CULL;
+        case .CULL;         <<mode = .FIXED;
+        case .FIXED;        <<mode = .DARKEN; 
+        case .DARKEN;       <<mode = .SCREENTONE_1;
+        case .SCREENTONE_1; <<mode = .SCREENTONE_2;
+        case .SCREENTONE_2; <<mode = .NONE;
     }
 
     for app.entities if Is_Target(it) {
-        it.display_info.backface_mode = app_info.backface_mode;
+        it.display_info.backface_mode = <<mode;
     }
 }
 
@@ -443,7 +445,7 @@ toggle_normals_visibility :: (target : Target_Items) {
 }
 
 
-toggle_is_visible :: (target : Target_Items) {
+kinda_toggle_is_visible :: (target : Target_Items) {
 
     visible := false;
     for app.entities if Is_Target(it) {

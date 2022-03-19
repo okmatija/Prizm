@@ -58,8 +58,8 @@ show_item_list_ui :: () {
                 Show_Tooltip("Visible");
 
                 if !was_visible && it.is_visible {
-                    // Make sure we see something when turning on visibility
-                    if !it.display_info.surface_visible && !it.display_info.wireframe_visible {
+                    // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
+                    if !it.display_info.surface_visible && !it.display_info.wireframe_visible && !it.display_info.points_visible {
                         it.display_info.surface_visible = true;
                     }
                 }
@@ -188,11 +188,15 @@ show_item_list_ui :: () {
         if it.is_visible {
             if (ImGui.IsItemHovered()) {
                 ImGui.BeginTooltip();
-                ImGui.BeginTable("", 3, flags=ImGui.TableFlags.NoBordersInBody);
+                ImGui.BeginTable("", 4, flags=ImGui.TableFlags.NoBordersInBody);
                 ImGui.TableNextRow(); ImGui.TableNextColumn();
                 ImGui.TextColored(KEYBINDING_COLOR, "RMB");
                 ImGui.TableNextColumn();
                 ImGui.Text("Open context menu for the current Selection");
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextColored(KEYBINDING_COLOR, "Ctrl RMB");
+                ImGui.TableNextColumn();
+                ImGui.Text("Set camera orbit on nearest unclipped vertex");
                 ImGui.TableNextRow(); ImGui.TableNextColumn();
                 ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
                 ImGui.TableNextColumn();
@@ -307,7 +311,7 @@ show_item_list_actions_ui :: () {
         // TODO Grey out label buttons when there are too many labels so perf would be made, add a tooltip pointing out where you can change the limit and also suggest clipping to a sphere
         // TODO Change the button colors depending on what modifier is pressed
 
-        Operation_Button :: (label : string, ops : ..Operation, disabled_tooltip := "") #expand {
+        Action_Button :: (label : string, ops : ..Operation, disabled_tooltip := "") #expand {
             mod := current_modifier_flags();
 
             op : *Operation;
@@ -335,13 +339,12 @@ show_item_list_actions_ui :: () {
         }
 
         // @Refactor Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
-        Operation_Button("Tgl Item Viz  ", ..TOGGLE_VISIBILITY_OPS);        ImGui.SameLine(); Operation_Button("Cyc Opacity  ", ..CYCLE_OPACITY_OPS);
-        Operation_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Operation_Button("Cyc Vert Size", ..CYCLE_POINT_SIZE_OPS);
-        Operation_Button("Tgl Elem IDs  ", ..TOGGLE_ELEMENT_IDS_OPS);       ImGui.SameLine(); Operation_Button("Tgl Vert IDs ", ..TOGGLE_VERTEX_IDS_OPS);
-        Operation_Button("Tgl Elem XYZ  ", ..TOGGLE_ELEMENT_POSITIONS_OPS); ImGui.SameLine(); Operation_Button("Tgl Vert XYZ ", ..TOGGLE_VERTEX_POSITIONS_OPS);
-        Operation_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Operation_Button("Tgl Normals  ", ..TOGGLE_NORMALS_OPS);
-        Operation_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Operation_Button("Reload Items ", ..RELOAD_ITEMS_OPS);
-        Operation_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);
+        Action_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);      ImGui.SameLine(); Action_Button("Cyc Opacity   ", ..CYCLE_OPACITY_OPS);
+        Action_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Action_Button("Cyc Vert Size ", ..CYCLE_POINT_SIZE_OPS);
+        Action_Button("Cyc Elem Label", ..CYCLE_ELEMENT_LABEL_OPS);      ImGui.SameLine(); Action_Button("Cyc Vert Label", ..CYCLE_VERTEX_LABEL_OPS);
+        Action_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Action_Button("Tgl Normals   ", ..TOGGLE_NORMALS_OPS);
+        Action_Button("Edit Item Viz ", ..EDIT_VISIBILITY_OPS);
+        Action_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Action_Button("Reload Items  ", ..RELOAD_ITEMS_OPS);
 
         if app.entities.count {
             if #complete target_items == {

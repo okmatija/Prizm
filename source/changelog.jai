@@ -1,6 +1,9 @@
 PRISM_VERSION_WIP :: App.Version.{"0.2.1-rc", #string DONE
 - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
 - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
+- Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
+- Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'
+- Fixed the tooltip for the 'Reload Items' button when it operates on visible items (i.e., when no modifier key is down)
 - TODO Added an option to the focus_on_* commands so that the clipping sphere is updated, this makes it easier to locate triangles
 DONE
 };
