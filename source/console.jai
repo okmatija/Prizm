@@ -6,6 +6,8 @@ Command_Info :: struct {
 }
 
 Console :: struct {
+    visible := false;
+    opaque := false;
     history : [..]string; // Different to log in that command feedback is not stored in the history
     history_position : int = -1; // -1: new line, 0..history.count-1 browsing history
     commands : [..]Command_Info;
@@ -17,7 +19,7 @@ console_logger :: (message: string, data: *void, info: Log_Info) {
     console_log := cast(*[..]string) data;
     if info.common_flags & .ERROR {
         array_add(console_log, join("[error] ", message));
-        app.show_console_ui = true;
+        app.console.visible = true;
     } else if info.common_flags & .WARNING {
         array_add(console_log, join("[warning] ", message));
     } else {
@@ -157,74 +159,117 @@ console_execute_command :: (_command : string) {
 }
 
 console_draw :: () {
-    if !app.show_console_ui return;
+    if app.console.visible == false return;
 
-    console_top_y := app.current_window_height * .6;
-    ImGui.SetNextWindowPos(make_ImVec2(0, xx console_top_y));
-    ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx (app.current_window_height - console_top_y)), .Always);
-    ImGui.Begin("console", flags = ImGui.WindowFlags.AlwaysAutoResize | ImGui.WindowFlags.NoTitleBar); // TODO if !Begin should close
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
+    if app.console.opaque == false window_flags |= .NoBackground;
 
-    ImGui.TextWrapped("Enter 'help' for help, press TAB for text completion and command documentation, press UP/DOWN to navigate history.");
+    window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+    input_window_height : float = -1;
 
-    // ImGui.SameLine();
-    // if (ImGui.SmallButton("Clear")) {
-    //      console_clear_log();
-    // }
-    ImGui.Separator();
-
-    footer_height_to_reserve := ImGui.GetStyle().ItemSpacing.y + ImGui.GetFrameHeightWithSpacing(); // 1 separator, 1 input text
-
-    scrolling_region_size : ImGui.ImVec2;
-    scrolling_region_size.y = -footer_height_to_reserve;
-    ImGui.BeginChild("ScrollingRegion", scrolling_region_size, false, .HorizontalScrollbar); // Leave room for 1 separator + 1 InputText
-    if (ImGui.BeginPopupContextWindow()) {
-        if ImGui.Selectable("Clear") {
-            console_clear_log();
-        }
-        ImGui.EndPopup();
-    }
-
-    ImGui.PushStyleVar(.ItemSpacing, ImGui.ImVec2.{4,1}); // Tighten spacing
-    for item : app.console.log {
-        assert(item.count != 0);
-        col := ImGui.ImVec4.{1., 1., 1., 1.};
-        if begins_with(item, "#") {
-            col = ImGui.ImVec4.{1., .78, .58, 1.};
-        } else if begins_with(item, "[warning]") {
-            col = ImGui.ImVec4.{0., .78, .58, 1.};
-        } else if begins_with(item, "[error]") {
-            col = ImGui.ImVec4.{1., .4, .4, 1.};
-        }
-        ImGui.TextColored(col, "%", item);
-    }
-    ImGui.PopStyleVar();
-    ImGui.EndChild();
-    ImGui.Separator();
-
+    // Draw input window
     {
-        using ImGui.InputTextFlags; // @Question this using is here due to: "Operator '|' does not work on this type. (Left type of the attempted binary operation: unary '.' dereference; right type: unary '.' dereference)"
+        console_top_y := app.current_window_height * .6;
+        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
+        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always);
 
-        // console passed as user data but it's a global so...
-        // if (ImGui.InputText("", console.input_buffer.data, console.input_buffer.count, EnterReturnsTrue | AlwaysInsertMode)) {
+        ImGui.Begin("console_input", flags=window_flags); // TODO if !Begin should close
+        defer ImGui.End();
 
-        ImGui.PushItemWidth(-1);
+        ImGui.PushItemWidth(-115); // Set to leave space for UI to the right of the text input @Cleanup This is a bit crappy
         text_input_flags :=  ImGui.InputTextFlags.EnterReturnsTrue | .CallbackCompletion | .CallbackHistory;
+        reclaim_focus := ImGui.IsWindowAppearing();
         if (ImGui.InputText("", app.console.input_buffer.data, app.console.input_buffer.count, text_input_flags, text_edit_callback, *app.console)) {
             defer app.console.input_buffer[0] = 0; // Wipe input after processing
-            console_execute_command(to_string(app.console.input_buffer.data, c_style_strlen(app.console.input_buffer.data)));
+            buffer := to_string(app.console.input_buffer.data, c_style_strlen(app.console.input_buffer.data));
+            console_execute_command(buffer);
+            reclaim_focus = true;
         }
         ImGui.PopItemWidth();
 
+        // @Refactor Make this type of tooltip a reusable function
+        if (ImGui.IsItemHovered()) {
+            ImGui.BeginTooltip();
+            ImGui.BeginTable("", 3, flags=ImGui.TableFlags.NoBordersInBody);
+
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "TAB");
+            ImGui.TableNextColumn();
+            ImGui.Text("List commands and show command documentation");
+
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");
+            ImGui.TableNextColumn();
+            ImGui.Text("Hide/toggle console");
+
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "UP/DOWN");
+            ImGui.TableNextColumn();
+            ImGui.Text("Navigate command history");
+
+            ImGui.EndTable();
+            ImGui.EndTooltip();
+        }
+
         // Keeping auto focus on the input box after command is entered
-        if (ImGui.IsItemHovered() || ( ImGui.IsWindowFocused(.RootAndChildWindows) &&
-                                      !ImGui.IsAnyItemActive()                     &&
-                                      !ImGui.IsMouseClicked(0))) {
+        if reclaim_focus {
             ImGui.SetKeyboardFocusHere(-1); // Auto focus previous widget
         }
+
+        ImGui.SameLine();
+        ImGui.ColorEdit4("##comment", *app.debug_console_color.component, ImGui.ColorEditFlags.NoInputs);
+        Show_Tooltip("Info");
+        ImGui.SameLine();
+        ImGui.ColorEdit4("##warning", *app.debug_console_color.component, ImGui.ColorEditFlags.NoInputs);
+        Show_Tooltip("Warning");
+        ImGui.SameLine();
+        ImGui.ColorEdit4("##error", *app.debug_console_color.component, ImGui.ColorEditFlags.NoInputs);
+        Show_Tooltip("Warning");
+
+        ImGui.SameLine();
+        if ImGui.Button("Tgl Console Bg") {
+            app.console.opaque = !app.console.opaque;
+        }
+
+        input_window_height = ImGui.GetWindowHeight();
     }
 
+    // Draw output window
+    // @Think Maybe we want the text selectable in the opaque view?
+    {
+        window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
+        window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
+        window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
+        if app.console.opaque == false {
+            window_flags |= .NoBackground;
+        }
 
-    ImGui.End();
+        console_top_y := app.current_window_height * .6;
+        ImGui.SetNextWindowPos(make_ImVec2(0, xx (app.current_window_height - input_window_height)), pivot=window_pivot);
+        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx (app.current_window_height - console_top_y)), .Always);
+
+        ImGui.Begin("console_output", flags=window_flags); // TODO if !Begin should close
+        defer ImGui.End();
+
+        ImGui.BeginChild("ScrollingRegion", border=false, flags=ImGui.WindowFlags.HorizontalScrollbar| .NoScrollbar | .NoInputs);
+        defer ImGui.EndChild();
+
+        ImGui.PushStyleVar(.ItemSpacing, ImGui.ImVec2.{4,1}); // Tighten spacing
+        defer ImGui.PopStyleVar();
+
+        for item : app.console.log {
+            assert(item.count != 0);
+            col := app.debug_console_color;// ifx app.console.opaque then CONSOLE_INFO_OPAQUE else CONSOLE_INFO;
+            if begins_with(item, "#") {
+                col = ifx app.console.opaque then CONSOLE_COMMENT_OPAQUE else CONSOLE_COMMENT;
+            } else if begins_with(item, "[warning]") {
+                col = ifx app.console.opaque then CONSOLE_WARNING_OPAQUE else CONSOLE_WARNING;
+            } else if begins_with(item, "[error]") {
+                col = ifx app.console.opaque then CONSOLE_ERROR_OPAQUE else CONSOLE_ERROR;
+            }
+            ImGui.TextColored(col, "%", item);
+        }
+    }
 }
 
 #scope_file

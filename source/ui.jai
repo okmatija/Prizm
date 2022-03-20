@@ -13,7 +13,7 @@ show_item_list_ui :: () {
     any_visibility_changed := false;
 
     {
-        show_entity_index := app.show_console_ui || app.user_selection.is_visible;
+        show_entity_index := app.console.visible || app.user_selection.is_visible;
 
         ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
         defer ImGui.EndTable();
@@ -189,22 +189,27 @@ show_item_list_ui :: () {
             if (ImGui.IsItemHovered()) {
                 ImGui.BeginTooltip();
                 ImGui.BeginTable("", 4, flags=ImGui.TableFlags.NoBordersInBody);
+
                 ImGui.TableNextRow(); ImGui.TableNextColumn();
                 ImGui.TextColored(KEYBINDING_COLOR, "RMB");
                 ImGui.TableNextColumn();
                 ImGui.Text("Open context menu for the current Selection");
+
                 ImGui.TableNextRow(); ImGui.TableNextColumn();
                 ImGui.TextColored(KEYBINDING_COLOR, "Ctrl RMB");
                 ImGui.TableNextColumn();
                 ImGui.Text("Set camera orbit on nearest unclipped vertex");
+
                 ImGui.TableNextRow(); ImGui.TableNextColumn();
                 ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
                 ImGui.TableNextColumn();
                 ImGui.Text("Add nearest unclipped vertex to Selection item");
+
                 ImGui.TableNextRow(); ImGui.TableNextColumn();
                 ImGui.TextColored(KEYBINDING_COLOR, "Shift LMB");
                 ImGui.TableNextColumn();
                 ImGui.Text("Click-drag to set clipping sphere on selected items");
+
                 ImGui.EndTable();
                 ImGui.EndTooltip();
             }
@@ -665,7 +670,8 @@ show_camera_controls :: () {
     // @Incomplete add button to reset look position
 }
 
-show_help_ui :: (world_axes : *Axes_Triad) {
+show_help_ui :: () {
+    world_axes := *app.triad;
     if !app.show_help_ui return;
 
     ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},

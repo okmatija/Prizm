@@ -102,7 +102,7 @@ main :: () {
     }
 
     TRIAD_AXIS_LENGTH :: 1;
-    triad := make_axes_triad(TRIAD_AXIS_LENGTH);
+    app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_camera();
     init_font();
@@ -138,7 +138,7 @@ main :: () {
         if app.show_ui {
             show_item_list_ui();
             show_camera_controls();
-            show_help_ui(*triad);
+            show_help_ui();
             console_draw();
             // inspect("Debug", *app.camera, true);
         }
@@ -150,7 +150,7 @@ main :: () {
         update_camera(1);
         render_background();
         render_entities();
-        render_axes_triad(*triad);
+        render_axes_triad();
         do_selection_mode();
 
         // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
@@ -300,7 +300,7 @@ handle_events :: () {
 
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
-                    app.show_console_ui = false;
+                    app.console.visible = false;
                     app.show_help_ui = false;
                 }
             }

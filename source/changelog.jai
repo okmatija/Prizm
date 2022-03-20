@@ -1,6 +1,11 @@
 PRISM_VERSION_WIP :: App.Version.{"0.2.1-rc", #string DONE
 - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
 - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
+- Changed the default backface shading mode to use a fixed pinkish color
+- Various improvements to the console:
+  - Changed the default console output window background be transparent so its easier to see the scene
+  - Changed the console output window so it ignores mouse interactions so that its easier interact with the scene e.g., rotating the scene by clicking on the console output window is possible
+  - Added a 'Tgl Console Bg' button to toggle dark/transparent backgrounds
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
 - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'

@@ -247,7 +247,6 @@ call_fit_on_screen             :: () { fit_scene_on_screen(); } // @CompilerBug?
 quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
 toggle_show_help_ui            :: () { app.show_ui, app.show_help_ui    = true, !app.show_help_ui; }
-toggle_show_console_ui         :: () { app.show_ui, app.show_console_ui = true, !app.show_console_ui; }
 toggle_selection_mode          :: () { app.user_selection.is_visible = !app.user_selection.is_visible; }
 rotate_look_direction_5_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -5); }
 rotate_look_direction_5_ccw    :: () { rotate_look_direction(camera_rotation_axis(),   5); }
@@ -255,6 +254,11 @@ rotate_look_direction_15_cw    :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  15); }
 rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
+
+toggle_show_console_ui :: () {
+    app.show_ui, app.console.visible = true, !app.console.visible;
+    app.triad.visible = !app.console.visible;
+}
 
 Is_Target :: (e : *Entity) -> bool #expand {
     if #complete `target == {

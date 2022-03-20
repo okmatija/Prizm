@@ -26,8 +26,8 @@ make_axes_triad :: (axis_length : float) -> Axes_Triad
     return result;
 }
 
-render_axes_triad :: (triad : *Axes_Triad) {
-    if triad.visible == false {
+render_axes_triad :: () {
+    if app.triad.visible == false {
         return;
     }
 
@@ -54,15 +54,15 @@ render_axes_triad :: (triad : *Axes_Triad) {
     shift := make_translation_matrix4(offset_ws);
     xform := shift * scale;
 
-    triad.origin.mesh.world_from_model = xform;
-    triad.x_axis.mesh.world_from_model = xform;
-    triad.y_axis.mesh.world_from_model = xform;
-    triad.z_axis.mesh.world_from_model = xform;
+    app.triad.origin.mesh.world_from_model = xform;
+    app.triad.x_axis.mesh.world_from_model = xform;
+    app.triad.y_axis.mesh.world_from_model = xform;
+    app.triad.z_axis.mesh.world_from_model = xform;
 
-    render_mesh_triangles(*triad.origin.mesh, *triad.origin.render_info, triad.origin.display_info);
-    render_mesh_triangles(*triad.x_axis.mesh, *triad.x_axis.render_info, triad.x_axis.display_info);
-    render_mesh_triangles(*triad.y_axis.mesh, *triad.y_axis.render_info, triad.y_axis.display_info);
-    render_mesh_triangles(*triad.z_axis.mesh, *triad.z_axis.render_info, triad.z_axis.display_info);
+    render_mesh_triangles(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
+    render_mesh_triangles(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info);
+    render_mesh_triangles(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info);
+    render_mesh_triangles(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info);
 }
 
 #if 0 #run {

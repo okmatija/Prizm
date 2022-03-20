@@ -41,7 +41,9 @@ App :: struct {
 
     show_ui := true;
     show_help_ui := false;
-    show_console_ui := false;
+    debug_console_color := Vector4.{170./256, 170./256, 170./256, 1.00};
+
+    triad : Axes_Triad;
 
     // Item Context menu UI, Action button UI and Action keybindings edit this value and apply it to all target entities (see Target_Items enum)
     // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
