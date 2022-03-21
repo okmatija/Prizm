@@ -6,13 +6,20 @@ Command_Info :: struct {
 }
 
 Console :: struct {
-    visible := false;
-    opaque := false;
     history : [..]string; // Different to log in that command feedback is not stored in the history
     history_position : int = -1; // -1: new line, 0..history.count-1 browsing history
     commands : [..]Command_Info;
     log : [..]string;
     input_buffer : [256]u8;
+
+    Log_Mode :: enum {
+        INTERACTIVE;
+        TRANSPARENT;
+    }
+
+    visible := false;
+    log_mode := Log_Mode.INTERACTIVE;
+    scroll_to_bottom_frame_count := SCROLL_TO_BOTTOM_FRAME_INIT;
 }
 
 console_logger :: (message: string, data: *void, info: Log_Info) {
@@ -25,13 +32,14 @@ console_logger :: (message: string, data: *void, info: Log_Info) {
     } else {
         array_add(console_log, copy_string(message));
     }
+    app.console.scroll_to_bottom_frame_count = SCROLL_TO_BOTTOM_FRAME_INIT;
 }
 
 // Clear all the text shown in the console
 console_clear_log :: () {
     for app.console.log free(it);
     array_reset(*app.console.log);
-} @RegisterCommand
+}
 
 console_add_history :: (format_string: string, args: .. Any) {
     builder: String_Builder;
@@ -78,7 +86,7 @@ console_clear_history :: () {
     for app.console.history free(it);
     array_reset(*app.console.history);
     console_save_history();
-} @RegisterCommand
+}
 
 console_execute_command :: (_command : string) {
     app.console.history_position = -1;
@@ -161,11 +169,9 @@ console_execute_command :: (_command : string) {
 console_draw :: () {
     if app.console.visible == false return;
 
-    window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
-    if app.console.opaque == false window_flags |= .NoBackground;
-
     window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
     input_window_height : float = -1;
+    scroll_delta_request : float;
 
     // Draw input window
     {
@@ -173,6 +179,7 @@ console_draw :: () {
         ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
         ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always);
 
+        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
         ImGui.Begin("console_input", flags=window_flags); // TODO if !Begin should close
         defer ImGui.End();
 
@@ -197,18 +204,26 @@ console_draw :: () {
             ImGui.TableNextColumn();
             ImGui.Text("List commands and show command documentation");
 
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");
-            ImGui.TableNextColumn();
-            ImGui.Text("Hide/toggle console");
+            // ImGui.TableNextRow(); ImGui.TableNextColumn();
+            // ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");
+            // ImGui.TableNextColumn();
+            // ImGui.Text("Hide/toggle console");
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
             ImGui.TextColored(KEYBINDING_COLOR, "UP/DOWN");
             ImGui.TableNextColumn();
             ImGui.Text("Navigate command history");
 
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "Scroll");
+            ImGui.TableNextColumn();
+            ImGui.Text("Scroll the console log");
+
             ImGui.EndTable();
             ImGui.EndTooltip();
+
+            // Negative so scrolling works as it does when hovering the scrollable region when the using INTERACTIVE mode
+            scroll_delta_request = -30 * io().MouseWheel;
         }
 
         // Keeping auto focus on the input box after command is entered
@@ -217,58 +232,72 @@ console_draw :: () {
         }
 
         ImGui.SameLine();
-        ImGui.ColorEdit4("##comment", *app.debug_console_color.component, ImGui.ColorEditFlags.NoInputs);
-        Show_Tooltip("Info");
-        ImGui.SameLine();
-        ImGui.ColorEdit4("##warning", *app.debug_console_color.component, ImGui.ColorEditFlags.NoInputs);
-        Show_Tooltip("Warning");
-        ImGui.SameLine();
-        ImGui.ColorEdit4("##error", *app.debug_console_color.component, ImGui.ColorEditFlags.NoInputs);
-        Show_Tooltip("Warning");
-
-        ImGui.SameLine();
-        if ImGui.Button("Tgl Console Bg") {
-            app.console.opaque = !app.console.opaque;
+        if #complete app.console.log_mode == {
+            case .INTERACTIVE;
+                if ImGui.Button("Transparent Log") {
+                    app.console.log_mode = .TRANSPARENT;
+                }
+            case .TRANSPARENT;
+                if ImGui.Button("Interactive Log") {
+                    app.console.log_mode = .INTERACTIVE;
+                }
         }
 
         input_window_height = ImGui.GetWindowHeight();
     }
 
     // Draw output window
-    // @Think Maybe we want the text selectable in the opaque view?
-    {
-        window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
-        window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
-        window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
-        if app.console.opaque == false {
-            window_flags |= .NoBackground;
+    // @Incomplete Make the text selectable in INTERACTIVE mode
+    if app.console.log.count != 0 {
+
+        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
+        if app.console.log_mode == .TRANSPARENT {
+            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
+            window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
+            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
+            window_flags |= .NoBackground;          // Makes the console log transparent
         }
 
-        console_top_y := app.current_window_height * .6;
+        // The + 20 is just a bit extra that we need, + 1 because... well, something is fishy
+        console_height := min(ImGui.GetFontSize() * (app.console.log.count + 1) + 20, app.current_window_height * .4);
         ImGui.SetNextWindowPos(make_ImVec2(0, xx (app.current_window_height - input_window_height)), pivot=window_pivot);
-        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx (app.current_window_height - console_top_y)), .Always);
+        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx console_height), .Always);
 
         ImGui.Begin("console_output", flags=window_flags); // TODO if !Begin should close
-        defer ImGui.End();
+        scrolling_region_flags := ImGui.WindowFlags.HorizontalScrollbar;
+        if app.console.log_mode == .TRANSPARENT {
+            scrolling_region_flags |= .NoInputs;   // So we can interact with the scene behind the console output window
+            scrolling_region_flags |= .NoScrollbar; // Save some screenspace since we wont be interacting with the console log anyway
+        }
 
-        ImGui.BeginChild("ScrollingRegion", border=false, flags=ImGui.WindowFlags.HorizontalScrollbar| .NoScrollbar | .NoInputs);
-        defer ImGui.EndChild();
-
+        ImGui.BeginChild("ScrollingRegion", border=false, flags=scrolling_region_flags);
         ImGui.PushStyleVar(.ItemSpacing, ImGui.ImVec2.{4,1}); // Tighten spacing
-        defer ImGui.PopStyleVar();
-
         for item : app.console.log {
             assert(item.count != 0);
-            col := app.debug_console_color;// ifx app.console.opaque then CONSOLE_INFO_OPAQUE else CONSOLE_INFO;
+            col := ifx app.console.log_mode == .INTERACTIVE then CONSOLE_INFO_INTERACTIVE else CONSOLE_INFO_TRANSPARENT;
             if begins_with(item, "#") {
-                col = ifx app.console.opaque then CONSOLE_COMMENT_OPAQUE else CONSOLE_COMMENT;
+                col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_COMMENT_INTERACTIVE else CONSOLE_COMMENT_TRANSPARENT;
             } else if begins_with(item, "[warning]") {
-                col = ifx app.console.opaque then CONSOLE_WARNING_OPAQUE else CONSOLE_WARNING;
+                col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_WARNING_INTERACTIVE else CONSOLE_WARNING_TRANSPARENT;
             } else if begins_with(item, "[error]") {
-                col = ifx app.console.opaque then CONSOLE_ERROR_OPAQUE else CONSOLE_ERROR;
+                col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_ERROR_INTERACTIVE else CONSOLE_ERROR_TRANSPARENT;
             }
             ImGui.TextColored(col, "%", item);
         }
+        ImGui.PopStyleVar();
+
+        if app.console.scroll_to_bottom_frame_count != 0 {
+            ImGui.SetScrollY(ImGui.GetScrollMaxY());
+            app.console.scroll_to_bottom_frame_count -= 1;
+        }
+
+        if scroll_delta_request != 0 {
+            ImGui.SetScrollY(ImGui.GetScrollY() + scroll_delta_request);
+        }
+
+        ImGui.EndChild();
+
+        ImGui.End();
     }
 }
 
@@ -336,7 +365,8 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                     // List matches
                     console_clear_log();
                     for candidate : candidates {
-                        log("#  %", candidate.documentation);
+                        doc_lines := split(candidate.documentation, "\n");
+                        for line : doc_lines log("%", line);
                     }
                 } else {
                     // Multiple matches. Complete as much as we can
@@ -436,3 +466,7 @@ make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
     v.y = b;
     return v;
 }
+
+// ImGui.SetScrollY needs to be called in two consecutive frames to scroll to the bottom of the console
+// perhaps this isn't needed, or is a bug in ImGui? @Cleanup
+SCROLL_TO_BOTTOM_FRAME_INIT :: 2;

@@ -476,7 +476,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 }
 
                 ImGui.SameLine();
-                if ImGui.Button("Clear Selection") {
+                if ImGui.Button("Deselect All") {
                     for :Selected app.entities {
                         it.is_selected = false;
                     }
@@ -787,7 +787,7 @@ show_help_ui :: () {
         }
 
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
-            if ImGui.Button("Reset Window") {
+            if ImGui.Button("Reset OS Window Size") {
                 SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
             }
         }

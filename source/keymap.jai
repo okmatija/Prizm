@@ -257,7 +257,6 @@ rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axi
 
 toggle_show_console_ui :: () {
     app.show_ui, app.console.visible = true, !app.console.visible;
-    app.triad.visible = !app.console.visible;
 }
 
 Is_Target :: (e : *Entity) -> bool #expand {

@@ -258,21 +258,6 @@ make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
     return v;
 }
 
-BLACK :: ImGui.ImVec4.{0., 0., 0., 1.};
-WHITE :: ImGui.ImVec4.{1., 1., 1., 1.};
-NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
-KEYBINDING_COLOR :: NICE_YELLOW;
-CHANGELOG_COLOR :: NICE_YELLOW;
-
-CONSOLE_COMMENT :: ImGui.ImVec4.{226./255, 127./255, 14./255, 1.};
-CONSOLE_WARNING :: ImGui.ImVec4.{0., .78, .58, 1.};
-CONSOLE_ERROR ::   ImGui.ImVec4.{1., .4, .4, 1.};
-CONSOLE_INFO ::    BLACK;
-
-CONSOLE_COMMENT_OPAQUE :: ImGui.ImVec4.{1., .78, .58, 1.};
-CONSOLE_WARNING_OPAQUE :: ImGui.ImVec4.{0., .78, .58, 1.};
-CONSOLE_ERROR_OPAQUE ::   ImGui.ImVec4.{1., .4, .4, 1.};
-CONSOLE_INFO_OPAQUE ::    WHITE;
 
 // See: https://github.com/ocornut/imgui/blob/0f14933577a1de01d90f8e87622296c466146f21/misc/cpp/imgui_stdlib.cpp#L38-L48
 InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None, callback: ImGui.InputTextCallback = null, user_data: *void = null) -> bool {

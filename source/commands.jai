@@ -16,9 +16,19 @@ quit :: () {
 } @RegisterCommand
 
 // Show the history of console commands
-console_show_history :: () {
+history :: () {
     console_clear_log();
     for app.console.history log("# % %", it_index, it);
+} @RegisterCommand
+
+// Clear all the text shown in the console
+clear :: () {
+    console_clear_log();
+} @RegisterCommand
+
+// Clear the history of console commands
+clear_history :: () {
+    console_clear_history();
 } @RegisterCommand
 
 // Lists all available commands and displays a help message
@@ -35,8 +45,6 @@ select_if :: (should_select : (Entity)->bool) {
         if should_select(it) {
             it.is_selected = true;
             count += 1;
-        } else {
-            it.is_selected = false;
         }
     }
     if count == 1 log("# selected 1 entity");
@@ -76,7 +84,7 @@ select_if_empty :: () {
 
 // @CompilerBug By passing *void data to the should_select procedure we could use the generic version above
 
-// Add all items matching the given `pattern` to the selection.
+// Add all items matching the given `pattern` to the selection
 // The following wildcards/regex patterns are supported: * ? [] [-]
 select_if_match :: (pattern : string) {
     count := 0;
@@ -85,12 +93,33 @@ select_if_match :: (pattern : string) {
         if wildcard_match(text, pattern) {
             it.is_selected = true;
             count += 1;
-        } else {
-            it.is_selected = false;
         }
     }
     if count == 1 log("# selected 1 entity");
     else          log("# selected % entities", count);
+} @RegisterCommand
+
+// Removes all selected items
+remove_selected_items :: () {
+    to_remove : [..]*Entity;
+    defer array_reset(*to_remove);
+
+    count := 0;
+    for app.entities {
+        if it.is_selected {
+            array_add(*to_remove, it);
+            count += 1;
+            remove it;
+        }
+    }
+
+    for to_remove {
+        deinit(it);
+        free(it);
+    }
+
+    if count == 1 log("# removed 1 selected entity");
+    else          log("# removed % selected entities", count);
 } @RegisterCommand
 
 // Sorts items in alphabetical order

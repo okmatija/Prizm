@@ -1,11 +1,16 @@
-PRISM_VERSION_WIP :: App.Version.{"0.2.1-rc", #string DONE
+PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
 - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
 - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
 - Changed the default backface shading mode to use a fixed pinkish color
-- Various improvements to the console:
-  - Changed the default console output window background be transparent so its easier to see the scene
-  - Changed the console output window so it ignores mouse interactions so that its easier interact with the scene e.g., rotating the scene by clicking on the console output window is possible
-  - Added a 'Tgl Console Bg' button to toggle dark/transparent backgrounds
+- Improvements to the console:
+  - Added a button on the right of the console input box which toggles between interactive and transparent console log modes. Transparent mode is the new default
+    - In interactive mode the console log captures mouse input so the user can scroll through log messages by hovering over the log (eventually copy/paste from the log will also work here)
+    - In transparent mode the console log ignores mouse inputs so the user can interact with the scene behind the console while still reading console log text
+  - Added ability to scroll the console log by using the scroll wheel when hovering over the console input text field. This works regardless of interactive/transparent mode
+  - Made the console scroll to the bottom when a new log message is posted
+  - Renamed console_clear_log, console_show_history and console_clear_history to clear, history and clear_history, the other names are hard to remember
+  - Changed the 'select_if*' functions to keep existing selections and just add to them
+  - Added a 'remove_selected_items' function
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
 - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'
@@ -108,7 +113,7 @@ DONE
 };
 
 init_changelog :: () {
-    array_add(*app.changelog, PRISM_VERSION_WIP);
+    array_add(*app.changelog, PRISM_VERSION_0_2_1);
     array_add(*app.changelog, PRISM_VERSION_0_2_0);
     array_add(*app.changelog, PRISM_VERSION_0_1_2);
     array_add(*app.changelog, PRISM_VERSION_0_1_1);

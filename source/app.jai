@@ -41,7 +41,6 @@ App :: struct {
 
     show_ui := true;
     show_help_ui := false;
-    debug_console_color := Vector4.{170./256, 170./256, 170./256, 1.00};
 
     triad : Axes_Triad;
 
@@ -223,6 +222,7 @@ ImGui :: #import "ImGui";
 #load "console.jai";
 #load "commands.jai";
 #load "changelog.jai";
+#load "colors.jai";
 
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
