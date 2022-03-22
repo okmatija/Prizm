@@ -175,18 +175,18 @@ sort_by_size :: (ascending : int = 1) {
     else           quick_sort(app.entities, compare_descending);
 } @RegisterCommand
 
-// Clears the item with the given `index` (resets geometry data containers)
-clear_item :: (index : int) {
+// Clears the item with the given `id` (resets geometry data containers)
+clear_item :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(index) {
+    if !check_geometry_index(id) {
         return;
     }
 
-    item := app.entities[index];
+    item := app.entities[id];
     point_count := item.mesh.positions.count;
     clear(item);
 
-    log("# Cleared item #% which had % points", index, point_count);
+    log("# Cleared item #% which had % points", id, point_count);
 } @RegisterCommand
 
 // Sets the edge/wireframe color to the face/surface color for all items
@@ -197,18 +197,18 @@ set_edge_color_to_face_color :: () {
 } @RegisterCommand
 
 // Update the camera so that the triangle with the given `triangle_index`, belonging to the mesh
-// with the given `item_index`, fills the screen. The current look direction is preserved and the
+// with the given `id`, fills the screen. The current look direction is preserved and the
 // orbit/focus of the camera is positioned on the triangle centroid.
 //
 // If `radius` is less than zero (the default) then 2x triangle bounding sphere radius is used to
 // update the camera, otherwise the given value is used as the bounding sphere radius.
-focus_on_triangle :: (item_index : int, triangle_index : int, radius := -1.) {
+focus_on_triangle :: (id : int, triangle_index : int, radius := -1.) {
 
-    if !check_geometry_index(item_index) {
+    if !check_geometry_index(id) {
         return;
     }
 
-    entity := app.entities[item_index];
+    entity := app.entities[id];
 
     if entity.type != .MESH {
         log_error("Expected MESH type item, got %.", entity.type);
@@ -246,15 +246,15 @@ focus_on_triangle :: (item_index : int, triangle_index : int, radius := -1.) {
 } @RegisterCommand
 
 // Update the camera so that a sphere with the given `radius`, centered on the vertex with the given
-// `vertex_index`, belonging to the mesh with the given `item_index`, fills the screen. The current
+// `vertex_index`, belonging to the mesh with the given `id`, fills the screen. The current
 // look direction is preserved.
-focus_on_vertex :: (item_index : int, vertex_index : int, radius := 1.) {
+focus_on_vertex :: (id : int, vertex_index : int, radius := 1.) {
 
-    if !check_geometry_index(item_index) {
+    if !check_geometry_index(id) {
         return;
     }
 
-    entity := app.entities[item_index];
+    entity := app.entities[id];
 
     if entity.type != .MESH {
         log_error("Expected MESH type item, got %. Support for other item types is @Incomplete", entity.type);
@@ -280,15 +280,15 @@ focus_on_vertex :: (item_index : int, vertex_index : int, radius := 1.) {
 
 } @RegisterCommand
 
-// Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `index`
-find_open_edges :: (index : int) {
+// Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `id`
+find_open_edges :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(index) {
+    if !check_geometry_index(id) {
         return;
     }
 
-    if app.entities[index].type != .MESH {
-        log_error("Expected MESH type item, got %.", app.entities[index].type);
+    if app.entities[id].type != .MESH {
+        log_error("Expected MESH type item, got %.", app.entities[id].type);
         return;
     }
 
@@ -309,7 +309,7 @@ find_open_edges :: (index : int) {
     edge_to_origin : Table(Tuple2(u32), s64, edge_hash, edge_comp);
     defer uninit(*edge_to_origin);
 
-    mesh := app.entities[index].mesh;
+    mesh := app.entities[id].mesh;
     if mesh.geometry_format != .TRIANGLES {
         log("Expected a mesh with TRIANGLES geometry format, got %.", mesh.geometry_format);
         return;
@@ -350,7 +350,7 @@ find_open_edges :: (index : int) {
     new_entity.shape = segment_soup;
     new_entity.mesh = to_Mesh(new_entity.shape);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-    name := join(app.entities[index].fully_pathed_filename, "_open_edges"); // @Leak
+    name := join(app.entities[id].fully_pathed_filename, "_open_edges"); // @Leak
     init_entity_base_parameters(new_entity, name, new_entity.mesh);
     new_entity.display_info.wireframe_width = 3;
     found_entity := find_entity_with_max_generation_index(new_entity.fully_pathed_filename);
@@ -361,15 +361,15 @@ find_open_edges :: (index : int) {
 
 } @RegisterCommand
 
-// Modify the position data of the item with the given `index` so new positions lie on spheres with
+// Modify the position data of the item with the given `id` so new positions lie on spheres with
 // the given `radius` centered on the original positions.  If the item is two dimensional then the
 // new positions will lie on a circle in the embedding plane containing the geometry
 //
 // Note: Mesh vertex normals are _not_ updated, but with flat shading the faces will be colored in
 // a way which is consistent with the perturbation
-perturb_positions :: (index : int, radius : float = .001) {
+perturb_positions :: (id : int, radius : float = .001) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(index) {
+    if !check_geometry_index(id) {
         return;
     }
 
@@ -394,7 +394,7 @@ perturb_positions :: (index : int, radius : float = .001) {
         <<point = <<point + delta * radius;
     }
 
-    base := app.entities[index];
+    base := app.entities[id];
     base.render_info.is_dirty = true;
     if #complete base.type == {
         case .POLYLINE_SOUP2;
@@ -539,15 +539,15 @@ make_Grid :: (spacing : float, nx : u32, ny : u32, nz : u32, ox : float, oy : fl
 } @RegisterCommand
 
 /*
-clear_normals :: (item_index : int) {
+clear_normals :: (id : int) {
     // @Incomplete if the normals are all constant it screws up the normal render, wipe them here
 } @RegisterCommand
 
-flip_normals :: (item_index : int) {
+flip_normals :: (id : int) {
     // @Incomplete
 } @RegisterCommand
 
-reorient_triangles_012_to_021 :: (item_index : int) {
+reorient_triangles_012_to_021 :: (id : int) {
     // @Incomplete Some triangles have flipped face,
 } @RegisterCommand
 */

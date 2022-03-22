@@ -2,17 +2,17 @@
 
 // Adds items to visualize the spatial index of the given item
 // `jumbo_item`    if true only one item is added is the distance between adjacent grid points in each world axes direction
-debug_spatial_index :: (index : int, jumbo_item : int = 0) {
-    if !check_geometry_index(index) {
+debug_spatial_index :: (id : int, jumbo_item : int = 0) {
+    if !check_geometry_index(id) {
         return;
     }
 
-    if app.entities[index].type != .MESH {
-        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[index].type);
+    if app.entities[id].type != .MESH {
+        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[id].type);
         return;
     }
 
-    mesh_entity := cast(*Mesh_Entity)app.entities[index];
+    mesh_entity := cast(*Mesh_Entity)app.entities[id];
     spatial := mesh_entity.spatial;
 
     if spatial.nodes.count == 0 {
@@ -170,17 +170,17 @@ debug_spatial_index :: (index : int, jumbo_item : int = 0) {
     }
 } @RegisterCommand
 
-debug_delete_spatial_index :: (index : int) {
-    if !check_geometry_index(index) {
+debug_delete_spatial_index :: (id : int) {
+    if !check_geometry_index(id) {
         return;
     }
 
-    if app.entities[index].type != .MESH {
-        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[index].type);
+    if app.entities[id].type != .MESH {
+        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[id].type);
         return;
     }
 
-    mesh_entity := cast(*Mesh_Entity)app.entities[index];
+    mesh_entity := cast(*Mesh_Entity)app.entities[id];
     deinit(mesh_entity.spatial);
     mesh_entity.spatial = null;
 
