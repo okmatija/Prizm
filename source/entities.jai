@@ -330,6 +330,8 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
     result : Point_On_Entity;
 
+    // @Incomplete Add a screenspace distance filter
+
     dist2 := FLOAT32_INFINITY;
     for entity, entity_index : app.entities {
         if entity.is_visible {

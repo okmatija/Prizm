@@ -24,3 +24,5 @@ imgui*.ini
 .build/
 .vscode/
 imgui.ini
+
+debug.log

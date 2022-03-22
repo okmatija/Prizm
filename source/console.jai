@@ -18,7 +18,8 @@ Console :: struct {
     }
 
     visible := false;
-    log_mode := Log_Mode.INTERACTIVE;
+    log_mode := Log_Mode.TRANSPARENT;
+    scroll_to_bottom := true;
     scroll_to_bottom_frame_count := SCROLL_TO_BOTTOM_FRAME_INIT;
 }
 
@@ -32,14 +33,16 @@ console_logger :: (message: string, data: *void, info: Log_Info) {
     } else {
         array_add(console_log, copy_string(message));
     }
-    app.console.scroll_to_bottom_frame_count = SCROLL_TO_BOTTOM_FRAME_INIT;
+    if app.console.scroll_to_bottom {
+        app.console.scroll_to_bottom_frame_count = SCROLL_TO_BOTTOM_FRAME_INIT;
+    }
 }
 
 // Clear all the text shown in the console
-console_clear_log :: () {
+console_log_clear :: () {
     for app.console.log free(it);
     array_reset(*app.console.log);
-}
+} @RegisterCommand
 
 console_add_history :: (format_string: string, args: .. Any) {
     builder: String_Builder;
@@ -82,11 +85,11 @@ console_load_history :: () {
 }
 
 // Clear the history of console commands
-console_clear_history :: () {
+console_history_clear :: () {
     for app.console.history free(it);
     array_reset(*app.console.history);
     console_save_history();
-}
+} @RegisterCommand
 
 console_execute_command :: (_command : string) {
     app.console.history_position = -1;
@@ -183,7 +186,7 @@ console_draw :: () {
         ImGui.Begin("console_input", flags=window_flags); // TODO if !Begin should close
         defer ImGui.End();
 
-        ImGui.PushItemWidth(-115); // Set to leave space for UI to the right of the text input @Cleanup This is a bit crappy
+        ImGui.PushItemWidth(-65); // Set to leave space for UI to the right of the text input @Cleanup This is a bit crappy
         text_input_flags :=  ImGui.InputTextFlags.EnterReturnsTrue | .CallbackCompletion | .CallbackHistory;
         reclaim_focus := ImGui.IsWindowAppearing();
         if (ImGui.InputText("", app.console.input_buffer.data, app.console.input_buffer.count, text_input_flags, text_edit_callback, *app.console)) {
@@ -195,7 +198,7 @@ console_draw :: () {
         ImGui.PopItemWidth();
 
         // @Refactor Make this type of tooltip a reusable function
-        if (ImGui.IsItemHovered()) {
+        if ImGui.IsItemHovered() {
             ImGui.BeginTooltip();
             ImGui.BeginTable("", 3, flags=ImGui.TableFlags.NoBordersInBody);
 
@@ -232,15 +235,21 @@ console_draw :: () {
         }
 
         ImGui.SameLine();
-        if #complete app.console.log_mode == {
-            case .INTERACTIVE;
-                if ImGui.Button("Transparent Log") {
-                    app.console.log_mode = .TRANSPARENT;
-                }
-            case .TRANSPARENT;
-                if ImGui.Button("Interactive Log") {
-                    app.console.log_mode = .INTERACTIVE;
-                }
+
+        if ImGui.Button("Options") {
+            ImGui.OpenPopup("console_options");
+        }
+
+        if ImGui.BeginPopup("console_options") {
+            is_interactive := app.console.log_mode == .INTERACTIVE;
+            if ImGui.Checkbox("Interactive Log", *is_interactive) {
+                app.console.log_mode = ifx is_interactive then Console.Log_Mode.INTERACTIVE else .TRANSPARENT;
+                ImGui.CloseCurrentPopup();
+            }
+            if ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom) {
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
         }
 
         input_window_height = ImGui.GetWindowHeight();
@@ -277,6 +286,8 @@ console_draw :: () {
             col := ifx app.console.log_mode == .INTERACTIVE then CONSOLE_INFO_INTERACTIVE else CONSOLE_INFO_TRANSPARENT;
             if begins_with(item, "#") {
                 col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_COMMENT_INTERACTIVE else CONSOLE_COMMENT_TRANSPARENT;
+            } else if begins_with(item, "|") {
+                col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_DOCUMENTATION_INTERACTIVE else CONSOLE_DOCUMENTATION_TRANSPARENT;
             } else if begins_with(item, "[warning]") {
                 col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_WARNING_INTERACTIVE else CONSOLE_WARNING_TRANSPARENT;
             } else if begins_with(item, "[error]") {
@@ -353,7 +364,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
                 if candidates.count == 0 {
                     // No match
-                    console_clear_log();
+                    console_log_clear();
                     log("# 0 matching commands");
 
                 } else if candidates.count == 1 {
@@ -363,7 +374,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                     data.InsertChars(data, data.CursorPos, " ");
 
                     // List matches
-                    console_clear_log();
+                    console_log_clear();
                     for candidate : candidates {
                         doc_lines := split(candidate.documentation, "\n");
                         for line : doc_lines log("%", line);
@@ -404,7 +415,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                     }
 
                     // List matches
-                    console_clear_log();
+                    console_log_clear();
                     log("# % matching commands:", candidates.count);
                     for candidate : candidates{
                         log("#  %", candidate.usage);

@@ -16,19 +16,9 @@ quit :: () {
 } @RegisterCommand
 
 // Show the history of console commands
-history :: () {
-    console_clear_log();
+console_history :: () {
+    console_log_clear();
     for app.console.history log("# % %", it_index, it);
-} @RegisterCommand
-
-// Clear all the text shown in the console
-clear :: () {
-    console_clear_log();
-} @RegisterCommand
-
-// Clear the history of console commands
-clear_history :: () {
-    console_clear_history();
 } @RegisterCommand
 
 // Lists all available commands and displays a help message
@@ -99,8 +89,15 @@ select_if_match :: (pattern : string) {
     else          log("# selected % entities", count);
 } @RegisterCommand
 
+// Toggles selection state of all items
+select_toggle :: () {
+    for app.entities {
+        it.is_selected = !it.is_selected;
+    }
+} @RegisterCommand
+
 // Removes all selected items
-remove_selected_items :: () {
+select_remove :: () {
     to_remove : [..]*Entity;
     defer array_reset(*to_remove);
 

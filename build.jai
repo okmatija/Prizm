@@ -244,7 +244,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
             documentation_lines : [..]string;
             cursor = command.l0 - 2;
             while cursor >= 0 && begins_with(file_lines[cursor], "//") {
-                array_add(*documentation_lines, replace(file_lines[cursor], "//", "# "));
+                array_add(*documentation_lines, replace(file_lines[cursor], "//", "|"));
                 cursor -= 1;
             }
 
