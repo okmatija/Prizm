@@ -1,7 +1,4 @@
 PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
-- Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
-- Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
-- Changed the default backface shading mode to use a fixed pinkish color
 - Improvements to the console:
   - Added an 'Options' button next to the input box which can toggle between interactive and transparent console log modes and enable/disable scrolling to new log output
     - In interactive mode the console log captures mouse input so the user can scroll through log messages by hovering over the log (eventually copy/paste from the log will also work here)
@@ -12,6 +9,11 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
   - Renamed 'console_show_history', 'console_clear_history' and 'console_clear_log' to 'console_history_show', 'console_history_clear' and 'console_log_clear' for better autocomplete namespacing
   - Changed the 'select_if*' functions to keep existing selections and just add to them
   - Added new 'select_toggle' and 'select_remove' functions
+- Improvements to rendering:
+  - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
+  - Fixed flat shading breaking at high zoom levels (ISSUE_003)
+  - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
+  - Changed the default backface shading mode to use a fixed pinkish color
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
 - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'

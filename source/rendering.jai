@@ -1,4 +1,3 @@
-ISSUE_003 :: "Flat shading is implemented using derivatives of fragment world positions which screws up at high zoom levels, use smooth shading via the checkbox in the item context menu (RMB on item filename)"; @KnownIssue;
 ISSUE_004 :: "The text rendering implmentation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
 
 // @Refactor rename this Label_Theme, and use it for triangle labels (at centroid, so you can see centroids, too)

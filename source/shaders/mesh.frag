@@ -33,6 +33,7 @@ uniform Clip_Sphere clip_sphere_prev;
 uniform bool clip_radius_mode = false;
 
 in vec3 vertex_normal_ws;
+in vec3 triangle_normal_ws;
 in vec3 fragment_position_ws;
 noperspective in vec3 dist;
 
@@ -214,12 +215,10 @@ void main() {
 
     vec3 N = vertex_normal_ws;
     if (flat_shading) {
-        vec3 x_tangent = dFdx(fragment_position_ws);
-        vec3 y_tangent = dFdy(fragment_position_ws);
-        N = normalize(cross(x_tangent, y_tangent));
-        // if (!gl_FrontFacing) {
-        //     N *= -1;
-        // }
+        N = triangle_normal_ws;
+        if (!gl_FrontFacing) {
+            N *= -1;
+        }
     }
 
     // vec4 fill_color = vec4(1, 1, 1, 1);

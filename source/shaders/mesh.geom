@@ -8,6 +8,7 @@ in VS_Out {
 } gs_in[];
 
 out vec3 vertex_normal_ws;
+out vec3 triangle_normal_ws; // Computed for flat shading
 out vec3 fragment_position_ws;
 noperspective out vec3 dist;
 
@@ -15,6 +16,12 @@ layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
 void main() {
+
+    vec3 a = gs_in[0].fragment_position_ws;
+    vec3 b = gs_in[1].fragment_position_ws;
+    vec3 c = gs_in[2].fragment_position_ws;
+    triangle_normal_ws = normalize(cross(b - a, c - a));
+
     vec2 p0 = window_size * gl_in[0].gl_Position.xy / gl_in[0].gl_Position.w;
     vec2 p1 = window_size * gl_in[1].gl_Position.xy / gl_in[1].gl_Position.w;
     vec2 p2 = window_size * gl_in[2].gl_Position.xy / gl_in[2].gl_Position.w;
