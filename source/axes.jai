@@ -31,6 +31,8 @@ render_axes_triad :: () {
         return;
     }
 
+    // @Refactor This is a confusing function with bad variable names
+
     using *app.camera;
     old_camera := app.camera;
     defer app.camera = old_camera;
@@ -46,7 +48,7 @@ render_axes_triad :: () {
     look_position = make_vector3(0., 0., 0.);
     eye_position = look_position - unit_look_direction;
 
-    offset_vs := make_vector3(s, s, 0.) + make_vector3(WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0);
+    offset_vs := make_vector3(s, s, 0.) + make_vector3(w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0);
     world_from_view := inverse(make_look_at_matrix(app.camera));
     offset_ws := (world_from_view * make_vector4(offset_vs, 0.)).xyz;
 

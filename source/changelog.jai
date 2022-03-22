@@ -4,6 +4,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
     - In interactive mode the console log captures mouse input so the user can scroll through log messages by hovering over the log (eventually copy/paste from the log will also work here)
     - In transparent mode the console log ignores mouse inputs so the user can interact with the scene behind the console while still reading console log text. This the the default mode
     - Console scrolls to the bottom when a new log message is posted by default
+    - Moved the world axes to the bottom right so it doesn't obscure text in transparent mode
   - Added ability to scroll the console log by using the scroll wheel when hovering over the console input text field. This works regardless of interactive/transparent mode
   - Changed the command documentation output color to make it more clear when autocomplete has narrowed down to only one option
   - Renamed 'console_show_history', 'console_clear_history' and 'console_clear_log' to 'console_history_show', 'console_history_clear' and 'console_log_clear' for better autocomplete namespacing
