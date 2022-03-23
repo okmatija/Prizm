@@ -1,10 +1,12 @@
 // Procedures tagged with @RegisterCommand will have their documentation appear
 // in the console when the user calls `help <command-name>`. Every line starting
 // with // above the procedure will be included in the documentation
+//
+// It's clearer for users if explicit types are put in function argument lists
 
 check_geometry_index :: (index : int) -> bool #must {
     if index < 0 || index >= app.entities.count {
-        log_error("Invalid/Out-of-range geometry index");
+        log_error("Invalid/Out-of-range geometry index, expected integer in range [0, %]", app.entities.count - 1);
         return false;
     }
     return true;
@@ -196,15 +198,15 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
-// Update the camera to focus on a triangle. The current look direction is preserved and the
-// orbit/focus of the camera is positioned on the triangle centroid.
+// Update the camera to focus on the given triangle. The current look direction is preserved and the
+// orbit/look position of the camera is positioned on the triangle centroid.
 //
 // `id`             The index of the item containing the desired triangle
 // `triangle_index` The triangle that should be focussed
 // `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
 //                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the triangle
 //                  If  > 0 then the items clipping sphere is set with a radius of the given value
-focus_on_triangle :: (id : int, triangle_index : int, clip_radius := -1.) {
+focus_on_triangle :: (id : int, triangle_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(id) {
         return;
@@ -243,6 +245,7 @@ focus_on_triangle :: (id : int, triangle_index : int, clip_radius := -1.) {
         sphere.radius = clip_radius;
     }
 
+    // @Cleanup @CopyPasta
     if clip_radius >= 0 {
         fit_sphere_on_screen(sphere);
 
@@ -258,15 +261,15 @@ focus_on_triangle :: (id : int, triangle_index : int, clip_radius := -1.) {
         target.radius = center_distance + entity.render_info.bounding_sphere.radius;
 
         fit_sphere_on_screen(target);
-        cached_camera := app.camera;
+        nf_camera := app.camera;
 
-        // @Think Maybe put this into the fit_sphere_on_screen function as well
+        // @Think Maybe put this into the fit_sphere_on_screen function?
         // At this point the camera is set so that the left/right/top/bottom/near/far planes bound `target`.
         // We would like to keep the near/far values but change left/right/top/bottom so that the point of
         // interest fills the screen
         fit_sphere_on_screen(sphere);
-        app.camera.near = cached_camera.near;
-        app.camera.far = cached_camera.far;
+        app.camera.near = nf_camera.near;
+        app.camera.far = nf_camera.far;
 
         // Turn if off even if it was on (the user can just toggle it on again)
         entity.display_info.clip_sphere.is_active = false;
@@ -274,10 +277,15 @@ focus_on_triangle :: (id : int, triangle_index : int, clip_radius := -1.) {
 
 } @RegisterCommand
 
-// Update the camera so that a sphere with the given `radius`, centered on the vertex with the given
-// `vertex_index`, belonging to the mesh with the given `id`, fills the screen. The current
-// look direction is preserved.
-focus_on_vertex :: (id : int, vertex_index : int, radius := 1.) {
+// Update the camera to focus on the given vertex. The current look direction is preserved and the
+// orbit/look position of the camera is positioned on the vertex.
+//
+// `id`           The index of the item containing the desired vertex
+// `vertex_index` The vertex that should be focussed
+// `clip_radius`  If  < 0 then the items clipping sphere is unchanged (default)
+//                If == 0 then the items clipping sphere is set to 1
+//                If  > 0 then the items clipping sphere is set with a radius of the given value
+focus_on_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(id) {
         return;
@@ -296,16 +304,44 @@ focus_on_vertex :: (id : int, vertex_index : int, radius := 1.) {
         return;
     }
 
-    if radius < 0 {
-        log_error("Expected a positive non-zero bounding sphere radius, got %.", radius);
-        return;
-    }
-
     sphere : Sphere = ---;
     sphere.center = entity.mesh.positions[vertex_index];
-    sphere.radius = radius;
 
-    fit_sphere_on_screen(sphere);
+    if clip_radius <= 0 {
+        sphere.radius = 1;
+    } else {
+        sphere.radius = clip_radius;
+    }
+
+    // @Cleanup @CopyPasta
+    if clip_radius >= 0 {
+        fit_sphere_on_screen(sphere);
+
+        entity.display_info.clip_sphere.sphere = sphere;
+        entity.display_info.clip_sphere.is_active = true;
+    } else {
+        target : Sphere = ---;
+        target.center = sphere.center;
+
+        // @Think Maybe this behaviour for expanding spheres should be an $ argument to expand?
+        // expand(*target, entity.render_info.bounding_sphere);
+        center_distance := distance(target.center, entity.render_info.bounding_sphere.center);
+        target.radius = center_distance + entity.render_info.bounding_sphere.radius;
+
+        fit_sphere_on_screen(target);
+        nf_camera := app.camera;
+
+        // @Think Maybe put this into the fit_sphere_on_screen function?
+        // At this point the camera is set so that the left/right/top/bottom/near/far planes bound `target`.
+        // We would like to keep the near/far values but change left/right/top/bottom so that the point of
+        // interest fills the screen
+        fit_sphere_on_screen(sphere);
+        app.camera.near = nf_camera.near;
+        app.camera.far = nf_camera.far;
+
+        // Turn if off even if it was on (the user can just toggle it on again)
+        entity.display_info.clip_sphere.is_active = false;
+    }
 
 } @RegisterCommand
 
