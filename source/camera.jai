@@ -189,12 +189,12 @@ update_camera :: (delta_time : float) {
 
         ratio := app.settings.camera_zoom_scrolling_ratio;
         if      io().KeyAlt   ratio = .97;
-        else if io().KeyShift ratio = .5;
+        // else if io().KeyShift ratio = .5;
 
         zoom_factor := 1.;
         if      (io().MouseWheel > 0) zoom_factor *= ratio;
         else if (io().MouseWheel < 0) zoom_factor /= ratio;
-        handle_zoom(zoom_factor, make_Vector2(io().MousePos), !io().KeyCtrl);
+        handle_zoom(zoom_factor, make_Vector2(io().MousePos), !io().KeyShift);
     }
 }
 

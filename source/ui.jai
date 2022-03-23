@@ -659,7 +659,8 @@ show_help_ui :: () {
         ImGui.NextColumn(); ImGui.NextColumn();
         Show_Binding("MMB", "Pan the camera");
         Show_Binding("Scroll", "Zoom the camera into the position under the cursor");
-        Show_Binding("Ctrl Scroll", "Zoom the camera into the camera look position");
+        Show_Binding("Alt   Scroll", "Zoom the camera into the position under the cursor slowly");
+        Show_Binding("Shift Scroll", "Zoom the camera into the camera look position");
         Show_Binding("RMB", "Rotate the camera");
         Show_Binding("Alt RMB", "Rotate about selected axis in the camera control pane");
     }
