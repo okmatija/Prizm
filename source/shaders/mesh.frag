@@ -20,8 +20,20 @@ struct Clip_Sphere {
 
 uniform float wave; // time varying value in range [-1,1]
 uniform Camera camera;
-uniform int display_mode = 0;
-uniform int backface_mode = 1;
+
+const int Display_Mode_NORMALS = 0;
+const int Display_Mode_SOLID_COLOR = 1;
+const int Display_Mode_BLINN_PHONG = 2;
+uniform int display_mode = Display_Mode_NORMALS;
+
+const int Backface_Mode_NONE = 0;
+const int Backface_Mode_CULL = 1;
+const int Backface_Mode_FIXED = 2;
+const int Backface_Mode_DARKEN = 3;
+const int Backface_Mode_SCREENTONE_1 = 4;
+const int Backface_Mode_SCREENTONE_2 = 5;
+uniform int backface_mode = Backface_Mode_FIXED;
+
 uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
 uniform vec4 color; // rgba
 uniform bool flat_shading = true;
@@ -60,6 +72,17 @@ vec3 blinn_phong_brdf(vec3 N, vec3 V, vec3 L, vec3 light_color, float light_powe
     return light_color * light_power * (diffuse_color * n_dot_l + specular_color * specular);
 }
 
+vec3 get_normal() {
+    vec3 N = vertex_normal_ws;
+    if (flat_shading) {
+        N = triangle_normal_ws;
+        if (!gl_FrontFacing) {
+            N *= -1;
+        }
+    }
+    return N;
+}
+
 vec3 HUEtoRGB(in float hue)
 {
     // Hue [0..1] to RGB [0..1]
@@ -86,14 +109,6 @@ vec3 HSVtoRGB(in vec3 hsv)
     return ((rgb - 1.) * hsv.y + 1.) * hsv.z;
 }
 
-vec3 HSLtoRGB(in vec3 hsl)
-{
-    // Hue-Saturation-Lightness [0..1] to RGB [0..1]
-    vec3 rgb = HUEtoRGB(hsl.x);
-    float c = (1. - abs(2. * hsl.z - 1.)) * hsl.y;
-    return (rgb - 0.5) * c + hsl.z;
-}
-
 vec3 RGBtoHSV(in vec3 rgb)
 {
     // RGB [0..1] to Hue-Saturation-Value [0..1]
@@ -111,61 +126,12 @@ vec3 darken(in vec3 color, float darken_factor)
 
 void main() {
 
-    vec4 used_color = color;
-
     if (!gl_FrontFacing) {
-        switch (backface_mode) {
-
-            // Do nothing
-            case 0: {
-                break;
-            }
-
-            // Cull backfaces
-            case 1: {
-                discard;
-                break;
-            }
-
-            // Fixed backface color
-            case 2: {
-                used_color.xyz = backface_color.xyz;
-                break;
-            }
-
-            // Darken frontface color
-            case 3: {
-                float darken_factor = (display_mode == 0 ? .5 : .6);
-                used_color.xyz = darken(used_color.xyz, darken_factor);
-                break;
-            }
-
-            // Darken frontface color and screentone dark
-            case 4: {
-                float darken_factor = (display_mode == 0 ? .5 : .6);
-                used_color.xyz = darken(used_color.xyz, darken_factor);
-                if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                    used_color.xyz = darken(used_color.xyz, darken_factor);
-                }
-                break;
-            }
-
-            // Darken frontface color and screentone dark and light
-            case 5: {
-                float darken_factor = (display_mode == 0 ? .5 : .6);
-                used_color.xyz = darken(used_color.xyz, darken_factor);
-                if (int(gl_FragCoord.x) % 6 == 0 && int(gl_FragCoord.y) % 6 == 0) {
-                    used_color.xyz = darken(used_color.xyz, 1/darken_factor);
-                } else if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                    used_color.xyz = darken(used_color.xyz, darken_factor);
-                }
-                break;
-            }
-
+        if (backface_mode == 1) {
+            // Cull backfaces early out
+            discard;
         }
     }
-
-    float clip_mode_darken_factor = 1.;
 
     for (int i = 0; i < 3; ++i) {
         if (clip_range[i].is_active) {
@@ -173,21 +139,12 @@ void main() {
             float min = clip_range[i].min;
             float max = clip_range[i].max;
             if (dist <= min || dist >= max) {
-                int clip_mode = 0;
-                switch (clip_mode) {
-                    case 0: { // Hidden
-                        discard;
-                    } break;
-                    case 1: { // Blacken
-                        used_color = vec4(0, 0, 0, 1);
-                    } break;
-                    case 2: { // Darken
-                        clip_mode_darken_factor = .4;
-                    } break;
-                }
+                discard;
             }
         }
     }
+
+    float clip_mode_darken_factor = 1.;
 
     if (clip_sphere.is_active) {
         float dist = distance(clip_sphere.center, fragment_position_ws);
@@ -196,79 +153,105 @@ void main() {
         float dist_prev = distance(clip_sphere_prev.center, fragment_position_ws);
         bool outside_clip_sphere_prev = dist_prev > clip_sphere_prev.radius;
 
-        if (clip_radius_mode) {
-            if (outside_clip_sphere &&  outside_clip_sphere_prev) {
-                discard;
-            } else if (outside_clip_sphere && !outside_clip_sphere_prev) {
-                clip_mode_darken_factor = .4;
+        if (outside_clip_sphere) {
+            if (clip_radius_mode) {
+                if (outside_clip_sphere_prev) {
+                    discard;
+                } else {
+                    clip_mode_darken_factor = .4;
+                }
             } else {
-                 // do nothing
-            }
-        } else {
-            if (outside_clip_sphere) {
                 discard;
-            } else {
-                // do nothing
             }
         }
     }
 
-    vec3 N = vertex_normal_ws;
-    if (flat_shading) {
-        N = triangle_normal_ws;
-        if (!gl_FrontFacing) {
-            N *= -1;
-        }
-    }
 
-    // vec4 fill_color = vec4(1, 1, 1, 1);
-    vec4 fill_color = used_color;
-    diffuse_color = used_color.xyz;
-    vec4 line_color = mix(wireframe_color, vec4(1.f), wave * .5f + .5f);
+    vec4 fill_color = color;
+
     switch (display_mode) {
 
-        // Normal shading
-        case 0: {
+        case Display_Mode_NORMALS: {
 
+            vec3 N = get_normal();
             fill_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
+            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
+                fill_color = backface_color;
+            }
 
         } break;
 
-        // Solid color
-        case 1: {
+        case Display_Mode_SOLID_COLOR: {
 
-            fill_color = mix(used_color, vec4(1.f), wave * .5f + .5f);
+            fill_color = mix(color, vec4(1.f), wave * .5f + .5f);
+            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
+                fill_color = backface_color;
+            }
 
         } break;
 
-        // Blinn-Phong shading
-        case 2: {
+        case Display_Mode_BLINN_PHONG: {
 
+            vec3 N = get_normal();
             vec3 V = normalize(camera.look_direction);
             vec3 L = normalize(-camera.look_direction);
             vec3 light_color = vec3(1);
             float light_power = 1.;
 
+            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
+                fill_color = backface_color;
+            }
+            diffuse_color = fill_color.xyz;
             vec4 color_linear = vec4(0, 0, 0, 1);
             color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power);
             vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
 
             fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
 
-            // // TODO: When changing shaders render the previous settings on half of the screen with the following:
-            // if(gl_FragCoord.x < 400) { // e.g., for 800x600 viewport
-            //     FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-            // } else {
-            //     FragColor = vec4(0.0, 1.0, 0.0, 1.0);
-            // }
-
         } break;
+
+    }
+
+    if (!gl_FrontFacing) {
+        switch (backface_mode) {
+
+            // Darken frontface color
+            case Backface_Mode_DARKEN: {
+                float darken_factor = (display_mode == 0 ? .5 : .6);
+                fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                break;
+            }
+
+            // Darken frontface color and screentone dark
+            case Backface_Mode_SCREENTONE_1: {
+                float darken_factor = (display_mode == 0 ? .5 : .6);
+                fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
+                    fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                }
+                break;
+            }
+
+            // Darken frontface color and screentone dark and light
+            case Backface_Mode_SCREENTONE_2: {
+                float darken_factor = (display_mode == 0 ? .5 : .6);
+                fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                if (int(gl_FragCoord.x) % 6 == 0 && int(gl_FragCoord.y) % 6 == 0) {
+                    fill_color.xyz = darken(fill_color.xyz, 1/darken_factor);
+                } else if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
+                    fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                }
+                break;
+            }
+
+        }
     }
 
     if (wireframe_width > 0.) {
         float d = min(dist[0], min(dist[1], dist[2]));
         d /= max(1., wireframe_width);
         float I = exp2(-2*d*d);
+        vec4 line_color = mix(wireframe_color, vec4(1.f), wave * .5f + .5f);
         out_color = I*line_color + (1. - I)*fill_color;
     } else {
         out_color = fill_color;
