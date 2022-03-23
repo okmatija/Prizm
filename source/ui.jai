@@ -409,50 +409,9 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             set := display_info_ui(*entity.display_info, transformed_aabb, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
             if set.color_reset entity.display_info.surface_color = color_from_path(entity.fully_pathed_filename);
 
-            ImGui.Separator();
+            display_stats(entity);
 
-            if #complete entity.type == {
-                case .POLYLINE_SOUP2;
-
-                    using soup := cast(*Polyline_Soup2_Entity)entity;
-                    ImGui.Text("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
-
-                case .POLYLINE_SOUP3;
-
-                    using soup := cast(*Polyline_Soup3_Entity)entity;
-                    ImGui.Text("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
-
-                case .POLYGON_SOUP;
-
-                    using soup := cast(*Polygon_Soup_Entity)entity;
-                    ImGui.Text("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count);
-
-                case .POINT_CLOUD;
-
-                    cloud := cast(*Point_Cloud_Entity)entity;
-                    ImGui.Text("PointCloud #points = %", cloud.mesh.positions.count);
-
-                case .UNKNOWN;     #through;
-                case .MESH;
-
-                    mesh := cast(*Mesh_Entity)entity;
-                    if #complete mesh.mesh.geometry_format == {
-                        case .UNKNOWN; #through;
-                        case .POINTS;
-                            ImGui.Text("Mesh #points = %", mesh.mesh.positions.count);
-                        case .LINES;
-                            ImGui.Text("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2);
-                        case .TRIANGLES;
-                            ImGui.Text("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3);
-                    }
-            }
-            maybe_update_render_info(*entity.render_info, *entity.mesh);
-            aabb := entity.render_info.bounding_aabb;
-            ImGui.Text("Model space AABB = [%, %, %]x[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
-
-            shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
-            ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
-            entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
+            display_transform(entity);
 
         } else {
             if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s"))) {
@@ -1000,6 +959,60 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
     }
 
     return set;
+}
+
+display_stats :: (entity : *Entity) {
+    if ImGui.TreeNodeEx("Stats") {
+        defer ImGui.TreePop();
+
+        if #complete entity.type == {
+            case .POLYLINE_SOUP2;
+
+                using soup := cast(*Polyline_Soup2_Entity)entity;
+                ImGui.Text("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
+
+            case .POLYLINE_SOUP3;
+
+                using soup := cast(*Polyline_Soup3_Entity)entity;
+                ImGui.Text("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
+
+            case .POLYGON_SOUP;
+
+                using soup := cast(*Polygon_Soup_Entity)entity;
+                ImGui.Text("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count);
+
+            case .POINT_CLOUD;
+
+                cloud := cast(*Point_Cloud_Entity)entity;
+                ImGui.Text("PointCloud #points = %", cloud.mesh.positions.count);
+
+            case .UNKNOWN;     #through;
+            case .MESH;
+
+                mesh := cast(*Mesh_Entity)entity;
+                if #complete mesh.mesh.geometry_format == {
+                    case .UNKNOWN; #through;
+                    case .POINTS;
+                        ImGui.Text("Mesh #points = %", mesh.mesh.positions.count);
+                    case .LINES;
+                        ImGui.Text("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2);
+                    case .TRIANGLES;
+                        ImGui.Text("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3);
+                }
+        }
+        maybe_update_render_info(*entity.render_info, *entity.mesh);
+        aabb := entity.render_info.bounding_aabb;
+        ImGui.Text("Model space AABB = [%, %, %]x[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
+    }
+}
+
+display_transform :: (entity : *Entity) {
+    if ImGui.TreeNodeEx("Transform") {
+        defer ImGui.TreePop();
+        shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
+        ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
+        entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
+    }
 }
 
 show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {
