@@ -76,9 +76,9 @@ vec3 get_normal() {
     vec3 N = vertex_normal_ws;
     if (flat_shading) {
         N = triangle_normal_ws;
-        if (!gl_FrontFacing) {
-            N *= -1;
-        }
+    }
+    if (!gl_FrontFacing) {
+        N *= -1;
     }
     return N;
 }
