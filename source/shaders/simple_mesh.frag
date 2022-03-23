@@ -17,47 +17,15 @@ uniform float wave; // time varying value in range [-1,1]
 uniform vec4 color; // rgba
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-uniform int clip_mode = 0;
+
+const int Clip_Mode_HIDDEN =  0;
+const int Clip_Mode_BLACKEN = 1;
+const int Clip_Mode_DARKEN =  2;
+uniform int clip_mode = Clip_Mode_HIDDEN;
 
 in vec3 fragment_position_ws;
 
 out vec4 out_color;
-
-const float EPSILON = 1e-10;
-
-vec3 HUEtoRGB(in float hue)
-{
-    // Hue [0..1] to RGB [0..1]
-    // See http://www.chilliant.com/rgb2hsv.html
-    vec3 rgb = abs(hue * 6. - vec3(3, 2, 4)) * vec3(1, -1, -1) + vec3(-1, 2, 2);
-    return clamp(rgb, 0., 1.);
-}
-
-vec3 RGBtoHCV(in vec3 rgb)
-{
-    // RGB [0..1] to Hue-Chroma-Value [0..1]
-    // Based on work by Sam Hocevar and Emil Persson
-    vec4 p = (rgb.g < rgb.b) ? vec4(rgb.bg, -1., 2. / 3.) : vec4(rgb.gb, 0., -1. / 3.);
-    vec4 q = (rgb.r < p.x) ? vec4(p.xyw, rgb.r) : vec4(rgb.r, p.yzx);
-    float c = q.x - min(q.w, q.y);
-    float h = abs((q.w - q.y) / (6. * c + EPSILON) + q.z);
-    return vec3(h, c, q.x);
-}
-
-vec3 HSVtoRGB(in vec3 hsv)
-{
-    // Hue-Saturation-Value [0..1] to RGB [0..1]
-    vec3 rgb = HUEtoRGB(hsv.x);
-    return ((rgb - 1.) * hsv.y + 1.) * hsv.z;
-}
-
-vec3 RGBtoHSV(in vec3 rgb)
-{
-    // RGB [0..1] to Hue-Saturation-Value [0..1]
-    vec3 hcv = RGBtoHCV(rgb);
-    float s = hcv.y / (hcv.z + EPSILON);
-    return vec3(hcv.x, s, hcv.z);
-}
 
 void main() {
     vec4 used_color = color;
@@ -69,13 +37,13 @@ void main() {
             float max = clip_range[i].max;
             if (dist <= min || dist >= max) {
                 switch (clip_mode) {
-                    case 0: { // Hidden
+                    case Clip_Mode_HIDDEN: {
                         discard;
                     } break;
-                    case 1: { // Blacken
+                    case Clip_Mode_BLACKEN: {
                         used_color = vec4(0, 0, 0, 1);
                     } break;
-                    case 2: { // Darken
+                    case Clip_Mode_DARKEN: {
                         // @Incomplete
                     } break;
                 }
@@ -87,13 +55,13 @@ void main() {
         float dist = distance(clip_sphere.center, fragment_position_ws);
         if (dist > clip_sphere.radius) {
             switch (clip_mode) {
-                case 0: { // Hidden
+                case Clip_Mode_HIDDEN: {
                     discard;
                 } break;
-                case 1: { // Blacken
+                case Clip_Mode_BLACKEN: {
                     used_color = vec4(0, 0, 0, 1);
                 } break;
-                case 2: { // Darken
+                case Clip_Mode_DARKEN: {
                     // @Incomplete
                 } break;
             }
