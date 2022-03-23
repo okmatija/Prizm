@@ -196,13 +196,15 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
-// Update the camera so that the triangle with the given `triangle_index`, belonging to the mesh
-// with the given `id`, fills the screen. The current look direction is preserved and the
+// Update the camera to focus on a triangle. The current look direction is preserved and the
 // orbit/focus of the camera is positioned on the triangle centroid.
 //
-// If `radius` is less than zero (the default) then 2x triangle bounding sphere radius is used to
-// update the camera, otherwise the given value is used as the bounding sphere radius.
-focus_on_triangle :: (id : int, triangle_index : int, radius := -1.) {
+// `id`             The index of the item containing the desired triangle
+// `triangle_index` The triangle that should be focussed
+// `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
+//                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the triangle
+//                  If  > 0 then the items clipping sphere is set with a radius of the given value
+focus_on_triangle :: (id : int, triangle_index : int, clip_radius := -1.) {
 
     if !check_geometry_index(id) {
         return;
@@ -229,19 +231,46 @@ focus_on_triangle :: (id : int, triangle_index : int, radius := -1.) {
 
     tri := get_triangle(entity.mesh, triangle_index, true);
 
-    sphere : Sphere = ---;
+    sphere : Sphere;
     sphere.center = (tri.a + tri.b + tri.c) / 3;
 
-    if radius >= 0 {
-        sphere.radius = radius;
-    } else {
+    if clip_radius <= 0 {
         sphere.radius = distance(sphere.center, tri.a);
         sphere.radius = max(sphere.radius, distance(sphere.center, tri.b));
         sphere.radius = max(sphere.radius, distance(sphere.center, tri.c));
         sphere.radius *= 2;
+    } else {
+        sphere.radius = clip_radius;
     }
 
-    fit_sphere_on_screen(sphere);
+    if clip_radius >= 0 {
+        fit_sphere_on_screen(sphere);
+
+        entity.display_info.clip_sphere.sphere = sphere;
+        entity.display_info.clip_sphere.is_active = true;
+    } else {
+        target : Sphere = ---;
+        target.center = sphere.center;
+
+        // @Think Maybe this behaviour for expanding spheres should be an $ argument to expand?
+        // expand(*target, entity.render_info.bounding_sphere);
+        center_distance := distance(target.center, entity.render_info.bounding_sphere.center);
+        target.radius = center_distance + entity.render_info.bounding_sphere.radius;
+
+        fit_sphere_on_screen(target);
+        cached_camera := app.camera;
+
+        // @Think Maybe put this into the fit_sphere_on_screen function as well
+        // At this point the camera is set so that the left/right/top/bottom/near/far planes bound `target`.
+        // We would like to keep the near/far values but change left/right/top/bottom so that the point of
+        // interest fills the screen
+        fit_sphere_on_screen(sphere);
+        app.camera.near = cached_camera.near;
+        app.camera.far = cached_camera.far;
+
+        // Turn if off even if it was on (the user can just toggle it on again)
+        entity.display_info.clip_sphere.is_active = false;
+    }
 
 } @RegisterCommand
 

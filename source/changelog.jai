@@ -10,7 +10,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
   - Renamed 'console_show_history', 'console_clear_history' and 'console_clear_log' to 'console_history_show', 'console_history_clear' and 'console_log_clear' for better autocomplete namespacing
   - Changed the 'select_if*' functions to keep existing selections and just add to them
   - Added new 'select_toggle' and 'select_remove' functions
-  - TODO Added an option to the focus_on_* commands so that the clipping sphere is updated, this makes it easier to locate triangles
+  - Improved the `focus_on_*` commands to give more intuitive results and added an option to also update the item's clipping sphere is updated
 - Improvements to rendering:
   - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
   - Fixed flat shading breaking at high zoom levels (ISSUE_003)
