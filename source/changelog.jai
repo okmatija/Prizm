@@ -16,8 +16,6 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
   - Fixed flat shading breaking at high zoom levels (ISSUE_003)
   - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
   - Changed the default backface shading mode to use a fixed pinkish color
-- General UI improvements:
-  - Moved item stats and transform data into folded sections TODO make these nicer
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
 - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Changed the modifier used make mouse scrolling zoom into the camera look position from Control to Shift
@@ -27,6 +25,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
 - Fixed the tooltip for the 'Reload Items' button when it operates on visible items (i.e., when no modifier key is down)
 - Fixed some unituitive/strange behaviour related to selecting vertices (normals were being used, and were sometimes incorrect due to unitialized memory, now normals are ignored)
 - Fixed an issue where 'Ctrl RMB' did not allow placing the camera orbit on vertices which were not reference by a line/triangle
+- Various minor improvements to the item context menu
 DONE
 };
 

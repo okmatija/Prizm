@@ -855,16 +855,19 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         defer ImGui.TreePop();
 
         // FIXME FIXME: opacity should control wireframe??
+        ImGui.Text("Render Mode");
+        ImGui.SameLine();
         ImGui.PushItemWidth(120);
         set.display_mode = combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
         ImGui.PopItemWidth();
 
-        ImGui.SameLine();
-        set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-        Show_Tooltip("Deduce item primary colors from the file path");
+        // This doesn't seem very useful so I removed it
+        //ImGui.SameLine();
+        //set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+        //Show_Tooltip("Deduce item primary colors from the file path");
 
         {
-            ImGui.Text("Points    ");
+            ImGui.Text("Points     ");
             ImGui.SameLine();
             set.points_visible = ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
             Show_Tooltip("Visible");
@@ -882,7 +885,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         }
 
         if normals_ui {
-            ImGui.Text("Normals   ");
+            ImGui.Text("Normals    ");
             ImGui.SameLine();
             set.normals_visible = ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
             Show_Tooltip("Visible");
@@ -898,7 +901,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         }
 
         if lines_ui {
-            ImGui.Text("Lines     ");
+            ImGui.Text("Lines      ");
             ImGui.SameLine();
             set.wireframe_visible = ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
             Show_Tooltip("Visible");
@@ -915,7 +918,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         }
 
         if faces_ui {
-            ImGui.Text("Triangles ");
+            ImGui.Text("Triangles  ");
             ImGui.SameLine();
             set.surface_visible = ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
             Show_Tooltip("Visible");
@@ -926,8 +929,14 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
                 Show_Tooltip("Frontface Color");
                 for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
             }
-            set.backface_mode = combo_box("Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-            set.flat_shading = ImGui.Checkbox(imgui_label("Flat Shading", display_info), *display_info.flat_shading);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            set.backface_mode = combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
+            Show_Tooltip("Backface Mode");
+            ImGui.PopItemWidth();
+            ImGui.SameLine();
+            set.flat_shading = ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
+            Show_Tooltip("Flat Shading");
         }
     }
 
@@ -1003,7 +1012,9 @@ display_stats :: (entity : *Entity) {
         }
         maybe_update_render_info(*entity.render_info, *entity.mesh);
         aabb := entity.render_info.bounding_aabb;
-        ImGui.Text("Model space AABB = [%, %, %]x[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
+        ImGui.Text("Model space AABB:");
+        ImGui.Text("Max [%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
+        ImGui.Text("Min [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z);
     }
 }
 
