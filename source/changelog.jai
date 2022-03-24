@@ -1,16 +1,20 @@
-PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
+PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1 WIP", #string DONE
+- Changed the modifier used make mouse scrolling zoom into the camera look position from Control to Shift
+  - This change improves the UX when looking at small details with clip spheres/`item_focus_*` commands because the user can hold Shift while rotating/zooming/clipping the scene.
+  - Note: The original Ctrl Scroll binding was chosen to match the Ctrl RMB binding for setting the orbit point, but these clashed in a way which TODO I should explain more...
 - Improvements to the console:
   - Added an 'Options' button next to the input box which can toggle between interactive and transparent console log modes and enable/disable scrolling to new log output
     - In interactive mode the console log captures mouse input so the user can scroll through log messages by hovering over the log (eventually copy/paste from the log will also work here)
     - In transparent mode the console log ignores mouse inputs so the user can interact with the scene behind the console while still reading console log text. This the the default mode
-    - Console scrolls to the bottom when a new log message is posted by default
-    - Moved the world axes to the bottom right so it doesn't obscure text in transparent mode
+  - Moved the world axes to the bottom right so it doesn't obscure text in transparent mode
+  - Made the Console scrolls to the bottom when a new log message is posted by default
   - Added ability to scroll the console log by using the scroll wheel when hovering over the console input text field. This works regardless of interactive/transparent mode
   - Changed the command documentation output color to make it more clear when autocomplete has narrowed down to only one option
   - Renamed 'console_show_history', 'console_clear_history' and 'console_clear_log' to 'console_history_show', 'console_history_clear' and 'console_log_clear' for better autocomplete namespacing
+  - Renamed functions operating on an item to have a common 'item_' prefix, the 'debug_*' functions weren't changed though
   - Changed the 'select_if*' functions to keep existing selections and just add to them
   - Added new 'select_toggle' and 'select_remove' functions
-  - Improved the `focus_on_*` commands to give more intuitive results and added an option to also update the item's clipping sphere is updated
+  - Improved the `item_focus_vertex/triangle` commands to give more intuitive results and added an option to also update the item's clipping sphere
 - Improvements to rendering:
   - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
   - Fixed flat shading breaking at high zoom levels (ISSUE_003)
@@ -18,9 +22,6 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1, WIP", #string DONE
   - Changed the default backface shading mode to use a fixed pinkish color
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
 - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
-- Changed the modifier used make mouse scrolling zoom into the camera look position from Control to Shift
-  - This change improves the UX when looking at small details with clip spheres/`focus_on_*` commands because the user can hold Shift while rotating/zooming/clipping the scene.
-  - Note: The original Ctrl Scroll binding was chosen to match the Ctrl RMB binding for setting the orbit point, but these clashed in a way which TODO I should explain more...
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'
 - Fixed the tooltip for the 'Reload Items' button when it operates on visible items (i.e., when no modifier key is down)
 - Fixed some unituitive/strange behaviour related to selecting vertices (normals were being used, and were sometimes incorrect due to unitialized memory, now normals are ignored)

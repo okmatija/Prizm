@@ -175,7 +175,6 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, toggle_show_help_ui, "Toggle help UI",  xx #char "h");
     add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
     add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
-    add_key(*app.keymap_keydown, toggle_selection_mode, "Toggle Selection Mode",  xx #char "s"); // @Volatile keep synced with SELECTION_MODE_TOOLTIP
 
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
@@ -247,7 +246,6 @@ call_fit_on_screen             :: () { fit_scene_on_screen(); } // @CompilerBug?
 quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
 toggle_show_help_ui            :: () { app.show_ui, app.show_help_ui    = true, !app.show_help_ui; }
-toggle_selection_mode          :: () { app.user_selection.is_visible = !app.user_selection.is_visible; }
 rotate_look_direction_5_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -5); }
 rotate_look_direction_5_ccw    :: () { rotate_look_direction(camera_rotation_axis(),   5); }
 rotate_look_direction_15_cw    :: () { rotate_look_direction(camera_rotation_axis(), -15); }

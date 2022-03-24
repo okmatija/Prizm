@@ -346,7 +346,7 @@ show_item_list_actions_ui :: () {
         // @Refactor Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
         Action_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);      ImGui.SameLine(); Action_Button("Cyc Opacity   ", ..CYCLE_OPACITY_OPS);
         Action_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Action_Button("Cyc Vert Size ", ..CYCLE_POINT_SIZE_OPS);
-        Action_Button("Cyc Elem Label", ..CYCLE_ELEMENT_LABEL_OPS);      ImGui.SameLine(); Action_Button("Cyc Vert Label", ..CYCLE_VERTEX_LABEL_OPS);
+        Action_Button("Cyc Elem Text ", ..CYCLE_ELEMENT_LABEL_OPS);      ImGui.SameLine(); Action_Button("Cyc Vert Text ", ..CYCLE_VERTEX_LABEL_OPS);
         Action_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Action_Button("Tgl Normals   ", ..TOGGLE_NORMALS_OPS);
         Action_Button("Edit Item Viz ", ..EDIT_VISIBILITY_OPS);
         Action_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Action_Button("Reload Items  ", ..RELOAD_ITEMS_OPS);
@@ -637,9 +637,9 @@ show_help_ui :: () {
     cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
                                        make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .NoCollapse;
+    flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
 
-    ImGui.Begin("##show_help_ui", flags = ImGui.WindowFlags.NoTitleBar | .AlwaysAutoResize | .NoMove /*| .NoNav*/);
+    ImGui.Begin("##show_help_ui", flags = flags);
     defer ImGui.End();
 
     COLUMN_WIDTH :: 100;
@@ -719,7 +719,7 @@ show_help_ui :: () {
         }
     }
 
-    if ImGui.TreeNodeEx("Key bindings for item Actions", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Key bindings for Actions", .DefaultOpen) {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
@@ -768,7 +768,8 @@ show_help_ui :: () {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-            ImGui.TextWrapped(latest.description);
+            // ImGui.TextWrapped(latest.description);
+            ImGui.Text(latest.description);
             ImGui.PopStyleColor();
         }
 
@@ -778,7 +779,8 @@ show_help_ui :: () {
                 defer ImGui.TreePop();
 
                 ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-                ImGui.TextWrapped(version.description);
+                // ImGui.TextWrapped(version.description);
+                ImGui.Text(version.description);
                 ImGui.PopStyleColor();
             }
         }
@@ -788,10 +790,12 @@ show_help_ui :: () {
         defer ImGui.TreePop();
         for app.known_issues {
             ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-            ImGui.TextWrapped(it.name);
+            // ImGui.TextWrapped(it.name);
+            ImGui.Text(it.name);
             ImGui.PopStyleColor();
             ImGui.SameLine();
-            ImGui.TextWrapped(it.description);
+            // ImGui.TextWrapped(it.description);
+            ImGui.Text(it.description);
         }
     }
 

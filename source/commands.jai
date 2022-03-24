@@ -178,7 +178,7 @@ sort_by_size :: (ascending : int = 1) {
 } @RegisterCommand
 
 // Clears the item with the given `id` (resets geometry data containers)
-clear_item :: (id : int) {
+item_clear :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
         return;
@@ -206,7 +206,9 @@ set_edge_color_to_face_color :: () {
 // `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
 //                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the triangle
 //                  If  > 0 then the items clipping sphere is set with a radius of the given value
-focus_on_triangle :: (id : int, triangle_index : int, clip_radius : float = -1.) {
+//
+// If a clipping sphere is set then triangle index text is also enabled
+item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(id) {
         return;
@@ -251,6 +253,7 @@ focus_on_triangle :: (id : int, triangle_index : int, clip_radius : float = -1.)
 
         entity.display_info.clip_sphere.sphere = sphere;
         entity.display_info.clip_sphere.is_active = true;
+        entity.display_info.element_label_theme.show_index = true;
     } else {
         target : Sphere = ---;
         target.center = sphere.center;
@@ -285,7 +288,9 @@ focus_on_triangle :: (id : int, triangle_index : int, clip_radius : float = -1.)
 // `clip_radius`  If  < 0 then the items clipping sphere is unchanged (default)
 //                If == 0 then the items clipping sphere is set to 1
 //                If  > 0 then the items clipping sphere is set with a radius of the given value
-focus_on_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
+//
+// If a clipping sphere is set then vertex index text is also enabled
+item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(id) {
         return;
@@ -319,6 +324,7 @@ focus_on_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
         entity.display_info.clip_sphere.sphere = sphere;
         entity.display_info.clip_sphere.is_active = true;
+        entity.display_info.vertex_label_style.show_index = true;
     } else {
         target : Sphere = ---;
         target.center = sphere.center;
@@ -346,7 +352,7 @@ focus_on_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 } @RegisterCommand
 
 // Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `id`
-find_open_edges :: (id : int) {
+item_find_open_edges :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
         return;
@@ -432,7 +438,7 @@ find_open_edges :: (id : int) {
 //
 // Note: Mesh vertex normals are _not_ updated, but with flat shading the faces will be colored in
 // a way which is consistent with the perturbation
-perturb_positions :: (id : int, radius : float = .001) {
+item_perturb_positions :: (id : int, radius : float = .001) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
         return;
