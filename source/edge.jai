@@ -7,7 +7,7 @@ Edge2 :: Edge(Vector2);
 Edge3 :: Edge(Vector3);
 
 Indexed_Edge :: struct ($_Point : Type) {
-    using edge : Edge(_Point);
+    #as using edge : Edge(_Point);
 
     from_index : int = ---;
     to_index   : int = ---;

@@ -310,7 +310,7 @@ make_look_at_matrix :: (using camera : Camera) -> Matrix4 #must {
     s := normalize_or_z_axis(cross(f, up_direction));
     u := cross(s, f);
 
-    m := matrix4_identity();
+    m := Matrix4_Identity;
 
     // See glm::lookAtRH, but using row-major
     m.coef[0][0] =  s.x;

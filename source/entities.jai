@@ -32,7 +32,7 @@ Entity :: struct {
 }
 
 Polyline_Soup2_Entity :: struct {
-    using base : Entity;
+    #as using base : Entity;
     type = .POLYLINE_SOUP2;
     display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // @Cleanup put colors in app.jai
 
@@ -42,7 +42,7 @@ Polyline_Soup2_Entity :: struct {
 }
 
 Polyline_Soup3_Entity :: struct {
-    using base : Entity;
+    #as using base : Entity;
     type = .POLYLINE_SOUP3;
     display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
 
@@ -52,7 +52,7 @@ Polyline_Soup3_Entity :: struct {
 }
 
 Polygon_Soup_Entity :: struct {
-    using base : Entity;
+    #as using base : Entity;
     type = .POLYGON_SOUP;
     display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
 
@@ -62,7 +62,7 @@ Polygon_Soup_Entity :: struct {
 }
 
 Point_Cloud_Entity :: struct {
-    using base : Entity;
+    #as using base : Entity;
     type = .POINT_CLOUD;
     display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
     mesh.geometry_format = .POINTS;
@@ -74,7 +74,7 @@ Point_Cloud_Entity :: struct {
 }
 
 Mesh_Entity :: struct {
-    using base : Entity;
+    #as using base : Entity;
     type = .MESH;
     display_info.element_label_theme.label_color = .{1., 1., 0, 1};
 
