@@ -40,21 +40,7 @@ AABB_Tree :: struct(Shape : Type) {
     }();
 
     // This is an index into `shape`, it is defined implicitly by the `get_primitive` function overload
-    Primitive_Id :: int;
-
-    Primitive_Filter :: struct {
-        // Returns true if the primitive should be skipped
-        Proc :: #type (ray : Ray3, primitive_id : int, primitive : Primitive, user_data : *void) -> bool;
-        proc :  Proc = null;
-        data : *void = null;
-    }
-
-    Intersection_Filter :: struct {
-        // Returns true if the intersection point should be skipped
-        Proc :: #type (point : Vector, user_data : *void) -> bool;
-        proc :  Proc = null;
-        data : *void = null;
-    }
+    Primitive_Id :: int; // @Cleanup remove this typedef...
 
     Node_Visitor :: struct {
         // Returns true if the visitation should proceed
@@ -63,6 +49,7 @@ AABB_Tree :: struct(Shape : Type) {
         data : *void = null;
     }
 
+    // @Think could have t and point in a base struct which is then #as using'd in this one 
     Intersection_Ray3_Primitive :: struct {
         t : float = FLOAT32_INFINITY;
         point : Vector;
@@ -143,20 +130,15 @@ deinit :: (tree : *$T/AABB_Tree) {
     free(tree);
 }
 
-// @Refactor make this a macro and implement the filters as Code
 // @CompilerBug We need to pass a pointer to the tree here due to a bug??
-first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, primitive_filter : tree.Primitive_Filter = .{}, intersection_filter : tree.Intersection_Filter = .{}) -> is_hit : bool, tree.Intersection_Ray3_Primitive {
-    result : Intersection_Ray3_Primitive;
-
+Visit_Primitives_Inside_Intersected_Boxes :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 {
-        return false, .{};
+        return;
     }
 
     // Only nodes whose AABBs are intersected by the ray will be pushed onto the stack
     stack : [..]int;
     defer array_reset(*stack);
-
-    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
 
     root := *tree.nodes[0];
     root_hit_aabb, root_t_aabb, root_point_aabb := find_intersect_aabb_ray3(root.aabb, ray);
@@ -172,26 +154,13 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
 
             // Visit primitives in leaf node
 
-            for :Iterator info : node.range {
-                primitive := get_primitive(tree, info.primitive_id);
+            // Note: We don't use tree.Primitive_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
+            for 0..node.range.count-1 {
 
-                if primitive_filter.proc && primitive_filter.proc(ray, info.primitive_id, primitive, primitive_filter.data) {
-                    continue;
-                }
+                `primitive_id := tree.primitive_info[node.range.first + it].primitive_id;
+                `primitive := get_primitive(tree, primitive_id);
+                #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
 
-                is_hit, t, point := find_intersect_primitive_ray3(primitive, ray);
-
-                if is_hit == false || t >= result.t {
-                    continue;
-                }
-
-                if intersection_filter.proc && intersection_filter.proc(point, intersection_filter.data) {
-                    continue;
-                }
-
-                result.t = t;
-                result.point = point;
-                result.primitive_id = info.primitive_id;
             }
         } else {
             // Traverse internal node
@@ -215,9 +184,6 @@ first_primitive_intersection :: (using tree : *AABB_Tree(Mesh), ray : Ray3, prim
             }
         }
     }
-
-    is_hit := result.primitive_id >= 0;
-    return is_hit, result;
 }
 
 // Simple tree traversal, if you want more precise control e.g., over which child is visited first (see first_primitive_intersection)
@@ -233,8 +199,6 @@ depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
         node_index : int;
         depth : int;
     }
-
-    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
 
     stack : [..]Entry;
     defer array_free(stack);

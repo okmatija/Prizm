@@ -387,86 +387,50 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     has_degenerate_triangles := false;
     t_min := FLOAT32_INFINITY;
 
-    // Warning: I hit a confusing bug using a naked continue in this function when it was defined in the body of
-    // an entities iterator for loop, and before the a triangles iterator for loop, this made the continue refer
-    // to the entities loop, and not the triangle loop. Should be explicit with macros!
-    Process_Triangle :: () #expand {
-        normal_direction := compute_normal(`triangle, normalize=false);
+    Process_Triangle :: (primitive : Triangle3, primitive_id : int) #expand {
+        normal_direction := compute_normal(primitive, normalize=false);
+    
         if normal_direction == Vector3.{0, 0, 0} {
             `has_degenerate_triangles = true;
-        } else {
-            if `front_facing_only && dot(current_look_direction(), normal_direction) > 0 {
-                continue `triangle;
-            }
-
-            isect, t, bary, ipoint := find_intersect_ray3_triangle3(`ray, `triangle);
-            if isect && t < `t_min {
-
-                if is_clipped(`entity.display_info, ipoint, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
-                    continue `triangle;
-                }
-
-                `t_min = t;
-                `result.position = ipoint;
-                `result.element_index = `triangle_index;
-                `result.entity_index = `entity_index;
-                `intersected_triangle = true;
-            }
+            continue;
         }
-    }
-
-    Clipping_Data :: struct {
-        display_info : *Display_Info;
-        sphere_clipped : bool;
-        range_clipped : bool;
-    };
-
-    skip_clipped_intersections :: (point : Point3, data : *void) -> bool {
-        using clipping_data := cast(*Clipping_Data)data;
-        if is_clipped(display_info, point, test_sphere=sphere_clipped, test_ranges=range_clipped) {
-            return true;;
+    
+        if `front_facing_only && dot_product(normal_direction, `ray.direction) > 0 {
+            continue;
         }
-        return false;
-    }
-
-    skip_backfacing_primitives :: (ray : Ray3, id : int, tri : Triangle3, unused : *void) -> bool {
-        return dot_product(compute_normal(tri), ray.direction) > 0;
+    
+        is_hit, t, point := find_intersect_primitive_ray3(primitive, `ray);
+    
+        if is_hit == false || t >= `t_min {
+            continue;
+        }
+    
+        if is_clipped(`entity.display_info, point, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
+            continue;
+        }
+    
+        `t_min = t;
+        `result.position = point;
+        `result.element_index = primitive_id;
+        `result.entity_index = `entity_index;
+        `intersected_triangle = true;
     }
 
     for :Visible_Selectable_Mesh entity, entity_index : app.entities {
-        entity_mesh := cast(*Mesh_Entity)entity;
+        mesh_entity := cast(*Mesh_Entity)entity;
 
-        if entity_mesh.spatial == null {
+        if mesh_entity.spatial == null {
 
             for :Triangles_Iterator triangle, triangle_index : entity.mesh {
-                Process_Triangle();
+                Process_Triangle(triangle, triangle_index);
             }
 
         } else {
 
-            // @Refactor this when/if closures become available
-            clipping_data : Clipping_Data = ---;
-            clipping_data.sphere_clipped = sphere_clipped;
-            clipping_data.range_clipped = range_clipped;
-            clipping_data.display_info = *entity.display_info;
+            Visit_Primitives_Inside_Intersected_Boxes(mesh_entity.spatial, ray,
+                #code Process_Triangle(primitive, primitive_id)
+            );
 
-            intersection_filter : entity_mesh.spatial.Intersection_Filter;
-            intersection_filter.data = *clipping_data;
-            intersection_filter.proc = skip_clipped_intersections;
-
-            primitive_filter : entity_mesh.spatial.Primitive_Filter;
-            primitive_filter.data = null;
-            primitive_filter.proc = ifx front_facing_only then skip_backfacing_primitives else null;
-
-            is_hit, intersection := first_primitive_intersection(entity_mesh.spatial, ray, primitive_filter, intersection_filter);
-
-            if is_hit && intersection.t < t_min {
-                t_min = intersection.t;
-                result.position = intersection.point;
-                result.element_index = intersection.primitive_id;
-                result.entity_index = entity_index;
-                intersected_triangle = true;
-            }
         }
     }
 

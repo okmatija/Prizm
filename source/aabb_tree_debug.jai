@@ -15,7 +15,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
     mesh_entity := cast(*Mesh_Entity)app.entities[id];
     spatial := mesh_entity.spatial;
 
-    if spatial.nodes.count == 0 {
+    if spatial == null || spatial.nodes.count == 0 {
+        log_warning("Item % has a null or empty spatial index.", id);
         return;
     }
 
