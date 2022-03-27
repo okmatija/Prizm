@@ -1,7 +1,7 @@
 PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1 WIP", #string DONE
 - Changed the modifier used make mouse scrolling zoom into the camera look position from Control to Shift
   - This change improves the UX when looking at small details with clip spheres/`item_focus_*` commands because the user can hold Shift while rotating/zooming/clipping the scene.
-  - Note: The original Ctrl Scroll binding was chosen to match the Ctrl RMB binding for setting the orbit point, but these clashed in a way which TODO I should explain more...
+  - Note: The original Ctrl Scroll binding was chosen to match the Ctrl RMB binding for setting the orbit point, but those operations clashed in an annoying way (which was easy to notice but hard to explain)
 - Improvements to the console:
   - Added an 'Options' button next to the input box which can toggle between interactive and transparent console log modes and enable/disable scrolling to new log output
     - In interactive mode the console log captures mouse input so the user can scroll through log messages by hovering over the log (eventually copy/paste from the log will also work here)
@@ -20,6 +20,9 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1 WIP", #string DONE
   - Fixed flat shading breaking at high zoom levels (ISSUE_003)
   - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
   - Changed the default backface shading mode to use a fixed pinkish color
+- Changed the UX for text rendering, now point/element labels are rendering within a disk around the cursor, default radius 200 pixels
+  - This is useful both as a workaround for slow text rendering, but probably also as a permanent feature which reduces label clutter
+  - The radius of the disk can be changed along with other label settings via RMB on the label action buttons. Note each item caches its own copy of these settings
 - Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
 - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'

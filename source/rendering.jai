@@ -5,6 +5,9 @@ Label_Theme :: struct {
     show_position := false;
     show_index := false;
 
+    visible_radius_px : int = 200;
+    hide_backfacing : bool = false;
+
     format_float : FormatFloat; // We ignore the `value` field
     format_float.mode = .SHORTEST;
     format_float.trailing_width = 8;
@@ -148,6 +151,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
             }
         }
 
+        // @Incomplete consider transform here??
         info.bounding_sphere = bounding_sphere_ritter(mesh.positions);
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
@@ -533,7 +537,7 @@ render_entities :: () {
         }
     }
 
-    render_entity_text :: (entity : *Entity, label_limit : *int) {
+    render_entity_text :: (entity : *Entity) {
 
         point_theme := entity.display_info.vertex_label_style;
         element_theme := entity.display_info.element_label_theme;
@@ -554,6 +558,22 @@ render_entities :: () {
 
         // @TODO call render_text_quad once with a list of points?
 
+        on_screen_in_disk :: (text_position_px : Vector2, theme : Label_Theme) -> bool {
+            if io().MousePos == make_ImVec2(-FLOAT32_MAX,-FLOAT32_MAX) ||
+               distance(make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y), text_position_px) > xx theme.visible_radius_px {
+                return false;
+            } 
+
+            if text_position_px.x < 0 ||
+               text_position_px.y < 0 ||
+               text_position_px.x > xx app.current_window_width ||
+               text_position_px.y > xx app.current_window_height {
+                return false;
+            } 
+
+            return true;
+        }
+
         if #complete entity.type == {
             case .UNKNOWN;
             case .POLYLINE_SOUP2;
@@ -562,21 +582,23 @@ render_entities :: () {
 
                 for :Point_Iterator soup.shape {
                     if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
-                    if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                    text := get_point_text(it, it_index, point_theme);
                     text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    if on_screen_in_disk(text_position_px, point_theme) {
+                        text := get_point_text(it, it_index, point_theme);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    }
                 }
 
                 for :Segment_Iterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, make_vector3(centroid, 0)) continue;
-                    if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                    text := get_point_text(centroid, it_index, element_theme);
                     text_position_px := get_text_screen_position(make_vector4(centroid, 0, 1), soup.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                    if on_screen_in_disk(text_position_px, element_theme) {
+                        text := get_point_text(centroid, it_index, element_theme);
+                        render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                    }
                 }
 
             case .POLYLINE_SOUP3;
@@ -585,25 +607,28 @@ render_entities :: () {
 
                 for :Point_Iterator soup.shape {
                     if is_clipped(entity.display_info, it) continue;
-                    if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                    text := get_point_text(it, it_index, point_theme);
                     text_position_px := get_text_screen_position(make_vector4(it, 1), soup.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    if on_screen_in_disk(text_position_px, point_theme) {
+                        text := get_point_text(it, it_index, point_theme);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    }
                 }
 
                 for :Segment_Iterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, centroid) continue;
-                    if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                    text := get_point_text(centroid, it_index, element_theme);
                     text_position_px := get_text_screen_position(make_vector4(centroid, 1), soup.mesh.world_from_model);
-                    render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                    if on_screen_in_disk(text_position_px, element_theme) {
+                        text := get_point_text(centroid, it_index, element_theme);
+                        render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                    }
                 }
 
             case .POLYGON_SOUP;
 
+                // @Incomplete segment labels
                 // @Refactor use iterators and label segments
                 soup := cast(*Polygon_Soup_Entity) entity;
                 count := point_count(soup.shape);
@@ -611,19 +636,21 @@ render_entities :: () {
                 for polygon : soup.shape.polygons {
                     for polygon.outer_ring.points {
                         if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
-                        if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                        text := get_point_text(it, it_index, point_theme);
                         text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        if on_screen_in_disk(text_position_px, point_theme) {
+                            text := get_point_text(it, it_index, point_theme);
+                            render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        }
 
                         for inner_ring : polygon.inner_rings for inner_ring.points {
                             if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
-                            if <<label_limit <= 0 continue; <<label_limit -= 1;
 
-                            text := get_point_text(it, it_index, point_theme);
                             text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
-                            render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                            if on_screen_in_disk(text_position_px, point_theme) {
+                                text := get_point_text(it, it_index, point_theme);
+                                render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                            }
                         }
                     }
                 }
@@ -634,12 +661,21 @@ render_entities :: () {
                 count := cloud.mesh.positions.count;
 
                for cloud.mesh.positions {
-                   if is_clipped(entity.display_info, it) continue;
-                   if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
+                    if point_theme.hide_backfacing {
+                        if cloud.mesh.normals.count && dot_product(cloud.mesh.normals[it_index], current_look_direction()) > 0 {
+                            continue;
+                        }
+                    }
 
-                   text := get_point_text(it, it_index, point_theme);
-                   text_position_px := get_text_screen_position(make_vector4(it, 1), cloud.mesh.world_from_model);
-                   render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    if is_clipped(entity.display_info, it) {
+                        continue;
+                    }
+
+                    text_position_px := get_text_screen_position(make_vector4(it, 1), cloud.mesh.world_from_model);
+                    if on_screen_in_disk(text_position_px, point_theme) {
+                        text := get_point_text(it, it_index, point_theme);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    }
                }
 
             case .MESH;
@@ -648,22 +684,39 @@ render_entities :: () {
                 count := mesh.mesh.positions.count;
 
                for mesh.mesh.positions {
-                   if is_clipped(entity.display_info, it) continue;
-                   if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
+                    if point_theme.hide_backfacing {
+                        if mesh.mesh.normals.count && dot_product(mesh.mesh.normals[it_index], current_look_direction()) > 0 {
+                            continue;
+                        }
+                    }
 
-                   text := get_point_text(it, it_index, point_theme);
-                   text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.mesh.world_from_model);
-                   render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    if is_clipped(entity.display_info, it) {
+                        continue;
+                    }
+
+                    text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.mesh.world_from_model);
+
+                    if on_screen_in_disk(text_position_px, point_theme) {
+                        text := get_point_text(it, it_index, point_theme);
+                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                    }
                }
 
                for :Triangles_Iterator mesh.mesh {
-                   centroid := (it.a + it.b + it.c) / 3;
-                   if is_clipped(entity.display_info, centroid) continue;
-                   if <<label_limit <= 0 && entity != *app.user_selection continue; <<label_limit -= 1;
+                    if element_theme.hide_backfacing {
+                        if dot_product(compute_normal(it), current_look_direction()) > 0 {
+                            continue;
+                        }
+                    }
 
-                   text := get_point_text(centroid, it_index, element_theme);
-                   text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
-                   render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                    centroid := (it.a + it.b + it.c) / 3;
+                    if is_clipped(entity.display_info, centroid) continue;
+
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
+                    if on_screen_in_disk(text_position_px, element_theme) {
+                        text := get_point_text(centroid, it_index, element_theme);
+                        render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                    }
                }
         }
     }
@@ -681,10 +734,9 @@ render_entities :: () {
 
     glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
 
-    label_limit : int = app.label_limit;
-    for :Visible_Opaque      app.entities render_entity_text(it, *label_limit);
-    for :Visible_Transparent app.entities render_entity_text(it, *label_limit);
-    for :Visible_Hovered     app.entities render_entity_text(it, *label_limit);
+    for :Visible_Opaque      app.entities render_entity_text(it);
+    for :Visible_Transparent app.entities render_entity_text(it);
+    for :Visible_Hovered     app.entities render_entity_text(it);
 
     for :Visible_Hovered     app.entities render_entity_geometry(it);
 }

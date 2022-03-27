@@ -186,33 +186,13 @@ show_item_list_ui :: () {
         ImGui.TableNextColumn();
         ImGui.Text("Selection");
         if it.is_visible {
-            if (ImGui.IsItemHovered()) {
-                ImGui.BeginTooltip();
-                ImGui.BeginTable("", 4, flags=ImGui.TableFlags.NoBordersInBody);
-
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextColored(KEYBINDING_COLOR, "RMB");
-                ImGui.TableNextColumn();
-                ImGui.Text("Open context menu for the current Selection");
-
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextColored(KEYBINDING_COLOR, "Ctrl RMB");
-                ImGui.TableNextColumn();
-                ImGui.Text("Set camera orbit on nearest unclipped vertex");
-
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
-                ImGui.TableNextColumn();
-                ImGui.Text("Add nearest unclipped vertex to Selection item");
-
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextColored(KEYBINDING_COLOR, "Shift LMB");
-                ImGui.TableNextColumn();
-                ImGui.Text("Click-drag to set clipping sphere on selected items");
-
-                ImGui.EndTable();
-                ImGui.EndTooltip();
-            }
+            bindings : [..]Binding_With_Description;
+            bindings.allocator = temp;
+            array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
+            array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
+            array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
+            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
+            Show_Tooltip_Binding(..bindings);
         } else {
             Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
         }
@@ -280,20 +260,12 @@ show_item_list_actions_ui :: () {
     ImGui.Separator();
 
     do_actions_tree := ImGui.TreeNodeEx("Actions", .DefaultOpen); // We do this so we can have the tooltip below appear when the tree is open AND closed
-    if (ImGui.IsItemHovered()) {
-        ImGui.BeginTooltip();
-        ImGui.Text("Change Action targets with modifier keys");
-        ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
-        ImGui.TableNextRow(); ImGui.TableNextColumn();
-        ImGui.TextColored(KEYBINDING_COLOR, to_string(0, ALL_ITEMS_MOD));
-        ImGui.TableNextColumn();
-        ImGui.Text("Target all items");
-        ImGui.TableNextRow(); ImGui.TableNextColumn();
-        ImGui.TextColored(KEYBINDING_COLOR, to_string(0, SELECTED_MOD));
-        ImGui.TableNextColumn();
-        ImGui.Text("Target selected items");
-        ImGui.EndTable();
-        ImGui.EndTooltip();
+    {
+        bindings : [..]Binding_With_Description;
+        bindings.allocator = temp;
+        array_add(*bindings, make_Binding_With_Description(to_string(0, ALL_ITEMS_MOD), "Target all items"));
+        array_add(*bindings, make_Binding_With_Description(to_string(0, SELECTED_MOD),  "Target selected items"));
+        Show_Tooltip_Binding(..bindings, header_text="Change Action targets with modifier keys");
     }
 
     if do_actions_tree {
@@ -316,7 +288,7 @@ show_item_list_actions_ui :: () {
         // TODO Grey out label buttons when there are too many labels so perf would be made, add a tooltip pointing out where you can change the limit and also suggest clipping to a sphere
         // TODO Change the button colors depending on what modifier is pressed
 
-        Action_Button :: (label : string, ops : ..Operation, disabled_tooltip := "") #expand {
+        Action_Button :: (label : string, ops : ..Operation, disabled_tooltip := "", has_options_menu := false) #expand {
             mod := current_modifier_flags();
 
             op : *Operation;
@@ -330,7 +302,15 @@ show_item_list_actions_ui :: () {
                 if ImGui.Button(imgui_label(label, op)) {
                     op.proc();
                 }
-                Show_Tooltip_Binding(op.desc, to_string(op.key, op.mod));
+                if has_options_menu {
+                    binding1, binding2 : Binding_With_Description = ---;
+                    binding1.description, binding1.binding = op.desc, to_string(op.key, op.mod);
+                    binding2.description, binding2.binding = "Action options menu", "RMB";
+                    Show_Tooltip_Binding(binding1, binding2);
+                } else {
+                    Show_Tooltip_Binding(op.desc, to_string(op.key, op.mod));
+                }
+
             } else {
                 DISABLED_COLOR :: ImGui.ImVec4.{.5, .5, .5, 1.};
                 // // ImGui.PushStyleColor(xx ImGui.Col.Button | .ButtonHovered | .ButtonActive, DISABLED_COLOR);
@@ -344,12 +324,55 @@ show_item_list_actions_ui :: () {
         }
 
         // @Refactor Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
-        Action_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);      ImGui.SameLine(); Action_Button("Cyc Opacity   ", ..CYCLE_OPACITY_OPS);
-        Action_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);         ImGui.SameLine(); Action_Button("Cyc Vert Size ", ..CYCLE_POINT_SIZE_OPS);
-        Action_Button("Cyc Elem Text ", ..CYCLE_ELEMENT_LABEL_OPS);      ImGui.SameLine(); Action_Button("Cyc Vert Text ", ..CYCLE_VERTEX_LABEL_OPS);
-        Action_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);          ImGui.SameLine(); Action_Button("Tgl Normals   ", ..TOGGLE_NORMALS_OPS);
+        Action_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);
+        ImGui.SameLine();
+        Action_Button("Cyc Opacity   ", ..CYCLE_OPACITY_OPS);
+
+        Action_Button("Cyc Line Width", ..CYCLE_LINE_WIDTH_OPS);
+        ImGui.SameLine();
+        Action_Button("Cyc Vert Size ", ..CYCLE_POINT_SIZE_OPS);
+
+        Action_Button("Cyc Elem Label", ..CYCLE_ELEMENT_LABEL_OPS, has_options_menu=true);
+        {
+            current_pos := ImGui.GetWindowPos();
+            current_size := ImGui.GetWindowSize();
+            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+            if ImGui.BeginPopupContextItem("##Cyc_Elem_Label_context_menu") {
+                defer ImGui.EndPopup();
+                update : Display_Info_Update;
+                ImGui.Text("Cyc Elem Label Options");
+                ImGui.Separator();
+                show_label_theme_ui(*update.element_label_theme_update, *app.selection_display_info.element_label_theme);
+                apply_display_info_update(update, target_items);
+            }
+        }
+        ImGui.SameLine();
+        Action_Button("Cyc Vert Label", ..CYCLE_VERTEX_LABEL_OPS, has_options_menu=true);
+        {
+            current_pos := ImGui.GetWindowPos();
+            current_size := ImGui.GetWindowSize();
+            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+            if ImGui.BeginPopupContextItem("##Cyc_Vert_Label_context_menu") {
+                defer ImGui.EndPopup();
+                update : Display_Info_Update;
+                ImGui.Text("Cyc Vert Label Options");
+                ImGui.Separator();
+                show_label_theme_ui(*update.vertex_label_style_update, *app.selection_display_info.vertex_label_style);
+                apply_display_info_update(update, target_items);
+            }
+        }
+
+        Action_Button("Tgl Clipping  ", ..TOGGLE_CLIPPING_OPS);
+        ImGui.SameLine();
+        Action_Button("Tgl Normals   ", ..TOGGLE_NORMALS_OPS);
+
         Action_Button("Edit Item Viz ", ..EDIT_VISIBILITY_OPS);
-        Action_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);              ImGui.SameLine(); Action_Button("Reload Items  ", ..RELOAD_ITEMS_OPS);
+
+        Action_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);
+        ImGui.SameLine();
+        Action_Button("Reload Items  ", ..RELOAD_ITEMS_OPS);
 
         if app.entities.count {
             if #complete target_items == {
@@ -369,6 +392,59 @@ show_item_list_actions_ui :: () {
         // if ImGui.Button("Tgl Console   ") { }
         // ImGui.SameLine();
         // if ImGui.Button("Tgl Help Menu") { }
+    }
+}
+
+apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) {
+    for app.entities if Is_Target(it) {
+        other := *app.selection_display_info;
+        using it.display_info;
+
+        // @Cleanup Use reflection here
+
+        if set.vertex_label_style_update.show_position     vertex_label_style.show_position     = other.vertex_label_style.show_position;
+        if set.vertex_label_style_update.show_index        vertex_label_style.show_index        = other.vertex_label_style.show_index;
+        if set.vertex_label_style_update.format_float      vertex_label_style.format_float      = other.vertex_label_style.format_float;
+        if set.vertex_label_style_update.label_scale       vertex_label_style.label_scale       = other.vertex_label_style.label_scale;
+        if set.vertex_label_style_update.label_color       vertex_label_style.label_color       = other.vertex_label_style.label_color;
+        if set.vertex_label_style_update.hide_backfacing   vertex_label_style.hide_backfacing   = other.vertex_label_style.hide_backfacing;
+        if set.vertex_label_style_update.visible_radius_px vertex_label_style.visible_radius_px = other.vertex_label_style.visible_radius_px;
+
+        if set.element_label_theme_update.show_position     element_label_theme.show_position     = other.element_label_theme.show_position;
+        if set.element_label_theme_update.show_index        element_label_theme.show_index        = other.element_label_theme.show_index;
+        if set.element_label_theme_update.format_float      element_label_theme.format_float      = other.element_label_theme.format_float;
+        if set.element_label_theme_update.label_scale       element_label_theme.label_scale       = other.element_label_theme.label_scale;
+        if set.element_label_theme_update.label_color       element_label_theme.label_color       = other.element_label_theme.label_color;
+        if set.element_label_theme_update.hide_backfacing   element_label_theme.hide_backfacing   = other.element_label_theme.hide_backfacing;
+        if set.element_label_theme_update.visible_radius_px element_label_theme.visible_radius_px = other.element_label_theme.visible_radius_px;
+
+        if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
+        if set.wireframe_width      wireframe_width      = other.wireframe_width;
+        if set.surface_visible      surface_visible      = other.surface_visible;
+        if set.display_mode         display_mode         = other.display_mode;
+        if set.backface_mode        backface_mode        = other.backface_mode;
+        if set.flat_shading         flat_shading         = other.flat_shading;
+        if set.normals_visible      normals_visible      = other.normals_visible;
+        if set.normals_length       normals_length       = other.normals_length;
+        if set.points_visible       points_visible       = other.points_visible;
+        if set.points_size          points_size          = other.points_size;
+
+        for 0..3 {
+            if set.wireframe_color[it]   wireframe_color.component[it]   = other.wireframe_color.component[it];
+            if set.surface_color[it]     surface_color.component[it]     = other.surface_color.component[it];
+            if set.normals_color[it]     normals_color.component[it]     = other.normals_color.component[it];
+            if set.points_color[it]      points_color.component[it]      = other.points_color.component[it];
+        }
+
+        if set.color_reset {
+            color  := entity_primary_color(it);
+            <<color = color_from_path(it.fully_pathed_filename);
+        }
+
+        for i : 0..clip_ranges.count-1 {
+            if set.clip_ranges[i] clip_ranges[i] = other.clip_ranges[i];
+        }
+        if set.clip_sphere clip_sphere = other.clip_sphere;
     }
 }
 
@@ -455,50 +531,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             set := display_info_ui(*app.selection_display_info, selection_aabb);
 
-            for :Selected app.entities {
-                other := *app.selection_display_info;
-                using it.display_info;
-
-                if set.vertex_label_style_update.show_position vertex_label_style.show_position = other.vertex_label_style.show_position;
-                if set.vertex_label_style_update.show_index    vertex_label_style.show_index    = other.vertex_label_style.show_index;
-                if set.vertex_label_style_update.format_float  vertex_label_style.format_float  = other.vertex_label_style.format_float;
-                if set.vertex_label_style_update.label_scale   vertex_label_style.label_scale   = other.vertex_label_style.label_scale;
-                if set.vertex_label_style_update.label_color   vertex_label_style.label_color   = other.vertex_label_style.label_color;
-
-                if set.element_label_theme_update.show_position element_label_theme.show_position = other.element_label_theme.show_position;
-                if set.element_label_theme_update.show_index    element_label_theme.show_index    = other.element_label_theme.show_index;
-                if set.element_label_theme_update.format_float  element_label_theme.format_float  = other.element_label_theme.format_float;
-                if set.element_label_theme_update.label_scale   element_label_theme.label_scale   = other.element_label_theme.label_scale;
-                if set.element_label_theme_update.label_color   element_label_theme.label_color   = other.element_label_theme.label_color;
-
-                if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
-                if set.wireframe_width      wireframe_width      = other.wireframe_width;
-                if set.surface_visible      surface_visible      = other.surface_visible;
-                if set.display_mode         display_mode         = other.display_mode;
-                if set.backface_mode        backface_mode        = other.backface_mode;
-                if set.flat_shading         flat_shading         = other.flat_shading;
-                if set.normals_visible      normals_visible      = other.normals_visible;
-                if set.normals_length       normals_length       = other.normals_length;
-                if set.points_visible       points_visible       = other.points_visible;
-                if set.points_size          points_size          = other.points_size;
-
-                for 0..3 {
-                    if set.wireframe_color[it]   wireframe_color.component[it]   = other.wireframe_color.component[it];
-                    if set.surface_color[it]     surface_color.component[it]     = other.surface_color.component[it];
-                    if set.normals_color[it]     normals_color.component[it]     = other.normals_color.component[it];
-                    if set.points_color[it]      points_color.component[it]      = other.points_color.component[it];
-                }
-
-                if set.color_reset {
-                    color  := entity_primary_color(it);
-                    <<color = color_from_path(it.fully_pathed_filename);
-                }
-
-                for i : 0..clip_ranges.count-1 {
-                    if set.clip_ranges[i] clip_ranges[i] = other.clip_ranges[i];
-                }
-                if set.clip_sphere clip_sphere = other.clip_sphere;
-            }
+            apply_display_info_update(set, .SELECTED);
         }
     }
 }
@@ -627,6 +660,8 @@ show_camera_controls :: () {
 
     // @Incomplete add perspective/orthographic toggle
     // @Incomplete add button to reset look position
+
+    ImGui.Text(tprint("% fps", 1. / io().DeltaTime));
 }
 
 show_help_ui :: () {
@@ -740,12 +775,6 @@ show_help_ui :: () {
         }
         ImGui.Checkbox("World Axes", *world_axes.visible);
 
-        ImGui.InputInt("Label limit", *app.label_limit);
-        if app.label_limit > 2000 {
-            color := ImGui.ImVec4.{1., .4, .4, 1.};
-            ImGui.TextColored(color, "%", "Warning: label limit > 2000 may be slow");
-        }
-
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
             if ImGui.Button("Reset OS Window Size") {
                 SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
@@ -768,8 +797,8 @@ show_help_ui :: () {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-            // ImGui.TextWrapped(latest.description);
-            ImGui.Text(latest.description);
+            ImGui.TextWrapped(latest.description);
+            // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
             ImGui.PopStyleColor();
         }
 
@@ -779,8 +808,8 @@ show_help_ui :: () {
                 defer ImGui.TreePop();
 
                 ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-                // ImGui.TextWrapped(version.description);
-                ImGui.Text(version.description);
+                ImGui.TextWrapped(version.description);
+                // ImGui.Text(version.description);
                 ImGui.PopStyleColor();
             }
         }
@@ -790,12 +819,12 @@ show_help_ui :: () {
         defer ImGui.TreePop();
         for app.known_issues {
             ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-            // ImGui.TextWrapped(it.name);
-            ImGui.Text(it.name);
+            ImGui.TextWrapped(it.name);
+            // ImGui.Text(it.name);
             ImGui.PopStyleColor();
             ImGui.SameLine();
-            // ImGui.TextWrapped(it.description);
-            ImGui.Text(it.description);
+            ImGui.TextWrapped(it.description);
+            // ImGui.Text(it.description);
         }
     }
 
@@ -810,6 +839,9 @@ Label_Theme_Update :: struct {
     format_float : bool;
     label_scale : bool;
     label_color : bool;
+
+    visible_radius_px : bool;
+    hide_backfacing : bool;
 }
 
 // @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
@@ -849,6 +881,27 @@ Display_Info_Update :: struct {
         error_message := tprint("Expected clip_ranges arrays to have equal sizes (% != %)", info.clip_ranges.count, update.clip_ranges.count);
         compiler_report(#file, #line, 0, error_message);
     }
+}
+
+show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
+    // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
+    update.show_index    = ImGui.Checkbox("Index labels", *theme.show_index);
+    update.show_position = ImGui.Checkbox("Position labels", *theme.show_position);
+    update.label_color   = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+
+    radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+    radius_px := cast(float) theme.visible_radius_px;
+    update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+    theme.visible_radius_px = cast(int) radius_px;
+    update.hide_backfacing = ImGui.Checkbox("Hide backfacing labels", *theme.hide_backfacing);
+
+    trailing_width : s32 = xx theme.format_float.trailing_width;
+    update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
+    theme.format_float.trailing_width = clamp(trailing_width, 0, 12);
+    Show_Tooltip("Number of digits following the decimal point");
+
+    update.format_float |= combo_box("Float format", *theme.format_float.mode, type_info(FormatFloat.Mode));
+    update.label_scale  = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
 }
 
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : bool = true, lines_ui : bool = true, faces_ui : bool = true) -> Display_Info_Update {
@@ -945,21 +998,6 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
     }
 
     show_clipping_ui(*set, display_info, aabb);
-
-    show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
-        // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-        update.show_index    = ImGui.Checkbox("Index labels", *theme.show_index);
-        update.show_position = ImGui.Checkbox("Position labels", *theme.show_position);
-        update.label_color   = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-
-        trailing_width : s32 = xx theme.format_float.trailing_width;
-        update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
-        theme.format_float.trailing_width = clamp(trailing_width, 0, 12);
-        Show_Tooltip("Number of digits following the decimal point");
-
-        update.format_float |= combo_box("Float format", *theme.format_float.mode, type_info(FormatFloat.Mode));
-        update.label_scale  = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-    }
 
     if ImGui.TreeNodeEx("Point Labels") {
         defer ImGui.TreePop();

@@ -241,6 +241,38 @@ Show_Tooltip_Binding :: (description : string, binding : string) #expand {
     }
 }
 
+Binding_With_Description :: struct {
+    binding : string;
+    description : string;
+}
+
+make_Binding_With_Description :: (binding : string, description : string) -> Binding_With_Description {
+    result : Binding_With_Description = ---;
+    result.binding = binding;
+    result.description = description;
+    return result;
+}
+
+Show_Tooltip_Binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "") #expand {
+    if bindings_with_descriptions.count == 0 return;
+
+    if (ImGui.IsItemHovered()) {
+        ImGui.BeginTooltip();
+        if header_text ImGui.Text(header_text);
+
+        ImGui.BeginTable("", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
+        for bindings_with_descriptions {
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, it.binding);
+            ImGui.TableNextColumn();
+            ImGui.Text(it.description);
+        }
+        ImGui.EndTable();
+
+        ImGui.EndTooltip();
+    }
+}
+
 
 make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
     v: ImGui.ImVec2 = ---;
