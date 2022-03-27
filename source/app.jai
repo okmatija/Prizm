@@ -89,7 +89,8 @@ App :: struct {
 
 
     Version :: struct {
-        name :        string;
+        name : string;
+        date : string;
         description : string;
     }
     changelog : [..]Version;

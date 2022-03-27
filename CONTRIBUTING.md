@@ -14,14 +14,13 @@ This tool is intended to be hackable and compiled from source as you use it. So 
 
 From the top-level project directory do the following:
 
-1. Update `build.jai` with the new version number
-2. Update `CHANGELOG.md` to add the release date
-3. Disable the runtime console and compile using: `jai build.jai -x64 -- release set_icon`
-4. Test everything works
-5. Copy the top-level directory and rename it `Prism-X.Y.Z`
-6. Delete the .git folder and other folders/files not to be distributed
-7. Zip the release folder
-8. Unzip the release zip and test everything works
-9. Use the github UI to complete the release: upload the release zip and copy the new section in the changelog to the description
+1. Update `CHANGELOG.md` with the release date
+2. Disable the runtime console and compile using: `jai build.jai -x64 -- release`
+3. Test everything works
+4. Copy the top-level directory and rename it `Prism-X.Y.Z`
+5. Delete the .git, data, source folder and other folders/files not to be distributed
+6. Zip the release folder
+7. Unzip the release zip and test everything works
+8. Use the GitHub UI to complete the release: upload the release zip and copy the new section in the changelog to the description and set the git tag
 
 Note: Delete tags using: `git tag --delete vNNN && git push --delete origin vNNN`

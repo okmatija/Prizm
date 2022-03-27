@@ -1,31 +1,31 @@
-PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1 WIP", #string DONE
-- Changed the modifier used make mouse scrolling zoom into the camera look position from Control to Shift
-  - This change improves the UX when looking at small details with clip spheres/`item_focus_*` commands because the user can hold Shift while rotating/zooming/clipping the scene.
+PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
+- Changed the modifier used to make mouse scrolling zoom into the camera look position from Control to Shift
+  - This change improves the UX when looking at small details with clip spheres/`item_focus_*` commands because the user can hold Shift while rotating/zooming/clipping the scene
   - Note: The original Ctrl Scroll binding was chosen to match the Ctrl RMB binding for setting the orbit point, but those operations clashed in an annoying way (which was easy to notice but hard to explain)
 - Improvements to the console:
   - Added an 'Options' button next to the input box which can toggle between interactive and transparent console log modes and enable/disable scrolling to new log output
     - In interactive mode the console log captures mouse input so the user can scroll through log messages by hovering over the log (eventually copy/paste from the log will also work here)
-    - In transparent mode the console log ignores mouse inputs so the user can interact with the scene behind the console while still reading console log text. This the the default mode
+    - In transparent mode the console log ignores mouse inputs so the user can interact with the scene behind the console while still reading console log text. This is the default mode
   - Moved the world axes to the bottom right so it doesn't obscure text in transparent mode
-  - Made the Console scrolls to the bottom when a new log message is posted by default
+  - Made the Console scroll to the bottom when a new log message is posted, this can be turned off in the Options menu
   - Added ability to scroll the console log by using the scroll wheel when hovering over the console input text field. This works regardless of interactive/transparent mode
   - Changed the command documentation output color to make it more clear when autocomplete has narrowed down to only one option
   - Renamed 'console_show_history', 'console_clear_history' and 'console_clear_log' to 'console_history_show', 'console_history_clear' and 'console_log_clear' for better autocomplete namespacing
-  - Renamed functions operating on an item to have a common 'item_' prefix, the 'debug_*' functions weren't changed though
+  - Renamed functions operating on an item to have a common 'item_' prefix. The 'debug_*' functions which operate on an item are changed though
   - Changed the 'select_if*' functions to keep existing selections and just add to them
   - Added new 'select_toggle' and 'select_remove' functions
-  - Improved the `item_focus_vertex/triangle` commands to give more intuitive results and added an option to also update the item's clipping sphere
+  - Improved the `item_focus_vertex' and 'item_focus_triangle` commands to give more intuitive results and added an option to also update the item's clipping sphere
 - Improvements to rendering:
   - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
   - Fixed flat shading breaking at high zoom levels (ISSUE_003)
   - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
   - Changed the default backface shading mode to use a fixed pinkish color
-- Changed the UX for text rendering, now point/element labels are rendering within a disk around the cursor, default radius 200 pixels
-  - This is useful both as a workaround for slow text rendering, but probably also as a permanent feature which reduces label clutter
-  - The radius of the disk can be changed along with other label settings via RMB on the label action buttons. Note each item caches its own copy of these settings
-- Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
-- Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'
+- Replaced four 'Tgl Elem/Vert IDs/XYZ' buttons with two 'Cyc Elem/Vert Label' buttons which cycle through having all four combinations of index/position label visibility
+  - Changed the keybinding for cycling opacity to 'o', which is was made available by the above change
+- Changed the UX for text rendering, now point/element labels are rendering within a disk around the cursor, default radius 200 pixels
+  - This is useful as a workaround for slow text rendering, but will probably also be a permanent feature since its helpful for reducing label clutter
+  - The radius of the disk can be changed (along with other label settings) via RMB on the label action buttons. Note each item caches its own copy of these settings
 - Fixed the tooltip for the 'Reload Items' button when it operates on visible items (i.e., when no modifier key is down)
 - Fixed some unituitive/strange behaviour related to selecting vertices (normals were being used, and were sometimes incorrect due to unitialized memory, now normals are ignored)
 - Fixed an issue where 'Ctrl RMB' did not allow placing the camera orbit on vertices which were not reference by a line/triangle
@@ -33,7 +33,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1 WIP", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0, 15 March 2022", #string DONE
+PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
 - Major UI/UX overhaul/improvements:
   - Changed the key-binding modifier pattern introduced in Version 0.1.1
     - Key-only bindings act on visible items, this allows the corresponding buttons to do something by default
@@ -60,7 +60,7 @@ PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0, 15 March 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2, 4 January 2022", #string DONE
+PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "4 January 2022", #string DONE
 - Improvements to the console:
   - Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
   - Added command documentation strings automatically deduced from the comment preceeding the procedure in the Jai source code
@@ -84,7 +84,7 @@ PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2, 4 January 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1, 1 December 2021", #string DONE
+PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1", "1 December 2021", #string DONE
 - Changed Selection Mode toggle keybinding to s from m
 - Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
 - Changed rendering of back faces to use an darkened version of the front face color
@@ -110,7 +110,7 @@ PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1, 1 December 2021", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_0 :: App.Version.{"0.1.0, 20 October 2021", #string DONE
+PRISM_VERSION_0_1_0 :: App.Version.{"0.1.0", "20 October 2021", #string DONE
 Initial release. Press h for help, features not mentioned in the help message include:
 
 - Supports simple .obj files (containing v, vn, p, l, f directives) and .wkt files (containing POINT, MULTIPOINT, LINESTRING, MULTILINESTRING directives)

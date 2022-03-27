@@ -661,7 +661,7 @@ show_camera_controls :: () {
     // @Incomplete add perspective/orthographic toggle
     // @Incomplete add button to reset look position
 
-    ImGui.Text(tprint("% fps", 1. / io().DeltaTime));
+    // ImGui.Text(tprint("% fps", formatFloat(1. / io().DeltaTime, trailing_width=1)));
 }
 
 show_help_ui :: () {
@@ -793,7 +793,7 @@ show_help_ui :: () {
         ImGui.Text(COMPILER_VERSION_INFO);
 
         latest := app.changelog[0];
-        if ImGui.TreeNodeEx(temp_c_string(tprint("Version % (latest)", latest.name)), .DefaultOpen) {
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date)), .DefaultOpen) {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
@@ -804,7 +804,7 @@ show_help_ui :: () {
 
         for 1..app.changelog.count-1 {
             version := app.changelog[it];
-            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %", version.name))) {
+            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
                 defer ImGui.TreePop();
 
                 ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
