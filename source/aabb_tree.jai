@@ -114,12 +114,10 @@ init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
         info.primitive_id = it; // tree.primitive_info will get jumbled
     }
 
-    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
-
     root := array_add(*tree.nodes);
     root.range.first = 0;
     root.range.count = tree.primitive_info.count;
-    for :Iterator root.range expand(*root.aabb, it.aabb);
+    for :tree.Primitive_Info_Iterator root.range expand(*root.aabb, it.aabb);
     build(tree, 0, 0);
 }
 
@@ -268,8 +266,6 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
         midindex = lower;
     }
 
-    Iterator :: tree.Primitive_Info_Iterator; // @Cleanup @CompilerBug Should be unecessary
-
     child_lhs_index : int = -1;
     {
         child_lhs_index = tree.nodes.count;
@@ -277,7 +273,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
         child_lhs.range.first = nodes[parent].range.first;
         child_lhs.range.count = midindex;
-        for :Iterator child_lhs.range {
+        for :tree.Primitive_Info_Iterator child_lhs.range {
             expand(*child_lhs.aabb, it.aabb);
         }
     }
@@ -293,7 +289,7 @@ build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
 
         child_rhs.range.first = child_lhs.range.first + child_lhs.range.count;
         child_rhs.range.count = nodes[parent].range.count - child_lhs.range.count;
-        for :Iterator child_rhs.range {
+        for :tree.Primitive_Info_Iterator child_rhs.range {
             expand(*child_rhs.aabb, it.aabb);
         }
 

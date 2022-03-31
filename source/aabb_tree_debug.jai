@@ -20,8 +20,6 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         return;
     }
 
-    Iterator :: spatial.Primitive_Info_Iterator; // @Cleanup
-
     if jumbo_item {
         // Put all AABBs into a single polyline soup
         shape : Polyline_Soup3;
@@ -65,7 +63,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     {
                         using primitives : Mesh;
                         defer deinit(*primitives);
-                        for :Iterator info : node.range {
+                        for :spatial.Primitive_Info_Iterator info : node.range {
                             tri := get_primitive(tree, info.primitive_id);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.a);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.b);
@@ -86,7 +84,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     {
                         using primitives : Mesh;
                         defer deinit(*primitives);
-                        for :Iterator info : node.range {
+                        for :spatial.Primitive_Info_Iterator info : node.range {
                             tri := get_primitive(tree, info.primitive_id);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.a);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.b);
