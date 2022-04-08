@@ -1,3 +1,9 @@
+// TODO Just use Simp instead, seems to do what we want!
+
+// TODO Consider using https://github.com/Chlumsky/msdfgen
+// TODO Look at putting more glyphs into one texture e.g., see https://github.com/plamennf/text-rendering-demo/
+// TODO What does raylib do for text?
+
 FONT_SIZE :: 58;
 ASCII_COUNT :: 128;
 

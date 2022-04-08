@@ -3,6 +3,15 @@
 // with // above the procedure will be included in the documentation
 //
 // It's clearer for users if explicit types are put in function argument lists
+//
+// Note the advice from how_to/500_use_of_compile_time_execution.jai:
+//
+//    If you generate code once and then
+//    it will be fixed for the rest of the project, we encourage you to copy that
+//    code out of the .added_strings file into an input source file, and to comment out
+//    the execution.
+//
+// Maybe we should do that for commands which have proven to be useful for a long time, for example
 
 check_geometry_index :: (index : int) -> bool #must {
     if index < 0 || index >= app.entities.count {

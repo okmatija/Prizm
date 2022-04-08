@@ -6,7 +6,7 @@ Label_Theme :: struct {
     show_index := false;
 
     visible_radius_px : int = 200;
-    hide_backfacing : bool = false;
+    show_backfacing : bool = true;
 
     format_float : FormatFloat; // We ignore the `value` field
     format_float.mode = .SHORTEST;
@@ -660,8 +660,8 @@ render_entities :: () {
                 cloud := cast(*Point_Cloud_Entity) entity;
                 count := cloud.mesh.positions.count;
 
-               for cloud.mesh.positions {
-                    if point_theme.hide_backfacing {
+                for cloud.mesh.positions {
+                    if point_theme.show_backfacing == false {
                         if cloud.mesh.normals.count && dot_product(cloud.mesh.normals[it_index], current_look_direction()) > 0 {
                             continue;
                         }
@@ -676,15 +676,15 @@ render_entities :: () {
                         text := get_point_text(it, it_index, point_theme);
                         render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                     }
-               }
+                }
 
             case .MESH;
 
                 mesh := cast(*Mesh_Entity) entity;
                 count := mesh.mesh.positions.count;
 
-               for mesh.mesh.positions {
-                    if point_theme.hide_backfacing {
+                for mesh.mesh.positions {
+                    if point_theme.show_backfacing == false {
                         if mesh.mesh.normals.count && dot_product(mesh.mesh.normals[it_index], current_look_direction()) > 0 {
                             continue;
                         }
@@ -700,10 +700,10 @@ render_entities :: () {
                         text := get_point_text(it, it_index, point_theme);
                         render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
                     }
-               }
+                }
 
-               for :Triangles_Iterator mesh.mesh {
-                    if element_theme.hide_backfacing {
+                for :Triangles_Iterator mesh.mesh {
+                    if element_theme.show_backfacing == false {
                         if dot_product(compute_normal(it), current_look_direction()) > 0 {
                             continue;
                         }
@@ -717,7 +717,7 @@ render_entities :: () {
                         text := get_point_text(centroid, it_index, element_theme);
                         render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
                     }
-               }
+                }
         }
     }
 

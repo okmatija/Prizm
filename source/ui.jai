@@ -407,7 +407,7 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
         if set.vertex_label_style_update.format_float      vertex_label_style.format_float      = other.vertex_label_style.format_float;
         if set.vertex_label_style_update.label_scale       vertex_label_style.label_scale       = other.vertex_label_style.label_scale;
         if set.vertex_label_style_update.label_color       vertex_label_style.label_color       = other.vertex_label_style.label_color;
-        if set.vertex_label_style_update.hide_backfacing   vertex_label_style.hide_backfacing   = other.vertex_label_style.hide_backfacing;
+        if set.vertex_label_style_update.show_backfacing   vertex_label_style.show_backfacing   = other.vertex_label_style.show_backfacing;
         if set.vertex_label_style_update.visible_radius_px vertex_label_style.visible_radius_px = other.vertex_label_style.visible_radius_px;
 
         if set.element_label_theme_update.show_position     element_label_theme.show_position     = other.element_label_theme.show_position;
@@ -415,7 +415,7 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
         if set.element_label_theme_update.format_float      element_label_theme.format_float      = other.element_label_theme.format_float;
         if set.element_label_theme_update.label_scale       element_label_theme.label_scale       = other.element_label_theme.label_scale;
         if set.element_label_theme_update.label_color       element_label_theme.label_color       = other.element_label_theme.label_color;
-        if set.element_label_theme_update.hide_backfacing   element_label_theme.hide_backfacing   = other.element_label_theme.hide_backfacing;
+        if set.element_label_theme_update.show_backfacing   element_label_theme.show_backfacing   = other.element_label_theme.show_backfacing;
         if set.element_label_theme_update.visible_radius_px element_label_theme.visible_radius_px = other.element_label_theme.visible_radius_px;
 
         if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
@@ -841,7 +841,7 @@ Label_Theme_Update :: struct {
     label_color : bool;
 
     visible_radius_px : bool;
-    hide_backfacing : bool;
+    show_backfacing : bool;
 }
 
 // @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
@@ -885,23 +885,24 @@ Display_Info_Update :: struct {
 
 show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
     // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-    update.show_index    = ImGui.Checkbox("Index labels", *theme.show_index);
-    update.show_position = ImGui.Checkbox("Position labels", *theme.show_position);
-    update.label_color   = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    update.show_index      = ImGui.Checkbox("Label indices", *theme.show_index);
+    update.show_position   = ImGui.Checkbox("Label coordinates", *theme.show_position);
+    update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    update.show_backfacing = ImGui.Checkbox("Label backfacing", *theme.show_backfacing);
+    update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
 
-    radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-    radius_px := cast(float) theme.visible_radius_px;
-    update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-    theme.visible_radius_px = cast(int) radius_px;
-    update.hide_backfacing = ImGui.Checkbox("Hide backfacing labels", *theme.hide_backfacing);
-
+    // Float format options
     trailing_width : s32 = xx theme.format_float.trailing_width;
     update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
     theme.format_float.trailing_width = clamp(trailing_width, 0, 12);
     Show_Tooltip("Number of digits following the decimal point");
-
     update.format_float |= combo_box("Float format", *theme.format_float.mode, type_info(FormatFloat.Mode));
-    update.label_scale  = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
+
+    // Visible radius
+    radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+    radius_px := cast(float) theme.visible_radius_px;
+    update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+    theme.visible_radius_px = cast(int) radius_px;
 }
 
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : bool = true, lines_ui : bool = true, faces_ui : bool = true) -> Display_Info_Update {

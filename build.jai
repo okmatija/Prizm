@@ -462,7 +462,7 @@ set_icon_and_manifest :: (options: Build_Options) {
 }
 
 // @Cleanup Make this run in release and OS console disabled
-// #run { #if OS == .WINDOWS { disable_runtime_console(); } } // IMPORTANT: Enabling this hides prints to the console!
+#run { #if OS == .WINDOWS { disable_runtime_console(); } } // IMPORTANT: Enabling this hides prints to the console!
 
 #import "Basic";
 #import "Check";
