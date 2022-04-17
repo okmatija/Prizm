@@ -479,6 +479,8 @@ get_text_screen_position :: (point : Vector4, world_from_model : Matrix4) -> Vec
 
 render_entities :: () {
 
+    Scope_GL_State();
+
     render_entity_geometry :: (entity : *Entity) {
         ri := *entity.render_info;
         di :=  entity.display_info;
@@ -741,7 +743,56 @@ render_entities :: () {
     for :Visible_Hovered     app.entities render_entity_geometry(it);
 }
 
+// This function was added so that we could use Simp.  Because of the way Simp.immediate_set_shader works (when
+// called from Simp.set_shader_for_color, tracking the state of the currently set shader separately to opengl)
+// we can break it by getting opengl out of sync.  This happens when we set the shader program in gl, without simp
+// knowing about it, so it doesn't know it needs to set the shader program again. Here, just to be safe/general,
+// we set a bunch of other opengl state, too.
+Scope_GL_State :: () #expand {
+    // Backup GL state
+    last_active_texture : GLenum; glGetIntegerv(GL_ACTIVE_TEXTURE, xx *last_active_texture);
+    glActiveTexture(GL_TEXTURE0);
+    last_program : GLuint; glGetIntegerv(GL_CURRENT_PROGRAM, xx *last_program);
+    last_texture : GLuint; glGetIntegerv(GL_TEXTURE_BINDING_2D, xx *last_texture);
+    last_array_buffer : GLuint; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, xx *last_array_buffer);
+    last_vertex_array_object : GLuint; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, xx *last_vertex_array_object);
+    last_viewport : [4]GLint; glGetIntegerv(GL_VIEWPORT, last_viewport.data);
+    last_scissor_box : [4]GLint; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box.data);
+    last_blend_src_rgb : GLenum; glGetIntegerv(GL_BLEND_SRC_RGB, xx *last_blend_src_rgb);
+    last_blend_dst_rgb : GLenum; glGetIntegerv(GL_BLEND_DST_RGB, xx *last_blend_dst_rgb);
+    last_blend_src_alpha : GLenum; glGetIntegerv(GL_BLEND_SRC_ALPHA, xx *last_blend_src_alpha);
+    last_blend_dst_alpha : GLenum; glGetIntegerv(GL_BLEND_DST_ALPHA, xx *last_blend_dst_alpha);
+    last_blend_equation_rgb : GLenum; glGetIntegerv(GL_BLEND_EQUATION_RGB, xx *last_blend_equation_rgb);
+    last_blend_equation_alpha : GLenum; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, xx *last_blend_equation_alpha);
+    last_enable_blend := glIsEnabled(GL_BLEND);
+    last_enable_cull_face := glIsEnabled(GL_CULL_FACE);
+    last_enable_depth_test := glIsEnabled(GL_DEPTH_TEST);
+    last_enable_stencil_test := glIsEnabled(GL_STENCIL_TEST);
+    last_enable_scissor_test := glIsEnabled(GL_SCISSOR_TEST);
+
+    `defer {
+        // Restore modified GL state
+        glUseProgram(last_program);
+        glBindTexture(GL_TEXTURE_2D, last_texture);
+        glActiveTexture(last_active_texture);
+        glBindVertexArray(last_vertex_array_object);
+        glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+        glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+        glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+        if (last_enable_blend)        glEnable(GL_BLEND);        else glDisable(GL_BLEND);
+        if (last_enable_cull_face)    glEnable(GL_CULL_FACE);    else glDisable(GL_CULL_FACE);
+        if (last_enable_depth_test)   glEnable(GL_DEPTH_TEST);   else glDisable(GL_DEPTH_TEST);
+        if (last_enable_stencil_test) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
+        if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
+        glViewport(last_viewport[0], last_viewport[1], xx last_viewport[2], xx last_viewport[3]);
+        glScissor(last_scissor_box[0], last_scissor_box[1], xx last_scissor_box[2], xx last_scissor_box[3]);
+    }
+}
+
 render_background :: () {
+
+    Scope_GL_State();
+
     if #complete app.background_style == {
         case .SOLID_COLOR;
 

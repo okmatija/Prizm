@@ -46,7 +46,7 @@ build :: () {
             cast_bounds_check             = .FATAL;
             math_bounds_check             = .FATAL;
             null_pointer_check            = .ON;
-            stack_trace                   = false;
+            stack_trace                   = true; // So that we can use the NoteEntryExit helper in carpet.jai
         }
         table_add(*preset_build_modes, "debug", mode);
     }
@@ -462,7 +462,8 @@ set_icon_and_manifest :: (options: Build_Options) {
 }
 
 // @Cleanup Make this run in release and OS console disabled
-#run { #if OS == .WINDOWS { disable_runtime_console(); } } // IMPORTANT: Enabling this hides prints to the console!
+// Warning: Enabling this hides prints to the console!
+// #run { #if OS == .WINDOWS { disable_runtime_console(); } }
 
 #import "Basic";
 #import "Check";

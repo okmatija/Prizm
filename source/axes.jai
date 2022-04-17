@@ -61,6 +61,8 @@ render_axes_triad :: () {
     app.triad.y_axis.mesh.world_from_model = xform;
     app.triad.z_axis.mesh.world_from_model = xform;
 
+    Scope_GL_State();
+
     render_mesh_triangles(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
     render_mesh_triangles(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info);
     render_mesh_triangles(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info);

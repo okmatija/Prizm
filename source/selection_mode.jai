@@ -13,6 +13,8 @@ do_selection_mode :: () {
 
     // @Cleanup make this separate
     {
+        Scope_GL_State();
+
         if app.user_selection.is_hovered {
             glClear(GL_DEPTH_BUFFER_BIT);
         }

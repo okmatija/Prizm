@@ -59,6 +59,7 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 }
 
 debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1, 1}) {
+
     glEnable(GL_BLEND);
     defer glDisable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -30,7 +30,7 @@ main :: () {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
-    gl_context := SDL_GL_CreateContext(app.window);
+    gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
         print( "Could not create OpenGL context: %\n", to_string(SDL_GetError()));
         return;
