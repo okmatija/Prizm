@@ -26,6 +26,10 @@ quit :: () {
     app.closing_application = true;
 } @RegisterCommand
 
+debug_toggle_fps :: () {
+    app.show_fps = !app.show_fps;
+} @RegisterCommand
+
 // Show the history of console commands
 console_history :: () {
     console_log_clear();

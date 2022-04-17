@@ -661,7 +661,9 @@ show_camera_controls :: () {
     // @Incomplete add perspective/orthographic toggle
     // @Incomplete add button to reset look position
 
-    // ImGui.Text(tprint("% fps", formatFloat(1. / io().DeltaTime, trailing_width=1)));
+    if app.show_fps {
+        ImGui.Text(tprint("% fps", formatFloat(1. / io().DeltaTime, trailing_width=2)));
+    }
 }
 
 show_help_ui :: () {
