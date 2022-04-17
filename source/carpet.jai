@@ -342,3 +342,41 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
     label_c := temp_c_string(label); // @Incomplete only do this if label is not constant
     return ImGui.InputText(label_c, str_c, xx (str.count + 1), flags, InputTextCallback, *cb_user_data);
 }
+
+
+
+#if 1 { // This just delimits a block of code related to noting entry/exit from function
+
+NoteEntryExit :: () #expand {
+    // #this is the pointer to the procedure calling this macro
+    note_entry(#this, #location(#this));
+    `defer note_exit(#this);
+}
+
+#add_context note_entry_exit_depth: s32;
+
+note_entry :: (proc: $T, location: Source_Code_Location) {
+    for 0..context.note_entry_exit_depth-1 print("  ");
+    context.note_entry_exit_depth += 1;
+
+    if context.stack_trace {
+        proc_name := context.stack_trace.info.name;
+        print("--> Entering '%' at %:%\n", proc_name, location.fully_pathed_filename, location.line_number);
+    } else {
+        print("--> Entering '%' at %:%\n", proc, location.fully_pathed_filename, location.line_number);
+    }
+}
+
+note_exit :: (proc: $T) {
+    context.note_entry_exit_depth -= 1;
+    for 0..context.note_entry_exit_depth-1 print("  ");
+
+    if context.stack_trace {
+        proc_name := context.stack_trace.info.name;
+        print("<-- Exiting %\n", proc_name);
+    } else {
+        print("<-- Exiting %\n", cast(*void) proc);  // Cast to *void to make the print shorter.
+    }
+}
+
+}
