@@ -459,7 +459,7 @@ get_point_text :: (point : Vector2, point_index : int, theme : Label_Theme, labe
     return result;
 }
 
-get_point_text :: (point : Vector3, point_index : int, theme : Label_Theme, label_index_offset : int = 0) -> string #expand {
+get_point_text :: (point : Vector3, point_index : int, theme : Label_Theme, label_index_offset : int = 0) -> string {
     result : string;
     f :: get_point_text_format_float;
     if  theme.show_index &&  theme.show_position result = tprint("% (%, %, %)", label_index_offset + point_index, f(point.x), f(point.y), f(point.z));
