@@ -469,8 +469,7 @@ get_point_text :: (point : Vector3, point_index : int, theme : Label_Theme, labe
 }
 
 // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
-get_text_screen_position :: (point : Vector4, world_from_model : Matrix4) -> Vector2 {
-    projection_from_model := make_projection_from_world(app.camera) * world_from_model;
+get_text_screen_position :: (point : Vector4, projection_from_model : Matrix4) -> Vector2 {
     result := projection_from_model * point;
     result.x = cast(float)app.current_window_width *  (result.x + 1) / 2;
     result.y = cast(float)app.current_window_height * (result.y + 1) / 2;
@@ -582,10 +581,12 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup2_Entity) entity;
 
+                projection_from_model := make_projection_from_world(app.camera) * soup.mesh.world_from_model;
+
                 for :Point_Iterator soup.shape {
                     if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
 
-                    text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(it, 0, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
                         render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
@@ -596,7 +597,7 @@ render_entities :: () {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, make_vector3(centroid, 0)) continue;
 
-                    text_position_px := get_text_screen_position(make_vector4(centroid, 0, 1), soup.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 0, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme) {
                         text := get_point_text(centroid, it_index, element_theme);
                         render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
@@ -607,10 +608,12 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
 
+                projection_from_model := make_projection_from_world(app.camera) * soup.mesh.world_from_model;
+
                 for :Point_Iterator soup.shape {
                     if is_clipped(entity.display_info, it) continue;
 
-                    text_position_px := get_text_screen_position(make_vector4(it, 1), soup.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
                         render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
@@ -621,7 +624,7 @@ render_entities :: () {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, centroid) continue;
 
-                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), soup.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme) {
                         text := get_point_text(centroid, it_index, element_theme);
                         render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
@@ -635,11 +638,13 @@ render_entities :: () {
                 soup := cast(*Polygon_Soup_Entity) entity;
                 count := point_count(soup.shape);
 
+                projection_from_model := make_projection_from_world(app.camera) * soup.mesh.world_from_model;
+
                 for polygon : soup.shape.polygons {
                     for polygon.outer_ring.points {
                         if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
 
-                        text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                        text_position_px := get_text_screen_position(make_vector4(it, 0, 1), projection_from_model);
                         if on_screen_in_disk(text_position_px, point_theme) {
                             text := get_point_text(it, it_index, point_theme);
                             render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
@@ -648,7 +653,7 @@ render_entities :: () {
                         for inner_ring : polygon.inner_rings for inner_ring.points {
                             if is_clipped(entity.display_info, make_vector3(it, 0)) continue;
 
-                            text_position_px := get_text_screen_position(make_vector4(it, 0, 1), soup.mesh.world_from_model);
+                            text_position_px := get_text_screen_position(make_vector4(it, 0, 1), projection_from_model);
                             if on_screen_in_disk(text_position_px, point_theme) {
                                 text := get_point_text(it, it_index, point_theme);
                                 render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
@@ -662,6 +667,8 @@ render_entities :: () {
                 cloud := cast(*Point_Cloud_Entity) entity;
                 count := cloud.mesh.positions.count;
 
+                projection_from_model := make_projection_from_world(app.camera) * cloud.mesh.world_from_model;
+
                 for cloud.mesh.positions {
                     if point_theme.show_backfacing == false {
                         if cloud.mesh.normals.count && dot_product(cloud.mesh.normals[it_index], current_look_direction()) > 0 {
@@ -673,7 +680,7 @@ render_entities :: () {
                         continue;
                     }
 
-                    text_position_px := get_text_screen_position(make_vector4(it, 1), cloud.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
                         render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
@@ -684,6 +691,9 @@ render_entities :: () {
 
                 mesh := cast(*Mesh_Entity) entity;
                 count := mesh.mesh.positions.count;
+
+                projection_from_model := make_projection_from_world(app.camera) * mesh.mesh.world_from_model;
+
 
                 for mesh.mesh.positions {
                     if point_theme.show_backfacing == false {
@@ -696,7 +706,7 @@ render_entities :: () {
                         continue;
                     }
 
-                    text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
 
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
@@ -714,7 +724,7 @@ render_entities :: () {
                     centroid := (it.a + it.b + it.c) / 3;
                     if is_clipped(entity.display_info, centroid) continue;
 
-                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), mesh.mesh.world_from_model);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme) {
                         text := get_point_text(centroid, it_index, element_theme);
                         render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
