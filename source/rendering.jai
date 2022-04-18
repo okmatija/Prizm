@@ -753,12 +753,15 @@ render_entities :: () {
     for :Visible_Hovered     app.entities render_entity_geometry(it);
 }
 
-// This function was added so that we could use Simp.  Because of the way Simp.immediate_set_shader works (when
-// called from Simp.set_shader_for_color, tracking the state of the currently set shader separately to opengl)
-// we can break it by getting opengl out of sync.  This happens when we set the shader program in gl, without simp
-// knowing about it, so it doesn't know it needs to set the shader program again. Here, just to be safe/general,
-// we set a bunch of other opengl state, too.
+// This function was added so that we could use Simp *when it was using the same context as the rest of the
+// application*, we don't do this anymore so it's not really needed but rather than moving it from the call
+// sites where it was needed I just commented the implementation. Anyway, the reason it was needed is because
+// of the way Simp.immediate_set_shader works (when called from Simp.set_shader_for_color, tracking the state
+// of the currently set shader separately to opengl) we can break it by getting opengl out of sync.  This
+// happens when we set the shader program in gl, without simp/ knowing about it, so it doesn't know it needs
+// to set the shader program again. Here, just to be safe/general, we set a bunch of other opengl state, too.
 Scope_GL_State :: () #expand {
+    /*
     // Backup GL state
     last_active_texture : GLenum; glGetIntegerv(GL_ACTIVE_TEXTURE, xx *last_active_texture);
     glActiveTexture(GL_TEXTURE0);
@@ -797,6 +800,7 @@ Scope_GL_State :: () #expand {
         glViewport(last_viewport[0], last_viewport[1], xx last_viewport[2], xx last_viewport[3]);
         glScissor(last_scissor_box[0], last_scissor_box[1], xx last_scissor_box[2], xx last_scissor_box[3]);
     }
+    */
 }
 
 render_background :: () {
