@@ -343,7 +343,11 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
     return ImGui.InputText(label_c, str_c, xx (str.count + 1), flags, InputTextCallback, *cb_user_data);
 }
 
-
+temp_array :: ($T : Type) -> [..]T {
+    result : [..]T;
+    result.allocator = temp;
+    return result;
+}
 
 #if 1 { // This just delimits a block of code related to noting entry/exit from function
 

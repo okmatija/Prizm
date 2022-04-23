@@ -113,6 +113,10 @@ render_text_quad :: (shader_program: GLuint, text: string, position: Vector2, sc
         return;
     }
 
+
+    Simp.draw_text(simp_font, xx position.x, xx position.y, text, color, scale=scale);
+
+/*
     glUseProgram(shader_program);
 
     {
@@ -194,4 +198,5 @@ render_text_quad :: (shader_program: GLuint, text: string, position: Vector2, sc
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    */
 }

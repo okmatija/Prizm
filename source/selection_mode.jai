@@ -27,6 +27,8 @@ do_selection_mode :: () {
         render_mesh_triangles(mesh, *entity.render_info, entity.display_info);
         render_normals(mesh, *entity.render_info, entity.display_info);
 
+
+        Simp.ScopeContext();
         point_theme := entity.display_info.vertex_label_style;
         for mesh.positions {
             text := get_point_text(it, it_index, point_theme);

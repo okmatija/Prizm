@@ -1,3 +1,6 @@
+// TODO Add item_flip_normals
+// TODO Remove old font stuff
+
 PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
 - Changed the modifier used to make mouse scrolling zoom into the camera look position from Control to Shift
   - This change improves the UX when looking at small details with clip spheres/`item_focus_*` commands because the user can hold Shift while rotating/zooming/clipping the scene

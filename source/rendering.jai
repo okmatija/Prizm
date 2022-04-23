@@ -539,6 +539,7 @@ render_entities :: () {
     }
 
     render_entity_text :: (entity : *Entity) {
+        Simp.ScopeContext();
 
         point_theme := entity.display_info.vertex_label_style;
         element_theme := entity.display_info.element_label_theme;
@@ -694,6 +695,8 @@ render_entities :: () {
 
                 projection_from_model := make_projection_from_world(app.camera) * mesh.mesh.world_from_model;
 
+                // Init the cached font, just need to make sure temporary_glyphs and current_quads are correct
+                point_label_quads := temp_array(Simp.Font_Quad);
 
                 for mesh.mesh.positions {
                     if point_theme.show_backfacing == false {
@@ -710,9 +713,21 @@ render_entities :: () {
 
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        // render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+
+                        Simp.prepare_text(app.simp_font, text);
+                        Simp.generate_quads_for_prepared_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, 0, point_theme.label_scale);
+
+                        // Copy data into point_label_quads before the data is lost on the next call to prepare_text // @Incomplete reserve
+                        for app.simp_font.current_quads {
+                            array_add(*point_label_quads, it);
+                        }
                     }
                 }
+
+                cached_point_font : Simp.Dynamic_Font = <<app.simp_font;
+                cached_point_font.current_quads = point_label_quads;
+                Simp.draw_generated_quads(*cached_point_font, point_theme.label_color);
 
                 for :Triangles_Iterator mesh.mesh {
                     if element_theme.show_backfacing == false {

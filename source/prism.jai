@@ -26,8 +26,9 @@ main :: () {
     console_load_history();
 
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    // Set 3,3 to match Simp MINIMUM_GL_MINOR_VERSION, MINIMUM_GL_MAJOR_VERSION??
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
@@ -119,6 +120,20 @@ main :: () {
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
+
+    // Set up Simp
+    {
+        window_type := get_window_type(app.window);
+        Simp.ScopeContext();
+        Simp.set_render_target(window_type);
+
+        FONT, FONT_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT_OK);
+        font_data : []u8;
+        font_data.data = FONT.data;
+        font_data.count = FONT.count;
+        app.simp_font = Simp.get_font_at_size(font_data, FONT_SIZE);
+        assert(app.simp_font != null);
+    }
 
     ImGui.StyleColorsDark();
     // ImGui.StyleColorsLight();
@@ -372,6 +387,22 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 
 #scope_file
 
+// Get the platform specific window handle from SDL
+get_window_type :: (window : *SDL_Window) -> Window_Type {
+    assert(window != null);
+    sdl_wm_info : SDL_SysWMinfo;
+    SDL_VERSION(*sdl_wm_info.version);
+    SDL_GetWindowWMInfo(app.window, *sdl_wm_info);
+    // printv(sdl_wm_info);
+    #if OS == .WINDOWS {
+        #import "Windows";
+        window_type := sdl_wm_info.info.win.window;
+    } else #if OS == .LINUX {
+        window_type := sdl_wm_info.info.x11.window;
+        #assert(false, "@Incomplete verify that Simp integration works on linux");
+    }
+    return window_type;
+}
 
 ctx: *ImGui.Context;
 _imgui_alloc_context: Context;

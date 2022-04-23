@@ -80,6 +80,11 @@ build :: () {
     }
     assert(build_mode_found);
 
+    new_path: [..] string;
+    array_add(*new_path, ..build_mode.build_options.import_path);
+    array_add(*new_path, "source/modules");
+    build_mode.build_options.import_path = new_path;
+
     set_build_options(build_mode.build_options, w);
 
     {

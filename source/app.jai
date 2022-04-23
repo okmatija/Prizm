@@ -1,8 +1,10 @@
 app : App;
 
 // Shared global state is stored here
+// @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
+    simp_font: *Simp.Dynamic_Font;
 
     INITIAL_WINDOW_WIDTH  : s32 : 1440;
     INITIAL_WINDOW_HEIGHT : s32 : 900;
@@ -178,6 +180,8 @@ clamp_user_settings :: ()
 #import "Reflection";
 #import "Math";
 #import "SDL";
+Simp :: #import "Simp_beta_0_1_016";
+#import "Window_Type";
 #import "GL";
 #import "Deep_Copy";
 #import "Debug";
