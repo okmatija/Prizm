@@ -315,7 +315,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
         }
 
         // @Refactor its confusing that we're Print
-        assign_argument :: (arg : *Code_Declaration, arg_index : int) #expand {
+        AssignArgument :: (arg : *Code_Declaration, arg_index : int) #expand {
             indent := "    ";
             if arg.expression {
                 indent = "        ";
@@ -364,7 +364,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
         if command.arguments.count {
             Print("    // Set arguments\n");
             for arg, arg_index : command.arguments {
-                assign_argument(arg, arg_index);
+                AssignArgument(arg, arg_index);
             }
             Print("\n");
         }

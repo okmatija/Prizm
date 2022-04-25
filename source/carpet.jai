@@ -343,8 +343,8 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
     return ImGui.InputText(label_c, str_c, xx (str.count + 1), flags, InputTextCallback, *cb_user_data);
 }
 
-temp_array :: ($T : Type) -> [..]T {
-    result : [..]T;
+temp_array :: ($Element_Type : Type) -> [..]Element_Type {
+    result : [..]Element_Type;
     result.allocator = temp;
     return result;
 }

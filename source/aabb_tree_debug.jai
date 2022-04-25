@@ -191,7 +191,7 @@ to_edge_Mesh :: (using box : AxisBox3) -> Mesh #must {
     mesh : Mesh;
     mesh.geometry_format = .TRIANGLES;
 
-    Add_Edge_As_Degenerate_Triangle :: (a : Corner3, b : Corner3) #expand {
+    AddEdgeAsDegenerateTriangle :: (a : Corner3, b : Corner3) #expand {
         offset : u32 = xx mesh.positions.count;
         array_add(*mesh.positions, corner(box, a));
         array_add(*mesh.indices, offset);
@@ -202,22 +202,22 @@ to_edge_Mesh :: (using box : AxisBox3) -> Mesh #must {
     }
 
     // Edges starting in the XY plane extending from Z=0 to Z=1
-    Add_Edge_As_Degenerate_Triangle(.XYZ_000, .XYZ_001);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_010, .XYZ_011);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_100, .XYZ_101);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_110, .XYZ_111);
+    AddEdgeAsDegenerateTriangle(.XYZ_000, .XYZ_001);
+    AddEdgeAsDegenerateTriangle(.XYZ_010, .XYZ_011);
+    AddEdgeAsDegenerateTriangle(.XYZ_100, .XYZ_101);
+    AddEdgeAsDegenerateTriangle(.XYZ_110, .XYZ_111);
 
     // Edges starting in the XZ plane extending from Y=0 to Y=1
-    Add_Edge_As_Degenerate_Triangle(.XYZ_000, .XYZ_010);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_001, .XYZ_011);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_100, .XYZ_110);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_101, .XYZ_111);
+    AddEdgeAsDegenerateTriangle(.XYZ_000, .XYZ_010);
+    AddEdgeAsDegenerateTriangle(.XYZ_001, .XYZ_011);
+    AddEdgeAsDegenerateTriangle(.XYZ_100, .XYZ_110);
+    AddEdgeAsDegenerateTriangle(.XYZ_101, .XYZ_111);
 
     // Edges starting in the YZ plane extending from X=0 to X=1
-    Add_Edge_As_Degenerate_Triangle(.XYZ_000, .XYZ_100);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_001, .XYZ_101);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_010, .XYZ_110);
-    Add_Edge_As_Degenerate_Triangle(.XYZ_011, .XYZ_111);
+    AddEdgeAsDegenerateTriangle(.XYZ_000, .XYZ_100);
+    AddEdgeAsDegenerateTriangle(.XYZ_001, .XYZ_101);
+    AddEdgeAsDegenerateTriangle(.XYZ_010, .XYZ_110);
+    AddEdgeAsDegenerateTriangle(.XYZ_011, .XYZ_111);
 
     return mesh;
 }

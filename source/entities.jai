@@ -387,7 +387,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     has_degenerate_triangles := false;
     t_min := FLOAT32_INFINITY;
 
-    Process_Triangle :: (primitive : Triangle3, primitive_id : int) #expand {
+    ProcessTriangle :: (primitive : Triangle3, primitive_id : int) #expand {
         normal_direction := compute_normal(primitive, normalize=false);
     
         if normal_direction == Vector3.{0, 0, 0} {
@@ -421,14 +421,14 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
         if mesh_entity.spatial == null {
 
-            for :Triangles_Iterator triangle, triangle_index : entity.mesh {
-                Process_Triangle(triangle, triangle_index);
+            for :TrianglesIterator triangle, triangle_index : entity.mesh {
+                ProcessTriangle(triangle, triangle_index);
             }
 
         } else {
 
             Visit_Primitives_Inside_Intersected_Boxes(mesh_entity.spatial, ray,
-                #code Process_Triangle(primitive, primitive_id)
+                #code ProcessTriangle(primitive, primitive_id)
             );
 
         }

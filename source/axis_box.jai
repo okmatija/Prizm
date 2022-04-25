@@ -11,7 +11,7 @@ AxisBox :: struct(Point : Type) {
     // 1. is_empty returns true
     // 2. we can start calling `expand`
     #insert #run generate_initializer(DIM);
-};
+}
 
 // Explicitly initialize the box
 init :: (using box : *$T/AxisBox) {
@@ -192,18 +192,18 @@ contains :: (using box : $T/AxisBox, point : T.Point) -> bool #must {
 
 #scope_file
 
-generate_initializer :: ($dim : int) -> string {
+generate_initializer :: ($DIM : int) -> string {
     builder : String_Builder;
     defer free_buffers(*builder);
-    for 0..dim-1 {
+    for 0..DIM-1 {
         print_to_builder(*builder, "min_point.component[%] =  FLOAT32_INFINITY;\n", it);
         print_to_builder(*builder, "max_point.component[%] = -FLOAT32_INFINITY;\n", it);
     }
     return builder_to_string(*builder);
 }
 
-corner_type :: ($dim : int) -> Type {
-    return ifx dim == 2 then Corner2 else Corner3;
+corner_type :: ($DIM : int) -> Type {
+    return ifx DIM == 2 then Corner2 else Corner3;
 }
 
 #import "Math";

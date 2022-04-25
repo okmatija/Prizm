@@ -14,7 +14,7 @@ Mesh :: struct {
 // @Cleanup These functions should also consider the transform, or have _raw variants that don't
 // @Cleanup Add a points iterator that considers transforms
 
-Triangle_Tuples_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+TriangleTuplesIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
     assert(mesh.geometry_format == .TRIANGLES);
     assert(mesh.indices.count % 3 == 0);
@@ -26,7 +26,7 @@ Triangle_Tuples_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags)
     }
 }
 
-Triangles_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+TrianglesIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
     assert(mesh.geometry_format == .TRIANGLES);
     assert(mesh.indices.count % 3 == 0);
@@ -102,7 +102,7 @@ compute_vertex_normals_from_triangles :: (mesh : *Mesh) -> bool, string {
         // Points not referenced by any triangle are assigned zero normals
         array_resize(*mesh.normals, mesh.positions.count, initialize=true);
 
-        for :Triangle_Tuples_Iterator tt : mesh {
+        for :TriangleTuplesIterator tt : mesh {
             if tt.i < mesh.positions.count && tt.i < mesh.positions.count && tt.i < mesh.positions.count {
                 tri : Triangle3 = ---;
                 tri.a = mesh.positions[tt.i];

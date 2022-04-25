@@ -21,27 +21,27 @@ init_font :: () {
     ft : *FT_Library;
     if (FT_Init_FreeType(*ft) != 0) {
         print("Could not init FreeType lib.\n");
-        exit(1); // Hard-exit for now.
+        exit(1);
     }
 
 #if false { // Load font at run-time
     exe_found, exe_path, exe_name := split_from_right(get_path_of_running_executable(), #char "/");
     if !exe_found {
         print("Error: Unable to find my own executable?!\n");
-        exit(1); // Hard-exit for now.
+        exit(1);
     }
 
     face : FT_Face;
     if (FT_New_Face(ft, temp_c_string(join(exe_path, "/data/Inconsolata.otf")), 0, *face)) {
         print("Could not load data/Inconsolata.otf\n");
-        exit(1); // Hard-exit for now.
+        exit(1);
     }
 } else { // Load font at compile-time
     face : FT_Face;
     FONT, FONT_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT_OK);
     if (FT_New_Memory_Face(ft, cast(*u8)FONT.data, FONT.count, 0, *face)) {
         print("Could not load data/Inconsolata.otf\n");
-        exit(1); // Hard-exit for now.
+        exit(1);
     }
 }
 

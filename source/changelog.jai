@@ -1,5 +1,12 @@
 // TODO Add item_flip_normals
 // TODO Remove old font stuff
+// TODO Do I need to keep the refactoring I did to the old font stuff? e.g., pulling out the gl state setting stuff?
+// TODO Use fast Simp path with cached font for all font stuff
+
+PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
+- Improved performance of text label rendering
+DONE
+};
 
 PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
 - Changed the modifier used to make mouse scrolling zoom into the camera look position from Control to Shift
@@ -128,6 +135,7 @@ DONE
 };
 
 init_changelog :: () {
+    array_add(*app.changelog, PRISM_VERSION_0_2_2);
     array_add(*app.changelog, PRISM_VERSION_0_2_1);
     array_add(*app.changelog, PRISM_VERSION_0_2_0);
     array_add(*app.changelog, PRISM_VERSION_0_1_2);
