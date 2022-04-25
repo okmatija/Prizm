@@ -159,6 +159,11 @@ main :: () {
         }
 
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
+        {
+            // @Cleanup Window resizing works even without this, why?
+            Simp.ScopeContext();
+            Simp.update_window(get_window_type(app.window));
+        }
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 

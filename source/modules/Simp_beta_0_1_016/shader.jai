@@ -19,16 +19,16 @@ set_shader_for_color :: (enable_blend := false) {
     shader := ifx enable_blend then *shader_color_with_blend else *shader_color;
     if state.current_shader != shader {
         immediate_set_shader(shader);
-        set_projection();
     }
+    set_projection();
 }
 
 set_shader_for_text :: () {
     CheckInit();
     if state.current_shader != *shader_text {
         immediate_set_shader(*shader_text);
-        set_projection();
     }
+    set_projection();
 }
 
 set_shader_for_images :: (texture: *Texture) {
@@ -36,8 +36,8 @@ set_shader_for_images :: (texture: *Texture) {
     immediate_flush();
     if state.current_shader != *shader_sprite {
         immediate_set_shader(*shader_sprite);
-        set_projection();
     }
+    set_projection();
 
     immediate_set_texture(texture);
 }
