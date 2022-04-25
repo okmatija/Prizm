@@ -184,8 +184,37 @@ Visit_Primitives_Inside_Intersected_Boxes :: (using tree : *AABB_Tree(Mesh), ray
     }
 }
 
+Visit_Primitives_Brute_Force :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE : Code) #expand {
+    // Use distance from all corners to ray as maximum distance of box to ray, so you can just visit all primitives in the box rather than test them all
+
+    if tree.nodes.count == 0 {
+        return;
+    }
+
+    for 0..tree.nodes[0].range.count-1 {
+        `primitive_id := tree.primitive_info[tree.nodes[0].range.first + it].primitive_id;
+        `primitive := get_primitive(tree, primitive_id);
+        #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
+    }
+}
+
+Visit_Primitives_Close_To_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
+    // Use distance from all corners to ray as maximum distance of box to ray, so you can just visit all primitives in the box rather than test them all
+
+    if tree.nodes.count == 0 {
+        return;
+    }
+
+    for 0..tree.nodes[0].range.count-1 {
+        `primitive_id := tree.primitive_info[tree.nodes[0].range.first + it].primitive_id;
+        `primitive := get_primitive(tree, primitive_id);
+        #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
+    }
+}
+
 // Simple tree traversal, if you want more precise control e.g., over which child is visited first (see first_primitive_intersection)
 // you may want to write a sepecialized function
+// @Cleanup Use a macro rather than hacking a closure
 depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
     if tree.nodes.count == 0 {
         return;
