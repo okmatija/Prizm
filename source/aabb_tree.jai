@@ -129,7 +129,7 @@ deinit :: (tree : *$T/AABB_Tree) {
 }
 
 // @CompilerBug We need to pass a pointer to the tree here due to a bug??
-Visit_Primitives_Inside_Intersected_Boxes :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
+Visit_Primitives_Intersecting_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 {
         return;
     }
@@ -198,17 +198,72 @@ Visit_Primitives_Brute_Force :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE
     }
 }
 
-Visit_Primitives_Close_To_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
-    // Use distance from all corners to ray as maximum distance of box to ray, so you can just visit all primitives in the box rather than test them all
-
+Visit_Primitives_Near_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 {
         return;
     }
 
-    for 0..tree.nodes[0].range.count-1 {
-        `primitive_id := tree.primitive_info[tree.nodes[0].range.first + it].primitive_id;
-        `primitive := get_primitive(tree, primitive_id);
-        #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
+    if app.debug_frame {
+        log_error("Debugging Visit_Primitives_Near_Ray");
+    }
+
+    // Only nodes whose AABBs are intersected by the ray will be pushed onto the stack
+    stack : [..]int;
+    defer array_reset(*stack);
+
+    root := *tree.nodes[0];
+
+    // Determine if the primitives in this box are near the ray by offsetting the box by the query distance, we'll end up visiting some boxes that we neednt
+    // @Speed Maybe distance ray-box will be more efficient?
+    offset_aabb := root.aabb;
+    offset(*offset_aabb, distance);
+    root_hit_aabb, root_t_aabb, root_point_aabb := find_intersect_aabb_ray3(offset_aabb, ray);
+    if root_hit_aabb {
+        array_add(*stack, 0);
+    }
+
+    while stack.count {
+        node_index := pop(*stack);
+        node := nodes[node_index];
+        if node.child_lhs == -1 {
+            assert(node.child_rhs == -1); // @Refactor Implement an ensure-like macro which just logs a warning
+
+            // Visit primitives in leaf node
+
+            // Note: We don't use tree.Primitive_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
+            for 0..node.range.count-1 {
+
+                `primitive_id := tree.primitive_info[node.range.first + it].primitive_id;
+                `primitive := get_primitive(tree, primitive_id);
+                #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
+
+            }
+        } else {
+            // Traverse internal node
+
+            lhs_offset_aabb := nodes[node.child_lhs].aabb;
+            offset(*lhs_offset_aabb, distance);
+            lhs_hit_aabb, lhs_t_aabb, lhs_point_aabb := find_intersect_aabb_ray3(lhs_offset_aabb, ray);
+
+            rhs_offset_aabb := nodes[node.child_rhs].aabb;
+            offset(*rhs_offset_aabb, distance);
+            rhs_hit_aabb, rhs_t_aabb, rhs_point_aabb := find_intersect_aabb_ray3(rhs_offset_aabb, ray);
+
+            if lhs_hit_aabb && rhs_hit_aabb {
+                // Recurse closer box first
+                if lhs_t_aabb < rhs_t_aabb {
+                    array_add(*stack, node.child_lhs);
+                    array_add(*stack, node.child_rhs);
+                } else {
+                    array_add(*stack, node.child_rhs);
+                    array_add(*stack, node.child_lhs);
+                }
+            } else if  lhs_hit_aabb && !rhs_hit_aabb {
+                array_add(*stack, node.child_lhs);
+            } else if !lhs_hit_aabb &&  rhs_hit_aabb {
+                array_add(*stack, node.child_rhs);
+            }
+        }
     }
 }
 

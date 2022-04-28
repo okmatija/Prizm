@@ -103,6 +103,8 @@ App :: struct {
         description : string;
     }
     known_issues : [..]Known_Issue;
+
+    debug_frame := false;
 }
 
 Target_Items :: enum {
@@ -207,7 +209,6 @@ ImGui :: #import "ImGui";
 #load "axes.jai";
 #load "selection_mode.jai";
 #load "numeric.jai";
-#load "geometric_operations.jai";
 #load "intervals.jai";
 #load "io_obj.jai";
 #load "io_wkt.jai";
@@ -228,6 +229,13 @@ ImGui :: #import "ImGui";
 #load "commands.jai";
 #load "changelog.jai";
 #load "colors.jai";
+
+#load "kernel/distance.jai";
+#load "kernel/intersect.jai";
+#load "kernel/closest.jai";
+#load "kernel/utility.jai";
+#load "kernel/types.jai";
+#load "kernel/test.jai";
 
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);

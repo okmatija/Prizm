@@ -249,6 +249,10 @@ console_draw :: () {
             if ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom) {
                 ImGui.CloseCurrentPopup();
             }
+            // if ImGui.Button("Save to console_log.txt") {
+            //     log_error("Incomplete");
+            // }
+            // Show_Tooltip("Handy if you want to search the console log");
             ImGui.EndPopup();
         }
 

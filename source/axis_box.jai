@@ -60,7 +60,8 @@ corner :: inline (using box : $T/AxisBox, corner : T.Corner) -> T.Point
     return result;
 }
 
-Corners_Iterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #expand {
+// @Cleanup Write the types of it_index and it explicitly in interator bodies
+CornersIterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
 
     CORNER_COUNT :: 1 << T.DIM;

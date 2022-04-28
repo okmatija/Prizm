@@ -756,9 +756,16 @@ render_entities :: () {
                 }
 
                 if mesh.spatial == null {
+                    log_error("Use brute force");
                     for :TrianglesIterator mesh.mesh ProcessTriangle(it, it_index);
                 } else {
-                    Visit_Primitives_Brute_Force(mesh.spatial, #code ProcessTriangle(primitive, primitive_id));
+                    log_error("Use spatial index");
+                    ray := make_camera_ray();
+
+                    // @Incomplete Support perspective projection
+                    distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
+
+                    Visit_Primitives_Near_Ray(mesh.spatial, ray, distance, #code ProcessTriangle(primitive, primitive_id));
                 }
 
                 {

@@ -427,7 +427,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
         } else {
 
-            Visit_Primitives_Inside_Intersected_Boxes(mesh_entity.spatial, ray,
+            Visit_Primitives_Intersecting_Ray(mesh_entity.spatial, ray,
                 #code ProcessTriangle(primitive, primitive_id)
             );
 

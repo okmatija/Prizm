@@ -511,5 +511,6 @@ my_debug_function :: () {
                   "This is a binding which will always be reserved for user debug functions.\n",
                   tprint("You can edit the implementation at %:%\n\n", #file, #line)));
 
+    app.debug_frame = true;
     // Write your debug code here
 }

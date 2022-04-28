@@ -182,6 +182,7 @@ main :: () {
         SDL_GL_SwapWindow(app.window);
 
         reset_temporary_storage();
+        app.debug_frame = false;
     }
 
     // Cleanup

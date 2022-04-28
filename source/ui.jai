@@ -794,6 +794,11 @@ show_help_ui :: () {
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));
         ImGui.Text(COMPILER_VERSION_INFO);
 
+        if ImGui.Button("Save to CHANGELOG.md") {
+            log_error("Incomplete");
+        }
+        Show_Tooltip("Handy if you want to search the changelog");
+
         latest := app.changelog[0];
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date)), .DefaultOpen) {
             defer ImGui.TreePop();
@@ -1151,7 +1156,7 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                     if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
                         p.min = POSITIVE_INF;
                         p.max = NEGATIVE_INF;
-                        for :Corners_Iterator aabb {
+                        for :CornersIterator aabb {
                             plane := make_hyperplane3(p.normal, Vector3.{0, 0, 0});
                             dist := signed_distance_point3_plane3(it, plane);
                             p.min = min(p.min, dist);
