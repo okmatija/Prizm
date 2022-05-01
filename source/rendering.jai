@@ -756,10 +756,10 @@ render_entities :: () {
                 }
 
                 if mesh.spatial == null {
-                    log_error("Use brute force");
+                    // log_error("Use brute force");
                     for :TrianglesIterator mesh.mesh ProcessTriangle(it, it_index);
                 } else {
-                    log_error("Use spatial index");
+                    // log_error("Use spatial index");
                     ray := make_camera_ray();
 
                     // @Incomplete Support perspective projection
