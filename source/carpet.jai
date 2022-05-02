@@ -349,6 +349,8 @@ temp_array :: ($Element_Type : Type) -> [..]Element_Type {
     return result;
 }
 
+PushAllocator :: push_allocator; // An alias so we match our macro convention
+
 #if 1 { // This just delimits a block of code related to noting entry/exit from function
 
 NoteEntryExit :: () #expand {

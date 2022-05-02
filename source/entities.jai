@@ -494,7 +494,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
         // @Incomplete If available, use the spatial index
-        for :Segment_Iterator segment, segment_index : soup.shape {
+        for :SegmentIterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = <<segment.from_point;
             segment3.end = <<segment.to_point;
@@ -530,7 +530,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
         // @Incomplete If available, use the spatial index
-        for :Segment_Iterator segment, segment_index : soup.shape {
+        for :SegmentIterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
             segment3.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);

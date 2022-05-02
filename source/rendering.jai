@@ -598,7 +598,7 @@ render_entities :: () {
                     }
                 }
 
-                for :Segment_Iterator soup.shape {
+                for :SegmentIterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, make_vector3(centroid, 0)) continue;
 
@@ -625,7 +625,7 @@ render_entities :: () {
                     }
                 }
 
-                for :Segment_Iterator soup.shape {
+                for :SegmentIterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
                     if is_clipped(entity.display_info, centroid) continue;
 

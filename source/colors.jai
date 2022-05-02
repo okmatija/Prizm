@@ -1,3 +1,6 @@
+RED   :: ImGui.ImVec4.{1., 0., 0., 1.};
+GREEN :: ImGui.ImVec4.{0., 1., 0., 1.};
+BLUE  :: ImGui.ImVec4.{0., 0., 1., 1.};
 BLACK :: ImGui.ImVec4.{0., 0., 0., 1.};
 WHITE :: ImGui.ImVec4.{1., 1., 1., 1.};
 NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};

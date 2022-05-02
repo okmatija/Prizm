@@ -150,6 +150,7 @@ main :: () {
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
+        // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         if app.show_ui {
             show_item_list_ui();
             show_camera_controls();

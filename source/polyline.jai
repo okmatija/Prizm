@@ -57,7 +57,7 @@ deinit :: (shape : *$T/Polyline_Soup) {
     if !shape return;
     for * shape.polylines deinit(it);
     array_reset(*shape.polylines);
-    shape = null;
+    shape = null; // @Cleanup is this necessary?? Is it even correct!? with stack/heap variables
 }
 
 append_copy :: (dest : *$T/Polyline_Soup, to_copy : T) {
@@ -119,7 +119,7 @@ Point_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flag
     }
 }
 
-Segment_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
+SegmentIterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.
 
     `it_index := -1;
