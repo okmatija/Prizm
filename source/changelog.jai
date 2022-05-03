@@ -6,6 +6,7 @@
 
 PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
 - Improved performance of text label rendering
+- Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and coloring the target item(s) background rect with the same color
 DONE
 };
 

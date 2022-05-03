@@ -135,6 +135,32 @@ combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
     return changed;
 }
 
+// See https://github.com/ocornut/imgui/issues/4719
+// Note that the colors used for the selection until 1.87 are: ImGuiCol_HeaderActive, ImGuiCol_HeaderHovered and ImGuiCol_Header
+// See the implementation of the Selectable function in imgui_widgets.cpp
+selectable_with_bg_color :: (label : string, p_selected : *bool, bg_color : ImGui.ImU32, flags : ImGui.SelectableFlags = .None, size_arg : ImGui.ImVec2 = .{0, 0}) -> bool {
+    draw_list : *ImGui.ImDrawList = ImGui.GetWindowDrawList();
+    draw_list._Splitter.Split(*draw_list._Splitter, draw_list, 2);
+
+    // Channel number is like z-order. Widgets in higher channels are rendered above widgets in lower channels.
+    draw_list._Splitter.SetCurrentChannel(*draw_list._Splitter, draw_list, 1);
+
+    result : bool = ImGui.Selectable(temp_c_string(label), p_selected, flags, size_arg);
+
+    if (!ImGui.IsItemHovered() && !ImGui.IsItemActive() && !(<<p_selected))
+    {
+        // Render background behind Selectable().
+        draw_list._Splitter.SetCurrentChannel(*draw_list._Splitter, draw_list, 0);
+        p_min : ImGui.ImVec2 = ImGui.GetItemRectMin();
+        p_max : ImGui.ImVec2 = ImGui.GetItemRectMax();
+        draw_list.AddRectFilled(draw_list, p_min, p_max, bg_color);
+    }
+
+    // Commit changes.
+    draw_list._Splitter.Merge(*draw_list._Splitter, draw_list);
+    return result;
+}
+
 Checkbox_Sweep_Mode_State :: struct {
     sweep_active := false;
     state_to_set := false;

@@ -136,7 +136,7 @@ main :: () {
     }
 
     ImGui.StyleColorsDark();
-    // ImGui.StyleColorsLight();
+    // ImGui.StyleColorsLight(); // BTW, this looks MUCH better with frame borders on
     ImGui.GetStyle().WindowRounding = 0;
 
     load_from_command_line();

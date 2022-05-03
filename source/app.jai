@@ -105,6 +105,7 @@ App :: struct {
     known_issues : [..]Known_Issue;
 
     debug_frame := false;
+    debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
 }
 
 Target_Items :: enum {

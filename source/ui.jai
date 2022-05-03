@@ -10,6 +10,8 @@ show_item_list_ui :: () {
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
     defer ImGui.End();
 
+    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+
     any_visibility_changed := false;
 
     {
@@ -96,13 +98,62 @@ show_item_list_ui :: () {
                 }
 
                 ImGui.PushStyleColor(xx ImGui.Col.Text, color);
+                defer ImGui.PopStyleColor();
                 {
                     push_allocator(temp); // to free the join'd string
-                    if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
-                        if !io().KeyCtrl it.is_selected = !it.is_selected;
+
+                    // @Cleanup Add these aliases to make the following code easier to understand
+                    // Note that the ImGui.Selectable widget has this line to set the colors:
+                    //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+                    // selectable_selected_color :: ImGui.Col.Header;
+                    // selectable_hovered_color :: ImGui.Col.Header;
+                    // selectable_hovered_held_color :: ImGui.Col.Header;
+
+                    get_context_menu_target_item :: () -> int {
+                        for app.entities {
+                            // @Volatile Search usages before changing label here
+                            if ImGui.IsPopupOpen(imgui_label("##context_menu", xx it_index)) {
+                                return it_index;
+                            }
+                        }
+                        return -1;
+                    }
+
+                    // Indicate that the popup will be opened for this item if its hovered with RMB down
+                    if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    defer if io_mouse_right_down() ImGui.PopStyleColor();
+
+                    popup_item := get_context_menu_target_item();
+                    if popup_item == -1 {
+                        // Use the default Selectable widget
+                        if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                            if !io().KeyCtrl it.is_selected = !it.is_selected;
+                        }
+                    } else { // Need to fiddle with some colors to indicate what the popup is editing
+                        if app.entities[popup_item].is_selected {
+                            // Use the default Selectable widget, but customize the selected color
+                            ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                            ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                            if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                                if !io().KeyCtrl it.is_selected = !it.is_selected;
+                            }
+                            ImGui.PopStyleColor();
+                            ImGui.PopStyleColor();
+                        } else {
+                            if popup_item == it_index {
+                                // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
+                                if selectable_with_bg_color(join(text, tprint("##%", it)), *it.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
+                                    if !io().KeyCtrl it.is_selected = !it.is_selected;
+                                }
+                            } else {
+                                // Use the default Selectable widget
+                                if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                                    if !io().KeyCtrl it.is_selected = !it.is_selected;
+                                }
+                            }
+                        }
                     }
                 }
-                ImGui.PopStyleColor();
             } else {
                 ImGui.Selectable("---", *it.is_selected);
             }
@@ -368,7 +419,7 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Tgl Normals   ", ..TOGGLE_NORMALS_OPS);
 
-        Action_Button("Edit Item Viz ", ..EDIT_VISIBILITY_OPS);
+        // Action_Button("Edit Item Viz ", ..EDIT_VISIBILITY_OPS);
 
         Action_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);
         ImGui.SameLine();
@@ -453,6 +504,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
     current_size := ImGui.GetWindowSize();
     window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+
+    // Set popup border color to match the selection/RMB target item color
+    ImGui.PushStyleColor(xx ImGui.Col.Border, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+    ImGui.PushStyleVar(xx ImGui.StyleVar.PopupBorderSize, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+    defer ImGui.PopStyleColor();
+    defer ImGui.PopStyleVar();
 
     if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
         defer ImGui.EndPopup();
