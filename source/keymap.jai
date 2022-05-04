@@ -132,7 +132,6 @@ Action_Set :: struct {
     override_WantCaptureKeyboard := false;
 }
 
-// nocommit remove
 ALL_ITEMS_MOD :: Modifier_Flags.{shift_pressed=true};
 SELECTED_MOD :: Modifier_Flags.{control_pressed=true};
 VISIBLE_MOD :: Modifier_Flags.{};
@@ -259,40 +258,161 @@ TOGGLE_NORMALS_ACTION_SET :: Action_Set.{
     key=#char "n",
 };
 
-RELOAD_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{reload_items(.SELECTED);},  desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=SELECTED_MOD, override_WantCaptureKeyboard=true};
-RELOAD_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{reload_items(.ALL_ITEMS);}, desc="Reload all items",      key=cast(u32) Special_Key_Code.F5, mod=ALL_ITEMS_MOD, override_WantCaptureKeyboard=true};
-RELOAD_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{reload_items(.VISIBLE);},   desc="Reload visible items",  key=cast(u32) Special_Key_Code.F5, mod=VISIBLE_MOD, override_WantCaptureKeyboard=true};
-RELOAD_ITEMS_OPS :: Operation.[RELOAD_ITEMS_SELECTED_OP, RELOAD_ITEMS_ALL_ITEMS_OP, RELOAD_ITEMS_VISIBLE_OP];
+cycle_vertex_label_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_label_theme(target, *app_info_copy.vertex_label_style);
+}
 
-CYCLE_ELEMENT_LABEL_SELECTED_OP ::  Operation.{proc=()=>{cycle_element_label(.SELECTED);},  desc="Cycle element labels for selected items", key=#char "i", mod=SELECTED_MOD};
-CYCLE_ELEMENT_LABEL_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_element_label(.ALL_ITEMS);}, desc="Cycle element labels for all items",      key=#char "i", mod=ALL_ITEMS_MOD};
-CYCLE_ELEMENT_LABEL_VISIBLE_OP ::   Operation.{proc=()=>{cycle_element_label(.VISIBLE);},   desc="Cycle element labels for visible items",  key=#char "i", mod=VISIBLE_MOD};
-CYCLE_ELEMENT_LABEL_OPS :: Operation.[CYCLE_ELEMENT_LABEL_SELECTED_OP, CYCLE_ELEMENT_LABEL_ALL_ITEMS_OP, CYCLE_ELEMENT_LABEL_VISIBLE_OP];
+CYCLE_VERTEX_LABEL_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Cycle vertex labels for all items",
+            proc=()=>{cycle_vertex_label(.ALL_ITEMS);},
+            progress_proc=()=>cycle_vertex_label_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Cycle vertex labels for visible items",
+            proc=()=>{cycle_vertex_label(.VISIBLE);},
+            progress_proc=()=>cycle_vertex_label_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Cycle vertex labels for selected items",
+            proc=()=>{cycle_vertex_label(.SELECTED);},
+            progress_proc=()=>cycle_vertex_label_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "j",
+};
 
-CYCLE_VERTEX_LABEL_SELECTED_OP ::  Operation.{proc=()=>{cycle_vertex_label(.SELECTED);},  desc="Cycle vertex labels for selected items", key=#char "j", mod=SELECTED_MOD};
-CYCLE_VERTEX_LABEL_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_vertex_label(.ALL_ITEMS);}, desc="Cycle vertex labels for all items",      key=#char "j", mod=ALL_ITEMS_MOD};
-CYCLE_VERTEX_LABEL_VISIBLE_OP ::   Operation.{proc=()=>{cycle_vertex_label(.VISIBLE);},   desc="Cycle vertex labels for visible items",  key=#char "j", mod=VISIBLE_MOD};
-CYCLE_VERTEX_LABEL_OPS :: Operation.[CYCLE_VERTEX_LABEL_SELECTED_OP, CYCLE_VERTEX_LABEL_ALL_ITEMS_OP, CYCLE_VERTEX_LABEL_VISIBLE_OP];
+cycle_element_label_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_label_theme(target, *app_info_copy.element_label_theme);
+}
 
-CYCLE_OPACITY_SELECTED_OP ::  Operation.{proc=()=>{cycle_opacity(.SELECTED);},  desc="Cycle opacity 20%%/50%%/100%% for selected items", key=#char "o", mod=SELECTED_MOD};
-CYCLE_OPACITY_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_opacity(.ALL_ITEMS);}, desc="Cycle opacity 20%%/50%%/100%% for all items",      key=#char "o", mod=ALL_ITEMS_MOD};
-CYCLE_OPACITY_VISIBLE_OP ::   Operation.{proc=()=>{cycle_opacity(.VISIBLE);},   desc="Cycle opacity 20%%/50%%/100%% for visible items",  key=#char "o", mod=VISIBLE_MOD};
-CYCLE_OPACITY_OPS :: Operation.[CYCLE_OPACITY_SELECTED_OP, CYCLE_OPACITY_ALL_ITEMS_OP, CYCLE_OPACITY_VISIBLE_OP];
+CYCLE_ELEMENT_LABEL_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Cycle element labels for all items",
+            proc=()=>{cycle_element_label(.ALL_ITEMS);},
+            progress_proc=()=>cycle_element_label_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Cycle element labels for visible items",
+            proc=()=>{cycle_element_label(.VISIBLE);},
+            progress_proc=()=>cycle_element_label_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Cycle element labels for selected items",
+            proc=()=>{cycle_element_label(.SELECTED);},
+            progress_proc=()=>cycle_element_label_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "i",
+};
 
-EDIT_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{kinda_toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items", key=#char "v", mod=SELECTED_MOD};
-EDIT_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{kinda_toggle_is_visible(.ALL_ITEMS);}, desc="Toggle visibility on all items",      key=#char "v", mod=ALL_ITEMS_MOD};
-EDIT_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{kinda_toggle_is_visible(.VISIBLE);},   desc="Hide all visible items",              key=#char "v", mod=VISIBLE_MOD};
-EDIT_VISIBILITY_OPS :: Operation.[EDIT_VISIBILITY_SELECTED_OP, EDIT_VISIBILITY_ALL_ITEMS_OP, EDIT_VISIBILITY_VISIBLE_OP];
+cycle_opacity_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_opacity_progress_proc(*app_info_copy);
+}
 
-FOCUS_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{focus_items(.SELECTED);},  desc="Focus camera on selected items", key=#char "f", mod=SELECTED_MOD};
-FOCUS_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{focus_items(.ALL_ITEMS);}, desc="Focus camera on all items",      key=#char "f", mod=ALL_ITEMS_MOD};
-FOCUS_ITEMS_VISIBLE_OP ::   Operation.{proc=()=>{focus_items(.VISIBLE);},   desc="Focus camera on visible items",  key=#char "f", mod=VISIBLE_MOD};
-FOCUS_ITEMS_OPS :: Operation.[FOCUS_ITEMS_SELECTED_OP, FOCUS_ITEMS_ALL_ITEMS_OP, FOCUS_ITEMS_VISIBLE_OP];
+CYCLE_OPACITY_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Cycle opacity 20%%/50%%/100%% for all items",
+            proc=()=>{cycle_opacity(.ALL_ITEMS);},
+            progress_proc=()=>cycle_opacity_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Cycle opacity 20%%/50%%/100%% for visible items",
+            proc=()=>{cycle_opacity(.VISIBLE);},
+            progress_proc=()=>cycle_opacity_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Cycle opacity 20%%/50%%/100%% for selected items",
+            proc=()=>{cycle_opacity(.SELECTED);},
+            progress_proc=()=>cycle_opacity_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "o",
+};
 
-CYCLE_BACKFACE_MODE_SELECTED_OP ::  Operation.{proc=()=>{cycle_backface_mode(.SELECTED);},  desc="Cycle backface rendering mode for selected items", key=#char "b", mod=SELECTED_MOD};
-CYCLE_BACKFACE_MODE_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_backface_mode(.ALL_ITEMS);}, desc="Cycle backface rendering mode for all items",      key=#char "b", mod=ALL_ITEMS_MOD};
-CYCLE_BACKFACE_MODE_VISIBLE_OP ::   Operation.{proc=()=>{cycle_backface_mode(.VISIBLE);},   desc="Cycle backface rendering mode for visible items",  key=#char "b", mod=VISIBLE_MOD};
-CYCLE_BACKFACE_MODE_OPS :: Operation.[CYCLE_BACKFACE_MODE_SELECTED_OP, CYCLE_BACKFACE_MODE_ALL_ITEMS_OP, CYCLE_BACKFACE_MODE_VISIBLE_OP];
+cycle_backface_mode_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_backface_mode_progress_proc(*app_info_copy.backface_mode);
+}
+
+CYCLE_BACKFACE_MODE_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Cycle backface rendering mode for all items",
+            proc=()=>{cycle_backface_mode(.ALL_ITEMS);},
+            progress_proc=()=>cycle_backface_mode_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Cycle backface rendering mode for visible items",
+            proc=()=>{cycle_backface_mode(.VISIBLE);},
+            progress_proc=()=>cycle_backface_mode_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Cycle backface rendering mode for selected items",
+            proc=()=>{cycle_backface_mode(.SELECTED);},
+            progress_proc=()=>cycle_backface_mode_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "b",
+};
+
+just_do_a_regular_button_progress_proc :: () -> Fraction {
+    return .{0,0};
+}
+
+RELOAD_ITEMS_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Reload all items",
+            proc=()=>{reload_items(.ALL_ITEMS);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
+        .{
+            desc="Reload visible items",
+            proc=()=>{reload_items(.VISIBLE);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
+        .{
+            desc="Reload selected items",
+            proc=()=>{reload_items(.SELECTED);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
+    ],
+    key=cast(u32) Special_Key_Code.F5,
+    override_WantCaptureKeyboard=true,
+};
+
+FOCUS_ITEMS_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Focus camera on all items",
+            proc=()=>{focus_items(.ALL_ITEMS);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
+        .{
+            desc="Focus camera on visible items",
+            proc=()=>{focus_items(.VISIBLE);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
+        .{
+            desc="Focus camera on selected items",
+            proc=()=>{focus_items(.SELECTED);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
+    ],
+    key=#char "f",
+};
+
+// EDIT_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{kinda_toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items", key=#char "v", mod=SELECTED_MOD};
+// EDIT_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{kinda_toggle_is_visible(.ALL_ITEMS);}, desc="Toggle visibility on all items",      key=#char "v", mod=ALL_ITEMS_MOD};
+// EDIT_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{kinda_toggle_is_visible(.VISIBLE);},   desc="Hide all visible items",              key=#char "v", mod=VISIBLE_MOD};
+// EDIT_VISIBILITY_OPS :: Operation.[EDIT_VISIBILITY_SELECTED_OP, EDIT_VISIBILITY_ALL_ITEMS_OP, EDIT_VISIBILITY_VISIBLE_OP];
 
 init_keymap :: () {
 
@@ -309,16 +429,15 @@ init_keymap :: () {
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
-    add_key(*app.keymap_actions, ..EDIT_VISIBILITY_OPS);
-    add_key(*app.keymap_actions, ..CYCLE_OPACITY_OPS);
+    add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_POINT_SIZE_ACTION_SET);
-    add_key(*app.keymap_actions, ..CYCLE_ELEMENT_LABEL_OPS);
-    add_key(*app.keymap_actions, ..CYCLE_VERTEX_LABEL_OPS);
+    add_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
+    add_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_NORMALS_ACTION_SET);
-    add_key(*app.keymap_actions, ..FOCUS_ITEMS_OPS);
-    add_key(*app.keymap_actions, ..RELOAD_ITEMS_OPS);
+    add_key(*app.keymap_actions, FOCUS_ITEMS_ACTION_SET);
+    add_key(*app.keymap_actions, RELOAD_ITEMS_ACTION_SET);
 
     // @Volatile button text in camera control pane should be kept in sync with keymap!
     add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  15 deg about selected rotation axis", xx #char "]");
@@ -328,15 +447,6 @@ init_keymap :: () {
 
     // Reserved! Do not change this binding
     add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
-
-    // nocommit remove this
-    add_key :: (keymap : *Keymap,
-                ops : ..Operation, 
-                loc := #caller_location) {
-        for op : ops {
-            add_key(keymap, op.proc, op.desc, op.key, op.mod, op.override_WantCaptureKeyboard, loc);
-        }
-    }
 
     add_key :: (keymap : *Keymap, action_set : Action_Set, loc := #caller_location) {
         for action : action_set.target_action {
@@ -456,7 +566,10 @@ clear_all_labels :: (target : Target_Items) {
     }
 }
 
-cycle_label_theme :: (target : Target_Items, theme : *Label_Theme) {
+cycle_label_theme :: (target : Target_Items, theme : *Label_Theme) -> Fraction {
+
+    result : Fraction;
+    result.denom = 3;
 
     State :: enum {
         INDEX_OFF_POSITION_OFF :: 0b00;
@@ -470,14 +583,15 @@ cycle_label_theme :: (target : Target_Items, theme : *Label_Theme) {
 
     // Cycle State (always add/remove one bit of text)
     if #complete state == {
-        case .INDEX_OFF_POSITION_OFF; state = .INDEX_ON_POSITION_OFF;
-        case .INDEX_ON_POSITION_OFF;  state = .INDEX_ON_POSITION_ON;
-        case .INDEX_ON_POSITION_ON;   state = .INDEX_OFF_POSITION_ON;
-        case .INDEX_OFF_POSITION_ON;  state = .INDEX_OFF_POSITION_OFF;
+        case .INDEX_OFF_POSITION_OFF; result.numer = 0; state = .INDEX_ON_POSITION_OFF;
+        case .INDEX_ON_POSITION_OFF;  result.numer = 1; state = .INDEX_ON_POSITION_ON;
+        case .INDEX_ON_POSITION_ON;   result.numer = 2; state = .INDEX_OFF_POSITION_ON;
+        case .INDEX_OFF_POSITION_ON;  result.numer = 3; state = .INDEX_OFF_POSITION_OFF;
     }
 
     // Set theme from State
     theme.show_index, theme.show_position = (xx state & 0b01), (xx state & 0b10);
+    return result;
 }
 
 cycle_element_label :: (target : Target_Items) {
@@ -521,6 +635,7 @@ cycle_point_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 }
 
 cycle_point_size :: (target : Target_Items) {
+
     app_info := *app.selection_display_info;
     cycle_point_size_progress_proc(app_info);
 
@@ -549,6 +664,7 @@ cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fract
 }
 
 cycle_wireframe_width :: (target : Target_Items) {
+
     app_info := *app.selection_display_info;
     cycle_wireframe_width_progress_proc(app_info);
 
@@ -558,29 +674,47 @@ cycle_wireframe_width :: (target : Target_Items) {
     }
 }
 
+cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+    if surface_color.w == 1.  {
+        surface_color.w = .5;
+        return .{0, 2};
+    } else if surface_color.w >= .5 {
+        surface_color.w = .2;
+        return .{1, 2};
+    } else {
+        surface_color.w = 1.;
+        return .{2, 2};
+    }
+}
+
 cycle_opacity :: (target : Target_Items) {
 
     app_info := *app.selection_display_info;
-    if      app_info.surface_color.w == 1.  app_info.surface_color.w = .5;
-    else if app_info.surface_color.w == .5  app_info.surface_color.w = .2;
-    else    app_info.surface_color.w =  1.;
+    cycle_opacity_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
         it.display_info.surface_color.w = app_info.surface_color.w;
     }
 }
 
+cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
+    result : Fraction;
+    result.denom = 5;
+    if #complete <<mode == {
+        case .FIXED;        result.numer = 0; <<mode = .DARKEN; 
+        case .DARKEN;       result.numer = 1; <<mode = .SCREENTONE_1;
+        case .SCREENTONE_1; result.numer = 2; <<mode = .SCREENTONE_2;
+        case .SCREENTONE_2; result.numer = 3; <<mode = .NONE;
+        case .NONE;         result.numer = 4; <<mode = .CULL;
+        case .CULL;         result.numer = 5; <<mode = .FIXED;
+    }
+    return result;
+}
+
 cycle_backface_mode :: (target : Target_Items) {
 
     mode := *app.selection_display_info.backface_mode;
-    if #complete <<mode == {
-        case .NONE;         <<mode = .CULL;
-        case .CULL;         <<mode = .FIXED;
-        case .FIXED;        <<mode = .DARKEN; 
-        case .DARKEN;       <<mode = .SCREENTONE_1;
-        case .SCREENTONE_1; <<mode = .SCREENTONE_2;
-        case .SCREENTONE_2; <<mode = .NONE;
-    }
+    cycle_backface_mode_progress_proc(mode);
 
     for app.entities if Is_Target(it) {
         it.display_info.backface_mode = <<mode;
@@ -606,6 +740,7 @@ toggle_normals_visibility :: (target : Target_Items) {
 }
 
 
+/*
 kinda_toggle_is_visible :: (target : Target_Items) {
 
     visible := false;
@@ -622,6 +757,7 @@ kinda_toggle_is_visible :: (target : Target_Items) {
         it.is_visible = visible;
     }
 }
+*/
 
 reload_items :: (target : Target_Items) {
     for app.entities if Is_Target(it) {

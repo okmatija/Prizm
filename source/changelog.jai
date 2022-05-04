@@ -1,3 +1,4 @@
+// TODO Fix clipping sphere also applying to selected items when it was not started on a selected item
 // TODO Add item_flip_normals
 // TODO Fix missing selection labels 
 // TODO Remove old font stuff

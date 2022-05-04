@@ -331,64 +331,12 @@ show_item_list_actions_ui :: () {
         if current_modifier_flags() == ALL_ITEMS_MOD target_items = .ALL_ITEMS;
         // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
 
-        // TODO change the convention so that with no key pressed the target is the visible items
         // TODO make item list collapsable
         // TODO add some separators
         // TODO Make tooltips over item color square show the shortcuts
         // TODO Make UI look nice when there are no items loaded, probably we should still show operations
-        // TODO Grey out label buttons when there are too many labels so perf would be made, add a tooltip pointing out where you can change the limit and also suggest clipping to a sphere
-        // TODO Change the button colors depending on what modifier is pressed
-
-        Action_Button :: (label : string, ops : ..Operation, disabled_tooltip := "", has_options_menu := false, is_active_color := (mod : Modifier_Flags)->(bool){return false;}) #expand {
-            mod := current_modifier_flags();
-
-            op : *Operation;
-            for * ops {
-                if it.mod == mod {
-                    op = it;
-                }
-            }
-
-            if op {
-
-                // Note: I wanted to make cycle buttons with N states change the value of the hsv color from
-                // 0 to the default button value so the user knows that a button has been pressed and roughly
-                // how many more times it should be pressed to get to the default again. This plan doesn't
-                // really work since the buttons just change some items, and the target items change with
-                // the modifier pressed. Also, items can have conflicting states (according to the button)
-                // initially so its not well defined how to do this. I left the imgui code to get the button
-                // color and darken it commented below.
-
-                // button_color : ImGui.ImVec4 = darken(ImGui.GetStyle().Colors[ImGui.Col.Button], .4);
-                // ImGui.PushStyleColor(ImGui.Col.Button, button_color);
-
-                if is_active_color(mod) ImGui.PushStyleColor(ImGui.Col.Button, ImGui.GetStyle().Colors[ImGui.Col.ButtonActive]);
-                if ImGui.Button(imgui_label(label, op)) {
-                    op.proc();
-                }
-                if is_active_color(mod) ImGui.PopStyleColor();
-
-                if has_options_menu {
-                    binding1, binding2 : Binding_With_Description = ---;
-                    binding1.description, binding1.binding = op.desc, to_string(op.key, op.mod);
-                    binding2.description, binding2.binding = "Action options menu", "RMB";
-                    Show_Tooltip_Binding(binding1, binding2);
-                } else {
-                    Show_Tooltip_Binding(op.desc, to_string(op.key, op.mod));
-                }
-
-            } else {
-                DISABLED_COLOR :: ImGui.ImVec4.{.5, .5, .5, 1.};
-                // // ImGui.PushStyleColor(xx ImGui.Col.Button | .ButtonHovered | .ButtonActive, DISABLED_COLOR);
-                // ImGui.PushStyleColor(xx ImGui.Col.Button, DISABLED_COLOR);
-                ImGui.BeginDisabled();
-                ImGui.Button(imgui_label(label, op));
-                ImGui.EndDisabled();
-                // ImGui.PopStyleColor();
-                if disabled_tooltip Show_Tooltip(disabled_tooltip);
-            }
-        }
-
+        // @Maybe Change the button colors depending on what modifier is pressed
+        // @Maybe Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
 
         Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "", has_options_menu := false) #expand {
             mod := current_modifier_flags(); 
@@ -400,13 +348,19 @@ show_item_list_actions_ui :: () {
                 base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
                 button_color := darken(base_color, cast(float)progress.numer / progress.denom);
 
-                ImGui.PushStyleColor(xx ImGui.Col.Button, button_color);
-                ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, button_color);
-                ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
-                if ImGui.Button(imgui_label(label, *action_set)) action.proc();
-                ImGui.PopStyleColor();
-                ImGui.PopStyleColor();
-                ImGui.PopStyleColor();
+                if progress.denom != 0 {
+                    ImGui.PushStyleColor(xx ImGui.Col.Button, button_color);
+                    ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, button_color);
+                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
+                }
+                if ImGui.Button(imgui_label(label, *action_set)) {
+                    action.proc();
+                }
+                if progress.denom != 0 {
+                    ImGui.PopStyleColor();
+                    ImGui.PopStyleColor();
+                    ImGui.PopStyleColor();
+                }
 
                 if has_options_menu {
                     binding1, binding2 : Binding_With_Description = ---;
@@ -429,16 +383,15 @@ show_item_list_actions_ui :: () {
             }
         }
 
-        // @Refactor Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
-        Action_Button("Cyc BFace Mode", ..CYCLE_BACKFACE_MODE_OPS);
+        Action_Button("Cyc BFace Mode", CYCLE_BACKFACE_MODE_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Cyc Opacity   ", ..CYCLE_OPACITY_OPS);
+        Action_Button("Cyc Opacity   ", CYCLE_OPACITY_ACTION_SET);
 
         Action_Button("Cyc Line Width", CYCLE_LINE_WIDTH_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Cyc Vert Size ", CYCLE_POINT_SIZE_ACTION_SET);
 
-        Action_Button("Cyc Elem Label", ..CYCLE_ELEMENT_LABEL_OPS, has_options_menu=true);
+        Action_Button("Cyc Elem Label", CYCLE_ELEMENT_LABEL_ACTION_SET, has_options_menu=true);
         {
             current_pos := ImGui.GetWindowPos();
             current_size := ImGui.GetWindowSize();
@@ -454,7 +407,7 @@ show_item_list_actions_ui :: () {
             }
         }
         ImGui.SameLine();
-        Action_Button("Cyc Vert Label", ..CYCLE_VERTEX_LABEL_OPS, has_options_menu=true);
+        Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET, has_options_menu=true);
         {
             current_pos := ImGui.GetWindowPos();
             current_size := ImGui.GetWindowSize();
@@ -474,11 +427,9 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Tgl Normals   ", TOGGLE_NORMALS_ACTION_SET);
 
-        // Action_Button("Edit Item Viz ", ..EDIT_VISIBILITY_OPS);
-
-        Action_Button("Focus Items   ", ..FOCUS_ITEMS_OPS);
+        Action_Button("Focus Items   ", FOCUS_ITEMS_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Reload Items  ", ..RELOAD_ITEMS_OPS);
+        Action_Button("Reload Items  ", RELOAD_ITEMS_ACTION_SET);
 
         if app.entities.count {
             if #complete target_items == {
