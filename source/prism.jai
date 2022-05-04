@@ -136,8 +136,9 @@ main :: () {
     }
 
     ImGui.StyleColorsDark();
-    // ImGui.StyleColorsLight(); // BTW, this looks MUCH better with frame borders on
+    // ImGui.StyleColorsLight();
     ImGui.GetStyle().WindowRounding = 0;
+    ImGui.GetStyle().FrameBorderSize = 1;
 
     load_from_command_line();
 
@@ -174,7 +175,7 @@ main :: () {
         render_axes_triad();
         do_selection_mode();
 
-        // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+        ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
 
         // Rendering
         ImGui.Render();

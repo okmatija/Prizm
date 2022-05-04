@@ -369,6 +369,13 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
     return ImGui.InputText(label_c, str_c, xx (str.count + 1), flags, InputTextCallback, *cb_user_data);
 }
 
+get_enum_count :: ($enum_type : Type) -> s64 {
+    info := type_info(enum_type);
+    assert(info.type == Type_Info_Tag.ENUM);
+    info_enum := cast(*Type_Info_Enum) info;
+    return info_enum.values.count;
+}
+
 temp_array :: ($Element_Type : Type) -> [..]Element_Type {
     result : [..]Element_Type;
     result.allocator = temp;

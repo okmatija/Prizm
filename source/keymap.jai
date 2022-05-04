@@ -108,29 +108,156 @@ Operation :: struct {
     override_WantCaptureKeyboard := false;
 }
 
+any_active_false :: (target : Target_Items) -> bool {return false;}
+
+Fraction :: struct {
+    numer : int;
+    denom : int;
+}
+
+Action :: struct {
+    desc : string;
+    proc : ()->();
+
+    // Actions cycle/toggle item state, this function returns a fraction representing the progress of the state cycling so you can e.g., change the color of the action buttons according to how far along the cycle you are
+    progress_proc : ()->Fraction;
+}
+
+Action_Set :: struct {
+    // Action that operates on a given Target_Items value
+    // @Volatile MUST have order of Target_Items
+    target_action : [3]Action; #assert(TARGET_ITEMS_COUNT == 3);
+
+    key : u32;
+    override_WantCaptureKeyboard := false;
+}
+
+// nocommit remove
 ALL_ITEMS_MOD :: Modifier_Flags.{shift_pressed=true};
 SELECTED_MOD :: Modifier_Flags.{control_pressed=true};
 VISIBLE_MOD :: Modifier_Flags.{};
 
-TOGGLE_CLIPPING_SELECTED_OP ::  Operation.{proc=()=>{toggle_clipping(.SELECTED);},  desc="Toggle clipping on selected items", key=#char "c", mod=SELECTED_MOD};
-TOGGLE_CLIPPING_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_clipping(.ALL_ITEMS);}, desc="Toggle clipping on all items",      key=#char "c", mod=ALL_ITEMS_MOD};
-TOGGLE_CLIPPING_VISIBLE_OP ::   Operation.{proc=()=>{toggle_clipping(.VISIBLE);},   desc="Toggle clipping on visible items",  key=#char "c", mod=VISIBLE_MOD};
-TOGGLE_CLIPPING_OPS :: Operation.[TOGGLE_CLIPPING_SELECTED_OP, TOGGLE_CLIPPING_ALL_ITEMS_OP, TOGGLE_CLIPPING_VISIBLE_OP];
+modifier_to_target :: (mod : Modifier_Flags) -> bool, Target_Items {
+    if mod == VISIBLE_MOD   return true, .VISIBLE;
+    if mod == SELECTED_MOD  return true, .SELECTED;
+    if mod == ALL_ITEMS_MOD return true, .ALL_ITEMS;
+    return false, .VISIBLE;
+}
 
-TOGGLE_NORMALS_SELECTED_OP ::  Operation.{proc=()=>{toggle_normals_visibility(.SELECTED);},  desc="Toggle normals visibility for selected items", key=#char "n", mod=SELECTED_MOD};
-TOGGLE_NORMALS_ALL_ITEMS_OP :: Operation.{proc=()=>{toggle_normals_visibility(.ALL_ITEMS);}, desc="Toggle normals visibility for all items",      key=#char "n", mod=ALL_ITEMS_MOD};
-TOGGLE_NORMALS_VISIBLE_OP ::   Operation.{proc=()=>{toggle_normals_visibility(.VISIBLE);},   desc="Toggle normals visibility for visible items",  key=#char "n", mod=VISIBLE_MOD};
-TOGGLE_NORMALS_OPS :: Operation.[TOGGLE_NORMALS_SELECTED_OP, TOGGLE_NORMALS_ALL_ITEMS_OP, TOGGLE_NORMALS_VISIBLE_OP];
+target_to_modifier :: (target : Target_Items) -> Modifier_Flags {
+    if #complete target == {
+        case .VISIBLE; return VISIBLE_MOD;
+        case .SELECTED; return SELECTED_MOD;
+        case .ALL_ITEMS; return ALL_ITEMS_MOD;
+    }
+}
 
-CYCLE_POINT_SIZE_SELECTED_OP ::  Operation.{proc=()=>{cycle_point_size(.SELECTED);},  desc="Cycle point size for selected items", key=#char "p", mod=SELECTED_MOD};
-CYCLE_POINT_SIZE_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_point_size(.ALL_ITEMS);}, desc="Cycle point size for all items",      key=#char "p", mod=ALL_ITEMS_MOD};
-CYCLE_POINT_SIZE_VISIBLE_OP ::   Operation.{proc=()=>{cycle_point_size(.VISIBLE);},   desc="Cycle point size for visible items",  key=#char "p", mod=VISIBLE_MOD};
-CYCLE_POINT_SIZE_OPS :: Operation.[CYCLE_POINT_SIZE_SELECTED_OP, CYCLE_POINT_SIZE_ALL_ITEMS_OP, CYCLE_POINT_SIZE_VISIBLE_OP];
+toggle_clipping_progress_proc :: (target : Target_Items) -> Fraction {
+    if any_active_clipping(target) {
+        return .{1,1};
+    }
+    return .{0,1};
+}
 
-CYCLE_LINE_WIDTH_SELECTED_OP ::  Operation.{proc=()=>{cycle_wireframe_width(.SELECTED);},  desc="Cycle line width for selected items", key=#char "l", mod=SELECTED_MOD};
-CYCLE_LINE_WIDTH_ALL_ITEMS_OP :: Operation.{proc=()=>{cycle_wireframe_width(.ALL_ITEMS);}, desc="Cycle line width for all items",      key=#char "l", mod=ALL_ITEMS_MOD};
-CYCLE_LINE_WIDTH_VISIBLE_OP ::   Operation.{proc=()=>{cycle_wireframe_width(.VISIBLE);},   desc="Cycle line width for visible items",  key=#char "l", mod=VISIBLE_MOD};
-CYCLE_LINE_WIDTH_OPS :: Operation.[CYCLE_LINE_WIDTH_SELECTED_OP, CYCLE_LINE_WIDTH_ALL_ITEMS_OP, CYCLE_LINE_WIDTH_VISIBLE_OP];
+TOGGLE_CLIPPING_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Toggle clipping on all items",
+            proc=()=>{toggle_clipping(.ALL_ITEMS);},
+            progress_proc=()=>toggle_clipping_progress_proc(.ALL_ITEMS),
+            // progress_proc=()=>{return ifx any_active_clipping(.ALL_ITEMS) then Fraction.{1,1} else .{0,1};} // @CompilerBug?
+        },
+        .{
+            desc="Toggle clipping on visible items",
+            proc=()=>{toggle_clipping(.VISIBLE);},
+            progress_proc=()=>toggle_clipping_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Toggle clipping on selected items",
+            proc=()=>{toggle_clipping(.SELECTED);},
+            progress_proc=()=>toggle_clipping_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "c",
+};
+
+cycle_point_size_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_point_size_progress_proc(*app_info_copy);
+}
+
+CYCLE_POINT_SIZE_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Cycle point size for all items",
+            proc=()=>{cycle_point_size(.ALL_ITEMS);},
+            progress_proc=()=>cycle_point_size_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Cycle point size for visible items",
+            proc=()=>{cycle_point_size(.VISIBLE);},
+            progress_proc=()=>cycle_point_size_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Cycle point size for selected items",
+            proc=()=>{cycle_point_size(.SELECTED);},
+            progress_proc=()=>cycle_point_size_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "p",
+};
+
+cycle_wireframe_width_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_wireframe_width_progress_proc(*app_info_copy);
+}
+
+CYCLE_LINE_WIDTH_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Cycle line width for all items",
+            proc=()=>{cycle_wireframe_width(.ALL_ITEMS);},
+            progress_proc=()=>cycle_wireframe_width_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Cycle line width for visible items",
+            proc=()=>{cycle_wireframe_width(.VISIBLE);},
+            progress_proc=()=>cycle_wireframe_width_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Cycle line width for selected items",
+            proc=()=>{cycle_wireframe_width(.SELECTED);},
+            progress_proc=()=>cycle_wireframe_width_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "l",
+};
+
+toggle_normals_visibility_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return toggle_normals_visibility_progress_proc(*app_info_copy);
+}
+
+TOGGLE_NORMALS_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            desc="Toggle normals visibility for all items",
+            proc=()=>{toggle_normals_visibility(.ALL_ITEMS);},
+            progress_proc=()=>toggle_normals_visibility_progress_proc(.ALL_ITEMS),
+        },
+        .{
+            desc="Toggle normals visibility for visible items",
+            proc=()=>{toggle_normals_visibility(.VISIBLE);},
+            progress_proc=()=>toggle_normals_visibility_progress_proc(.VISIBLE),
+        },
+        .{
+            desc="Toggle normals visibility for selected items",
+            proc=()=>{toggle_normals_visibility(.SELECTED);},
+            progress_proc=()=>toggle_normals_visibility_progress_proc(.SELECTED),
+        },
+    ],
+    key=#char "n",
+};
 
 RELOAD_ITEMS_SELECTED_OP ::  Operation.{proc=()=>{reload_items(.SELECTED);},  desc="Reload selected items", key=cast(u32) Special_Key_Code.F5, mod=SELECTED_MOD, override_WantCaptureKeyboard=true};
 RELOAD_ITEMS_ALL_ITEMS_OP :: Operation.{proc=()=>{reload_items(.ALL_ITEMS);}, desc="Reload all items",      key=cast(u32) Special_Key_Code.F5, mod=ALL_ITEMS_MOD, override_WantCaptureKeyboard=true};
@@ -184,12 +311,12 @@ init_keymap :: () {
 
     add_key(*app.keymap_actions, ..EDIT_VISIBILITY_OPS);
     add_key(*app.keymap_actions, ..CYCLE_OPACITY_OPS);
-    add_key(*app.keymap_actions, ..CYCLE_LINE_WIDTH_OPS);
-    add_key(*app.keymap_actions, ..CYCLE_POINT_SIZE_OPS);
+    add_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
+    add_key(*app.keymap_actions, CYCLE_POINT_SIZE_ACTION_SET);
     add_key(*app.keymap_actions, ..CYCLE_ELEMENT_LABEL_OPS);
     add_key(*app.keymap_actions, ..CYCLE_VERTEX_LABEL_OPS);
-    add_key(*app.keymap_actions, ..TOGGLE_CLIPPING_OPS);
-    add_key(*app.keymap_actions, ..TOGGLE_NORMALS_OPS);
+    add_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
+    add_key(*app.keymap_actions, TOGGLE_NORMALS_ACTION_SET);
     add_key(*app.keymap_actions, ..FOCUS_ITEMS_OPS);
     add_key(*app.keymap_actions, ..RELOAD_ITEMS_OPS);
 
@@ -202,11 +329,19 @@ init_keymap :: () {
     // Reserved! Do not change this binding
     add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
 
+    // nocommit remove this
     add_key :: (keymap : *Keymap,
                 ops : ..Operation, 
                 loc := #caller_location) {
         for op : ops {
             add_key(keymap, op.proc, op.desc, op.key, op.mod, op.override_WantCaptureKeyboard, loc);
+        }
+    }
+
+    add_key :: (keymap : *Keymap, action_set : Action_Set, loc := #caller_location) {
+        for action : action_set.target_action {
+            mod := target_to_modifier(xx it_index);
+            add_key(keymap, action.proc, action.desc, action_set.key, mod, action_set.override_WantCaptureKeyboard, loc);
         }
     }
 
@@ -283,8 +418,7 @@ focus_items :: (target : Target_Items) {
     }
 }
 
-toggle_clipping :: (target : Target_Items) {
-
+any_active_clipping :: (target : Target_Items) -> bool {
     clip_active := false;
     for app.entities if Is_Target(it) {
         if it.display_info.clip_sphere.is_active {
@@ -296,6 +430,12 @@ toggle_clipping :: (target : Target_Items) {
             break;
         }
     }
+    return clip_active;
+}
+
+toggle_clipping :: (target : Target_Items) {
+
+    clip_active := any_active_clipping(target);
 
     // Toggle and apply it to target entities
     clip_active = !clip_active;
@@ -362,21 +502,27 @@ cycle_vertex_label :: (target : Target_Items) {
     }
 }
 
+cycle_point_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+    // Handle full range of points_size
+    if !points_visible {
+        points_visible = true;
+        points_size = 2;
+        return .{0,3};
+    } else if points_size <= 2 {
+        points_size = 4;
+        return .{1,3};
+    } else if points_size <= 4 {
+        points_size = 6;
+        return .{2,3};
+    } else {
+        points_visible = false;
+        return .{3,3};
+    }
+}
+
 cycle_point_size :: (target : Target_Items) {
     app_info := *app.selection_display_info;
-    {
-        using app_info;
-        if !points_visible {
-            points_visible = true;
-            points_size = 2;
-        } else if points_size == 2 {
-            points_size += 2;
-        } else if points_size == 4 {
-            points_size += 2;
-        } else {
-            points_visible = false;
-        }
-    }
+    cycle_point_size_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
         it.display_info.points_visible = app_info.points_visible;
@@ -384,21 +530,27 @@ cycle_point_size :: (target : Target_Items) {
     }
 }
 
+cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+    // Handle full range of wireframe_width
+    if !wireframe_visible {
+        wireframe_visible = true;
+        wireframe_width = 1;
+        return .{0,3};
+    } else if wireframe_width <= 1 {
+        wireframe_width = 2;
+        return .{1,3};
+    } else if wireframe_width <= 2 {
+        wireframe_width = 3;
+        return .{2,3};
+    } else {
+        wireframe_visible = false;
+        return .{3,3};
+    }
+}
+
 cycle_wireframe_width :: (target : Target_Items) {
     app_info := *app.selection_display_info;
-    {
-        using app_info;
-        if !wireframe_visible {
-            wireframe_visible = true;
-            wireframe_width = 1;
-        } else if wireframe_width == 1 {
-            wireframe_width += 1;
-        } else if wireframe_width == 2 {
-            wireframe_width += 1;
-        } else {
-            wireframe_visible = false;
-        }
-    }
+    cycle_wireframe_width_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
         it.display_info.wireframe_visible = app_info.wireframe_visible;
@@ -435,10 +587,18 @@ cycle_backface_mode :: (target : Target_Items) {
     }
 }
 
+toggle_normals_visibility_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+    result : Fraction;
+    result.numer = xx normals_visible;
+    result.denom = 1;
+    normals_visible = !normals_visible;
+    return result;
+}
+
 toggle_normals_visibility :: (target : Target_Items) {
 
     app_info := *app.selection_display_info;
-    app_info.normals_visible = !app_info.normals_visible;
+    toggle_normals_visibility_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
         it.display_info.normals_visible = app_info.normals_visible;

@@ -21,8 +21,20 @@ CONSOLE_WARNING_INTERACTIVE :: ImGui.ImVec4.{0., 178./255, 1., 1.};
 CONSOLE_ERROR_INTERACTIVE ::   ImGui.ImVec4.{1., .4, .4, 1.};
 CONSOLE_INFO_INTERACTIVE ::    WHITE;
 
+color_convert_RGB_to_HSV :: (r : float, g : float, b : float, a : float) -> hsv : ImGui.ImVec4 {
+    h, s, v : float;
+    ImGui.ColorConvertRGBtoHSV(r, g, b, *h, *s, *v);
+    return make_ImVec4(h, s, v, a);
+}
+
 color_convert_HSV_to_RGB :: (h : float, s : float, v : float, a : float) -> rgb : ImGui.ImVec4 {
     r, g, b : float;
     ImGui.ColorConvertHSVtoRGB(h, s, v, *r, *g, *b);
     return make_ImVec4(r, g, b, a);
+}
+
+darken :: (rgb : ImGui.ImVec4, darken_factor : float) -> darker_rgb : ImGui.ImVec4 {
+    hsv := color_convert_RGB_to_HSV(rgb.x, rgb.y, rgb.z, rgb.w);
+    hsv.z *= darken_factor;
+    return color_convert_HSV_to_RGB(hsv.x, hsv.y, hsv.z, hsv.w);
 }
