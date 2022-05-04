@@ -3,7 +3,9 @@ GREEN :: ImGui.ImVec4.{0., 1., 0., 1.};
 BLUE  :: ImGui.ImVec4.{0., 0., 1., 1.};
 BLACK :: ImGui.ImVec4.{0., 0., 0., 1.};
 WHITE :: ImGui.ImVec4.{1., 1., 1., 1.};
-CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
+// Chosen using the tetradic option here, with the default button color as input https://www.canva.com/colors/color-wheel/
+CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR :: ImGui.ImVec4.{43./255, 117./255, 45./255, 1.};
+// CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1); // Grey version.
 CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE :: 4;
 NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
 KEYBINDING_COLOR :: NICE_YELLOW;

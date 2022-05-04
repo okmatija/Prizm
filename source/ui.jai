@@ -306,6 +306,13 @@ show_item_list_ui :: () {
     show_item_list_actions_ui();
 }
 
+ScopedBorderTheme :: (color : ImGui.ImVec4, size : float) #expand {
+    ImGui.PushStyleColor(xx ImGui.Col.Border, color);
+    ImGui.PushStyleVar(xx ImGui.StyleVar.PopupBorderSize, size);
+    `defer ImGui.PopStyleColor();
+    `defer ImGui.PopStyleVar();
+}
+
 show_item_list_actions_ui :: () {
 
     ImGui.Separator();
@@ -338,7 +345,7 @@ show_item_list_actions_ui :: () {
         // @Maybe Change the button colors depending on what modifier is pressed
         // @Maybe Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
 
-        Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "", has_options_menu := false) #expand {
+        Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "", has_options_menu := false, options_visible := false) #expand {
             mod := current_modifier_flags(); 
             found, target := modifier_to_target(mod);
             if found {
@@ -348,26 +355,40 @@ show_item_list_actions_ui :: () {
                 base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
                 button_color := darken(base_color, cast(float)progress.numer / progress.denom);
 
-                if progress.denom != 0 {
+                pop_style := false;
+                if options_visible {
+                    assert(has_options_menu);
+                    ImGui.PushStyleColor(xx ImGui.Col.Button, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    pop_style = true;
+                } else if progress.denom != 0 {
                     ImGui.PushStyleColor(xx ImGui.Col.Button, button_color);
                     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, button_color);
-                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
+                    if has_options_menu && io_mouse_right_down() {
+                        ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    } else {
+                        ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
+                    }
+                    pop_style = true;
                 }
                 if ImGui.Button(imgui_label(label, *action_set)) {
                     action.proc();
                 }
-                if progress.denom != 0 {
+                if pop_style {
                     ImGui.PopStyleColor();
                     ImGui.PopStyleColor();
                     ImGui.PopStyleColor();
                 }
 
                 if has_options_menu {
+                    push_allocator(temp);
                     binding1, binding2 : Binding_With_Description = ---;
                     binding1.description, binding1.binding = action.desc, to_string(action_set.key, mod);
                     binding2.description, binding2.binding = "Action options menu", "RMB";
                     Show_Tooltip_Binding(binding1, binding2);
                 } else {
+                    push_allocator(temp);
                     Show_Tooltip_Binding(action.desc, to_string(action_set.key, mod));
                 }
 
@@ -391,14 +412,24 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Cyc Vert Size ", CYCLE_POINT_SIZE_ACTION_SET);
 
-        Action_Button("Cyc Elem Label", CYCLE_ELEMENT_LABEL_ACTION_SET, has_options_menu=true);
+        Action_Button("Cyc Elem Label", CYCLE_ELEMENT_LABEL_ACTION_SET, has_options_menu=true, options_visible=ImGui.IsPopupOpen("##Cyc_Elem_Label_context_menu"));
         {
             current_pos := ImGui.GetWindowPos();
             current_size := ImGui.GetWindowSize();
             window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
             ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+
+            // Set popup border color to match the selection/RMB target item color
+            original_border_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+            original_border_size :=  ImGui.GetStyle().PopupBorderSize;
+            ScopedBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
             if ImGui.BeginPopupContextItem("##Cyc_Elem_Label_context_menu") {
                 defer ImGui.EndPopup();
+
+                // Undo the previous thing so internals don't have this color
+                ScopedBorderTheme(original_border_color, original_border_size);
+
                 update : Display_Info_Update;
                 ImGui.Text("Cyc Elem Label Options");
                 ImGui.Separator();
@@ -407,14 +438,24 @@ show_item_list_actions_ui :: () {
             }
         }
         ImGui.SameLine();
-        Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET, has_options_menu=true);
+        Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET, has_options_menu=true, options_visible=ImGui.IsPopupOpen("##Cyc_Vert_Label_context_menu"));
         {
             current_pos := ImGui.GetWindowPos();
             current_size := ImGui.GetWindowSize();
             window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
             ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+
+            // Set popup border color to match the selection/RMB target item color
+            original_border_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+            original_border_size :=  ImGui.GetStyle().PopupBorderSize;
+            ScopedBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
             if ImGui.BeginPopupContextItem("##Cyc_Vert_Label_context_menu") {
                 defer ImGui.EndPopup();
+
+                // Undo the previous thing so internals don't have this color
+                ScopedBorderTheme(original_border_color, original_border_size);
+
                 update : Display_Info_Update;
                 ImGui.Text("Cyc Vert Label Options");
                 ImGui.Separator();
@@ -512,13 +553,15 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
-    ImGui.PushStyleColor(xx ImGui.Col.Border, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-    ImGui.PushStyleVar(xx ImGui.StyleVar.PopupBorderSize, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-    defer ImGui.PopStyleColor();
-    defer ImGui.PopStyleVar();
+    original_border_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+    original_border_size :=  ImGui.GetStyle().PopupBorderSize;
+    ScopedBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
     if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
         defer ImGui.EndPopup();
+
+        // Undo the previous thing so internals don't have this color
+        ScopedBorderTheme(original_border_color, original_border_size);
 
         if !entity.is_selected {
             if entity.fully_pathed_filename.count {
