@@ -252,7 +252,8 @@ console_draw :: () {
             if ImGui.Button("Save to LOG.txt") {
                 contents : string;
                 defer free(contents);
-                contents = join(contents, "This console log was saved via a button in the Prism application\n");
+                time := filetime_to_readable_date(get_current_file_time(), true);
+                contents = join(contents, tprint("This console log was saved at % via a button in the Prism application\n", time));
                 contents = join(contents, "Press '`' to open the console and find the button in the Options menu\n\n\n\n");
                 for app.console.log {
                     contents = join(contents, it, separator="\n");

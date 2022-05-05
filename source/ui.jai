@@ -934,7 +934,8 @@ show_help_ui :: () {
         if ImGui.Button("Save to CHANGELOG.md") {
             contents : string;
             defer free(contents);
-            contents = join(contents, "This Changelog was saved via a button in the Prism application\n");
+            time := filetime_to_readable_date(get_current_file_time(), true);
+            contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\n", time));
             contents = join(contents, "Press 'h' for the help window and find the button in the Changelog subsection\n\n\n\n");
             for app.changelog {
                 entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);

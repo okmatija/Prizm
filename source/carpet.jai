@@ -1,12 +1,16 @@
 // Things with no clear file to go in just get shoved under the carpet.jai
 
 // Returns a string in temporary storage
-filetime_to_readable_date :: (filetime : u64) -> string {
+filetime_to_readable_date :: (filetime : u64, include_date := false) -> string {
     lt := filetime_to_local_time(filetime);
-    // return tprint("%:%:% on %-%-%",
-    //               formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute,   minimum_digits=2), formatInt(lt.second, minimum_digits=2),
-    //               formatInt(lt.year, minimum_digits=4), formatInt(lt.month_starting_at_0, minimum_digits=2), formatInt(lt.day_starting_at_0, minimum_digits=2));
-    return tprint("%:%:%", formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2));
+    if include_date {
+        return tprint("%:%:% on %-%-%",
+                      formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2),
+                      formatInt(lt.year, minimum_digits=4), formatInt(lt.month_starting_at_0 + 1, minimum_digits=2), formatInt(lt.day_starting_at_0 + 1, minimum_digits=2));
+    } else {
+        return tprint("%:%:%",
+                      formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2));
+    }
 }
 
 write_entire_file_to_cwd :: (filename : string, contents : string) {

@@ -7,6 +7,8 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - Structs_And_Types
 - COMPILE_TIME_CONSTANTS (including enum names)
 - Using a single space between an identifier and the ::, : or := and don't use backslashes in identifiers. These rules are indended to make searching easier)
+- t_ prefix for variables allocated in temporary storage? or functions returning strings in temporary storage?
+- g_ prefix for global variables? (gt_ for global temporaries?)
 
 # Release process
 
