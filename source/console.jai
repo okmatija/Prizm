@@ -249,10 +249,17 @@ console_draw :: () {
             if ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom) {
                 ImGui.CloseCurrentPopup();
             }
-            // if ImGui.Button("Save to console_log.txt") {
-            //     log_error("Incomplete");
-            // }
-            // Show_Tooltip("Handy if you want to search the console log");
+            if ImGui.Button("Save to LOG.txt") {
+                contents : string;
+                defer free(contents);
+                contents = join(contents, "This console log was saved via a button in the Prism application\n");
+                contents = join(contents, "Press '`' to open the console and find the button in the Options menu\n\n\n\n");
+                for app.console.log {
+                    contents = join(contents, it, separator="\n");
+                }
+                write_entire_file_to_cwd("LOG.txt", contents);
+            }
+            Show_Tooltip("Write the console log to LOG.txt\nHandy if you want to search the console log");
             ImGui.EndPopup();
         }
 

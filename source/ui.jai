@@ -932,9 +932,17 @@ show_help_ui :: () {
         ImGui.Text(COMPILER_VERSION_INFO);
 
         if ImGui.Button("Save to CHANGELOG.md") {
-            log_error("Incomplete"); // nocommit
+            contents : string;
+            defer free(contents);
+            contents = join(contents, "This Changelog was saved via a button in the Prism application\n");
+            contents = join(contents, "Press 'h' for the help window and find the button in the Changelog subsection\n\n\n\n");
+            for app.changelog {
+                entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
+                contents = join(contents, entry);
+            }
+            write_entire_file_to_cwd("CHANGELOG.md", contents);
         }
-        Show_Tooltip("Handy if you want to search the changelog");
+        Show_Tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
 
         latest := app.changelog[0];
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date)), .DefaultOpen) {

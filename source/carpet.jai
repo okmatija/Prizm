@@ -9,6 +9,20 @@ filetime_to_readable_date :: (filetime : u64) -> string {
     return tprint("%:%:%", formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2));
 }
 
+write_entire_file_to_cwd :: (filename : string, contents : string) {
+    #import "System"; // @CompilerBug Why is this needed??? We import System in app.jai
+    success, exe_path, exe_name := split_from_right(get_path_of_running_executable(), #char "/");
+    if success {
+        success = write_entire_file(filename, contents);
+        if success {
+            log("Wrote '%/%'", exe_path, filename);
+        }
+    }
+    if success == false {
+        log_error("Failed to save '%'", filename);
+    }
+}
+
 maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {
     s := _s;
     #if OS == .WINDOWS {

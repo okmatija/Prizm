@@ -9,6 +9,8 @@ PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
 - Improved performance of text label rendering (Fixes ISSUE_004)
 - Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and setting the target item(s) background rect color
 - Clarified cycle/toggle state of action buttons by changing the button color
+- Added a button under the Changelog section of the help menu to save the changelog to disk. Useful for searching the changelog
+- Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
 DONE
 };
 
