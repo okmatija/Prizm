@@ -1,4 +1,4 @@
-ISSUE_004 :: "The text rendering implmentation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
+// Fixed! ISSUE_004 :: "The text rendering implementation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
 
 // @Refactor rename this Label_Theme, and use it for triangle labels (at centroid, so you can see centroids, too)
 Label_Theme :: struct {

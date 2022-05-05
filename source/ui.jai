@@ -6,9 +6,14 @@ show_item_list_ui :: () {
 
     if !entities.count return;
 
+    // Set window border color to match the selection/RMB target item color
+    original_border_color, original_border_size := ScopedWindowBorderTheme(ITEM_LIST_BORDER_COLOR, ITEM_LIST_BORDER_SIZE);
+
     ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
     defer ImGui.End();
+
+    ScopedWindowBorderTheme(original_border_color, original_border_size);
 
     // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
 
@@ -306,11 +311,24 @@ show_item_list_ui :: () {
     show_item_list_actions_ui();
 }
 
-ScopedBorderTheme :: (color : ImGui.ImVec4, size : float) #expand {
+ScopedPopupBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
+    prev_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+    prev_size :=  ImGui.GetStyle().PopupBorderSize;
     ImGui.PushStyleColor(xx ImGui.Col.Border, color);
     ImGui.PushStyleVar(xx ImGui.StyleVar.PopupBorderSize, size);
     `defer ImGui.PopStyleColor();
     `defer ImGui.PopStyleVar();
+    return prev_color, prev_size;
+}
+
+ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
+    prev_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+    prev_size :=  ImGui.GetStyle().WindowBorderSize;
+    ImGui.PushStyleColor(xx ImGui.Col.Border, color);
+    ImGui.PushStyleVar(xx ImGui.StyleVar.WindowBorderSize, size);
+    `defer ImGui.PopStyleColor();
+    `defer ImGui.PopStyleVar();
+    return prev_color, prev_size;
 }
 
 show_item_list_actions_ui :: () {
@@ -420,15 +438,13 @@ show_item_list_actions_ui :: () {
             ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
             // Set popup border color to match the selection/RMB target item color
-            original_border_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
-            original_border_size :=  ImGui.GetStyle().PopupBorderSize;
-            ScopedBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
             if ImGui.BeginPopupContextItem("##Cyc_Elem_Label_context_menu") {
                 defer ImGui.EndPopup();
 
                 // Undo the previous thing so internals don't have this color
-                ScopedBorderTheme(original_border_color, original_border_size);
+                ScopedPopupBorderTheme(original_border_color, original_border_size);
 
                 update : Display_Info_Update;
                 ImGui.Text("Cyc Elem Label Options");
@@ -446,15 +462,13 @@ show_item_list_actions_ui :: () {
             ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
             // Set popup border color to match the selection/RMB target item color
-            original_border_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
-            original_border_size :=  ImGui.GetStyle().PopupBorderSize;
-            ScopedBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
             if ImGui.BeginPopupContextItem("##Cyc_Vert_Label_context_menu") {
                 defer ImGui.EndPopup();
 
                 // Undo the previous thing so internals don't have this color
-                ScopedBorderTheme(original_border_color, original_border_size);
+                ScopedPopupBorderTheme(original_border_color, original_border_size);
 
                 update : Display_Info_Update;
                 ImGui.Text("Cyc Vert Label Options");
@@ -553,15 +567,13 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
-    original_border_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
-    original_border_size :=  ImGui.GetStyle().PopupBorderSize;
-    ScopedBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+    original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
     if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
         defer ImGui.EndPopup();
 
         // Undo the previous thing so internals don't have this color
-        ScopedBorderTheme(original_border_color, original_border_size);
+        ScopedPopupBorderTheme(original_border_color, original_border_size);
 
         if !entity.is_selected {
             if entity.fully_pathed_filename.count {
@@ -598,6 +610,11 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         } else {
             if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s"))) {
                 defer ImGui.TreePop();
+
+                // Unindent so the reload buttons are placed as they are when there is one item and no selection
+                ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+                defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+
                 for :Selected app.entities {
                     if it.fully_pathed_filename.count {
                         if ImGui.Button(imgui_label("Reload", it)) {
@@ -625,6 +642,9 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 }
             }
 
+            // Add a separator to be consistent with the menu layout when there is one item and no selection
+            ImGui.Separator();
+
             selection_aabb : AxisBox3;
             for :Selected app.entities {
                 maybe_update_render_info(*it.render_info, *it.mesh);
@@ -648,9 +668,14 @@ show_camera_controls :: () {
 
     using ImGui.WindowFlags;
 
+    // Set window border color to match the selection/RMB target item color
+    original_border_color, original_border_size := ScopedWindowBorderTheme(CAMERA_UI_BORDER_COLOR, CAMERA_UI_BORDER_SIZE);
+
     ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
     ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
     defer ImGui.End();
+
+    ScopedWindowBorderTheme(original_border_color, original_border_size);
 
     X_AXIS :: Vector3.{1, 0, 0};
     Y_AXIS :: Vector3.{0, 1, 0};
@@ -780,10 +805,16 @@ show_help_ui :: () {
     cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
                                        make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    flags := ImGui.WindowFlags.NoTitleBar | .AlwaysHorizontalScrollbar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
+    flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
+    // flags |= .AlwaysHorizontalScrollbar; // Use this when the changelog can be unwrapped
+
+    // Set window border color to match the selection/RMB target item color
+    original_border_color, original_border_size := ScopedWindowBorderTheme(HELP_MENU_BORDER_COLOR, HELP_MENU_BORDER_SIZE);
 
     ImGui.Begin("##show_help_ui", flags = flags);
     defer ImGui.End();
+
+    ScopedWindowBorderTheme(original_border_color, original_border_size);
 
     COLUMN_WIDTH :: 100;
 
@@ -901,7 +932,7 @@ show_help_ui :: () {
         ImGui.Text(COMPILER_VERSION_INFO);
 
         if ImGui.Button("Save to CHANGELOG.md") {
-            log_error("Incomplete");
+            log_error("Incomplete"); // nocommit
         }
         Show_Tooltip("Handy if you want to search the changelog");
 

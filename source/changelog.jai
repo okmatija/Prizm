@@ -6,7 +6,7 @@
 // TODO Use fast Simp path with cached font for all font stuff
 
 PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
-- Improved performance of text label rendering
+- Improved performance of text label rendering (Fixes ISSUE_004)
 - Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and setting the target item(s) background rect color
 - Clarified cycle/toggle state of action buttons by changing the button color
 DONE
@@ -31,7 +31,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
   - Improved the `item_focus_vertex' and 'item_focus_triangle` commands to give more intuitive results and added an option to also update the item's clipping sphere
 - Improvements to rendering:
   - Improved the lighting/shading to use a camera-aligned directional light, so each triangle is has a constant lighting across it indicating its angle
-  - Fixed flat shading breaking at high zoom levels (ISSUE_003)
+  - Fixed flat shading breaking at high zoom levels (Fixes ISSUE_003)
   - Added more shading modes for backfacing triangles and exposed a cycle button/keybinding to change them
   - Changed the default backface shading mode to use a fixed pinkish color
 - Renamed the potentially confusing 'Tgl Item Viz' button which didn't really behave like a toggle button when pressed without a modifier. Now its called 'Edit Item Viz'

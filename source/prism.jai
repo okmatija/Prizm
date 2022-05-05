@@ -175,7 +175,7 @@ main :: () {
         render_axes_triad();
         do_selection_mode();
 
-        ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+        // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
 
         // Rendering
         ImGui.Render();
