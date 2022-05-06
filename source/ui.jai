@@ -367,7 +367,13 @@ show_item_list_actions_ui :: () {
             mod := current_modifier_flags(); 
             found, target := modifier_to_target(mod);
             if found {
-                action := action_set.target_action[cast(int) target];
+                action : Action;
+                for action_set.target_action {
+                    if it.target == target {
+                        action = it;
+                        break;
+                    }
+                }
 
                 progress := action.progress_proc();
                 base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];

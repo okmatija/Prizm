@@ -46,6 +46,10 @@ App :: struct {
     show_fps := false;
 
     triad : Axes_Triad;
+    // triad.origin.display_info.backface_mode = .FIXED;
+    // triad.x_axis.display_info.backface_mode = .FIXED;
+    // triad.y_axis.display_info.backface_mode = .FIXED;
+    // triad.z_axis.display_info.backface_mode = .FIXED;
 
     // Item Context menu UI, Action button UI and Action keybindings edit this value and apply it to all target entities (see Target_Items enum)
     // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
