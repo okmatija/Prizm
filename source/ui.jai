@@ -447,7 +447,7 @@ show_item_list_actions_ui :: () {
                 ScopedPopupBorderTheme(original_border_color, original_border_size);
 
                 update : Display_Info_Update;
-                ImGui.Text("Cyc Elem Label Options");
+                ImGui.Text("Cycle Element Label Options");
                 ImGui.Separator();
                 show_label_theme_ui(*update.element_label_theme_update, *app.selection_display_info.element_label_theme);
                 apply_display_info_update(update, target_items);
@@ -471,7 +471,7 @@ show_item_list_actions_ui :: () {
                 ScopedPopupBorderTheme(original_border_color, original_border_size);
 
                 update : Display_Info_Update;
-                ImGui.Text("Cyc Vert Label Options");
+                ImGui.Text("Cycle Vertex Label Options");
                 ImGui.Separator();
                 show_label_theme_ui(*update.vertex_label_style_update, *app.selection_display_info.vertex_label_style);
                 apply_display_info_update(update, target_items);

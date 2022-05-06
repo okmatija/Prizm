@@ -116,6 +116,7 @@ Fraction :: struct {
 }
 
 Action :: struct {
+    target : Target_Items;
     desc : string;
     proc : ()->();
 
@@ -124,10 +125,8 @@ Action :: struct {
 }
 
 Action_Set :: struct {
-    // Action that operates on a given Target_Items value
-    // @Volatile MUST have order of Target_Items
     target_action : [3]Action; #assert(TARGET_ITEMS_COUNT == 3);
-
+    desc : string; // Partial, excludes target-specific postfix e.g., "all items"
     key : u32;
     override_WantCaptureKeyboard := false;
 }
@@ -161,22 +160,23 @@ toggle_clipping_progress_proc :: (target : Target_Items) -> Fraction {
 TOGGLE_CLIPPING_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Toggle clipping on all items",
-            proc=()=>{toggle_clipping(.ALL_ITEMS);},
-            progress_proc=()=>toggle_clipping_progress_proc(.ALL_ITEMS),
-            // progress_proc=()=>{return ifx any_active_clipping(.ALL_ITEMS) then Fraction.{1,1} else .{0,1};} // @CompilerBug?
-        },
-        .{
-            desc="Toggle clipping on visible items",
+            target=.VISIBLE,
             proc=()=>{toggle_clipping(.VISIBLE);},
             progress_proc=()=>toggle_clipping_progress_proc(.VISIBLE),
         },
         .{
-            desc="Toggle clipping on selected items",
+            target=.SELECTED,
             proc=()=>{toggle_clipping(.SELECTED);},
             progress_proc=()=>toggle_clipping_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{toggle_clipping(.ALL_ITEMS);},
+            progress_proc=()=>toggle_clipping_progress_proc(.ALL_ITEMS),
+            // progress_proc=()=>{return ifx any_active_clipping(.ALL_ITEMS) then Fraction.{1,1} else .{0,1};} // @CompilerBug?
+        },
     ],
+    desc="Toggle clipping on",
     key=#char "c",
 };
 
@@ -188,21 +188,22 @@ cycle_point_size_progress_proc :: (target : Target_Items) -> Fraction {
 CYCLE_POINT_SIZE_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Cycle point size for all items",
-            proc=()=>{cycle_point_size(.ALL_ITEMS);},
-            progress_proc=()=>cycle_point_size_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Cycle point size for visible items",
+            target=.VISIBLE,
             proc=()=>{cycle_point_size(.VISIBLE);},
             progress_proc=()=>cycle_point_size_progress_proc(.VISIBLE),
         },
         .{
-            desc="Cycle point size for selected items",
+            target=.SELECTED,
             proc=()=>{cycle_point_size(.SELECTED);},
             progress_proc=()=>cycle_point_size_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_point_size(.ALL_ITEMS);},
+            progress_proc=()=>cycle_point_size_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Cycle point size for",
     key=#char "p",
 };
 
@@ -214,21 +215,22 @@ cycle_wireframe_width_progress_proc :: (target : Target_Items) -> Fraction {
 CYCLE_LINE_WIDTH_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Cycle line width for all items",
-            proc=()=>{cycle_wireframe_width(.ALL_ITEMS);},
-            progress_proc=()=>cycle_wireframe_width_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Cycle line width for visible items",
+            target=.VISIBLE,
             proc=()=>{cycle_wireframe_width(.VISIBLE);},
             progress_proc=()=>cycle_wireframe_width_progress_proc(.VISIBLE),
         },
         .{
-            desc="Cycle line width for selected items",
+            target=.SELECTED,
             proc=()=>{cycle_wireframe_width(.SELECTED);},
             progress_proc=()=>cycle_wireframe_width_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_wireframe_width(.ALL_ITEMS);},
+            progress_proc=()=>cycle_wireframe_width_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Cycle line width for",
     key=#char "l",
 };
 
@@ -240,21 +242,22 @@ toggle_normals_visibility_progress_proc :: (target : Target_Items) -> Fraction {
 TOGGLE_NORMALS_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Toggle normals visibility for all items",
-            proc=()=>{toggle_normals_visibility(.ALL_ITEMS);},
-            progress_proc=()=>toggle_normals_visibility_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Toggle normals visibility for visible items",
+            target=.VISIBLE,
             proc=()=>{toggle_normals_visibility(.VISIBLE);},
             progress_proc=()=>toggle_normals_visibility_progress_proc(.VISIBLE),
         },
         .{
-            desc="Toggle normals visibility for selected items",
+            target=.SELECTED,
             proc=()=>{toggle_normals_visibility(.SELECTED);},
             progress_proc=()=>toggle_normals_visibility_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{toggle_normals_visibility(.ALL_ITEMS);},
+            progress_proc=()=>toggle_normals_visibility_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Toggle normals visibility for",
     key=#char "n",
 };
 
@@ -266,21 +269,22 @@ cycle_vertex_label_progress_proc :: (target : Target_Items) -> Fraction {
 CYCLE_VERTEX_LABEL_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Cycle vertex labels for all items",
-            proc=()=>{cycle_vertex_label(.ALL_ITEMS);},
-            progress_proc=()=>cycle_vertex_label_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Cycle vertex labels for visible items",
+            target=.VISIBLE,
             proc=()=>{cycle_vertex_label(.VISIBLE);},
             progress_proc=()=>cycle_vertex_label_progress_proc(.VISIBLE),
         },
         .{
-            desc="Cycle vertex labels for selected items",
+            target=.SELECTED,
             proc=()=>{cycle_vertex_label(.SELECTED);},
             progress_proc=()=>cycle_vertex_label_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_vertex_label(.ALL_ITEMS);},
+            progress_proc=()=>cycle_vertex_label_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Cycle vertex labels for",
     key=#char "j",
 };
 
@@ -292,21 +296,22 @@ cycle_element_label_progress_proc :: (target : Target_Items) -> Fraction {
 CYCLE_ELEMENT_LABEL_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Cycle element labels for all items",
-            proc=()=>{cycle_element_label(.ALL_ITEMS);},
-            progress_proc=()=>cycle_element_label_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Cycle element labels for visible items",
+            target=.VISIBLE,
             proc=()=>{cycle_element_label(.VISIBLE);},
             progress_proc=()=>cycle_element_label_progress_proc(.VISIBLE),
         },
         .{
-            desc="Cycle element labels for selected items",
+            target=.SELECTED,
             proc=()=>{cycle_element_label(.SELECTED);},
             progress_proc=()=>cycle_element_label_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_element_label(.ALL_ITEMS);},
+            progress_proc=()=>cycle_element_label_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Cycle element labels for",
     key=#char "i",
 };
 
@@ -318,21 +323,22 @@ cycle_opacity_progress_proc :: (target : Target_Items) -> Fraction {
 CYCLE_OPACITY_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Cycle opacity 20%%/50%%/100%% for all items",
-            proc=()=>{cycle_opacity(.ALL_ITEMS);},
-            progress_proc=()=>cycle_opacity_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Cycle opacity 20%%/50%%/100%% for visible items",
+            target=.VISIBLE,
             proc=()=>{cycle_opacity(.VISIBLE);},
             progress_proc=()=>cycle_opacity_progress_proc(.VISIBLE),
         },
         .{
-            desc="Cycle opacity 20%%/50%%/100%% for selected items",
+            target=.SELECTED,
             proc=()=>{cycle_opacity(.SELECTED);},
             progress_proc=()=>cycle_opacity_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_opacity(.ALL_ITEMS);},
+            progress_proc=()=>cycle_opacity_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Cycle opacity for",
     key=#char "o",
 };
 
@@ -344,21 +350,22 @@ cycle_backface_mode_progress_proc :: (target : Target_Items) -> Fraction {
 CYCLE_BACKFACE_MODE_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Cycle backface rendering mode for all items",
-            proc=()=>{cycle_backface_mode(.ALL_ITEMS);},
-            progress_proc=()=>cycle_backface_mode_progress_proc(.ALL_ITEMS),
-        },
-        .{
-            desc="Cycle backface rendering mode for visible items",
+            target=.VISIBLE,
             proc=()=>{cycle_backface_mode(.VISIBLE);},
             progress_proc=()=>cycle_backface_mode_progress_proc(.VISIBLE),
         },
         .{
-            desc="Cycle backface rendering mode for selected items",
+            target=.SELECTED,
             proc=()=>{cycle_backface_mode(.SELECTED);},
             progress_proc=()=>cycle_backface_mode_progress_proc(.SELECTED),
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_backface_mode(.ALL_ITEMS);},
+            progress_proc=()=>cycle_backface_mode_progress_proc(.ALL_ITEMS),
+        },
     ],
+    desc="Cycle backface rendering mode for",
     key=#char "b",
 };
 
@@ -369,21 +376,22 @@ just_do_a_regular_button_progress_proc :: () -> Fraction {
 RELOAD_ITEMS_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Reload all items",
-            proc=()=>{reload_items(.ALL_ITEMS);},
-            progress_proc=just_do_a_regular_button_progress_proc,
-        },
-        .{
-            desc="Reload visible items",
+            target=.VISIBLE,
             proc=()=>{reload_items(.VISIBLE);},
             progress_proc=just_do_a_regular_button_progress_proc,
         },
         .{
-            desc="Reload selected items",
+            target=.SELECTED,
             proc=()=>{reload_items(.SELECTED);},
             progress_proc=just_do_a_regular_button_progress_proc,
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{reload_items(.ALL_ITEMS);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
     ],
+    desc="Reload",
     key=cast(u32) Special_Key_Code.F5,
     override_WantCaptureKeyboard=true,
 };
@@ -391,21 +399,22 @@ RELOAD_ITEMS_ACTION_SET :: Action_Set.{
 FOCUS_ITEMS_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
-            desc="Focus camera on all items",
-            proc=()=>{focus_items(.ALL_ITEMS);},
-            progress_proc=just_do_a_regular_button_progress_proc,
-        },
-        .{
-            desc="Focus camera on visible items",
+            target=.VISIBLE,
             proc=()=>{focus_items(.VISIBLE);},
             progress_proc=just_do_a_regular_button_progress_proc,
         },
         .{
-            desc="Focus camera on selected items",
+            target=.SELECTED,
             proc=()=>{focus_items(.SELECTED);},
             progress_proc=just_do_a_regular_button_progress_proc,
         },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{focus_items(.ALL_ITEMS);},
+            progress_proc=just_do_a_regular_button_progress_proc,
+        },
     ],
+    desc="Focus camera on",
     key=#char "f",
 };
 
@@ -434,6 +443,7 @@ init_keymap :: () {
     add_key(*app.keymap_actions, CYCLE_POINT_SIZE_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
+    add_key(*app.keymap_actions, CYCLE_BACKFACE_MODE_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_NORMALS_ACTION_SET);
     add_key(*app.keymap_actions, FOCUS_ITEMS_ACTION_SET);
@@ -450,8 +460,14 @@ init_keymap :: () {
 
     add_key :: (keymap : *Keymap, action_set : Action_Set, loc := #caller_location) {
         for action : action_set.target_action {
-            mod := target_to_modifier(xx it_index);
-            add_key(keymap, action.proc, action.desc, action_set.key, mod, action_set.override_WantCaptureKeyboard, loc);
+            mod := target_to_modifier(action.target);
+            desc : string;
+            if #complete action.target == {
+                case .VISIBLE; desc = sprint("% %", action_set.desc, "visible items");
+                case .SELECTED; desc = sprint("% %", action_set.desc, "selected items");
+                case .ALL_ITEMS; desc = sprint("% %", action_set.desc, "all items");
+            }
+            add_key(keymap, action.proc, desc, action_set.key, mod, action_set.override_WantCaptureKeyboard, loc);
         }
     }
 
