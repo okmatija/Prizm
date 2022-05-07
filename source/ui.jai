@@ -236,6 +236,11 @@ show_item_list_ui :: () {
         {
             ImGui.TableNextColumn();
             visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
+            TOOLTIP :: #run
+                join("Toggle visibility of selected vertices\n",
+                     "FIXME: Unfortunately this checkbox must\n",
+                     "be enabled for sphere clipping to work.");
+            Show_Tooltip(TOOLTIP);
             any_visibility_changed = any_visibility_changed || visibility_changed;
         }
 
