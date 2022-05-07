@@ -271,10 +271,10 @@ render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using disp
     }
 }
 
-render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
     if !surface_visible return;
 
-    render_mesh_common(mesh, render_info, display_info);
+    render_mesh_common(mesh, render_info, display_info, clip_radius_mode);
 
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
     glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
@@ -309,7 +309,7 @@ set_model_view_projection_uniforms :: (program : GLuint, mesh : Mesh) {
     }
 }
 
-render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
 
     maybe_update_render_info(render_info, mesh);
 
@@ -342,7 +342,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
         glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.is_active"), xx clip_sphere_prev.is_active);
 
         // Also check the entity index here so we only render the previous sphere when we're resizing the sphere
-        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx (do_clip_radius_mode() && app.clipping_sphere_mode_entity_index >=0));
+        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx clip_radius_mode);
     }
 
     glBindVertexArray(app.mesh_vao);
@@ -480,11 +480,18 @@ render_entities :: () {
 
     Scope_GL_State();
 
-    render_entity_geometry :: (entity : *Entity) {
+    render_entity_geometry :: (entity : *Entity, entity_index : int) {
         ri := *entity.render_info;
         di :=  entity.display_info;
         old_display_info := entity.display_info;
         defer entity.display_info = old_display_info;
+
+        clip_radius_mode :=
+            do_clip_radius_mode() && app.clipping_sphere_mode_entity_index >= 0 &&
+            (
+                ( app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.entities[entity_index].is_selected) ||
+                (!app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.clipping_sphere_mode_entity_index == entity_index)
+            );
 
         if #complete entity.type == {
             case .POLYLINE_SOUP2;
@@ -505,7 +512,7 @@ render_entities :: () {
 
                 soup := cast(*Polygon_Soup_Entity) entity;
                 render_mesh_points(*soup.mesh, ri, di);
-                render_mesh_triangles(*soup.mesh, ri, di);
+                render_mesh_triangles(*soup.mesh, ri, di, clip_radius_mode);
                 render_aabb(*soup.mesh, ri, di);
 
             case .POINT_CLOUD;
@@ -519,11 +526,11 @@ render_entities :: () {
 
                 mesh := cast(*Mesh_Entity) entity;
                 render_mesh_points(*mesh.mesh, ri, di);
-                if do_clip_radius_mode() {
+                if clip_radius_mode {
                     di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
                 }
-                render_mesh_triangles(*mesh.mesh, ri, di);
-                if do_clip_radius_mode() {
+                render_mesh_triangles(*mesh.mesh, ri, di, clip_radius_mode);
+                if clip_radius_mode {
                     di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
                 } else if di.surface_visible && di.wireframe_width >= 1 {
                     // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
@@ -784,8 +791,8 @@ render_entities :: () {
     Visible_Transparent :: #bake_arguments Entities_Iterator(should_visit = is_visible_transparent);
     Visible_Hovered ::     #bake_arguments Entities_Iterator(should_visit = is_visible_hovered);
 
-    for :Visible_Opaque      app.entities render_entity_geometry(it);
-    for :Visible_Transparent app.entities render_entity_geometry(it);
+    for :Visible_Opaque      app.entities render_entity_geometry(it, it_index);
+    for :Visible_Transparent app.entities render_entity_geometry(it, it_index);
 
     glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
 
@@ -793,7 +800,7 @@ render_entities :: () {
     for :Visible_Transparent app.entities render_entity_text(it);
     for :Visible_Hovered     app.entities render_entity_text(it);
 
-    for :Visible_Hovered     app.entities render_entity_geometry(it);
+    for :Visible_Hovered     app.entities render_entity_geometry(it, it_index);
 }
 
 // This function was added so that we could use Simp *when it was using the same context as the rest of the

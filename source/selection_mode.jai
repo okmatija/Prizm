@@ -2,6 +2,7 @@
 
 do_clip_radius_mode :: (clicked : bool = false) -> bool {
     if ImGui.IsMouseClicked(.Left) assert(ImGui.IsMouseDown(.Left));
+
     button_component := ifx clicked then ImGui.IsMouseClicked(.Left) else ImGui.IsMouseDown(.Left)
     return app.user_selection.is_visible && button_component && io().KeyShift;
 }
@@ -66,18 +67,20 @@ do_selection_mode :: () {
             return;
         }
         current_point := to_point(ray, intersect_t);
+        SPEED :: 2;
+        new_radius := SPEED * distance(entity.display_info.clip_sphere.center, current_point);
 
-        speed :: 2;
-        d := distance(entity.display_info.clip_sphere.center, current_point);
+        // TODO Set a minimum radius size in pixels so if the user just clicks and releases the shape does not completely disappear
 
+        // Update the the radius of the current sphere
         new_sphere : Clip_Sphere = entity.display_info.clip_sphere;
-        new_sphere.radius = speed * d;
+        new_sphere.radius = new_radius;
 
+        // Set the updated sphere on the relevant entities
         entity.display_info.clip_sphere = new_sphere;
-        for :Selected app.entities {
+        if entity.is_selected for :Selected app.entities {
             it.display_info.clip_sphere = new_sphere;
         }
-        app.selection_display_info.clip_sphere = new_sphere;
 
         return;
     }
@@ -112,22 +115,19 @@ do_selection_mode :: () {
                 app.clipping_sphere_mode_entity_index = closest.entity_index;
                 entity := app.entities[app.clipping_sphere_mode_entity_index];
 
-                old_sphere : Clip_Sphere = app.selection_display_info.clip_sphere;
-
                 new_sphere : Clip_Sphere;
                 new_sphere.is_active = true;
                 new_sphere.center = closest.position;
                 new_sphere.radius = 0.;
 
                 // @Cleanup Make this into two calls to an update sphere function!
+                entity.display_info.clip_sphere_prev = entity.display_info.clip_sphere;
                 entity.display_info.clip_sphere = new_sphere;
-                entity.display_info.clip_sphere_prev = old_sphere;
-                for :Selected app.entities {
+                if entity.is_selected for :Selected app.entities {
+                    if it == entity continue; // Must skip entity since we set it above
+                    it.display_info.clip_sphere_prev = it.display_info.clip_sphere;
                     it.display_info.clip_sphere = new_sphere;
-                    it.display_info.clip_sphere_prev = old_sphere;
                 }
-                app.selection_display_info.clip_sphere = new_sphere;
-                app.selection_display_info.clip_sphere_prev = old_sphere;
             }
 
             if use_result_for_repositioning_camera {

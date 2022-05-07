@@ -1,4 +1,3 @@
-// TODO Fix clipping sphere also applying to selected items when it was not started on a selected item
 // TODO Add item_flip_normals
 // TODO Fix missing selection labels 
 // TODO Remove old font stuff
@@ -11,6 +10,7 @@ PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
 - Clarified cycle/toggle state of action buttons by changing the button color
 - Added a button under the Changelog section of the help menu to save the changelog to disk. Useful for searching the changelog
 - Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
+- Fixed bug where clipping sphere mode activated on all items when no items were selected (and hence it should have only activated on the intersected item)
 DONE
 };
 
