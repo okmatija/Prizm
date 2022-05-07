@@ -366,7 +366,28 @@ show_item_list_actions_ui :: () {
         Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "", has_options_menu := false, options_visible := false) #expand {
             mod := current_modifier_flags(); 
             found, target := modifier_to_target(mod);
+
+            has_target := false;
             if found {
+                if #complete target == {
+                    case .ALL_ITEMS;
+                        has_target = app.entities.count != 0;
+                    case .VISIBLE;
+                        for :Visible app.entities {
+                            has_target = true;
+                            break;
+                        }
+                    case .SELECTED;
+                        for :Selected app.entities {
+                            has_target = true;
+                            break;
+                        }
+                }
+            }
+
+            base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
+
+            if has_target {
                 action : Action;
                 for action_set.target_action {
                     if it.target == target {
@@ -376,7 +397,6 @@ show_item_list_actions_ui :: () {
                 }
 
                 progress := action.progress_proc();
-                base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
                 button_color := darken(base_color, cast(float)progress.numer / progress.denom);
 
                 pop_style := false;
@@ -387,14 +407,13 @@ show_item_list_actions_ui :: () {
                     ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
                     pop_style = true;
                 } else if progress.denom != 0 {
+                    hover_color := ifx has_options_menu && io_mouse_right_down() then CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR else button_color;
                     ImGui.PushStyleColor(xx ImGui.Col.Button, button_color);
                     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, button_color);
-                    if has_options_menu && io_mouse_right_down() {
-                        ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    } else {
-                        ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
-                    }
+                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, hover_color);
                     pop_style = true;
+                } else {
+                    assert(action_set.regular_button);
                 }
                 if ImGui.Button(imgui_label(label, *action_set)) {
                     action.proc();
@@ -407,23 +426,27 @@ show_item_list_actions_ui :: () {
 
                 if has_options_menu {
                     push_allocator(temp);
+                    desc := get_action_description(action_set, action.target);
                     binding1, binding2 : Binding_With_Description = ---;
-                    binding1.description, binding1.binding = action.desc, to_string(action_set.key, mod);
+                    binding1.description, binding1.binding = desc, to_string(action_set.key, mod);
                     binding2.description, binding2.binding = "Action options menu", "RMB";
                     Show_Tooltip_Binding(binding1, binding2);
                 } else {
                     push_allocator(temp);
-                    Show_Tooltip_Binding(action.desc, to_string(action_set.key, mod));
+                    desc := get_action_description(action_set, action.target);
+                    Show_Tooltip_Binding(desc, to_string(action_set.key, mod));
                 }
 
             } else {
-                DISABLED_COLOR :: ImGui.ImVec4.{.5, .5, .5, 1.};
-                // // ImGui.PushStyleColor(xx ImGui.Col.Button | .ButtonHovered | .ButtonActive, DISABLED_COLOR);
-                // ImGui.PushStyleColor(xx ImGui.Col.Button, DISABLED_COLOR);
+                if !action_set.regular_button {
+                    ImGui.PushStyleColor(xx ImGui.Col.Button, darken(base_color, 0.));
+                }
                 ImGui.BeginDisabled();
                 ImGui.Button(imgui_label(label, *action_set));
                 ImGui.EndDisabled();
-                // ImGui.PopStyleColor();
+                if !action_set.regular_button {
+                    ImGui.PopStyleColor();
+                }
                 if disabled_tooltip Show_Tooltip(disabled_tooltip);
             }
         }

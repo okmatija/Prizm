@@ -117,18 +117,28 @@ Fraction :: struct {
 
 Action :: struct {
     target : Target_Items;
-    desc : string;
     proc : ()->();
 
     // Actions cycle/toggle item state, this function returns a fraction representing the progress of the state cycling so you can e.g., change the color of the action buttons according to how far along the cycle you are
-    progress_proc : ()->Fraction;
+    progress_proc : ()->Fraction = ()=>Fraction.{0,0};
 }
 
 Action_Set :: struct {
     target_action : [3]Action; #assert(TARGET_ITEMS_COUNT == 3);
     desc : string; // Partial, excludes target-specific postfix e.g., "all items"
     key : u32;
+    regular_button := false; // If true a simple ImGui.Button, otherwise a button which cycles/toggles state and changes color accordingly
     override_WantCaptureKeyboard := false;
+}
+
+get_action_description :: (action_set : Action_Set, action_target : Target_Items) -> string {
+    desc : string;
+    if #complete action_target == {
+        case .VISIBLE; desc = sprint("% %", action_set.desc, "visible items");
+        case .SELECTED; desc = sprint("% %", action_set.desc, "selected items");
+        case .ALL_ITEMS; desc = sprint("% %", action_set.desc, "all items");
+    }
+    return desc;
 }
 
 ALL_ITEMS_MOD :: Modifier_Flags.{shift_pressed=true};
@@ -159,6 +169,7 @@ toggle_clipping_progress_proc :: (target : Target_Items) -> Fraction {
 
 TOGGLE_CLIPPING_ACTION_SET :: Action_Set.{
     target_action=.[
+        // @Cleanup We repeat the target here because we need constant procs with zero inputs/ouputs so the body of add_key below works
         .{
             target=.VISIBLE,
             proc=()=>{toggle_clipping(.VISIBLE);},
@@ -369,30 +380,24 @@ CYCLE_BACKFACE_MODE_ACTION_SET :: Action_Set.{
     key=#char "b",
 };
 
-just_do_a_regular_button_progress_proc :: () -> Fraction {
-    return .{0,0};
-}
-
 RELOAD_ITEMS_ACTION_SET :: Action_Set.{
     target_action=.[
         .{
             target=.VISIBLE,
             proc=()=>{reload_items(.VISIBLE);},
-            progress_proc=just_do_a_regular_button_progress_proc,
         },
         .{
             target=.SELECTED,
             proc=()=>{reload_items(.SELECTED);},
-            progress_proc=just_do_a_regular_button_progress_proc,
         },
         .{
             target=.ALL_ITEMS,
             proc=()=>{reload_items(.ALL_ITEMS);},
-            progress_proc=just_do_a_regular_button_progress_proc,
         },
     ],
     desc="Reload",
     key=cast(u32) Special_Key_Code.F5,
+    regular_button=true,
     override_WantCaptureKeyboard=true,
 };
 
@@ -401,21 +406,19 @@ FOCUS_ITEMS_ACTION_SET :: Action_Set.{
         .{
             target=.VISIBLE,
             proc=()=>{focus_items(.VISIBLE);},
-            progress_proc=just_do_a_regular_button_progress_proc,
         },
         .{
             target=.SELECTED,
             proc=()=>{focus_items(.SELECTED);},
-            progress_proc=just_do_a_regular_button_progress_proc,
         },
         .{
             target=.ALL_ITEMS,
             proc=()=>{focus_items(.ALL_ITEMS);},
-            progress_proc=just_do_a_regular_button_progress_proc,
         },
     ],
     desc="Focus camera on",
     key=#char "f",
+    regular_button=true,
 };
 
 // EDIT_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{kinda_toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items", key=#char "v", mod=SELECTED_MOD};
@@ -461,12 +464,7 @@ init_keymap :: () {
     add_key :: (keymap : *Keymap, action_set : Action_Set, loc := #caller_location) {
         for action : action_set.target_action {
             mod := target_to_modifier(action.target);
-            desc : string;
-            if #complete action.target == {
-                case .VISIBLE; desc = sprint("% %", action_set.desc, "visible items");
-                case .SELECTED; desc = sprint("% %", action_set.desc, "selected items");
-                case .ALL_ITEMS; desc = sprint("% %", action_set.desc, "all items");
-            }
+            desc := get_action_description(action_set, action.target);
             add_key(keymap, action.proc, desc, action_set.key, mod, action_set.override_WantCaptureKeyboard, loc);
         }
     }
