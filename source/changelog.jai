@@ -1,8 +1,14 @@
+// TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
+
+// TODO Make tooltips over item color square show the shortcuts
 // TODO Add item_flip_normals
 // TODO Fix missing selection labels 
 // TODO Remove old font stuff
 // TODO Do I need to keep the refactoring I did to the old font stuff? e.g., pulling out the gl state setting stuff?
 // TODO Use fast Simp path with cached font for all font stuff
+
+// TODO Make UI look nice when there are no items loaded, probably we should still show actions?
+// TODO make item list collapsable
 
 PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
 - Improved performance of text label rendering (Fixes ISSUE_004)

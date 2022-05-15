@@ -54,6 +54,8 @@ App :: struct {
     // Item Context menu UI, Action button UI and Action keybindings edit this value and apply it to all target entities (see Target_Items enum)
     // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
     // element label themes, but rather than pressing the checkboxes, we change the theme with the hotkey
+    // @FIXME This name is confusing, its not related to the user_selection object, its just a display info that
+    //  is used for group edits, not even just selected target items now either..! Maybe action_ is a better prefix?
     selection_display_info : Display_Info;
     selection_display_info.points_visible = false;
     selection_display_info.normals_visible = false;

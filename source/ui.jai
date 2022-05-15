@@ -399,13 +399,6 @@ show_item_list_actions_ui :: () {
 
         // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
 
-        // TODO make item list collapsable
-        // TODO add some separators
-        // TODO Make tooltips over item color square show the shortcuts
-        // TODO Make UI look nice when there are no items loaded, probably we should still show operations
-        // @Maybe Change the button colors depending on what modifier is pressed
-        // @Maybe Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
-
         Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "") #expand {
             mod := current_modifier_flags(); 
             found, target := modifier_to_target(mod);
