@@ -1,4 +1,4 @@
-#run build();
+#run,stallable build(); // If plugins have assertions, they may stall.
 
 HELP_STRING :: #string DONE
 
@@ -18,24 +18,24 @@ build :: () {
 
     set_working_directory(#filepath);
 
-    command_line_arguments := compiler_get_command_line_arguments();
-
     Has_Argument :: (arg : string) -> bool #expand {
         return array_find(command_line_arguments, arg);
-    }
-
-    if Has_Argument("help") {
-        print(HELP_STRING);
-        exit(0);
     }
 
     // Create a workspace where we will compile our actual program
     w := compiler_create_workspace(OUTPUT_EXE_NAME);
     if !w exit(1);
 
+    command_line_arguments := get_build_options(w).compile_time_command_line;
+
+    if Has_Argument("help") {
+        print(HELP_STRING);
+        exit(0);
+    }
+
     {
         mode : Build_Mode;
-        mode.set_icon = false;
+        mode.set_icon = false; // @FIXME Replace this with the icon plugin
         mode.build_options = get_build_options(w);
         {
             using mode.build_options;
@@ -85,10 +85,20 @@ build :: () {
     array_add(*new_path, "source/modules");
     build_mode.build_options.import_path = new_path;
 
+    plugin_names : [..]string;
+    array_add(*plugin_names, "Check");
+
+    // Now that we know what the plugins are, init them.
+    init_plugins(plugin_names, *plugins, w);
+
     set_build_options(build_mode.build_options, w);
 
     {
+        for plugins if it.before_intercept it.before_intercept(it);
+
         compiler_begin_intercept(w);
+
+        for plugins if it.add_source it.add_source(it);
 
         add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_mode.build_options.output_executable_name), w);
         add_build_file("source/prism.jai", w);
@@ -99,6 +109,9 @@ build :: () {
             if !message {
                 continue;
             }
+
+            // Pass the message to all plugins.
+            for plugins if it.message it.message(it, message);
 
             if message.kind == .COMPLETE {
                 if build_mode.set_icon {
@@ -123,7 +136,6 @@ build :: () {
 
                 if message.kind == {
                     case .TYPECHECKED;
-                        do_error_checking(message, check_bindings=true);
 
                         typechecked := cast(*Message_Typechecked) message;
 
@@ -169,6 +181,9 @@ build :: () {
         }
 
         compiler_end_intercept(w);
+
+        for plugins if it.finish   it.finish  (it);
+        for plugins if it.shutdown it.shutdown(it);
     }
 }
 
@@ -470,8 +485,10 @@ set_icon_and_manifest :: (options: Build_Options) {
 // Warning: Enabling this hides prints to the console!
 // #run { #if OS == .WINDOWS { disable_runtime_console(); } }
 
+plugins: [..] *Metaprogram_Plugin;
+
 #import "Basic";
-#import "Check";
+#import "Metaprogram_Plugins";
 #import "Compiler";
 #import "Program_Print";
 #import "Sort";
