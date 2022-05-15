@@ -125,7 +125,7 @@ Action :: struct {
 
 Action_Set :: struct {
     target_action : [3]Action; #assert(TARGET_ITEMS_COUNT == 3);
-    desc : string; // Partial, excludes target-specific postfix e.g., "all items"
+    desc : string; // Important: A target-specific postfix is added by get_action_description
     key : u32;
     regular_button := false; // If true a simple ImGui.Button, otherwise a button which cycles/toggles state and changes color accordingly
     override_WantCaptureKeyboard := false;
@@ -421,6 +421,27 @@ FOCUS_ITEMS_ACTION_SET :: Action_Set.{
     regular_button=true,
 };
 
+// Note: no action button
+CLEAR_LABELS_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            target=.VISIBLE,
+            proc=()=>{clear_all_labels(.VISIBLE);},
+        },
+        .{
+            target=.SELECTED,
+            proc=()=>{clear_all_labels(.SELECTED);},
+        },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{clear_all_labels(.ALL_ITEMS);},
+        },
+    ],
+    desc="Clear labels for",
+    key=#char "x"
+};
+
+
 // EDIT_VISIBILITY_SELECTED_OP ::  Operation.{proc=()=>{kinda_toggle_is_visible(.SELECTED);},  desc="Toggle visibility on selected items", key=#char "v", mod=SELECTED_MOD};
 // EDIT_VISIBILITY_ALL_ITEMS_OP :: Operation.{proc=()=>{kinda_toggle_is_visible(.ALL_ITEMS);}, desc="Toggle visibility on all items",      key=#char "v", mod=ALL_ITEMS_MOD};
 // EDIT_VISIBILITY_VISIBLE_OP ::   Operation.{proc=()=>{kinda_toggle_is_visible(.VISIBLE);},   desc="Hide all visible items",              key=#char "v", mod=VISIBLE_MOD};
@@ -446,6 +467,7 @@ init_keymap :: () {
     add_key(*app.keymap_actions, CYCLE_POINT_SIZE_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
+    add_key(*app.keymap_actions, CLEAR_LABELS_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_BACKFACE_MODE_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_NORMALS_ACTION_SET);
@@ -574,10 +596,17 @@ toggle_clipping :: (target : Target_Items) {
 clear_all_labels :: (target : Target_Items) {
     for app.entities if Is_Target(it) {
         it.display_info.vertex_label_style.show_index = false;
-        it.display_info.vertex_label_style.show_index = false;
+        it.display_info.vertex_label_style.show_position = false;
         it.display_info.element_label_theme.show_index = false;
-        it.display_info.element_label_theme.show_index = false;
+        it.display_info.element_label_theme.show_position = false;
     }
+
+    // Also clear the display info used to set action button state
+    app_info : *Display_Info = *app.selection_display_info;
+    app_info.vertex_label_style.show_index = false;
+    app_info.vertex_label_style.show_position = false;
+    app_info.element_label_theme.show_index = false;
+    app_info.element_label_theme.show_position = false;
 }
 
 cycle_label_theme :: (target : Target_Items, theme : *Label_Theme) -> Fraction {

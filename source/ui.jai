@@ -340,25 +340,63 @@ show_item_list_actions_ui :: () {
 
     ImGui.Separator();
 
-    do_actions_tree := ImGui.TreeNodeEx("Actions", .DefaultOpen); // We do this so we can have the tooltip below appear when the tree is open AND closed
+    // This boolean is useful so we can have the tooltip below appear when the tree is open AND closed
+    do_tree : bool = ImGui.TreeNodeEx("Actions", ImGui.TreeNodeFlags.DefaultOpen | .SpanAvailWidth);
+
+    if ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Right) {
+        display_action_buttons = !display_action_buttons;
+    }
+
     {
         bindings : [..]Binding_With_Description;
         bindings.allocator = temp;
-        array_add(*bindings, make_Binding_With_Description(to_string(0, ALL_ITEMS_MOD), "Target all items"));
-        array_add(*bindings, make_Binding_With_Description(to_string(0, SELECTED_MOD),  "Target selected items"));
-        Show_Tooltip_Binding(..bindings, header_text="Change Action targets with modifier keys");
+        array_add(*bindings, make_Binding_With_Description(to_string(0, ALL_ITEMS_MOD), "When held, target all items"));
+        array_add(*bindings, make_Binding_With_Description(to_string(0, SELECTED_MOD),  "When held, target selected items"));
+        array_add(*bindings, make_Binding_With_Description("RMB",  "Toggle between Button UI/Settings UI"));
+        // Show_Tooltip_Binding(..bindings, header_text="Change Action targets with modifier keys");
+        Show_Tooltip_Binding(..bindings);
     }
 
-    if do_actions_tree {
+    target_exists, target_items : /*bool, Target_Items*/ = modifier_to_target(current_modifier_flags()); // @CompilerBug, how to specify types with multiple return values
+
+    action_target_text :: (target_items : Target_Items) {
+        if app.entities.count {
+            if #complete target_items == {
+                case .ALL_ITEMS;
+                    count := app.entities.count;
+                    ImGui.Text("Target all items (%)", count);
+                case .VISIBLE;
+                    count := 0; for :Visible app.entities count += 1;
+                    ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
+                case .SELECTED;
+                    count := 0; for :Selected app.entities count += 1;
+                    ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
+            }
+        }
+    }
+
+    if do_tree && display_action_buttons == false {
         defer ImGui.TreePop();
 
-        ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
-        defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+        action_target_text(target_items);
 
-        target_items := Target_Items.VISIBLE;
-        if current_modifier_flags() == VISIBLE_MOD   target_items = .VISIBLE;
-        if current_modifier_flags() == SELECTED_MOD  target_items = .SELECTED;
-        if current_modifier_flags() == ALL_ITEMS_MOD target_items = .ALL_ITEMS;
+        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+        // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+
+        // Hide the clipping ui since its confusing in this context
+        unused_aabb : AxisBox3;
+        set := display_info_ui(*app.selection_display_info, unused_aabb, clipping_ui=false);
+        if target_exists apply_display_info_update(set, target_items);
+    }
+
+    if do_tree && display_action_buttons == true {
+        defer ImGui.TreePop();
+
+        action_target_text(target_items);
+
+        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+        // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+
         // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
 
         // TODO make item list collapsable
@@ -368,7 +406,7 @@ show_item_list_actions_ui :: () {
         // @Maybe Change the button colors depending on what modifier is pressed
         // @Maybe Make these button cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
 
-        Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "", has_options_menu := false, options_visible := false) #expand {
+        Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "") #expand {
             mod := current_modifier_flags(); 
             found, target := modifier_to_target(mod);
 
@@ -405,17 +443,10 @@ show_item_list_actions_ui :: () {
                 button_color := darken(base_color, cast(float)progress.numer / progress.denom);
 
                 pop_style := false;
-                if options_visible {
-                    assert(has_options_menu);
-                    ImGui.PushStyleColor(xx ImGui.Col.Button, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    pop_style = true;
-                } else if progress.denom != 0 {
-                    hover_color := ifx has_options_menu && io_mouse_right_down() then CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR else button_color;
+                if progress.denom != 0 {
                     ImGui.PushStyleColor(xx ImGui.Col.Button, button_color);
                     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, button_color);
-                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, hover_color);
+                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
                     pop_style = true;
                 } else {
                     assert(action_set.regular_button);
@@ -429,14 +460,7 @@ show_item_list_actions_ui :: () {
                     ImGui.PopStyleColor();
                 }
 
-                if has_options_menu {
-                    push_allocator(temp);
-                    desc := get_action_description(action_set, action.target);
-                    binding1, binding2 : Binding_With_Description = ---;
-                    binding1.description, binding1.binding = desc, to_string(action_set.key, mod);
-                    binding2.description, binding2.binding = "Action options menu", "RMB";
-                    Show_Tooltip_Binding(binding1, binding2);
-                } else {
+                {
                     push_allocator(temp);
                     desc := get_action_description(action_set, action.target);
                     Show_Tooltip_Binding(desc, to_string(action_set.key, mod));
@@ -464,53 +488,9 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Cyc Vert Size ", CYCLE_POINT_SIZE_ACTION_SET);
 
-        Action_Button("Cyc Elem Label", CYCLE_ELEMENT_LABEL_ACTION_SET, has_options_menu=true, options_visible=ImGui.IsPopupOpen("##Cyc_Elem_Label_context_menu"));
-        {
-            current_pos := ImGui.GetWindowPos();
-            current_size := ImGui.GetWindowSize();
-            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
-            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-
-            // Set popup border color to match the selection/RMB target item color
-            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-            if ImGui.BeginPopupContextItem("##Cyc_Elem_Label_context_menu") {
-                defer ImGui.EndPopup();
-
-                // Undo the previous thing so internals don't have this color
-                ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-                update : Display_Info_Update;
-                ImGui.Text("Cycle Element Label Options");
-                ImGui.Separator();
-                show_label_theme_ui(*update.element_label_theme_update, *app.selection_display_info.element_label_theme);
-                apply_display_info_update(update, target_items);
-            }
-        }
+        Action_Button("Cyc Elem Label", CYCLE_ELEMENT_LABEL_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET, has_options_menu=true, options_visible=ImGui.IsPopupOpen("##Cyc_Vert_Label_context_menu"));
-        {
-            current_pos := ImGui.GetWindowPos();
-            current_size := ImGui.GetWindowSize();
-            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
-            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-
-            // Set popup border color to match the selection/RMB target item color
-            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-            if ImGui.BeginPopupContextItem("##Cyc_Vert_Label_context_menu") {
-                defer ImGui.EndPopup();
-
-                // Undo the previous thing so internals don't have this color
-                ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-                update : Display_Info_Update;
-                ImGui.Text("Cycle Vertex Label Options");
-                ImGui.Separator();
-                show_label_theme_ui(*update.vertex_label_style_update, *app.selection_display_info.vertex_label_style);
-                apply_display_info_update(update, target_items);
-            }
-        }
+        Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET);
 
         Action_Button("Tgl Clipping  ", TOGGLE_CLIPPING_ACTION_SET);
         ImGui.SameLine();
@@ -520,24 +500,6 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Reload Items  ", RELOAD_ITEMS_ACTION_SET);
 
-        if app.entities.count {
-            if #complete target_items == {
-                case .ALL_ITEMS;
-                    count := app.entities.count;
-                    ImGui.Text("Operating on all items (%)", count);
-                case .VISIBLE;
-                    count := 0; for :Visible app.entities count += 1;
-                    ImGui.Text("Operating on % visible item%", count, ifx count == 1 then "" else "s");
-                case .SELECTED;
-                    count := 0; for :Selected app.entities count += 1;
-                    ImGui.Text("Operating on % selected item%", count, ifx count == 1 then "" else "s");
-            }
-        }
-
-        // ImGui.Separator();
-        // if ImGui.Button("Tgl Console   ") { }
-        // ImGui.SameLine();
-        // if ImGui.Button("Tgl Help Menu") { }
     }
 }
 
@@ -642,7 +604,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             display_transform(entity);
 
         } else {
-            if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s"))) {
+            if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
                 defer ImGui.TreePop();
 
                 // Unindent so the reload buttons are placed as they are when there is one item and no selection
@@ -1092,11 +1054,17 @@ show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
     theme.visible_radius_px = cast(int) radius_px;
 }
 
-display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : bool = true, lines_ui : bool = true, faces_ui : bool = true) -> Display_Info_Update {
+display_info_ui :: (
+    display_info : *Display_Info,
+    aabb :         AxisBox3,
+    normals_ui :   bool = true,
+    lines_ui :     bool = true,
+    faces_ui :     bool = true,
+    clipping_ui :  bool = true) -> Display_Info_Update {
 
     set : Display_Info_Update;
 
-    if ImGui.TreeNodeEx("Rendering", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Rendering", ImGui.TreeNodeFlags.DefaultOpen | .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         // FIXME FIXME: opacity should control wireframe??
@@ -1185,15 +1153,17 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
         }
     }
 
-    show_clipping_ui(*set, display_info, aabb);
+    if clipping_ui {
+        show_clipping_ui(*set, display_info, aabb);
+    }
 
-    if ImGui.TreeNodeEx("Point Labels") {
+    if ImGui.TreeNodeEx("Point Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
         show_label_theme_ui(*set.vertex_label_style_update, *display_info.vertex_label_style);
     }
 
     // @TODO Rename element to triangle/segment/segment for meshes/polylines/polygons
-    if ImGui.TreeNodeEx("Element Labels") {
+    if ImGui.TreeNodeEx("Element Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
         show_label_theme_ui(*set.element_label_theme_update, *display_info.element_label_theme);
     }
@@ -1202,7 +1172,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, normals_ui : 
 }
 
 display_stats :: (entity : *Entity) {
-    if ImGui.TreeNodeEx("Stats") {
+    if ImGui.TreeNodeEx("Stats", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         if #complete entity.type == {
@@ -1249,7 +1219,7 @@ display_stats :: (entity : *Entity) {
 }
 
 display_transform :: (entity : *Entity) {
-    if ImGui.TreeNodeEx("Transform") {
+    if ImGui.TreeNodeEx("Transform", .SpanAvailWidth) {
         defer ImGui.TreePop();
         shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
         ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
@@ -1259,7 +1229,7 @@ display_transform :: (entity : *Entity) {
 
 show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {
 
-    if ImGui.TreeNodeEx("Clipping", .None /*.DefaultOpen*/) {
+    if ImGui.TreeNodeEx("Clipping", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         if ImGui.BeginTable("##Clipping UI Table", 7) { // , flags=ImGui.TableFlags.SizingFixedFit) {
@@ -1378,3 +1348,7 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
 }
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
+
+#scope_file
+
+display_action_buttons := true;
