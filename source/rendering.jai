@@ -707,8 +707,8 @@ render_entities :: () {
                 projection_from_model := make_projection_from_world(app.camera) * mesh.mesh.world_from_model;
 
                 // Caches for glyph quads
-                point_label_quads := temp_array(Element_Type=Simp.Font_Quad);
-                element_label_quads := temp_array(Element_Type=Simp.Font_Quad);
+                point_label_quads :   [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
+                element_label_quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
 
                 for mesh.mesh.positions {
                     if point_theme.show_backfacing == false {
@@ -721,44 +721,30 @@ render_entities :: () {
                         continue;
                     }
 
-                    text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
+                    text_position_px : Vector2 = get_text_screen_position(make_vector4(it, 1), projection_from_model);
 
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
-                        // render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
-
-                        // Generate and cache quad data before its lost on the next call to prepare_text
-                        Simp.prepare_text(app.simp_font, text);
-                        Simp.generate_quads_for_prepared_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, 0, point_theme.label_scale);
-                        for app.simp_font.current_quads array_add(*point_label_quads, it);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                     }
                 }
 
-                {
-                    cached_point_font : Simp.Dynamic_Font = <<app.simp_font;
-                    cached_point_font.current_quads = point_label_quads;
-                    Simp.draw_generated_quads(*cached_point_font, point_theme.label_color);
-                }
+                draw_cached_text_quads(point_label_quads, point_theme);
 
                 ProcessTriangle :: (triangle : Triangle3, triangle_index : int) #expand {
-                    if `element_theme.show_backfacing == false {
+                    if element_theme.show_backfacing == false {
                         if dot_product(compute_normal(triangle), current_look_direction()) > 0 {
                             continue;
                         }
                     }
 
                     centroid := (triangle.a + triangle.b + triangle.c) / 3;
-                    if `is_clipped(`entity.display_info, centroid) continue;
+                    if is_clipped(entity.display_info, centroid) continue;
 
-                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), `projection_from_model);
-                    if on_screen_in_disk(text_position_px, `element_theme) {
-                        text := get_point_text(centroid, triangle_index, `element_theme);
-                        // render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
-
-                        // Generate and cache quad data before its lost on the next call to prepare_text
-                        Simp.prepare_text(app.simp_font, text);
-                        Simp.generate_quads_for_prepared_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, 0, `element_theme.label_scale);
-                        for app.simp_font.current_quads array_add(*`element_label_quads, it);
+                    text_position_px := get_text_screen_position(make_vector4(centroid, 1), projection_from_model);
+                    if on_screen_in_disk(text_position_px, element_theme) {
+                        text := get_point_text(centroid, triangle_index, element_theme);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme);
                     }
                 }
 
@@ -775,11 +761,7 @@ render_entities :: () {
                     Visit_Primitives_Near_Ray(mesh.spatial, ray, distance, #code ProcessTriangle(primitive, primitive_id));
                 }
 
-                {
-                    cached_font : Simp.Dynamic_Font = <<app.simp_font;
-                    cached_font.current_quads = element_label_quads;
-                    Simp.draw_generated_quads(*cached_font, element_theme.label_color);
-                }
+                draw_cached_text_quads(element_label_quads, element_theme);
         }
     }
 
@@ -874,4 +856,19 @@ render_background :: () {
             glBindVertexArray(app.background_vao);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
+}
+
+#scope_file
+
+// Generate and cache quad data before its lost on the next call to prepare_text
+cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Vector2, theme : Label_Theme) {
+    Simp.prepare_text(app.simp_font, text);
+    Simp.generate_quads_for_prepared_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, 0, theme.label_scale);
+    for app.simp_font.current_quads array_add(cache, it);
+}
+
+draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, theme : Label_Theme) {
+    cached_font : Simp.Dynamic_Font = <<app.simp_font;
+    cached_font.current_quads = quads;
+    Simp.draw_generated_quads(*cached_font, theme.label_color);
 }
