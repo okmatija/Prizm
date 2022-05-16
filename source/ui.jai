@@ -21,10 +21,10 @@ show_item_list_ui :: () {
     if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
         defer ImGui.TreePop();
 
-        if entities.count == 0 {
-            ImGui.Text("(none)");
-            Show_Tooltip("Drag and drop files or pass them\nas command-line arguments");
-        }
+        // if entities.count == 0 {
+        //     ImGui.Text("(none)");
+        //     Show_Tooltip("Drag and drop files or pass them\nas command-line arguments");
+        // }
 
         any_visibility_changed := false;
 
@@ -207,6 +207,34 @@ show_item_list_ui :: () {
 
                 show_item_context_menu(it, it_index);
             }
+
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            ImGui.Button("Add   ");
+            Show_Tooltip("Click to load a preset shape, or\nDrag and Drop files into Prism, or\nRestart Prism with files passed as arguments");
+
+            current_pos := ImGui.GetWindowPos();
+            current_size := ImGui.GetWindowSize();
+            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+            
+            // Set popup border color to match the selection/RMB target item color
+            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
+            if ImGui.BeginPopupContextItem("##Presets", popup_flags=.MouseButtonLeft) {
+                defer ImGui.EndPopup();
+
+                // Undo the previous thing so internals don't have this color
+                ScopedPopupBorderTheme(original_border_color, original_border_size);
+
+                ImGui.Text("Preset shapes");
+                ImGui.Separator();
+
+                if ImGui.Button("Cube   ") { add_preset_cube(); ImGui.CloseCurrentPopup(); }
+                ImGui.SameLine();
+                if ImGui.Button("Widget ") { add_preset_widget(); ImGui.CloseCurrentPopup(); }
+            }
+
 
             if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
                 fit_scene_on_screen();

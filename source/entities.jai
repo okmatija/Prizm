@@ -16,6 +16,7 @@ Entity :: struct {
     is_visible := true;
     is_selected := false;
     is_hovered := false;
+    is_preset_shape := false;
 
     render_info : Render_Info;
     display_info : Display_Info;
@@ -297,6 +298,24 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
 
             log_warning("Unexpected unknown geometry format in init_entity_base_parameters, called from %", loc);
     }
+}
+
+load_entity_from_memory :: (filename : string, contents : string) -> *Entity {
+    result : *Entity;
+
+    if ends_with_nocase(filename, "obj") {
+        result = load_obj(filename, contents);
+    } else if ends_with_nocase(filename, "wkt") {
+        result = load_wkt(filename, contents);
+    }
+
+    if result {
+        log("Loaded file '%', with type %", filename, result.type);
+    } else {
+        log_error("Could not load file '%'", filename);
+    }
+
+    return result;
 }
 
 load_entity_from_file :: (filename : string) -> *Entity {

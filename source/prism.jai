@@ -1,5 +1,7 @@
 #load "app.jai";
 
+
+
 main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -202,6 +204,17 @@ main :: () {
 }
 
 load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entity {
+    contents := read_entire_file(filename);
+    defer free(contents);
+
+    return load_one_file(filename, contents, loading_from_command_line);
+}
+
+load_one_file :: (filename : string, contents : string, loading_from_command_line : bool) -> *Entity {
+    if !contents {
+        return null;
+    }
+
     found, found_index := find_entity_with_max_generation_index(filename);
     if found {
         if #complete app.settings.duplicate_file_behaviour == {
@@ -219,7 +232,7 @@ load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entit
                 } else {
 
                     // Only affects the entity with maximum generation index
-                    entity := load_entity_from_file(filename);
+                    entity := load_entity_from_memory(filename, contents);
                     if entity {
                         entity.generation_index = found.generation_index;
                         entity.display_info = found.display_info;
@@ -232,7 +245,7 @@ load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entit
 
             case .APPEND;
 
-                entity := load_entity_from_file(filename);
+                entity := load_entity_from_memory(filename, contents);
                 if entity {
                     entity.generation_index = found.generation_index + 1;
                     array_add(*app.entities, entity);
@@ -240,7 +253,7 @@ load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entit
                 }
         }
     } else {
-        entity := load_entity_from_file(filename);
+        entity := load_entity_from_memory(filename, contents);
         if entity {
             array_add(*app.entities, entity);
             return entity;

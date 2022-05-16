@@ -460,6 +460,8 @@ init_keymap :: () {
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
+    add_key(*app.keymap, add_preset_cube, "Add preset shape - cube", xx Special_Key_Code.F1);
+    add_key(*app.keymap, add_preset_widget, "Add preset shape - widget", xx Special_Key_Code.F2);
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
@@ -804,7 +806,9 @@ kinda_toggle_is_visible :: (target : Target_Items) {
 
 reload_items :: (target : Target_Items) {
     for app.entities if Is_Target(it) {
-        app.entities[it_index] = reload_entity(it);
+        if it.is_preset_shape == false {
+            app.entities[it_index] = reload_entity(it);
+        }
     }
 }
 
@@ -852,4 +856,25 @@ my_debug_function :: () {
 
     app.debug_frame = true;
     // Write your debug code here
+}
+
+add_preset_cube :: () {
+    CONTENTS :: #run read_entire_file("shapes/cube.obj");
+    entity := load_one_file("cube.obj", CONTENTS, false);
+    entity.is_preset_shape = true;
+    // @Incomplete Shift along the cube based on the generation index, so we can keep adding them and they won't be coincident?
+    // found, found_index := find_entity_with_max_generation_index("preset cube");
+    // if found {
+    //     shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
+    //     ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
+    //     entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
+    // }
+    fit_scene_on_screen();
+}
+
+add_preset_widget :: () {
+    CONTENTS :: #run read_entire_file("shapes/widget.obj");
+    entity := load_one_file("widget.obj", CONTENTS, false);
+    entity.is_preset_shape = true;
+    fit_scene_on_screen();
 }

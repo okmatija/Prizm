@@ -1,15 +1,19 @@
+// http://paulbourke.net/dataformats/obj/
+
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Tests
 
-// @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
 load_obj :: (filename : string) -> *Entity {
-
-    // http://paulbourke.net/dataformats/obj/
-
     log("Loading file '%'... ", filename);
 
     data := read_entire_file(filename);
     defer free(data);
+
+    return load_obj(filename, data);
+}
+
+// @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
+load_obj :: (filename : string, data : string) -> *Entity {
 
     if !data {
         log("File was empty");

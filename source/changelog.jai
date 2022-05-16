@@ -1,4 +1,5 @@
 // TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
+// TODO Fix missing shading when using face-normal rendering. looks like its just a solid color??
 
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Add item_flip_normals
@@ -22,6 +23,7 @@ PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
   - Added a button under the Changelog section of the help menu to save the changelog to disk. Useful for searching the changelog
   - Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
   - Added a keybinding 'x' to clear all element and vertex text labels from target items, which depend on the modifiers pressed (press h for help)
+- Added some preset shapes which are baked into the executable, press 'F1' to load a cube and 'F2' to load a "widget"
 - Fixed bug where clipping sphere mode activated on all items when no items were selected (and hence it should have only activated on the intersected item)
 DONE
 };
