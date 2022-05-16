@@ -12,6 +12,8 @@ NICE_GREY :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
 // IMGUI_BUTTON_DARK_BLUE_TETRADIC_PURPLE :: #run color_u32_as_vector4(0xB12BAF);
 // IMGUI_BUTTON_DARK_BLUE_TETRADIC_YELLOW :: NICE_YELLOW; // #run color_u32_as_vector4(0xB1702B);
 
+FONT_SIZE :: 58;
+
 BORDER_SIZE :: 3;
 
 // Chosen using the tetradic option here, with the default button color as input https://www.canva.com/colors/color-wheel/

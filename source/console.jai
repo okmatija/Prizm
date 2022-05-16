@@ -176,6 +176,11 @@ console_draw :: () {
     input_window_height : float = -1;
     scroll_delta_request : float;
 
+    ImGui.PushStyleVar(xx ImGui.StyleVar.WindowRounding, 0);
+    ImGui.PushStyleVar(xx ImGui.StyleVar.PopupRounding, 0);
+    defer ImGui.PopStyleVar();
+    defer ImGui.PopStyleVar();
+
     // Draw input window
     {
         console_top_y := app.current_window_height * .6;

@@ -137,8 +137,10 @@ main :: () {
 
     ImGui.StyleColorsDark();
     // ImGui.StyleColorsLight();
-    ImGui.GetStyle().WindowRounding = 0;
+    ImGui.GetStyle().WindowRounding = 4;
+    ImGui.GetStyle().PopupRounding = 4;
     ImGui.GetStyle().FrameBorderSize = 1;
+    ImGui.GetStyle().ChildBorderSize = 5;
 
     load_from_command_line();
 
@@ -175,7 +177,9 @@ main :: () {
         render_axes_triad();
         do_selection_mode();
 
-        // ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+        if app.show_imgui_demo_window {
+            ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+        }
 
         // Rendering
         ImGui.Render();

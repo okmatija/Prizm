@@ -10,14 +10,18 @@
 // TODO Make UI look nice when there are no items loaded, probably we should still show actions?
 // TODO make item list collapsable
 
+// TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
+
 PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
 - Improved performance of text label rendering (Fixes ISSUE_004)
-- Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and setting the target item(s) background rect color
-- Clarified cycle/toggle state of action buttons by changing the button color
-- Added an alternative UI for actions (a.k.a. state changes applied to groups of items) accessible via RMB on the 'Actions' dropdown header
-- Added a button under the Changelog section of the help menu to save the changelog to disk. Useful for searching the changelog
-- Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
-- Added a keybinding 'x' to clear all element and vertex text labels from target items, which depend on the modifiers pressed (press h for help)
+- Improvements/changes to the UI:
+  - Reorganised the main panel containing the item list so this is now foldable and have selection items under a separate tree section (future work will add the option to have multiple selection items)
+  - Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and setting the target item(s) background rect color
+  - Clarified cycle/toggle state of action buttons by changing the button color
+  - Added an alternative UI for actions (a.k.a. state changes applied to groups of items) accessible via RMB on the 'Actions' dropdown header
+  - Added a button under the Changelog section of the help menu to save the changelog to disk. Useful for searching the changelog
+  - Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
+  - Added a keybinding 'x' to clear all element and vertex text labels from target items, which depend on the modifiers pressed (press h for help)
 - Fixed bug where clipping sphere mode activated on all items when no items were selected (and hence it should have only activated on the intersected item)
 DONE
 };

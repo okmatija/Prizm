@@ -94,8 +94,7 @@ App :: struct {
     settings : User_Settings;
 
     closing_application := false; // Set this to true to quit the application on the next frame
-    show_imgui_demo_window := true;
-
+    show_imgui_demo_window := false;
 
     Version :: struct {
         name : string;

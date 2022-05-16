@@ -4,10 +4,11 @@ WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 show_item_list_ui :: () {
     using app;
 
-    if !entities.count return;
-
     // Set window border color to match the selection/RMB target item color
     original_border_color, original_border_size := ScopedWindowBorderTheme(ITEM_LIST_BORDER_COLOR, ITEM_LIST_BORDER_SIZE);
+
+    ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
+    defer ImGui.PopStyleVar();
 
     ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
@@ -17,303 +18,332 @@ show_item_list_ui :: () {
 
     // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
 
-    any_visibility_changed := false;
+    if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
 
-    {
-        show_entity_index := app.console.visible || app.user_selection.is_visible;
+        if entities.count == 0 {
+            ImGui.Text("(none)");
+            Show_Tooltip("Drag and drop files or pass them\nas command-line arguments");
+        }
 
-        ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
-        defer ImGui.EndTable();
+        any_visibility_changed := false;
 
-        entity_to_remove := -1;
-        for entities {
+        {
+            show_entity_index := app.console.visible || app.user_selection.is_visible;
+
+            ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
+            defer ImGui.EndTable();
+
+            entity_to_remove := -1;
+            for entities {
+                ImGui.TableNextRow();
+
+                // Remove button
+                ImGui.TableNextColumn();
+                if ImGui.Button(imgui_label("Remove", it)) {
+                    entity_to_remove = it_index;
+                }
+
+                // Color selection
+                {
+                    ImGui.TableNextColumn();
+                    if it.display_info.display_mode == .NORMALS {
+                        ImGui.TextDisabled("NR.");
+                    } else {
+                        color := entity_primary_color(it);
+                        if color {
+                            ImGui.ColorEdit4(imgui_label("##color", it), *color.component, ImGui.ColorEditFlags.NoInputs);
+                        }
+                    }
+                    if ImGui.IsItemClicked(.Right) {
+                        cycle_display_mode(*it.display_info.display_mode);
+                    } else if ImGui.IsItemClicked(.Middle) {
+                        if it.display_info.display_mode != .NORMALS {
+                            color := entity_primary_color(it);
+                            <<color = color_from_path(it.fully_pathed_filename);
+                        }
+                    }
+                }
+
+                // Toggle visibility checkbox
+                {
+                    ImGui.TableNextColumn();
+                    was_visible := it.is_visible;
+                    visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, imgui_label("##Visible", it), *app.sweep_state, app.window);
+                    any_visibility_changed = any_visibility_changed || visibility_changed;
+                    Show_Tooltip("Visible");
+
+                    if !was_visible && it.is_visible {
+                        // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
+                        if !it.display_info.surface_visible && !it.display_info.wireframe_visible && !it.display_info.points_visible {
+                            it.display_info.surface_visible = true;
+                        }
+                    }
+                }
+
+                // Toggle clipping checkbox?
+
+                // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
+                if show_entity_index {
+                    ImGui.TableNextColumn();
+                    if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
+                        ImGui.Text("#%", it_index);
+                        Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
+                    } else {
+                        ImGui.TextDisabled("#%", it_index);
+                        Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
+                    }
+                }
+
+                // Write filename
+                ImGui.TableNextColumn();
+                // ImGui.SetNextItemWidth(-FLOAT32_MIN);
+                if it.fully_pathed_filename.count {
+                    text := entity_filename(it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
+
+                    delta_time := get_current_file_time() - it.loaded_filetime;
+                    FADE_TIME_SECS := 1;
+                    base_color := ifx is_empty(it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
+                    color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
+                    if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
+                        alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
+                        color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
+                        color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
+                    }
+
+                    ImGui.PushStyleColor(xx ImGui.Col.Text, color);
+                    defer ImGui.PopStyleColor();
+                    {
+                        push_allocator(temp); // to free the join'd string
+
+                        // @Cleanup Add these aliases to make the following code easier to understand
+                        // Note that the ImGui.Selectable widget has this line to set the colors:
+                        //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+                        // selectable_selected_color :: ImGui.Col.Header;
+                        // selectable_hovered_color :: ImGui.Col.Header;
+                        // selectable_hovered_held_color :: ImGui.Col.Header;
+
+                        get_context_menu_target_item :: () -> int {
+                            for app.entities {
+                                // @Volatile Search usages before changing label here
+                                if ImGui.IsPopupOpen(imgui_label("##context_menu", xx it_index)) {
+                                    return it_index;
+                                }
+                            }
+                            return -1;
+                        }
+
+                        // Indicate that the popup will be opened for this item if its hovered with RMB down
+                        if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                        defer if io_mouse_right_down() ImGui.PopStyleColor();
+
+                        popup_item := get_context_menu_target_item();
+                        if popup_item == -1 {
+                            // Use the default Selectable widget
+                            if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                                if !io().KeyCtrl it.is_selected = !it.is_selected;
+                            }
+                        } else { // Need to fiddle with some colors to indicate what the popup is editing
+                            if app.entities[popup_item].is_selected {
+                                // Use the default Selectable widget, but customize the selected color
+                                ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                                ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                                if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                                    if !io().KeyCtrl it.is_selected = !it.is_selected;
+                                }
+                                ImGui.PopStyleColor();
+                                ImGui.PopStyleColor();
+                            } else {
+                                if popup_item == it_index {
+                                    // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
+                                    if selectable_with_bg_color(join(text, tprint("##%", it)), *it.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
+                                        if !io().KeyCtrl it.is_selected = !it.is_selected;
+                                    }
+                                } else {
+                                    // Use the default Selectable widget
+                                    if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                                        if !io().KeyCtrl it.is_selected = !it.is_selected;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ImGui.Selectable("---", *it.is_selected);
+                }
+                if ImGui.IsItemClicked() {
+                    if !io().KeyCtrl && !is_empty(it) {
+                        fit_on_screen(it);
+                    }
+                }
+                was_hovered := it.is_hovered;
+                it.is_hovered = ImGui.IsItemHovered();
+                if ImGui.IsItemHovered() {
+                    it.display_info.flash_wave_dt += io().DeltaTime;
+                } else if was_hovered {
+                    it.display_info.flash_wave_dt = 0;
+                }
+
+                /*
+                compiler_report("Enable when we have tooltip delays");
+                if (it.is_hovered) {
+                    ImGui.BeginTooltip();
+                    ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
+                    ImGui.TableNextRow(); ImGui.TableNextColumn();
+                    ImGui.TextColored(KEYBINDING_COLOR, "RMB");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Open context menu for the current %", ifx it.is_selected then "item selection" else "item");
+                    ImGui.TableNextRow(); ImGui.TableNextColumn();
+                    ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Toggle selected state of the hovered item");
+                    ImGui.EndTable();
+                    ImGui.EndTooltip();
+                }
+                */
+
+                // @Cleanup This is a horrible way to do this...
+                it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
+
+                show_item_context_menu(it, it_index);
+            }
+
+            if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
+                fit_scene_on_screen();
+            }
+
+            if entity_to_remove >= 0 && entity_to_remove < entities.count {
+                deinit(entities[entity_to_remove]);
+                free(entities[entity_to_remove]);
+                array_ordered_remove_by_index(*entities, entity_to_remove);
+            }
+        }
+    }
+
+    show_selection_ui();
+
+    show_item_list_actions_ui();
+}
+
+show_selection_ui :: () {
+    if ImGui.TreeNodeEx("Selections", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        // Selection Mode UI
+        if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
+            defer ImGui.EndTable();
+
+            it := *app.user_selection;
+
             ImGui.TableNextRow();
 
             // Remove button
             ImGui.TableNextColumn();
-            if ImGui.Button(imgui_label("Remove", it)) {
-                entity_to_remove = it_index;
+            if ImGui.Button(imgui_label("Clear ", it)) {
+                deinit(it);
             }
 
             // Color selection
             {
                 ImGui.TableNextColumn();
-                if it.display_info.display_mode == .NORMALS {
-                    ImGui.TextDisabled("NR.");
-                } else {
-                    color := entity_primary_color(it);
-                    if color {
-                        ImGui.ColorEdit4(imgui_label("##color", it), *color.component, ImGui.ColorEditFlags.NoInputs);
-                    }
-                }
-                if ImGui.IsItemClicked(.Right) {
-                    cycle_display_mode(*it.display_info.display_mode);
-                } else if ImGui.IsItemClicked(.Middle) {
-                    if it.display_info.display_mode != .NORMALS {
-                        color := entity_primary_color(it);
-                        <<color = color_from_path(it.fully_pathed_filename);
-                    }
-                }
+                ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
             }
 
             // Toggle visibility checkbox
             {
                 ImGui.TableNextColumn();
-                was_visible := it.is_visible;
-                visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, imgui_label("##Visible", it), *app.sweep_state, app.window);
-                any_visibility_changed = any_visibility_changed || visibility_changed;
-                Show_Tooltip("Visible");
-
-                if !was_visible && it.is_visible {
-                    // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
-                    if !it.display_info.surface_visible && !it.display_info.wireframe_visible && !it.display_info.points_visible {
-                        it.display_info.surface_visible = true;
-                    }
-                }
+                visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
+                TOOLTIP :: #run
+                    join("Toggle visibility of selected vertices\n",
+                         "FIXME: Unfortunately this checkbox must\n",
+                         "be enabled for sphere clipping to work.");
+                Show_Tooltip(TOOLTIP);
+                // any_visibility_changed = any_visibility_changed || visibility_changed; // nocommit
             }
 
-            // Toggle clipping checkbox?
-
-            // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
-            if show_entity_index {
-                ImGui.TableNextColumn();
-                if it.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-                    ImGui.Text("#%", it_index);
-                    Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
-                } else {
-                    ImGui.TextDisabled("#%", it_index);
-                    Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
-                }
-            }
-
-            // Write filename
             ImGui.TableNextColumn();
-            // ImGui.SetNextItemWidth(-FLOAT32_MIN);
-            if it.fully_pathed_filename.count {
-                text := entity_filename(it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
-
-                delta_time := get_current_file_time() - it.loaded_filetime;
-                FADE_TIME_SECS := 1;
-                base_color := ifx is_empty(it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
-                color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
-                if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
-                    alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
-                    color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
-                    color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
-                }
-
-                ImGui.PushStyleColor(xx ImGui.Col.Text, color);
-                defer ImGui.PopStyleColor();
-                {
-                    push_allocator(temp); // to free the join'd string
-
-                    // @Cleanup Add these aliases to make the following code easier to understand
-                    // Note that the ImGui.Selectable widget has this line to set the colors:
-                    //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-                    // selectable_selected_color :: ImGui.Col.Header;
-                    // selectable_hovered_color :: ImGui.Col.Header;
-                    // selectable_hovered_held_color :: ImGui.Col.Header;
-
-                    get_context_menu_target_item :: () -> int {
-                        for app.entities {
-                            // @Volatile Search usages before changing label here
-                            if ImGui.IsPopupOpen(imgui_label("##context_menu", xx it_index)) {
-                                return it_index;
-                            }
-                        }
-                        return -1;
-                    }
-
-                    // Indicate that the popup will be opened for this item if its hovered with RMB down
-                    if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    defer if io_mouse_right_down() ImGui.PopStyleColor();
-
-                    popup_item := get_context_menu_target_item();
-                    if popup_item == -1 {
-                        // Use the default Selectable widget
-                        if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
-                            if !io().KeyCtrl it.is_selected = !it.is_selected;
-                        }
-                    } else { // Need to fiddle with some colors to indicate what the popup is editing
-                        if app.entities[popup_item].is_selected {
-                            // Use the default Selectable widget, but customize the selected color
-                            ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                            ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                            if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
-                                if !io().KeyCtrl it.is_selected = !it.is_selected;
-                            }
-                            ImGui.PopStyleColor();
-                            ImGui.PopStyleColor();
-                        } else {
-                            if popup_item == it_index {
-                                // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
-                                if selectable_with_bg_color(join(text, tprint("##%", it)), *it.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
-                                    if !io().KeyCtrl it.is_selected = !it.is_selected;
-                                }
-                            } else {
-                                // Use the default Selectable widget
-                                if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
-                                    if !io().KeyCtrl it.is_selected = !it.is_selected;
-                                }
-                            }
-                        }
-                    }
-                }
+            ImGui.Text("#A (Default)");
+            if it.is_visible {
+                bindings : [..]Binding_With_Description;
+                bindings.allocator = temp;
+                array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
+                array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
+                array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
+                array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
+                Show_Tooltip_Binding(..bindings);
             } else {
-                ImGui.Selectable("---", *it.is_selected);
+                Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
             }
-            if ImGui.IsItemClicked() {
-                if !io().KeyCtrl && !is_empty(it) {
-                    fit_on_screen(it);
-                }
+            if ImGui.IsItemClicked() && is_empty(it) == false {
+                fit_on_screen(it);
             }
             was_hovered := it.is_hovered;
             it.is_hovered = ImGui.IsItemHovered();
-            if ImGui.IsItemHovered() {
+            if it.is_hovered {
                 it.display_info.flash_wave_dt += io().DeltaTime;
             } else if was_hovered {
                 it.display_info.flash_wave_dt = 0;
             }
 
-            /*
-            compiler_report("Enable when we have tooltip delays");
-            if (it.is_hovered) {
-                ImGui.BeginTooltip();
-                ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextColored(KEYBINDING_COLOR, "RMB");
-                ImGui.TableNextColumn();
-                ImGui.Text("Open context menu for the current %", ifx it.is_selected then "item selection" else "item");
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
-                ImGui.TableNextColumn();
-                ImGui.Text("Toggle selected state of the hovered item");
-                ImGui.EndTable();
-                ImGui.EndTooltip();
+            current_pos := ImGui.GetWindowPos();
+            current_size := ImGui.GetWindowSize();
+            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+            
+            // Set popup border color to match the selection/RMB target item color
+            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
+            if ImGui.BeginPopupContextItem(imgui_label("##context_menu", it)) {
+                defer ImGui.EndPopup();
+
+                // Undo the previous thing so internals don't have this color
+                ScopedPopupBorderTheme(original_border_color, original_border_size);
+
+                // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
+                // ImGui.SameLine();
+                // ImGui.PushItemWidth(70);
+                // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
+                // ImGui.PopItemWidth();
+                // Show_Tooltip("Opacity");
+
+                vertex_label_style := *it.display_info.vertex_label_style;
+
+                ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
+                ImGui.SameLine();
+                ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.InputInt("Point size", *it.display_info.points_size);
+                it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
+
+                trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
+                ImGui.InputInt("Float decimals", *trailing_width);
+                vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
+                Show_Tooltip("Number of digits following the decimal point");
+
+                combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
+                ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
+
+                ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
+                Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
+                ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
+                ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
+
+                ImGui.Separator();
+
+                ImGui.Text("#points = %", it.mesh.positions.count);
+
+                maybe_update_render_info(*it.render_info, *it.mesh);
+                aabb := it.render_info.bounding_aabb;
+                ImGui.Text("AABB [%, %, %], [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
             }
-            */
 
-            // @Cleanup This is a horrible way to do this...
-            it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
+            ImGui.TableNextRow();
 
-            show_item_context_menu(it, it_index);
-        }
-
-        if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
-            fit_scene_on_screen();
-        }
-
-        if entity_to_remove >= 0 && entity_to_remove < entities.count {
-            deinit(entities[entity_to_remove]);
-            free(entities[entity_to_remove]);
-            array_ordered_remove_by_index(*entities, entity_to_remove);
+            // ImGui.TableNextColumn();
+            // if ImGui.Button(imgui_label("Add   ", it)) {
+            // }
+            // Show_Tooltip("@Incomplete");
         }
     }
-
-    ImGui.Separator();
-
-    // Selection Mode UI
-    if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
-        defer ImGui.EndTable();
-
-        it := *app.user_selection;
-
-        ImGui.TableNextRow();
-
-        // Remove button
-        ImGui.TableNextColumn();
-        if ImGui.Button(imgui_label("Clear ", it)) {
-            deinit(it);
-        }
-
-        // Color selection
-        {
-            ImGui.TableNextColumn();
-            ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-        }
-
-        // Toggle visibility checkbox
-        {
-            ImGui.TableNextColumn();
-            visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
-            TOOLTIP :: #run
-                join("Toggle visibility of selected vertices\n",
-                     "FIXME: Unfortunately this checkbox must\n",
-                     "be enabled for sphere clipping to work.");
-            Show_Tooltip(TOOLTIP);
-            any_visibility_changed = any_visibility_changed || visibility_changed;
-        }
-
-        ImGui.TableNextColumn();
-        ImGui.Text("Selection");
-        if it.is_visible {
-            bindings : [..]Binding_With_Description;
-            bindings.allocator = temp;
-            array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
-            array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
-            array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
-            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
-            Show_Tooltip_Binding(..bindings);
-        } else {
-            Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
-        }
-        if ImGui.IsItemClicked() {
-            fit_on_screen(it);
-        }
-        was_hovered := it.is_hovered;
-        it.is_hovered = ImGui.IsItemHovered();
-        if it.is_hovered {
-            it.display_info.flash_wave_dt += io().DeltaTime;
-        } else if was_hovered {
-            it.display_info.flash_wave_dt = 0;
-        }
-
-        current_pos := ImGui.GetWindowPos();
-        current_size := ImGui.GetWindowSize();
-        window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
-        ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-        if ImGui.BeginPopupContextItem(imgui_label("##context_menu", it)) {
-            defer ImGui.EndPopup();
-
-            // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
-            // ImGui.SameLine();
-            // ImGui.PushItemWidth(70);
-            // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
-            // ImGui.PopItemWidth();
-            // Show_Tooltip("Opacity");
-
-            vertex_label_style := *it.display_info.vertex_label_style;
-
-            ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
-            ImGui.SameLine();
-            ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.InputInt("Point size", *it.display_info.points_size);
-            it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
-
-            trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
-            ImGui.InputInt("Float decimals", *trailing_width);
-            vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
-            Show_Tooltip("Number of digits following the decimal point");
-
-            combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
-            ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
-
-            ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
-            Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
-            ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
-            ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
-
-            ImGui.Separator();
-
-            ImGui.Text("#points = %", it.mesh.positions.count);
-
-            maybe_update_render_info(*it.render_info, *it.mesh);
-            aabb := it.render_info.bounding_aabb;
-            ImGui.Text("AABB [%, %, %], [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
-        }
-    }
-
-    show_item_list_actions_ui();
 }
 
 ScopedPopupBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
@@ -338,10 +368,8 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
 
 show_item_list_actions_ui :: () {
 
-    ImGui.Separator();
-
     // This boolean is useful so we can have the tooltip below appear when the tree is open AND closed
-    do_tree : bool = ImGui.TreeNodeEx("Actions", ImGui.TreeNodeFlags.DefaultOpen | .SpanAvailWidth);
+    do_tree : bool = ImGui.TreeNodeEx("Actions", .SpanAvailWidth);
 
     if ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Right) {
         display_action_buttons = !display_action_buttons;
@@ -657,6 +685,14 @@ show_camera_controls :: () {
 
     using ImGui.WindowFlags;
 
+    ImGui.PushStyleColor(xx ImGui.Col.Border, .{0, 0, 0, 1});
+    defer ImGui.PopStyleColor();
+
+    ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
+    ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
+    defer ImGui.PopStyleVar();
+    defer ImGui.PopStyleVar();
+
     // Set window border color to match the selection/RMB target item color
     original_border_color, original_border_size := ScopedWindowBorderTheme(CAMERA_UI_BORDER_COLOR, CAMERA_UI_BORDER_SIZE);
 
@@ -908,6 +944,8 @@ show_help_ui :: () {
                 SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
             }
         }
+
+        ImGui.Checkbox("Show ImGui demo window", *app.show_imgui_demo_window);
     }
 
     // :UserConfig add a button to overwrite the user settings file with new defaults here?
@@ -1057,7 +1095,7 @@ display_info_ui :: (
 
     set : Display_Info_Update;
 
-    if ImGui.TreeNodeEx("Rendering", ImGui.TreeNodeFlags.DefaultOpen | .SpanAvailWidth) {
+    if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         // FIXME FIXME: opacity should control wireframe??
@@ -1167,6 +1205,8 @@ display_info_ui :: (
 display_stats :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Stats", .SpanAvailWidth) {
         defer ImGui.TreePop();
+        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        defer ImGui.PopStyleColor();
 
         if #complete entity.type == {
             case .POLYLINE_SOUP2;
