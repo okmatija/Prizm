@@ -684,10 +684,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
                 defer ImGui.TreePop();
 
-                // Unindent so the reload buttons are placed as they are when there is one item and no selection
-                ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
-                defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
-
                 for :Selected app.entities {
                     if it.fully_pathed_filename.count {
                         if ImGui.Button(imgui_label("Reload", it)) {

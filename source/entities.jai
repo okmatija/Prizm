@@ -580,6 +580,11 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity) -> *Entity {
 
+    if entity.is_preset_shape {
+        log("Skipped reloading entity '%' because it is a preset shape baked into the executable", entity.fully_pathed_filename);
+        return entity;
+    }
+
     new_entity : *Entity = load_entity_from_file(entity.fully_pathed_filename);
 
     if new_entity {

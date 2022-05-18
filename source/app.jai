@@ -36,7 +36,7 @@ App :: struct {
     };
 
     background_style := Background_Style.CUSTOM_SHADER;
-    background_solid_color := Vector4.{170./256, 170./256, 170./256, 1.00};
+    background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
     background_program : GLuint;
     background_vao : GLuint;
 

@@ -12,6 +12,9 @@
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
 PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
+- Changed the default color for the 'solid color' background option to make it a lighter grey
+- Fixed alignment of the 'Reload'buttons in the item context menu
+- Fixed a bug where preset items were cleared when pressing the 'Reload' button in the item context menu
 DONE
 };
 

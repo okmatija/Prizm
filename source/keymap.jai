@@ -806,9 +806,7 @@ kinda_toggle_is_visible :: (target : Target_Items) {
 
 reload_items :: (target : Target_Items) {
     for app.entities if Is_Target(it) {
-        if it.is_preset_shape == false {
-            app.entities[it_index] = reload_entity(it);
-        }
+        app.entities[it_index] = reload_entity(it);
     }
 }
 
