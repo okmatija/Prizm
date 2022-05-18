@@ -212,10 +212,10 @@ console_draw :: () {
             ImGui.TableNextColumn();
             ImGui.Text("List commands and show command documentation");
 
-            // ImGui.TableNextRow(); ImGui.TableNextColumn();
-            // ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");
-            // ImGui.TableNextColumn();
-            // ImGui.Text("Hide/toggle console");
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");
+            ImGui.TableNextColumn();
+            ImGui.Text("Hide/Toggle console");
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
             ImGui.TextColored(KEYBINDING_COLOR, "UP/DOWN");

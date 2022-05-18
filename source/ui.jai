@@ -211,7 +211,7 @@ show_item_list_ui :: () {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.Button("Add   ");
-            Show_Tooltip("Click to load a preset shape, or\nDrag and Drop files into Prism, or\nRestart Prism with files passed as arguments");
+            Show_Tooltip("Click for preset shapes, or\nDrag and Drop files, or\nRestart with file arguments");
 
             current_pos := ImGui.GetWindowPos();
             current_size := ImGui.GetWindowSize();
@@ -251,10 +251,31 @@ show_item_list_ui :: () {
     show_selection_ui();
 
     show_item_list_actions_ui();
+
+    show_options();
+}
+
+show_options :: () {
+    if ImGui.TreeNodeEx("Options", ImGui.TreeNodeFlags.SpanAvailWidth) {
+        defer ImGui.TreePop();
+        combo_box("Background", *app.background_style, type_info(app.Background_Style));
+        if app.background_style == .SOLID_COLOR {
+            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+        }
+        ImGui.Checkbox("World Axes", *app.triad.visible);
+
+        if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
+            if ImGui.Button("Reset OS Window Size") {
+                SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+            }
+        }
+
+        ImGui.Checkbox("ImGui Demo", *app.show_imgui_demo_window);
+    }
 }
 
 show_selection_ui :: () {
-    if ImGui.TreeNodeEx("Selections", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    if ImGui.TreeNodeEx("Selections", ImGui.TreeNodeFlags.SpanAvailWidth) {
         defer ImGui.TreePop();
 
         // Selection Mode UI
@@ -290,7 +311,7 @@ show_selection_ui :: () {
             }
 
             ImGui.TableNextColumn();
-            ImGui.Text("#A (Default)");
+            ImGui.Text("Default");
             if it.is_visible {
                 bindings : [..]Binding_With_Description;
                 bindings.allocator = temp;
@@ -366,10 +387,10 @@ show_selection_ui :: () {
 
             ImGui.TableNextRow();
 
-            // ImGui.TableNextColumn();
-            // if ImGui.Button(imgui_label("Add   ", it)) {
-            // }
-            // Show_Tooltip("@Incomplete");
+            ImGui.TableNextColumn();
+            if ImGui.Button(imgui_label("Add   ", it)) {
+                log_error("Support for more than one selection is @Incomplete, sorry!");
+            }
         }
     }
 }
@@ -632,7 +653,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             ImGui.Separator();
 
-            normals_ui :=  entity.type == .MESH || entity.type == .POINT_CLOUD;
+            normals_ui :=  entity.type == .MESH || entity.type == .POINT_CLOUD || entity.type == .POLYLINE_SOUP3;
             lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
             faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES) || entity.type == .POLYGON_SOUP;
             maybe_update_render_info(*entity.render_info, *entity.mesh);
@@ -851,7 +872,6 @@ show_camera_controls :: () {
 }
 
 show_help_ui :: () {
-    world_axes := *app.triad;
     if !app.show_help_ui return;
 
     ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},
@@ -957,23 +977,6 @@ show_help_ui :: () {
             push_allocator(temp);
             Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
         }
-    }
-
-    if ImGui.TreeNode("%", "General Settings") {
-        defer ImGui.TreePop();
-        combo_box("Background", *app.background_style, type_info(app.Background_Style));
-        if app.background_style == .SOLID_COLOR {
-            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
-        }
-        ImGui.Checkbox("World Axes", *world_axes.visible);
-
-        if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
-            if ImGui.Button("Reset OS Window Size") {
-                SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-            }
-        }
-
-        ImGui.Checkbox("Show ImGui demo window", *app.show_imgui_demo_window);
     }
 
     // :UserConfig add a button to overwrite the user settings file with new defaults here?

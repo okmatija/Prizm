@@ -1,9 +1,10 @@
+// TODO Fix missing selection labels 
 // TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
+
 // TODO Fix missing shading when using face-normal rendering. looks like its just a solid color??
 
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Add item_flip_normals
-// TODO Fix missing selection labels 
 // TODO Remove old font stuff
 // TODO Do I need to keep the refactoring I did to the old font stuff? e.g., pulling out the gl state setting stuff?
 // TODO Use fast Simp path with cached font for all font stuff
@@ -15,8 +16,11 @@
 
 PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
 - Improved performance of text label rendering (Fixes ISSUE_004)
+- Reorganised the main panel:
+  - Items list so this is now foldable
+  - Selections are listed under a separate tree section (future work will add the option to have multiple selection items)
+  - Moved 'General Settings' from the help menu into a 'Options' tree section
 - Improvements/changes to the UI:
-  - Reorganised the main panel containing the item list so this is now foldable and have selection items under a separate tree section (future work will add the option to have multiple selection items)
   - Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and setting the target item(s) background rect color
   - Clarified cycle/toggle state of action buttons by changing the button color
   - Added an alternative UI for actions (a.k.a. state changes applied to groups of items) accessible via RMB on the 'Actions' dropdown header
@@ -24,6 +28,7 @@ PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
   - Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
   - Added a keybinding 'x' to clear all element and vertex text labels from target items, which depend on the modifiers pressed (press h for help)
 - Added some preset shapes which are baked into the executable, press 'F1' to load a cube and 'F2' to load a "widget"
+- Fixed bug where normals on points of a 3D polyline soup were not rendered
 - Fixed bug where clipping sphere mode activated on all items when no items were selected (and hence it should have only activated on the intersected item)
 DONE
 };

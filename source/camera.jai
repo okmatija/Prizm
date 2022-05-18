@@ -243,6 +243,7 @@ fit_on_screen :: (entity : *Entity, accurate : bool = false)
     if entity.display_info.clip_sphere.is_active {
         sphere = entity.display_info.clip_sphere;
     }
+    // @Incomplete account for clipping planes as well
 
     scene_sphere := entities_bounding_sphere((e)=>(e.is_visible), accurate);
     sphere.radius += distance(sphere.center, scene_sphere.center);

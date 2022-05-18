@@ -506,6 +506,7 @@ render_entities :: () {
                 soup := cast(*Polyline_Soup3_Entity) entity;
                 render_mesh_points(*soup.mesh, ri, di);
                 render_mesh_lines(*soup.mesh, ri, di);
+                render_normals(*soup.mesh, ri, di);
                 render_aabb(*soup.mesh, ri, di);
 
             case .POLYGON_SOUP;

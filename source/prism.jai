@@ -1,7 +1,5 @@
 #load "app.jai";
 
-
-
 main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -141,6 +139,7 @@ main :: () {
     // ImGui.StyleColorsLight();
     ImGui.GetStyle().WindowRounding = 4;
     ImGui.GetStyle().PopupRounding = 4;
+    ImGui.GetStyle().FrameRounding = 2;
     ImGui.GetStyle().FrameBorderSize = 1;
     ImGui.GetStyle().ChildBorderSize = 5;
 
