@@ -5,12 +5,6 @@
 
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Add item_flip_normals
-// TODO Remove old font stuff
-// TODO Do I need to keep the refactoring I did to the old font stuff? e.g., pulling out the gl state setting stuff?
-// TODO Use fast Simp path with cached font for all font stuff
-
-// TODO Make UI look nice when there are no items loaded, probably we should still show actions?
-// TODO make item list collapsable
 
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 

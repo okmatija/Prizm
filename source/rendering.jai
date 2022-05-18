@@ -588,6 +588,10 @@ render_entities :: () {
             return true;
         }
 
+        // Caches for glyph quads
+        point_label_quads :   [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
+        element_label_quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
+
         if #complete entity.type == {
             case .UNKNOWN;
             case .POLYLINE_SOUP2;
@@ -602,7 +606,7 @@ render_entities :: () {
                     text_position_px := get_text_screen_position(make_vector4(it, 0, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                     }
                 }
 
@@ -613,7 +617,7 @@ render_entities :: () {
                     text_position_px := get_text_screen_position(make_vector4(centroid, 0, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme) {
                         text := get_point_text(centroid, it_index, element_theme);
-                        render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme);
                     }
                 }
 
@@ -629,7 +633,7 @@ render_entities :: () {
                     text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                     }
                 }
 
@@ -640,7 +644,7 @@ render_entities :: () {
                     text_position_px := get_text_screen_position(make_vector4(centroid, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme) {
                         text := get_point_text(centroid, it_index, element_theme);
-                        render_text_quad(app.text_program, text, text_position_px, element_theme.label_scale, element_theme.label_color);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme);
                     }
                 }
 
@@ -660,7 +664,7 @@ render_entities :: () {
                         text_position_px := get_text_screen_position(make_vector4(it, 0, 1), projection_from_model);
                         if on_screen_in_disk(text_position_px, point_theme) {
                             text := get_point_text(it, it_index, point_theme);
-                            render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                            cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                         }
 
                         for inner_ring : polygon.inner_rings for inner_ring.points {
@@ -669,7 +673,7 @@ render_entities :: () {
                             text_position_px := get_text_screen_position(make_vector4(it, 0, 1), projection_from_model);
                             if on_screen_in_disk(text_position_px, point_theme) {
                                 text := get_point_text(it, it_index, point_theme);
-                                render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                                cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                             }
                         }
                     }
@@ -696,7 +700,7 @@ render_entities :: () {
                     text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme) {
                         text := get_point_text(it, it_index, point_theme);
-                        render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                     }
                 }
 
@@ -706,10 +710,6 @@ render_entities :: () {
                 count := mesh.mesh.positions.count;
 
                 projection_from_model := make_projection_from_world(app.camera) * mesh.mesh.world_from_model;
-
-                // Caches for glyph quads
-                point_label_quads :   [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
-                element_label_quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
 
                 for mesh.mesh.positions {
                     if point_theme.show_backfacing == false {
@@ -729,8 +729,6 @@ render_entities :: () {
                         cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
                     }
                 }
-
-                draw_cached_text_quads(point_label_quads, point_theme);
 
                 ProcessTriangle :: (triangle : Triangle3, triangle_index : int) #expand {
                     if element_theme.show_backfacing == false {
@@ -761,9 +759,10 @@ render_entities :: () {
 
                     Visit_Primitives_Near_Ray(mesh.spatial, ray, distance, #code ProcessTriangle(primitive, primitive_id));
                 }
-
-                draw_cached_text_quads(element_label_quads, element_theme);
         }
+
+        draw_cached_text_quads(point_label_quads, point_theme);
+        draw_cached_text_quads(element_label_quads, element_theme);
     }
 
     is_visible_opaque ::      (e : *Entity) -> bool { return e.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }

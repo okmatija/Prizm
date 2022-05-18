@@ -224,7 +224,6 @@ ImGui :: #import "ImGui";
 #load "io_wkt.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";
-#load "font.jai";
 #load "carpet.jai";
 #load "camera.jai";
 #load "entities.jai";
