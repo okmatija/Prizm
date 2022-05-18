@@ -60,17 +60,14 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 
 debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1, 1}) {
 
+    Scope_GL_State();
+
     glEnable(GL_BLEND);
-    defer glDisable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     Simp.ScopeContext();
-    render_text_quad(app.text_program,
-                     text,
-                     // make_vector2(25.0, WINDOW_HEIGHT - FONT_SIZE * scale),
-                     make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y),
-                     scale,
-                     color);
+    position := make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y);
+    Simp.draw_text(app.simp_font, xx position.x, xx position.y, text, color, scale=scale);
 }
 
 debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {

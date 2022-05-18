@@ -13,7 +13,6 @@ App :: struct {
     current_window_height := INITIAL_WINDOW_HEIGHT;
     fullscreen := false;
 
-    text_program : GLuint;
     text_vao : GLuint;
     text_vbo : GLuint;
 

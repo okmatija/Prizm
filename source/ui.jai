@@ -1049,6 +1049,12 @@ show_help_ui :: () {
     // @Incomplete add a message about where the keymap is for editing
 }
 
+show_imgui_demo_window :: () {
+    if app.show_imgui_demo_window {
+        ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+    }
+}
+
 #scope_file
 
 Label_Theme_Update :: struct {

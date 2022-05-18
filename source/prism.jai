@@ -59,12 +59,6 @@ main :: () {
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/text.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/text.frag"); #assert(FRAG_OK);
-        app.text_program = get_shader_program(VERT, FRAG);
-    }
-
-    {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/simple_mesh.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/simple_mesh.frag"); #assert(FRAG_OK);
         app.simple_mesh_program = get_shader_program(VERT, FRAG);
@@ -158,7 +152,9 @@ main :: () {
             show_item_list_ui();
             show_camera_controls();
             show_help_ui();
+            show_imgui_demo_window();
             console_draw();
+
             // inspect("Debug", *app.camera, true);
         }
 
@@ -172,16 +168,15 @@ main :: () {
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
         update_camera(1);
+
         render_background();
         render_entities();
         render_axes_triad();
+        render_selections();
+
+        // @Cleanup the feature to render the nearest vertex description at the cursor breaks if we move this function around relative to the other ones above
         do_selection_mode();
 
-        if app.show_imgui_demo_window {
-            ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
-        }
-
-        // Rendering
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
 

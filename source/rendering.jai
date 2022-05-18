@@ -566,8 +566,6 @@ render_entities :: () {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        // @TODO call render_text_quad once with a list of points?
-
         on_screen_in_disk :: (text_position_px : Vector2, theme : Label_Theme) -> bool {
             if io().MousePos == make_ImVec2(-FLOAT32_MAX,-FLOAT32_MAX) {
                 return false;
@@ -856,16 +854,6 @@ render_background :: () {
             glBindVertexArray(app.background_vao);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
-}
-
-render_text_quad :: (shader_program: GLuint, text: string, position: Vector2, scale: float, color: Vector4) {
-    using app;
-
-    if text.count == 0 {
-        return;
-    }
-
-    Simp.draw_text(simp_font, xx position.x, xx position.y, text, color, scale=scale);
 }
 
 #scope_file

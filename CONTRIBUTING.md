@@ -2,13 +2,11 @@
 
 Non-dogmatic, mostly do what you want but sticking to the following conventions would be appreciated
 
-- function_names
-- MacroNames
-- Structs_And_Types
-- COMPILE_TIME_CONSTANTS (including enum names)
-- Using a single space between an identifier and the ::, : or := and don't use backslashes in identifiers. These rules are indended to make searching easier)
-- t_ prefix for variables allocated in temporary storage? or functions returning strings in temporary storage?
-- g_ prefix for global variables? (gt_ for global temporaries?)
+- Using a single space between an identifier and the :: or : and don't use backslashes in identifiers. This convention is intended to make searching easier
+- But to improve readability avoid using := for assignments unless the type can be trivially inferred from the context (unfortunately there is a lot of code that doesn't do this, but it can be gradually fixed)
+- Naming convention: function_names, Structs_And_Types, MacroNames, COMPILE_TIME_CONSTANTS (including enum names)
+- Consider using a g_ prefix for global variables
+- Consider using a t_ prefix for variables in temporary storage e.g., functions returning strings in temporary storage
 
 # Release process
 

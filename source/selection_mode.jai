@@ -12,43 +12,12 @@ do_selection_mode :: () {
         return;
     }
 
-    // @Cleanup make this separate
-    {
-        Scope_GL_State();
-
-        if app.user_selection.is_hovered {
-            glClear(GL_DEPTH_BUFFER_BIT);
-        }
-
-        entity := *app.user_selection;
-        mesh := *app.user_selection.mesh;
-
-        render_mesh_points(mesh, *entity.render_info, entity.display_info);
-        render_mesh_lines(mesh, *entity.render_info, entity.display_info);
-        render_mesh_triangles(mesh, *entity.render_info, entity.display_info);
-        render_normals(mesh, *entity.render_info, entity.display_info);
-
-        projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
-
-        Simp.ScopeContext();
-        point_theme := entity.display_info.vertex_label_style;
-        for mesh.positions {
-            text := get_point_text(it, it_index, point_theme);
-            text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
-            render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
-        }
-    }
-
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return;
     }
 
     // @TODO Add an enum representing the type of cursor text being displayed: INTERSECT_PLANE, CLOSEST_POINT, CLOSEST_VERTEX
     // @TODO Hide the cursor and display a line from the cursor to the point
-
-    use_result_for_adding_to_selection := ImGui.IsMouseClicked(.Left) && io().KeyCtrl;
-    use_result_for_repositioning_camera := ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
-    use_result_for_rendering_cursor_text := app.user_selection_cursor_text_shown;
 
     if !do_clip_radius_mode() {
         app.clipping_sphere_mode_entity_index = -1;
@@ -85,6 +54,10 @@ do_selection_mode :: () {
 
         return;
     }
+
+    use_result_for_adding_to_selection := ImGui.IsMouseClicked(.Left) && io().KeyCtrl;
+    use_result_for_repositioning_camera := ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
+    use_result_for_rendering_cursor_text := app.user_selection_cursor_text_shown;
 
     if do_clip_radius_mode() || use_result_for_adding_to_selection  || use_result_for_repositioning_camera || use_result_for_rendering_cursor_text {
 
@@ -186,5 +159,31 @@ do_selection_mode :: () {
                 debug_text_at_cursor(text, app.user_selection_cursor_text_scale, app.user_selection.display_info.points_color);
             }
         }
+    }
+}
+
+render_selections :: () {
+    Scope_GL_State();
+
+    if app.user_selection.is_hovered {
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
+    entity := *app.user_selection;
+    mesh := *app.user_selection.mesh;
+
+    render_mesh_points(mesh, *entity.render_info, entity.display_info);
+    render_mesh_lines(mesh, *entity.render_info, entity.display_info);
+    render_mesh_triangles(mesh, *entity.render_info, entity.display_info);
+    render_normals(mesh, *entity.render_info, entity.display_info);
+
+    projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
+
+    Simp.ScopeContext();
+    point_theme := entity.display_info.vertex_label_style;
+    for mesh.positions {
+        text := get_point_text(it, it_index, point_theme);
+        text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
+        Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, point_theme.label_color, scale=point_theme.label_scale);
     }
 }
