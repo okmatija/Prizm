@@ -22,6 +22,7 @@ PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
   - Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
   - Added a keybinding 'x' to clear all element and vertex text labels from target items, which depend on the modifiers pressed (press h for help)
 - Added some preset shapes which are baked into the executable, press 'F1' to load a cube and 'F2' to load a "widget"
+- Added `item_copy_clipping_ranges` and `item_copy_clipping_sphere` commands and extended the names of `select_remove` and `select_toggle` to be more descriptive
 - Fixed bug where normals on points of a 3D polyline soup were not rendered
 - Fixed bug where clipping sphere mode activated on all items when no items were selected (and hence it should have only activated on the intersected item)
 DONE

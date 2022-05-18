@@ -307,7 +307,7 @@ show_selection_ui :: () {
                          "FIXME: Unfortunately this checkbox must\n",
                          "be enabled for sphere clipping to work.");
                 Show_Tooltip(TOOLTIP);
-                // any_visibility_changed = any_visibility_changed || visibility_changed; // nocommit
+                // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
             }
 
             ImGui.TableNextColumn();
@@ -386,10 +386,13 @@ show_selection_ui :: () {
             }
 
             ImGui.TableNextRow();
-
             ImGui.TableNextColumn();
-            if ImGui.Button(imgui_label("Add   ", it)) {
-                log_error("Support for more than one selection is @Incomplete, sorry!");
+
+            {
+                ScopedPopupBorderTheme(original_border_color, original_border_size);
+                if ImGui.Button(imgui_label("Add   ", it)) {
+                    log_error("Support for more than one selection is @Incomplete, sorry!");
+                }
             }
         }
     }
@@ -437,6 +440,8 @@ show_item_list_actions_ui :: () {
     target_exists, target_items : /*bool, Target_Items*/ = modifier_to_target(current_modifier_flags()); // @CompilerBug, how to specify types with multiple return values
 
     action_target_text :: (target_items : Target_Items) {
+        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        defer ImGui.PopStyleColor();
         if app.entities.count {
             if #complete target_items == {
                 case .ALL_ITEMS;
@@ -449,6 +454,8 @@ show_item_list_actions_ui :: () {
                     count := 0; for :Selected app.entities count += 1;
                     ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
             }
+        } else {
+            ImGui.Text("No items to target");
         }
     }
 
@@ -980,7 +987,7 @@ show_help_ui :: () {
     }
 
     // :UserConfig add a button to overwrite the user settings file with new defaults here?
-    inspect("User Settings", *app.settings);
+    inspect("Settings", *app.settings);
     clamp_user_settings();
 
     if ImGui.TreeNodeEx("Changelog") {

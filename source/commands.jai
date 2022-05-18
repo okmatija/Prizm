@@ -105,14 +105,14 @@ select_if_match :: (pattern : string) {
 } @RegisterCommand
 
 // Toggles selection state of all items
-select_toggle :: () {
+select_toggle_selected_items :: () {
     for app.entities {
         it.is_selected = !it.is_selected;
     }
 } @RegisterCommand
 
 // Removes all selected items
-select_remove :: () {
+select_remove_selected_items :: () {
     to_remove : [..]*Entity;
     defer array_reset(*to_remove);
 
@@ -202,6 +202,26 @@ item_clear :: (id : int) {
     clear(item);
 
     log("# Cleared item #% which had % points", id, point_count);
+} @RegisterCommand
+
+// @TODO It would be handy to support varargs/arrays for the target_ids for the following functions
+
+// Copy the clipping ranges of item `source_id` to item `target_id`
+item_copy_clipping_ranges :: (source_id : int, target_id : int) {
+    if !check_geometry_index(source_id) || !check_geometry_index(target_id) || source_id == target_id {
+        return;
+    }
+
+    app.entities[target_id].display_info.clip_ranges = app.entities[source_id].display_info.clip_ranges;
+} @RegisterCommand
+
+// Copy the clipping sphere of item `source_id` to item `target_id`
+item_copy_clipping_sphere :: (source_id : int, target_id : int) {
+    if !check_geometry_index(source_id) || !check_geometry_index(target_id) || source_id == target_id {
+        return;
+    }
+
+    app.entities[target_id].display_info.clip_sphere = app.entities[source_id].display_info.clip_sphere;
 } @RegisterCommand
 
 // Sets the edge/wireframe color to the face/surface color for all items
