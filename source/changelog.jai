@@ -8,23 +8,22 @@
 
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
-PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "WIP", #string DONE
+PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "18 May 2022", #string DONE
 - Improved performance of text label rendering (Fixes ISSUE_004)
 - Reorganised the main panel:
-  - Items list so this is now foldable
-  - Selections are listed under a separate tree section (future work will add the option to have multiple selection items)
-  - Moved 'General Settings' from the help menu into a 'Options' tree section
+  - Moved the item list into a foldable 'Items' section and added a button to add preset shapes which are baked into the executable, press 'F1' to load a cube and 'F2' to load a "widget"
+  - Added the selection item into a new 'Selections' section, in future we'll add the ability to have multiple selection items
+  - Moved some settings which were previously in the help menu into an 'Options' section
 - Improvements/changes to the UI:
-  - Clarified which item(s) are being modified by the item context menu by adding a border to the item context menu popup and setting the target item(s) background rect color
+  - Clarified which item(s) are being modified by the item context menu by adding a border to the popup window and setting the target item(s) background rect color
   - Clarified cycle/toggle state of action buttons by changing the button color
-  - Added an alternative UI for actions (a.k.a. state changes applied to groups of items) accessible via RMB on the 'Actions' dropdown header
-  - Added a button under the Changelog section of the help menu to save the changelog to disk. Useful for searching the changelog
-  - Added a button in the console Options menu to save the console log to disk. Useful for searching log messages
-  - Added a keybinding 'x' to clear all element and vertex text labels from target items, which depend on the modifiers pressed (press h for help)
-- Added some preset shapes which are baked into the executable, press 'F1' to load a cube and 'F2' to load a "widget"
+  - Added an alternative UI for 'Actions' (a.k.a. state changes applied to groups of items), this UI is accessible via RMB on the 'Actions' section in the main panel
+  - Added a button under the 'Changelog' section of the help menu to save the changelog to disk. This is useful for searching the changelog
+  - Added a button in the console Options menu to save the console log to disk. This is useful for searching log messages
+  - Added a keybinding 'x' to clear all element and vertex text labels from target items (target items depend on the modifiers pressed, see the 'Actions' section tooltip)
 - Added `item_copy_clipping_ranges` and `item_copy_clipping_sphere` commands and extended the names of `select_remove` and `select_toggle` to be more descriptive
-- Fixed bug where normals on points of a 3D polyline soup were not rendered
-- Fixed bug where clipping sphere mode activated on all items when no items were selected (and hence it should have only activated on the intersected item)
+- Fixed a bug where normals on the points of a 3D polyline soup were not rendered
+- Fixed a bug where clipping sphere mode activated on all items when no items were selected but in that case it should only activate on the intersected item
 DONE
 };
 

@@ -483,7 +483,7 @@ set_icon_and_manifest :: (options: Build_Options) {
 
 // @Cleanup Make this run in release and OS console disabled
 // Warning: Enabling this hides prints to the console!
-// #run { #if OS == .WINDOWS { disable_runtime_console(); } }
+#run { #if OS == .WINDOWS { disable_runtime_console(); } }
 
 plugins: [..] *Metaprogram_Plugin;
 
