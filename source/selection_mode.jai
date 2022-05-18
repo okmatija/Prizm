@@ -28,12 +28,13 @@ do_selection_mode :: () {
         render_mesh_triangles(mesh, *entity.render_info, entity.display_info);
         render_normals(mesh, *entity.render_info, entity.display_info);
 
+        projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
 
         Simp.ScopeContext();
         point_theme := entity.display_info.vertex_label_style;
         for mesh.positions {
             text := get_point_text(it, it_index, point_theme);
-            text_position_px := get_text_screen_position(make_vector4(it, 1), mesh.world_from_model);
+            text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
             render_text_quad(app.text_program, text, text_position_px, point_theme.label_scale, point_theme.label_color);
         }
     }

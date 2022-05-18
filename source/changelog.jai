@@ -1,4 +1,4 @@
-// TODO Fix missing selection labels 
+// TODO Fix not accounting for transformation when doing sphere clipping. Load widget twice, transform one and try to sphere clip it. It doesn't work.
 // TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
 
 // TODO Fix missing shading when using face-normal rendering. looks like its just a solid color??

@@ -106,7 +106,6 @@ main :: () {
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_camera();
-    init_font();
     init_commands();
     init_keymap();
     init_known_issues();

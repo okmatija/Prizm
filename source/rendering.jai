@@ -859,6 +859,16 @@ render_background :: () {
     }
 }
 
+render_text_quad :: (shader_program: GLuint, text: string, position: Vector2, scale: float, color: Vector4) {
+    using app;
+
+    if text.count == 0 {
+        return;
+    }
+
+    Simp.draw_text(simp_font, xx position.x, xx position.y, text, color, scale=scale);
+}
+
 #scope_file
 
 // Generate and cache quad data before its lost on the next call to prepare_text

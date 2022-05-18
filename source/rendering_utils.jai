@@ -65,7 +65,6 @@ debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     Simp.ScopeContext();
-    text_w := get_text_width_in_pixels(text, 1.0);
     render_text_quad(app.text_program,
                      text,
                      // make_vector2(25.0, WINDOW_HEIGHT - FONT_SIZE * scale),
