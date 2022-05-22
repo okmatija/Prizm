@@ -21,6 +21,8 @@ load_wkt :: (filename : string, data : string) -> *Entity {
     parser.tokens = get_tokens(filename, parser.data);
     parser.current_token = 0;
 
+    defer deinit(*parser);
+
     // Make sure we at least got the end-of-file token
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
@@ -29,7 +31,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
 
     while peek_token(*parser).type != .EOF && !parser.failed {
 
-        if eat_possible_directive(*parser, "POINT") {
+        if eat_possible_identifier(*parser, "POINT") {
 
             entity = New(Point_Cloud_Entity);
 
@@ -54,7 +56,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
             e.spatial = New(AABB_Tree(e.Shape));
             init(e.spatial, *e.shape);
 
-        } else if eat_possible_directive(*parser, "MULTIPOINT") {
+        } else if eat_possible_identifier(*parser, "MULTIPOINT") {
 
             entity = New(Point_Cloud_Entity);
 
@@ -79,7 +81,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
             e.spatial = New(AABB_Tree(e.Shape));
             init(e.spatial, *e.shape);
 
-        } else if eat_possible_directive(*parser, "LINESTRING") {
+        } else if eat_possible_identifier(*parser, "LINESTRING") {
 
             points2 : [..]Vector2;
             points3 : [..]Vector3;
@@ -121,7 +123,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-        } else if eat_possible_directive(*parser, "MULTILINESTRING") {
+        } else if eat_possible_identifier(*parser, "MULTILINESTRING") {
 
             polyline_soup2 : Polyline_Soup2;
             polyline_soup3 : Polyline_Soup3;
@@ -154,7 +156,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-        } else if eat_possible_directive(*parser, "POLYGON") {
+        } else if eat_possible_identifier(*parser, "POLYGON") {
 
             polygon := parse_polygon(*parser);
 
@@ -171,7 +173,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
 
             entity = e;
 
-        } else if eat_possible_directive(*parser, "MULTIPOLYGON") {
+        } else if eat_possible_identifier(*parser, "MULTIPOLYGON") {
 
             polygon_soup := parse_polygon_soup(*parser);
 

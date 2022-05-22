@@ -1,7 +1,7 @@
 Parser :: struct {
-    tokens: [] Token;
+    tokens: [..] Token; // owned
     current_token: s64;
-    data: string;
+    data: string; // borrowed
 
     // If we ever fail parsing, we set `failed` to true.
     //
@@ -15,6 +15,10 @@ Parser :: struct {
     //
     // See also `Text_File_Handler`
     failed  := false;
+}
+
+deinit :: (using p : Parser) {
+    defer array_reset(*tokens);
 }
 
 error :: (p: *Parser, format: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) {
@@ -43,6 +47,7 @@ next_token :: (using p: *Parser) -> Token {
     return tok;
 }
 
+// @Cleanup this should not take a pointer!
 peek_token :: (using p: *Parser) -> Token {
     if current_token >= tokens.count return tokens[tokens.count-1];
     return tokens[current_token];
@@ -68,7 +73,7 @@ eat_possible_token :: (p: *Parser, type: Token.Type) -> did_eat: bool {
     return false;
 }
 
-eat_possible_directive :: (p: *Parser, name: string) -> did_eat: bool {
+eat_possible_identifier :: (p: *Parser, name: string) -> did_eat: bool {
     tok := peek_token(p);
 
     if tok.type == Token.Type.IDENTIFIER {

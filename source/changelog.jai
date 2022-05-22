@@ -12,6 +12,11 @@
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
 PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
+- Added a basic annotation functionality where comments in obj files are parsed and stored on the items
+  - Annotations are accessible in a foldable section in the item context menu
+  - Standalone/block comments are collected TODO and any comment starting the file is displayed in a tooltip when the item is hovered, this can be disabled under 'Options' in the main panel
+  - End of line comments after v/f/l (TODO l) directives are associated with the corresponding point/face/line and can be used to focus the relevant element
+  - Note that the 'p' directive needed for point clouds does not accept annotations, put these on 'v' instead
 - Changed the default color for the 'solid color' background option to make it a lighter grey
 - Fixed alignment of the 'Reload'buttons in the item context menu
 - Fixed a bug where preset items were cleared when pressing the 'Reload' button in the item context menu

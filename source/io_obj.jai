@@ -6,10 +6,10 @@
 load_obj :: (filename : string) -> *Entity {
     log("Loading file '%'... ", filename);
 
-    data := read_entire_file(filename);
-    defer free(data);
+    contents := read_entire_file(filename);
+    defer free(contents);
 
-    return load_obj(filename, data);
+    return load_obj(filename, contents);
 }
 
 // @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
@@ -22,8 +22,10 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
     parser : Parser;
     parser.data = data;
-    parser.tokens = get_tokens(filename, parser.data, hash_character_starts_comment=true);
+    parser.tokens = get_tokens(filename, parser.data, obj_style_comments=true);
     parser.current_token = 0;
+
+    defer deinit(*parser);
 
     // for parser.tokens log("token[%] = %\n", it_index, it);
 
@@ -32,9 +34,12 @@ load_obj :: (filename : string, data : string) -> *Entity {
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
     mesh : Mesh;
+    annotations : [..]Annotation;
     defer {
         if parser.failed {
             deinit(*mesh);
+            for annotations free(it.text);
+            array_reset(*annotations);
         }
     }
 
@@ -42,7 +47,9 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
     while peek_token(*parser).type != .EOF && !parser.failed {
 
-        if eat_possible_directive(*parser, "v") {
+        current_line : s64 = peek_token(*parser).line_number;
+
+        if eat_possible_identifier(*parser, "v") {
 
             point2 : Vector2 = ---;
             point3 : Vector3 = ---;
@@ -58,18 +65,42 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-        } else if eat_possible_directive(*parser, "vn") {
+            tok := peek_token(*parser);
+            if tok.type == .COMMENT && tok.line_number == current_line {
+                annotation : Annotation;
+
+                annotation.kind = .VERTEX;
+                annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                annotation.id = mesh.positions.count - 1;
+                array_add(*annotations, annotation);
+
+                eat_token(*parser);
+            }
+
+        } else if eat_possible_identifier(*parser, "vn") {
 
             normal := parse_vector3(*parser);
             array_add(*mesh.normals, normal);
 
-        } else if eat_possible_directive(*parser, "vt") {
+            tok := peek_token(*parser);
+            if tok.type == .COMMENT && tok.line_number == current_line {
+                log_warning("Skipping comment annotation on line %, comments on 'vn' directives @Incomplete", current_line);
+                eat_token(*parser);
+            }
+
+        } else if eat_possible_identifier(*parser, "vt") {
 
             uv := parse_vector2(*parser);
             // @Incomplete
             // array_add(*mesh.uvs0, uv);
 
-        } else if eat_possible_directive(*parser, "p") {
+            tok := peek_token(*parser);
+            if tok.type == .COMMENT && tok.line_number == current_line {
+                log_warning("Skipping comment annotation on line %, comments on 'vt' directives @Incomplete", current_line);
+                eat_token(*parser);
+            }
+
+        } else if eat_possible_identifier(*parser, "p") {
 
             index := obj_parse_index(*parser);
             array_add(*mesh.indices, index);
@@ -80,7 +111,13 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.POINTS, mesh.geometry_format);
             }
 
-        } else if eat_possible_directive(*parser, "l") {
+            tok := peek_token(*parser);
+            if tok.type == .COMMENT && tok.line_number == current_line {
+                log_warning("Skipping comment annotation on line %, comments on 'p' directives should be moved to 'v' directives", current_line);
+                eat_token(*parser);
+            }
+
+        } else if eat_possible_identifier(*parser, "l") {
 
             start := obj_parse_index(*parser);
             end   := obj_parse_index(*parser);
@@ -93,7 +130,19 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.LINES, mesh.geometry_format);
             }
 
-        } else if eat_possible_directive(*parser, "f") {
+            tok := peek_token(*parser);
+            if tok.type == .COMMENT && tok.line_number == current_line {
+                annotation : Annotation;
+
+                annotation.kind = .LINE;
+                annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                annotation.id = mesh.indices.count / 2 - 1;
+                array_add(*annotations, annotation);
+
+                eat_token(*parser);
+            }
+
+        } else if eat_possible_identifier(*parser, "f") {
 
             face := parse_face(*parser);
             if face.index_count != 3 && face.index_count != 4 {
@@ -116,25 +165,53 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.TRIANGLES, mesh.geometry_format);
             }
 
-        } else if eat_possible_directive(*parser, "g") ||
-                  eat_possible_directive(*parser, "mtllib") ||
-                  eat_possible_directive(*parser, "usemtl") {
+            tok := peek_token(*parser);
+            if tok.type == .COMMENT && tok.line_number == current_line {
+                annotation : Annotation;
+
+                annotation.kind = .TRIANGLE;
+                annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                annotation.id = mesh.indices.count / 3 - 1;
+                array_add(*annotations, annotation);
+
+                eat_token(*parser);
+            }
+
+        } else if eat_possible_identifier(*parser, "g") ||
+                  eat_possible_identifier(*parser, "mtllib") ||
+                  eat_possible_identifier(*parser, "usemtl") {
 
             warning(*parser, peek_token(*parser), "Unsupported '%' token, support is @Incomplete. Attempting to continue...\n", to_string(peek_token(*parser)));
 
             tok := peek_token(*parser);
-            current_line := tok.line_number;
             while tok.type != Token.Type.EOF && tok.line_number == current_line {
                 eat_token(*parser);
                 tok = peek_token(*parser);
             }
 
+        } else if peek_token(*parser).type == .COMMENT {
+            annotation : Annotation;
+            annotation.kind = .BLOCK;
+            annotation.id = current_line;
+
+            block : [..]string;
+            block.allocator = temp;
+
+            tok := peek_token(*parser);
+            while tok.type == .COMMENT && (tok.line_number - current_line < 2) {
+                current_line = tok.line_number;
+                array_add(*block, trim(tok.string_value, BYTES_TO_TRIM));
+                eat_token(*parser);
+                tok = peek_token(*parser);
+            }
+
+            annotation.text = join(..block, "\n");
+            array_add(*annotations, annotation);
         } else {
 
             warning(*parser, peek_token(*parser), "Unexpected '%' token will be ignored. Attempting to continue...\n", to_string(peek_token(*parser)));
 
             tok := peek_token(*parser);
-            current_line := tok.line_number;
             while tok.type != Token.Type.EOF && tok.line_number == current_line {
                 eat_token(*parser);
                 tok = peek_token(*parser);
@@ -156,6 +233,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
     // Check inferred geometry format
     if mesh.geometry_format == .UNKNOWN {
+        // @Incomplete Improve this message to suggest user may have missed p commands for a point cloud if they had vertices in the mesh
         log_warning("Skipped (Could not detect mesh geometry format)\n");
         parser.failed = true;
     }
@@ -163,6 +241,17 @@ load_obj :: (filename : string, data : string) -> *Entity {
     if parser.failed {
         return null;
     }
+
+    compare_annotations :: (a : Annotation, b : Annotation) -> s64 {
+        if a.kind < b.kind return -1;
+        if a.kind > b.kind return  1;
+        if a.id < b.id return -1;
+        if a.id > b.id return  1;
+        return 0;
+    }
+
+    // Sort annotations by kind then by id
+    quick_sort(annotations, (a,b)=>(compare_annotations(a, b)));
 
     // @Cleanup it's annoying that init_entity_base_parameters must happen after the new and before the init
     result : *Entity;
@@ -210,6 +299,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 init_entity_base_parameters(result, filename, mesh);
                 e.spatial = New(AABB_Tree(e.Shape));
                 init(e.spatial, *e.shape);
+                e.annotations = annotations;
 
             case .UNKNOWN;
 
@@ -265,6 +355,8 @@ save_obj :: (filename : string, mesh : Mesh) -> bool
 
 #scope_file
 
+BYTES_TO_TRIM :: "# \t\r\n";
+
 obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int {
     is_number :: (t : Token) -> bool {
         return t.type == .INTEGER || t.type == .FLOAT;
@@ -318,7 +410,7 @@ parse_face :: (p : *Parser) -> Obj_Face {
     face : Obj_Face = ---;
     current_line := peek_token(p).line_number;
     for i : 0..3 {
-        if peek_token(p).line_number == current_line && peek_token(p).type != .EOF {
+        if peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
 
             face.indices[i] = obj_parse_index(p);
             slash := eat_possible_token(p, #char "/");

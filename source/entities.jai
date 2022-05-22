@@ -8,6 +8,22 @@ Entity_Type :: enum {
     UNKNOWN;
 }
 
+Annotation_Settings :: struct {
+}
+
+Annotation :: struct {
+    Kind :: enum {
+        VERTEX;
+        LINE;
+        TRIANGLE;
+        BLOCK; // e.g., a header at the top of an .obj file
+    }
+
+    kind : Kind;
+    text : string; // owns its memory
+    id : int; // vertex/line/triangle index, or line number starting block comment
+}
+
 // @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
 
 Entity :: struct {
@@ -83,6 +99,9 @@ Mesh_Entity :: struct {
     // display_info.wireframe_width = 2;
     // display_info.element_label_theme.show_index = true;
     // display_info.vertex_label_style.show_position = true;
+
+    annotations : [..]Annotation;
+    annotation_settings : Annotation_Settings;
 
     Shape :: Mesh;
     spatial : *AABB_Tree(Shape);
@@ -169,6 +188,8 @@ deinit :: (base : *Entity) {
             entity := cast(*Mesh_Entity)base;
             deinit(*entity.mesh);
             deinit(entity.spatial);
+            for entity.annotations free(it.text);
+            array_reset(*entity.annotations);
     }
 
     // Remove data from gpu memory as well

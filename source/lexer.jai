@@ -13,6 +13,7 @@ Token :: struct {
         UNINITIALIZED;
         // EXTENDED_ASCII codes occupy values between [1, 255]
         IDENTIFIER :: 256;
+        COMMENT;
         SQSTRING;
         DQSTRING;
         INTEGER;
@@ -20,7 +21,7 @@ Token :: struct {
         EOF;
     }
 
-    type: Type;
+    type: Type = .UNINITIALIZED;
 
     // Specified as:
     // - (optional) plus or minus sign
@@ -50,6 +51,8 @@ to_string :: (tok: Token) -> string {
             return copy_temporary_string("(uninitialized)");
         case .IDENTIFIER;
             return copy_temporary_string(tok.string_value);
+        case .COMMENT;
+            return copy_temporary_string(tok.string_value);
         case .INTEGER;
             return tprint("%", tok.integer_value);
         case .FLOAT;
@@ -73,6 +76,7 @@ to_string :: (tok: Token) -> string {
 Lexer :: struct {
     data: string;
 
+    // @Cleanup Use Souce_Code_Location to bundle line, char and filename
     line_number: s64 = 1;
     character_number: s64 = 1;
     offset_into_buffer: s64;
@@ -80,8 +84,8 @@ Lexer :: struct {
 
     error_callback := default_error_callback;
 
-    cpp_style_comments := false;
-    hash_character_starts_comment := false;
+    cpp_style_comments := false; // Slash-slash for line comments, or slash-asterisk/asterisk-slash for block comments
+    obj_style_comments := false; // Hash character starts line comments
 }
 
 default_error_callback :: (loc: Source_Code_Location, fmt: string, args: .. Any) {
@@ -89,14 +93,14 @@ default_error_callback :: (loc: Source_Code_Location, fmt: string, args: .. Any)
     log("%:%,%: %", loc.fully_pathed_filename, loc.line_number, loc.character_number, message);
 }
 
-get_tokens :: (filename: string, input: string, cpp_style_comments := false, hash_character_starts_comment := false) -> [] Token {
+get_tokens :: (filename: string, input: string, cpp_style_comments := false, obj_style_comments := false) -> [..] Token {
     tokens: [..] Token;
 
     lex: Lexer;
     lex.data = input;
     lex.filename = filename;
     lex.cpp_style_comments = cpp_style_comments;
-    lex.hash_character_starts_comment = hash_character_starts_comment;
+    lex.obj_style_comments = obj_style_comments;
 
     success := true;
     while success {
@@ -183,6 +187,48 @@ starts_float :: (data: string) -> bool {
     return false;
 }
 
+// Returns the constant string starting the comment, or the empty string if no comment start was found
+starts_comment :: (s : string, cpp_style_comments : bool, obj_style_comments : bool) -> string {
+
+    if cpp_style_comments && s.count > 1 && s[0] == #char "/" {
+        if s[1] == #char "/" {
+            return "//";
+        } else if s[1] == #char "*" {
+            return "/*";
+        }
+    }
+
+    if obj_style_comments && s.count > 0 {
+        if s[0] == #char "#" {
+            return "#";
+        }
+    }
+
+    return "";
+}
+
+continues_comment :: (s : string, cpp_style_comments : bool, obj_style_comments : bool) -> (end_of_comment : bool #must, increment : int) {
+    if s.count == 0 {
+        // We were passed an empty string
+        return true, 0;
+    }
+
+    if cpp_style_comments && s.count > 1 && s[0] == #char "*" && s[1] == #char "/" {
+        // We ended a cpp style block comment
+        return true, 2;
+    }
+
+    start : string = starts_comment(s, cpp_style_comments=cpp_style_comments, obj_style_comments=obj_style_comments);
+    if start != "" {
+        // We started a comment
+        return false, start.count;
+    }
+
+    // We're inside a comment, consume a single character
+    return false, 1;
+}
+
+
 at_end :: (lex: *Lexer) -> bool {
     return lex.data.count <= 0;
 }
@@ -201,17 +247,35 @@ get_location :: (lex: *Lexer) -> Source_Code_Location {
     return s;
 }
 
-// #run {
-//     TEST_STRING :: #string DONE
-//     12_3456_7890
-//     1234abc # this should probably raise an error... oh well
-//     1.e-4
-//     1.E-3
-// DONE
-//     tokens := get_tokens(#file, TEST_STRING, hash_character_starts_comment=true);
-//     for tokens print("token [%] = '%'\n", it_index, it);
-//     return;
-// };
+#if false {
+#run {
+    TEST_STRING :: #string DONE
+    #AAA
+    #BBB
+    // CCC
+
+    /* EEE */
+    /*
+    FFF
+    FFF
+      */
+    12_3456_7890
+    1234abc # GGG
+    1.e-4 ## HHH1 # HHH2
+    1.E-3
+DONE
+    tokens := get_tokens(#file, TEST_STRING, obj_style_comments=true, cpp_style_comments=true);
+    for tok : tokens {
+        for c : 0..tok.string_value.count-1 {
+            if tok.string_value.data[c] == #char "\r" {
+                tok.string_value.data[c] = #char " ";
+            }
+        }
+        print("token [%] = '%'\n", it_index, tok);
+    }
+    return;
+}
+}
 
 get_token :: (lex: *Lexer) -> success: bool, tok: Token {
 
@@ -233,42 +297,7 @@ get_token :: (lex: *Lexer) -> success: bool, tok: Token {
             return false, make_token(lex, .EOF);
         }
 
-        // handle comments
-        if lex.cpp_style_comments && lex.data[0] == #char "/" && lex.data.count > 1 {
-            if lex.data[1] == #char "/" {
-                eat_char(lex, 2);
-
-                while !at_end(lex) && lex.data[0] != #char "\n" {
-                    eat_char(lex);
-                }
-            } else if lex.data[1] == #char "*" {
-                eat_char(lex, 2);
-
-                while !at_end(lex) {
-                    if lex.data[0] == #char "\n"{
-                        lex.line_number += 1;
-                        lex.character_number = 0;
-                    } else if lex.data[0] == #char "*" && lex.data.count > 1 {
-                        if lex.data[1] == #char "/" {
-                            eat_char(lex, 2);
-                            break;
-                        }
-                    }
-
-                    eat_char(lex);
-                }
-            }
-        } else if lex.hash_character_starts_comment {
-            if lex.data[0] == #char "#" {
-                eat_char(lex);
-
-                while !at_end(lex) && lex.data[0] != #char "\n" {
-                    eat_char(lex);
-                }
-            }
-        }
-
-        // if we've made no progress on eliminating whitespace or comments then move on!
+        // if we've made no progress on eliminating whitespace then move on!
         if lex.data.count == starting {
             break;
         }
@@ -276,8 +305,10 @@ get_token :: (lex: *Lexer) -> success: bool, tok: Token {
 
     if starts_identifier(lex.data[0]) {
         tok := make_token(lex, .IDENTIFIER);
+
+        // @Cleanup Just use ident, don't need separate length variable?
         length: s64;
-        ident := lex.data;
+        ident : string = lex.data;
         while !at_end(lex) && continues_identifier(lex.data[0]) {
             length += 1;
             eat_char(lex, 1);
@@ -285,6 +316,31 @@ get_token :: (lex: *Lexer) -> success: bool, tok: Token {
         ident.count = length;
 
         tok.string_value = ident;
+        return true, tok;
+    }
+
+    comment_start := starts_comment(lex.data, cpp_style_comments=lex.cpp_style_comments, obj_style_comments=lex.obj_style_comments);
+    if comment_start != "" {
+
+        tok : Token = make_token(lex, .COMMENT);
+
+        tok.string_value.data = lex.data.data;
+        while !at_end(lex) {
+            end_of_comment, increment := continues_comment(lex.data, cpp_style_comments=lex.cpp_style_comments, obj_style_comments=lex.obj_style_comments);
+            tok.string_value.count += increment;
+            if increment == 1 && lex.data[0] == #char "\n" {
+                lex.line_number += 1;
+                lex.character_number += 1;
+                if comment_start != "/*" {
+                    end_of_comment = true;
+                }
+            }
+            eat_char(lex, increment);
+            if end_of_comment {
+                break;
+            }
+        }
+
         return true, tok;
     }
 

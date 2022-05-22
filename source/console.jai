@@ -210,7 +210,7 @@ console_draw :: () {
             ImGui.TableNextRow(); ImGui.TableNextColumn();
             ImGui.TextColored(KEYBINDING_COLOR, "TAB");
             ImGui.TableNextColumn();
-            ImGui.Text("List commands and show command documentation");
+            ImGui.Text("List commands and documentation");
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
             ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");

@@ -680,6 +680,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             display_transform(entity);
 
+            display_annotations(entity, entity_index);
         } else {
             if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
                 defer ImGui.TreePop();
@@ -1297,6 +1298,62 @@ display_transform :: (entity : *Entity) {
         shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
         ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
         entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
+    }
+}
+
+display_annotations :: (entity : *Entity, entity_index : int) {
+    if entity.type == {
+        case .MESH;
+            mesh_entity := cast(*Mesh_Entity)entity;
+
+            header := "Annotations (none)";
+            if mesh_entity.annotations.count {
+                header = tprint("Annotations (%)", mesh_entity.annotations.count);
+            } else {
+                ImGui.BeginDisabled();
+            }
+            defer if mesh_entity.annotations.count == 0 ImGui.EndDisabled();
+
+            if ImGui.TreeNodeEx(imgui_label(header, mesh_entity), .SpanAvailWidth) {
+                defer ImGui.TreePop();
+
+                if mesh_entity.annotations.count {
+
+                    if ImGui.BeginTable("##Annotations_Table", 4) {
+                        defer ImGui.EndTable();
+                        for annotation : mesh_entity.annotations {
+                            ImGui.TableNextRow();
+
+                            ImGui.TableNextColumn();
+                            if annotation.kind != .BLOCK {
+                                if ImGui.Button(imgui_label("Focus", xx annotation.id)) {
+                                    if annotation.kind == {
+                                        case .TRIANGLE;
+                                            item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
+                                        case .VERTEX;
+                                            item_focus_vertex(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
+                                    }
+                                }
+                                bindings : [..]Binding_With_Description;
+                                bindings.allocator = temp;
+                                array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
+                                array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
+                                Show_Tooltip_Binding(..bindings);
+                            }
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text(tprint("%", annotation.kind));
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text(tprint("%", annotation.id));
+
+                            ImGui.TableNextColumn();
+                            ImGui.Text(annotation.text);
+                        }
+                    }
+
+                }
+            }
     }
 }
 
