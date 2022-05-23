@@ -215,7 +215,7 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
     camera.bottom = -camera.top;
     camera.left   = -camera.right;
 
-    if follow_cursor && camera.top < camera_top_max() {
+    if follow_cursor {
         world_from_view := inverse(make_look_at_matrix(camera));
         delta_world := zoom_factor *(world_from_view * (zoomed_view - previous_view)).xyz;
         camera.eye_position += delta_world;
@@ -288,11 +288,11 @@ camera_clamp_orthographic_view_planes :: ()
     camera := *app.camera;
 
     lo := app.settings.camera_zoom_min_screen_filling_length_mm;
-    hi := camera_top_max();
 
     aspect := current_window_aspect_ratio_width_over_height();
 
     if app.settings.camera_zoom_max_limited_by_scene_bounding_sphere {
+        hi := camera_top_max();
         camera.top    = clamp(camera.top,   lo,          hi);
         camera.right  = clamp(camera.right, lo * aspect, hi * aspect);
         camera.bottom = -camera.top;

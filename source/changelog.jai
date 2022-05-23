@@ -20,6 +20,7 @@ PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
 - Changed the default color for the 'solid color' background option to make it a lighter grey
 - Fixed alignment of the 'Reload'buttons in the item context menu
 - Fixed a bug where preset items were cleared when pressing the 'Reload' button in the item context menu
+- Fixed a bug where the camera wouldn't follow the cursor correctly after running a item_focus_vertex command was executed
 DONE
 };
 
