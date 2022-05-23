@@ -157,6 +157,8 @@ User_Settings :: struct {
 
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
+
+    show_header_annotation_tooltips := true;
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {

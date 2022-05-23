@@ -8,9 +8,6 @@ Entity_Type :: enum {
     UNKNOWN;
 }
 
-Annotation_Settings :: struct {
-}
-
 Annotation :: struct {
     Kind :: enum {
         VERTEX;
@@ -20,8 +17,20 @@ Annotation :: struct {
     }
 
     kind : Kind;
-    text : string; // owns its memory
-    id : int; // vertex/line/triangle index, or line number starting block comment
+    text : string; // owned
+ 
+    // if kind == .BLOCK then 1-based line number starting block comment
+    // if kind != .BLOCK then 0-based index for vertex/line/triangle
+    id : int;
+}
+
+find_header_annotation :: (entity : *Entity) -> *Annotation {
+    for *annotation : entity.annotations {
+        if annotation.kind == .BLOCK && annotation.id == 1 {
+            return annotation;
+        }
+    }
+    return null;
 }
 
 // @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
@@ -37,6 +46,9 @@ Entity :: struct {
     render_info : Render_Info;
     display_info : Display_Info;
     mesh : Mesh;
+
+    // Interpretation depends on Entity_Type (I think)
+    annotations : [..]Annotation;
 
     // @Incomplete
     // user_data : *void; // Registered commands may want to attach data here
@@ -99,9 +111,6 @@ Mesh_Entity :: struct {
     // display_info.wireframe_width = 2;
     // display_info.element_label_theme.show_index = true;
     // display_info.vertex_label_style.show_position = true;
-
-    annotations : [..]Annotation;
-    annotation_settings : Annotation_Settings;
 
     Shape :: Mesh;
     spatial : *AABB_Tree(Shape);

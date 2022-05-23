@@ -184,6 +184,11 @@ show_item_list_ui :: () {
                     it.display_info.flash_wave_dt = 0;
                 }
 
+                header_annotation : *Annotation = find_header_annotation(it);
+                if app.settings.show_header_annotation_tooltips && header_annotation {
+                    Show_Tooltip(header_annotation.text);
+                }
+
                 /*
                 compiler_report("Enable when we have tooltip delays");
                 if (it.is_hovered) {
@@ -262,15 +267,15 @@ show_options :: () {
         if app.background_style == .SOLID_COLOR {
             ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
         }
-        ImGui.Checkbox("World Axes", *app.triad.visible);
-
+        ImGui.Checkbox("Show World Axes", *app.triad.visible);
+        ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
+        ImGui.Checkbox("Show ImGui Demo", *app.show_imgui_demo_window);
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
             if ImGui.Button("Reset OS Window Size") {
                 SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
             }
         }
 
-        ImGui.Checkbox("ImGui Demo", *app.show_imgui_demo_window);
     }
 }
 
@@ -1302,58 +1307,58 @@ display_transform :: (entity : *Entity) {
 }
 
 display_annotations :: (entity : *Entity, entity_index : int) {
-    if entity.type == {
-        case .MESH;
-            mesh_entity := cast(*Mesh_Entity)entity;
 
-            header := "Annotations (none)";
-            if mesh_entity.annotations.count {
-                header = tprint("Annotations (%)", mesh_entity.annotations.count);
-            } else {
-                ImGui.BeginDisabled();
-            }
-            defer if mesh_entity.annotations.count == 0 ImGui.EndDisabled();
+    header := "Annotations (none)";
+    if entity.annotations.count {
+        header = tprint("Annotations (%)", entity.annotations.count);
+    } else {
+        ImGui.BeginDisabled();
+    }
+    defer if entity.annotations.count == 0 ImGui.EndDisabled();
 
-            if ImGui.TreeNodeEx(imgui_label(header, mesh_entity), .SpanAvailWidth) {
-                defer ImGui.TreePop();
+    if ImGui.TreeNodeEx(imgui_label(header, entity), .SpanAvailWidth) {
+        defer ImGui.TreePop();
 
-                if mesh_entity.annotations.count {
+        if entity.annotations.count {
 
-                    if ImGui.BeginTable("##Annotations_Table", 4) {
-                        defer ImGui.EndTable();
-                        for annotation : mesh_entity.annotations {
-                            ImGui.TableNextRow();
+            if ImGui.BeginTable("##Annotations_Table", 4) {
+                defer ImGui.EndTable();
+                for *annotation : entity.annotations {
+                    ImGui.TableNextRow();
 
-                            ImGui.TableNextColumn();
-                            if annotation.kind != .BLOCK {
-                                if ImGui.Button(imgui_label("Focus", xx annotation.id)) {
-                                    if annotation.kind == {
-                                        case .TRIANGLE;
-                                            item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
-                                        case .VERTEX;
-                                            item_focus_vertex(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
-                                    }
-                                }
-                                bindings : [..]Binding_With_Description;
-                                bindings.allocator = temp;
-                                array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
-                                array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
-                                Show_Tooltip_Binding(..bindings);
+                    ImGui.TableNextColumn();
+                    if annotation.kind == .BLOCK {
+                        // @Incomplete Add an show/hide button to fold multiline comments?
+                    } else {
+                        if ImGui.Button(imgui_label("Focus", annotation)) {
+                            if annotation.kind == {
+                                case .TRIANGLE;
+                                    item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
+                                case .VERTEX;
+                                    item_focus_vertex(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
+                                case .LINE;
+                                    item_focus_segment(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
                             }
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text(tprint("%", annotation.kind));
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text(tprint("%", annotation.id));
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text(annotation.text);
                         }
+                        bindings : [..]Binding_With_Description;
+                        bindings.allocator = temp;
+                        array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
+                        array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
+                        Show_Tooltip_Binding(..bindings);
                     }
 
+                    ImGui.TableNextColumn();
+                    ImGui.Text(tprint("%", annotation.kind));
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text(tprint("%", annotation.id));
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text(annotation.text);
                 }
             }
+
+        }
     }
 }
 

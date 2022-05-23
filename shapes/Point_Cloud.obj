@@ -1,8 +1,9 @@
+# This is a Point Cloud example
 v 0 0 0
 v 1 1 0
 v 2 1 1
 v 3 1 0
-v 4 0 1
+v 4 0 1 # This is a comment on vertex 4 (0-based index)
 v 5 0 0
 vn 1 0 0
 vn 1 1 0

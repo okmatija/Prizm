@@ -84,7 +84,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
-                log_warning("Skipping comment annotation on line %, comments on 'vn' directives @Incomplete", current_line);
+                log_warning("Skipping comment annotation at %:%. Comments on 'vn' directives are @Incomplete", filename, current_line);
                 eat_token(*parser);
             }
 
@@ -96,7 +96,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
-                log_warning("Skipping comment annotation on line %, comments on 'vt' directives @Incomplete", current_line);
+                log_warning("Skipping comment annotation at %:%. Comments on 'vt' directives are @Incomplete", filename, current_line);
                 eat_token(*parser);
             }
 
@@ -113,7 +113,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
-                log_warning("Skipping comment annotation on line %, comments on 'p' directives should be moved to 'v' directives", current_line);
+                log_warning("Skipping comment annotation at %:%. Comments on 'p' directives should be moved to 'v' directives", filename, current_line);
                 eat_token(*parser);
             }
 
@@ -255,56 +255,91 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
     // @Cleanup it's annoying that init_entity_base_parameters must happen after the new and before the init
     result : *Entity;
-    {
-        if #complete mesh.geometry_format == {
-            case .LINES;
+    if #complete mesh.geometry_format == {
+        case .LINES;
 
-                dim := 2;
-                for mesh.positions if it.z != 0 dim = 3;
+            dim := 2;
+            for mesh.positions if it.z != 0 dim = 3;
 
-                if dim == 2 {
-                    result = New(Polyline_Soup2_Entity);
-                    e := cast(*Polyline_Soup2_Entity)result;
-                    e.shape, ok = to_Polyline_Soup2(mesh);
-                    if !ok {
-                        deinit(result);
+            if dim == 2 {
+                result = New(Polyline_Soup2_Entity);
+                e := cast(*Polyline_Soup2_Entity)result;
+                e.shape, ok = to_Polyline_Soup2(mesh);
+                if !ok {
+                    deinit(result);
+                }
+                init_entity_base_parameters(result, filename, mesh);
+                e.spatial = New(AABB_Tree(e.Shape));
+                init(e.spatial, *e.shape);
+
+                // FIXME Fixup annotation id numbering to sync with polyline soup conversion
+                if annotations.count {
+                    needs_fixup := false;
+                    for polyline : e.shape.polylines {
+                        if polyline.points.count && (polyline.points[0] == polyline.points[polyline.points.count - 1]) {
+                            needs_fixup = true;
+                            break;
+                        }
                     }
-                    init_entity_base_parameters(result, filename, mesh);
-                    e.spatial = New(AABB_Tree(e.Shape));
-                    init(e.spatial, *e.shape);
-                } else if dim == 3 {
-                    result = New(Polyline_Soup3_Entity);
-                    e := cast(*Polyline_Soup3_Entity)result;
-                    e.shape, ok = to_Polyline_Soup3(mesh);
-                    if !ok {
-                        deinit(result);
+
+                    if needs_fixup {
+                        log_error("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
+                    } else {
+                        result.annotations = annotations;
                     }
-                    init_entity_base_parameters(result, filename, mesh);
-                    e.spatial = New(AABB_Tree(e.Shape));
-                    init(e.spatial, *e.shape);
                 }
 
-            case .POINTS;
-
-                result = New(Point_Cloud_Entity);
-                e := cast(*Point_Cloud_Entity)result;
+            } else if dim == 3 {
+                result = New(Polyline_Soup3_Entity);
+                e := cast(*Polyline_Soup3_Entity)result;
+                e.shape, ok = to_Polyline_Soup3(mesh);
+                if !ok {
+                    deinit(result);
+                }
                 init_entity_base_parameters(result, filename, mesh);
                 e.spatial = New(AABB_Tree(e.Shape));
                 init(e.spatial, *e.shape);
 
-            case .TRIANGLES;
+                // FIXME Fixup annotation id numbering to sync with polyline soup conversion
+                if annotations.count {
+                    needs_fixup := false;
+                    for polyline : e.shape.polylines {
+                        if polyline.points.count && (polyline.points[0] == polyline.points[polyline.points.count - 1]) {
+                            needs_fixup = true;
+                            break;
+                        }
+                    }
 
-                result = New(Mesh_Entity);
-                e := cast(*Mesh_Entity)result;
-                init_entity_base_parameters(result, filename, mesh);
-                e.spatial = New(AABB_Tree(e.Shape));
-                init(e.spatial, *e.shape);
-                e.annotations = annotations;
+                    if needs_fixup {
+                        log_error("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
+                    } else {
+                        result.annotations = annotations;
+                    }
+                }
 
-            case .UNKNOWN;
+            }
 
-                assert(false, "Should have handled UNKNOWN geometry format by now\n");
-        }
+        case .POINTS;
+
+            result = New(Point_Cloud_Entity);
+            e := cast(*Point_Cloud_Entity)result;
+            init_entity_base_parameters(result, filename, mesh);
+            e.spatial = New(AABB_Tree(e.Shape));
+            init(e.spatial, *e.shape);
+            result.annotations = annotations;
+
+        case .TRIANGLES;
+
+            result = New(Mesh_Entity);
+            e := cast(*Mesh_Entity)result;
+            init_entity_base_parameters(result, filename, mesh);
+            e.spatial = New(AABB_Tree(e.Shape));
+            init(e.spatial, *e.shape);
+            result.annotations = annotations;
+
+        case .UNKNOWN;
+
+            assert(false, "Should have handled UNKNOWN geometry format by now\n");
     }
 
     return result;

@@ -205,6 +205,7 @@ load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entit
 
 load_one_file :: (filename : string, contents : string, loading_from_command_line : bool) -> *Entity {
     if !contents {
+        log_warning("Skipped file: '%' (empty or missing)\n", filename);
         return null;
     }
 

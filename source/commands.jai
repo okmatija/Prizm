@@ -231,6 +231,83 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
+as_polyline_soup :: (entity : *Entity) -> *Polyline_Soup2_Entity, *Polyline_Soup3_Entity {
+    if entity.type == {
+        case .POLYLINE_SOUP2;
+            soup2 := cast(*Polyline_Soup2_Entity) entity;
+            return soup2, null;
+        case .POLYLINE_SOUP3;
+            soup3 := cast(*Polyline_Soup3_Entity) entity;
+            return null, soup3;
+    }
+    return null, null;
+}
+
+// Update the camera to focus on the given segment. The current look direction is preserved and the
+// orbit/look position of the camera is positioned on the segment centroid.
+//
+// `id`             The index of the item containing the desired segment
+// `segment_index`  The segment that should be focussed
+// `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
+//                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the segment
+//                  If  > 0 then the items clipping sphere is set with a radius of the given value
+//
+// If a clipping sphere is set then segment index text is also enabled
+item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.) {
+
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    entity := app.entities[id];
+
+    soup2, soup3 := as_polyline_soup(entity);
+    if !soup2 && !soup3 {
+        log_error("Expected POLYLINE type item, got %.", entity.type);
+        return;
+    }
+
+    sphere : Sphere;
+
+    if soup2 {
+
+        sid_max := segment_count(soup2.shape) - 1;
+        if segment_index < 0 || segment_index > sid_max {
+            log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
+            return;
+        }
+
+        found, segment := get_segment(soup2.shape, segment_index);
+        center2 : Vector2 = (<<segment.from_point + <<segment.to_point) / 2;
+        sphere.center = make_vector3(center2, 0);
+        sphere.radius = 2 * distance(segment.from_point, segment.to_point);
+
+    } else if soup3 {
+
+        sid_max := segment_count(soup3.shape) - 1;
+        if segment_index < 0 || segment_index > sid_max {
+            log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
+            return;
+        }
+
+        found, segment := get_segment(soup3.shape, segment_index);
+        sphere.center = (<<segment.from_point + <<segment.to_point) / 2;
+        sphere.radius = 2 * distance(segment.from_point, segment.to_point);
+
+    }
+
+    if clip_radius > 0 {
+        sphere.radius = clip_radius;
+    }
+
+    if clip_radius >= 0 {
+        entity.display_info.element_label_theme.show_index = true;
+    }
+
+    apply_focus(clip_radius, sphere, entity);
+
+} @RegisterCommand
+
 // Update the camera to focus on the given triangle. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the triangle centroid.
 //
@@ -278,38 +355,14 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
         sphere.radius *= 2;
     } else {
         sphere.radius = clip_radius;
-    }
-
-    // @Cleanup @CopyPasta
-    if clip_radius >= 0 {
-        fit_sphere_on_screen(sphere);
-
-        entity.display_info.clip_sphere.sphere = sphere;
-        entity.display_info.clip_sphere.is_active = true;
         entity.display_info.element_label_theme.show_index = true;
-    } else {
-        target : Sphere = ---;
-        target.center = sphere.center;
-
-        // @Think Maybe this behaviour for expanding spheres should be an $ argument to expand?
-        // expand(*target, entity.render_info.bounding_sphere);
-        center_distance := distance(target.center, entity.render_info.bounding_sphere.center);
-        target.radius = center_distance + entity.render_info.bounding_sphere.radius;
-
-        fit_sphere_on_screen(target);
-        nf_camera := app.camera;
-
-        // @Think Maybe put this into the fit_sphere_on_screen function?
-        // At this point the camera is set so that the left/right/top/bottom/near/far planes bound `target`.
-        // We would like to keep the near/far values but change left/right/top/bottom so that the point of
-        // interest fills the screen
-        fit_sphere_on_screen(sphere);
-        app.camera.near = nf_camera.near;
-        app.camera.far = nf_camera.far;
-
-        // Turn if off even if it was on (the user can just toggle it on again)
-        entity.display_info.clip_sphere.is_active = false;
     }
+
+    if clip_radius >= 0 {
+        entity.display_info.element_label_theme.show_index = true;
+    }
+
+    apply_focus(clip_radius, sphere, entity);
 
 } @RegisterCommand
 
@@ -331,19 +384,44 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
     entity := app.entities[id];
 
-    if entity.type != .MESH {
-        log_error("Expected MESH type item, got %. Support for other item types is @Incomplete", entity.type);
-        return;
-    }
+    sphere : Sphere;
 
-    vid_max := entity.mesh.positions.count - 1;
-    if vertex_index < 0 || vertex_index >= vid_max {
-        log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
-        return;
-    }
+    if #complete entity.type == {
+        case .MESH; #through;
+        case .POINT_CLOUD;
 
-    sphere : Sphere = ---;
-    sphere.center = entity.mesh.positions[vertex_index];
+            vid_max := entity.mesh.positions.count - 1;
+            if vertex_index < 0 || vertex_index > vid_max {
+                log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
+                return;
+            }
+            sphere.center = entity.mesh.positions[vertex_index];
+
+        case .POLYLINE_SOUP2;
+
+            polyline_entity := cast(*Polyline_Soup2_Entity) entity;
+            vid_max := point_count(polyline_entity.shape) - 1;
+            if vertex_index < 0 || vertex_index > vid_max {
+                log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
+                return;
+            }
+            sphere.center = make_vector3(get_point(polyline_entity.shape, vertex_index), 0.);
+
+        case .POLYLINE_SOUP3;
+
+            polyline_entity := cast(*Polyline_Soup3_Entity) entity;
+            vid_max := point_count(polyline_entity.shape) - 1;
+            if vertex_index < 0 || vertex_index > vid_max {
+                log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
+                return;
+            }
+            sphere.center = get_point(polyline_entity.shape, vertex_index);
+
+        case .POLYGON_SOUP; #through;
+        case .UNKNOWN;
+            log_error("Support for % item type is @Incomplete", entity.type);
+            return;
+    }
 
     if clip_radius <= 0 {
         sphere.radius = 1;
@@ -351,36 +429,11 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
         sphere.radius = clip_radius;
     }
 
-    // @Cleanup @CopyPasta
     if clip_radius >= 0 {
-        fit_sphere_on_screen(sphere);
-
-        entity.display_info.clip_sphere.sphere = sphere;
-        entity.display_info.clip_sphere.is_active = true;
         entity.display_info.vertex_label_style.show_index = true;
-    } else {
-        target : Sphere = ---;
-        target.center = sphere.center;
-
-        // @Think Maybe this behaviour for expanding spheres should be an $ argument to expand?
-        // expand(*target, entity.render_info.bounding_sphere);
-        center_distance := distance(target.center, entity.render_info.bounding_sphere.center);
-        target.radius = center_distance + entity.render_info.bounding_sphere.radius;
-
-        fit_sphere_on_screen(target);
-        nf_camera := app.camera;
-
-        // @Think Maybe put this into the fit_sphere_on_screen function?
-        // At this point the camera is set so that the left/right/top/bottom/near/far planes bound `target`.
-        // We would like to keep the near/far values but change left/right/top/bottom so that the point of
-        // interest fills the screen
-        fit_sphere_on_screen(sphere);
-        app.camera.near = nf_camera.near;
-        app.camera.far = nf_camera.far;
-
-        // Turn if off even if it was on (the user can just toggle it on again)
-        entity.display_info.clip_sphere.is_active = false;
     }
+
+    apply_focus(clip_radius, sphere, entity);
 
 } @RegisterCommand
 
@@ -497,6 +550,9 @@ item_perturb_positions :: (id : int, radius : float = .001) {
         normalize_or_z_axis(*delta);
         <<point = <<point + delta * radius;
     }
+
+    // @FIXME: This is broken becuase the mesh points are not synced with the polyline (and polygon?) points,
+    // the implementation should perturb the mesh and then recompute the shapes.
 
     base := app.entities[id];
     base.render_info.is_dirty = true;
@@ -703,4 +759,37 @@ make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : 
     }
 
     array_add(*app.entities, new_entity);
+}
+
+#scope_file
+
+apply_focus :: (clip_radius : float, sphere : Sphere, entity : *Entity) {
+    if clip_radius >= 0 {
+        fit_sphere_on_screen(sphere);
+
+        entity.display_info.clip_sphere.sphere = sphere;
+        entity.display_info.clip_sphere.is_active = true;
+    } else {
+        target : Sphere = ---;
+        target.center = sphere.center;
+
+        // @Think Maybe this behaviour for expanding spheres should be an $ argument to expand?
+        // expand(*target, entity.render_info.bounding_sphere);
+        center_distance := distance(target.center, entity.render_info.bounding_sphere.center);
+        target.radius = center_distance + entity.render_info.bounding_sphere.radius;
+
+        fit_sphere_on_screen(target);
+        near_far_camera := app.camera;
+
+        // @Think Maybe put this into the fit_sphere_on_screen function?
+        // At this point the camera is set so that the left/right/top/bottom/near/far planes bound `target`.
+        // We would like to keep the near/far values but change left/right/top/bottom so that the point of
+        // interest fills the screen
+        fit_sphere_on_screen(sphere);
+        app.camera.near = near_far_camera.near;
+        app.camera.far = near_far_camera.far;
+
+        // Turn it off even if it was on (the user can just toggle it on again)
+        entity.display_info.clip_sphere.is_active = false;
+    }
 }

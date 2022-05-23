@@ -1,11 +1,18 @@
+# This is a 2D Polyline Soup example.
+#
+# Note the vertex numbering in the .obj file (an array of points and array of segment indices)
+# will be different from the polyline soup numbering (array of arrays of points) when closed
+# polylines are present. In future we should probably have an option to load .obj files with
+# 'l' directives in a way which does not convert datastructures, but we don't have that yet!
+
 v -10 -10 0
 v  10 -10 0
-v  10  10 0
+v  10  10 0 # Wowee, 10/10 coorindates!
 v -10  10 0
 l 1 2
 l 2 3
-l 3 4
-l 4 1
+l 3 4 # This is an interesting segment
+#l 4 1 # FIXME Segment disabled for now since close loops break annotation indices right now!
 
 v -20 -20 0
 v  20 -20 0
@@ -14,8 +21,8 @@ v -20  20 0
 l 5 6
 l 6 7
 l 7 8
-l 8 5
+#l 8 5 # FIXME Segment disabled for now since close loops break annotation indices right now!
 
-v 30 30 0
-v 40 30 0
-l 9 10
+v 30 30 0 # Start lonely segment
+v 40 30 0 # End lonely segment
+l 9 10 # A lonely segment
