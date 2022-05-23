@@ -382,7 +382,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                 if candidates.count == 0 {
                     // No match
                     console_log_clear();
-                    log("# 0 matching commands");
+                    log("# 0 matching commands. Did you forget the @RegisterCommand note?");
 
                 } else if candidates.count == 1 {
                     // Single match. Delete the beginning of the word and replace it entirely so we've got nice casing

@@ -95,7 +95,7 @@ AABB_Tree :: struct(Shape : Type) {
 
 init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
     if T.Shape != Mesh {
-        log_warning("@Incomplete Building AABB not yet implemented for % primitives, queries will be brute force", T.Primitive);
+        // log("@Incomplete Building AABB not yet implemented for % primitives, queries will be brute force", T.Primitive);
         return;
     }
 
