@@ -204,6 +204,37 @@ item_clear :: (id : int) {
     log("# Cleared item #% which had % points", id, point_count);
 } @RegisterCommand
 
+// Flip normals in the mesh item with the given `id`
+// Reverses the winding of triangles and multiplies vertex normals by -1
+item_flip_normals :: (id : int) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    entity := app.entities[id];
+
+    if entity.type != .MESH {
+        log_error("Expected MESH type item, got %.", entity.type);
+        return;
+    }
+
+    if entity.mesh.geometry_format != .TRIANGLES {
+        log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
+        return;
+    }
+
+    for * entity.mesh.normals {
+        <<it *= -1;
+    }
+
+    for i : 0..(entity.mesh.indices.count/3)-1 {
+        using entity.mesh;
+        indices[3 * i + 1], indices[3 * i + 2] = swap(indices[3 * i + 1], indices[3 * i + 2]);
+    }
+
+    entity.render_info.is_dirty = true;
+} @RegisterCommand
+
 // @TODO It would be handy to support varargs/arrays for the target_ids for the following functions
 
 // Copy the clipping ranges of item `source_id` to item `target_id`
@@ -700,10 +731,6 @@ make_Grid :: (spacing : float, nx : u32, ny : u32, nz : u32, ox : float, oy : fl
 /*
 clear_normals :: (id : int) {
     // @Incomplete if the normals are all constant it screws up the normal render, wipe them here
-} @RegisterCommand
-
-flip_normals :: (id : int) {
-    // @Incomplete
 } @RegisterCommand
 
 reorient_triangles_012_to_021 :: (id : int) {

@@ -18,6 +18,7 @@ PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
   - End of line comments after v/f/l directives are associated with the corresponding point/face/line and can be used to focus the relevant element
   - Note that the 'p' directive needed for point clouds does not accept annotations, put these on 'v' instead
 - Changed the default color for the 'solid color' background option to make it a lighter grey
+- Added a new 'item_flip_normals' command which works triangle mesh items
 - Added a new 'item_focus_segment' command which works like the existing 'item_focus_triangle'/'item_focus_vertex'
 - Added a item visibility checkbox under the 'Rendering' section of the item context menu, this can also be used to toggle visibility of multiple items
 - Fixed alignment of the 'Reload'buttons in the item context menu
