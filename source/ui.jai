@@ -29,7 +29,7 @@ show_item_list_ui :: () {
         any_visibility_changed := false;
 
         {
-            show_entity_index := app.console.visible || app.user_selection.is_visible;
+            show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
 
             ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
             defer ImGui.EndTable();
@@ -68,12 +68,12 @@ show_item_list_ui :: () {
                 // Toggle visibility checkbox
                 {
                     ImGui.TableNextColumn();
-                    was_visible := it.is_visible;
-                    visibility_changed := checkbox_press_or_sweep_to_toggle(*it.is_visible, imgui_label("##Visible", it), *app.sweep_state, app.window);
+                    was_visible := it.display_info.is_visible;
+                    visibility_changed := checkbox_press_or_sweep_to_toggle(*it.display_info.is_visible, imgui_label("##Visible", it), *app.sweep_state, app.window);
                     any_visibility_changed = any_visibility_changed || visibility_changed;
                     Show_Tooltip("Visible");
 
-                    if !was_visible && it.is_visible {
+                    if !was_visible && it.display_info.is_visible {
                         // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
                         if !it.display_info.surface_visible && !it.display_info.wireframe_visible && !it.display_info.points_visible {
                             it.display_info.surface_visible = true;
@@ -306,7 +306,7 @@ show_selection_ui :: () {
             // Toggle visibility checkbox
             {
                 ImGui.TableNextColumn();
-                visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.is_visible);
+                visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.display_info.is_visible);
                 TOOLTIP :: #run
                     join("Toggle visibility of selected vertices\n",
                          "FIXME: Unfortunately this checkbox must\n",
@@ -317,7 +317,7 @@ show_selection_ui :: () {
 
             ImGui.TableNextColumn();
             ImGui.Text("Default");
-            if it.is_visible {
+            if it.display_info.is_visible {
                 bindings : [..]Binding_With_Description;
                 bindings.allocator = temp;
                 array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
@@ -608,6 +608,7 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
         if set.element_label_theme_update.show_backfacing   element_label_theme.show_backfacing   = other.element_label_theme.show_backfacing;
         if set.element_label_theme_update.visible_radius_px element_label_theme.visible_radius_px = other.element_label_theme.visible_radius_px;
 
+        if set.is_visible           is_visible           = other.is_visible;
         if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
         if set.wireframe_width      wireframe_width      = other.wireframe_width;
         if set.surface_visible      surface_visible      = other.surface_visible;
@@ -1066,6 +1067,8 @@ Label_Theme_Update :: struct {
 // @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
 Display_Info_Update :: struct {
 
+    is_visible : bool;
+
     points_visible : bool;
     points_color : [4]bool;
     points_size : bool;
@@ -1137,6 +1140,11 @@ display_info_ui :: (
     if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
+        ImGui.Text("Visible    ");
+        ImGui.SameLine();
+        set.is_visible = ImGui.Checkbox(imgui_label("##item_visible", display_info), *display_info.is_visible);
+        Show_Tooltip("Overall item visibility");
+
         // FIXME FIXME: opacity should control wireframe??
         ImGui.Text("Render Mode");
         ImGui.SameLine();
@@ -1153,7 +1161,7 @@ display_info_ui :: (
             ImGui.Text("Points     ");
             ImGui.SameLine();
             set.points_visible = ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-            Show_Tooltip("Visible");
+            Show_Tooltip("Points visibility");
             ImGui.SameLine();
             old_color := display_info.points_color;
             ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -1171,7 +1179,7 @@ display_info_ui :: (
             ImGui.Text("Normals    ");
             ImGui.SameLine();
             set.normals_visible = ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-            Show_Tooltip("Visible");
+            Show_Tooltip("Normals visibility");
             ImGui.SameLine();
             old_color := display_info.normals_color;
             ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -1187,7 +1195,7 @@ display_info_ui :: (
             ImGui.Text("Lines      ");
             ImGui.SameLine();
             set.wireframe_visible = ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
-            Show_Tooltip("Visible");
+            Show_Tooltip("Lines visibility");
             ImGui.SameLine();
             old_color := display_info.wireframe_color;
             ImGui.ColorEdit4(imgui_label("##wireframe_color", display_info), *display_info.wireframe_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -1204,7 +1212,7 @@ display_info_ui :: (
             ImGui.Text("Triangles  ");
             ImGui.SameLine();
             set.surface_visible = ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
-            Show_Tooltip("Visible");
+            Show_Tooltip("Triangles visibility");
             {
                 ImGui.SameLine();
                 old_color := display_info.surface_color;

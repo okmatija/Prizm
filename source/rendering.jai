@@ -100,6 +100,8 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
+    is_visible := true; // Is the item visible overall?
+
     flash_wave_dt : float = 0.; @NoSync
 
     points_visible := false;
@@ -773,9 +775,9 @@ render_entities :: () {
         draw_cached_text_quads(element_label_quads, element_theme);
     }
 
-    is_visible_opaque ::      (e : *Entity) -> bool { return e.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }
-    is_visible_transparent :: (e : *Entity) -> bool { return e.is_visible && !e.is_hovered && e.display_info.surface_color.w != 1.; }
-    is_visible_hovered ::     (e : *Entity) -> bool { return e.is_visible &&  e.is_hovered; }
+    is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }
+    is_visible_transparent :: (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w != 1.; }
+    is_visible_hovered ::     (e : *Entity) -> bool { return e.display_info.is_visible &&  e.is_hovered; }
 
     Visible_Opaque ::      #bake_arguments Entities_Iterator(should_visit = is_visible_opaque);
     Visible_Transparent :: #bake_arguments Entities_Iterator(should_visit = is_visible_transparent);

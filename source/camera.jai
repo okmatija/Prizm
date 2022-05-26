@@ -227,14 +227,14 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 
 // Adjust the camera position and viewing volume to fit the visible geometry while preserving the camera look direction
 fit_scene_on_screen :: (accurate : bool = false) {
-    sphere := entities_bounding_sphere((e)=>(e.is_visible), accurate);
+    sphere := entities_bounding_sphere((e)=>(e.display_info.is_visible), accurate);
     fit_sphere_on_screen(sphere, sphere.radius);
 }
 
 // Adjust the camera position and viewing volume to fit the entity while preserving the camera look direction
 fit_on_screen :: (entity : *Entity, accurate : bool = false)
 {
-    if !entity.is_visible {
+    if !entity.display_info.is_visible {
         return;
     }
 
@@ -245,7 +245,7 @@ fit_on_screen :: (entity : *Entity, accurate : bool = false)
     }
     // @Incomplete account for clipping planes as well
 
-    scene_sphere := entities_bounding_sphere((e)=>(e.is_visible), accurate);
+    scene_sphere := entities_bounding_sphere((e)=>(e.display_info.is_visible), accurate);
     sphere.radius += distance(sphere.center, scene_sphere.center);
 
     fit_sphere_on_screen(sphere);
@@ -445,7 +445,7 @@ entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true), fixed
         first = false;
     }
 
-    if app.user_selection.is_visible {
+    if app.user_selection.display_info.is_visible {
         expand_sphere(*result, *app.user_selection.mesh, *app.user_selection.render_info, app.user_selection.display_info, first, keep_center);
         first = false;
     }
@@ -476,7 +476,7 @@ entities_bounding_sphere_accurate :: ($filter : (*Entity)->bool = (e)=>(true)) -
         }
     }
 
-    if app.user_selection.is_visible {
+    if app.user_selection.display_info.is_visible {
         mesh := *app.user_selection.mesh;
         for * mesh.positions {
             p := (mesh.world_from_model * make_vector4(it, 1.)).xyz;

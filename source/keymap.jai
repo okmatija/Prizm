@@ -543,7 +543,7 @@ toggle_show_console_ui :: () {
 Is_Target :: (e : *Entity) -> bool #expand {
     if #complete `target == {
         case .SELECTED;  return (e.is_selected == true);
-        case .VISIBLE;   return (e.is_visible  == true);
+        case .VISIBLE;   return (e.display_info.is_visible  == true);
         case .ALL_ITEMS; return true;
     }
 }
@@ -556,7 +556,7 @@ focus_items :: (target : Target_Items) {
         case .ALL_ITEMS;
             sphere = entities_bounding_sphere();
         case .VISIBLE;
-            sphere = entities_bounding_sphere((e)=>(e.is_visible));
+            sphere = entities_bounding_sphere((e)=>(e.display_info.is_visible));
         case .SELECTED;
             sphere = entities_bounding_sphere((e)=>(e.is_selected));
     }
@@ -790,7 +790,7 @@ kinda_toggle_is_visible :: (target : Target_Items) {
 
     visible := false;
     for app.entities if Is_Target(it) {
-        if it.is_visible {
+        if it.display_info.is_visible {
             visible = true;
             break;
         }
@@ -799,7 +799,7 @@ kinda_toggle_is_visible :: (target : Target_Items) {
     // Toggle and apply it to all visible entities
     visible = !visible;
     for app.entities if Is_Target(it) {
-        it.is_visible = visible;
+        it.display_info.is_visible = visible;
     }
 }
 */
@@ -833,7 +833,7 @@ select_or_deselect_all :: () {
 
 toggle_current_selection_if_visible :: () {
     for app.entities {
-        if it.is_visible {
+        if it.display_info.is_visible {
             it.is_selected = !it.is_selected;
         }
     }

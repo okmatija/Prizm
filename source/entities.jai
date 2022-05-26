@@ -38,7 +38,6 @@ find_header_annotation :: (entity : *Entity) -> *Annotation {
 Entity :: struct {
     type : Entity_Type = .UNKNOWN;
 
-    is_visible := true;
     is_selected := false;
     is_hovered := false;
     is_preset_shape := false;
@@ -413,7 +412,7 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
     dist2 := FLOAT32_INFINITY;
     for entity, entity_index : app.entities {
-        if entity.is_visible {
+        if entity.display_info.is_visible {
             if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
                 for vertex, vertex_index : entity.mesh.positions {
 
@@ -457,7 +456,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     result : Point_On_Entity;
 
     Visible_Selectable_Mesh :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.is_visible &&
+            e.display_info.is_visible &&
             e.type == .MESH &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
@@ -575,7 +574,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
 
     Visible_Selectable_Polyline_Soup3 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.is_visible &&
+            e.display_info.is_visible &&
             e.type == .POLYLINE_SOUP3 &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
@@ -616,7 +615,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
 
     Visible_Selectable_Polyline_Soup2 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.is_visible &&
+            e.display_info.is_visible &&
             e.type == .POLYLINE_SOUP2 &&
             e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
         ));
@@ -669,10 +668,9 @@ reload_entity :: (entity : *Entity) -> *Entity {
 
     if new_entity {
         // Maintain the following information after the entity reload
-        new_entity.is_visible            = entity.is_visible;
-        new_entity.is_selected           = entity.is_selected;
-        new_entity.display_info          = entity.display_info;
-        new_entity.generation_index      = entity.generation_index;
+        new_entity.is_selected =           entity.is_selected;
+        new_entity.display_info =          entity.display_info;
+        new_entity.generation_index =      entity.generation_index;
         new_entity.mesh.world_from_model = entity.mesh.world_from_model;
 
         deinit(entity);

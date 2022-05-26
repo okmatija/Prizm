@@ -15,10 +15,11 @@ PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
 - Added a basic annotation functionality where comments in obj files are parsed and stored on the items
   - Annotations are accessible in a foldable section in the item context menu
   - Standalone/block comments are collected and any comment starting the file is displayed in a tooltip when the item is hovered, this can be disabled under 'Options' in the main panel
-  - End of line comments after v/f/l (TODO l) directives are associated with the corresponding point/face/line and can be used to focus the relevant element
+  - End of line comments after v/f/l directives are associated with the corresponding point/face/line and can be used to focus the relevant element
   - Note that the 'p' directive needed for point clouds does not accept annotations, put these on 'v' instead
 - Changed the default color for the 'solid color' background option to make it a lighter grey
 - Added a new 'item_focus_segment' command which works like the existing 'item_focus_triangle'/'item_focus_vertex'
+- Added a item visibility checkbox under the 'Rendering' section of the item context menu, this can also be used to toggle visibility of multiple items
 - Fixed alignment of the 'Reload'buttons in the item context menu
 - Fixed a bug where preset items were cleared when pressing the 'Reload' button in the item context menu
 - Fixed a bug where the camera wouldn't follow the cursor correctly after running a item_focus_vertex command was executed

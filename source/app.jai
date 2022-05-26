@@ -68,7 +68,7 @@ App :: struct {
     user_selection_max_point_count_for_selectable_entity := 5_000_000;
 
     // Set the defaults for the user selection display
-    user_selection.is_visible = true;
+    user_selection.display_info.is_visible = true;
     user_selection.display_info.points_visible = true;
     user_selection.display_info.points_size = 6;
     user_selection.display_info.points_color = .{1, 0, .8, 1}; // @Volatile Used for the dynamic label text too
@@ -138,7 +138,7 @@ Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, s
     }
 }
 
-Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_visible));
+Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.display_info.is_visible));
 Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected));
 
 // :UserConfig hotload changes to this file

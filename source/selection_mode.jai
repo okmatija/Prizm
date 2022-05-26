@@ -4,11 +4,11 @@ do_clip_radius_mode :: (clicked : bool = false) -> bool {
     if ImGui.IsMouseClicked(.Left) assert(ImGui.IsMouseDown(.Left));
 
     button_component := ifx clicked then ImGui.IsMouseClicked(.Left) else ImGui.IsMouseDown(.Left)
-    return app.user_selection.is_visible && button_component && io().KeyShift;
+    return app.user_selection.display_info.is_visible && button_component && io().KeyShift;
 }
 
 do_selection_mode :: () {
-    if app.user_selection.is_visible == false {
+    if app.user_selection.display_info.is_visible == false {
         return;
     }
 
@@ -107,7 +107,7 @@ do_selection_mode :: () {
 
             if use_result_for_repositioning_camera {
 
-                sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.is_visible), fixed_center=*closest.position);
+                sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.display_info.is_visible), fixed_center=*closest.position);
 
                 view_from_world := make_look_at_matrix(app.camera);
                 closest_view := view_from_world * make_vector4(closest.position, 1.);

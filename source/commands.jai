@@ -332,7 +332,6 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
     }
 
     if entity.mesh.geometry_format != .TRIANGLES {
-        // @CompilerBug Using .TRIANGLES as the second argument crashed the compiler!
         log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
         return;
     }
