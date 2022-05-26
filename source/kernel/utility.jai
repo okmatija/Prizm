@@ -29,9 +29,9 @@ make_sphere :: (center : Point3, radius : float) -> Sphere {
     return result;
 }
 
-// @Incomplete @robustness handle scaling of radius
+// @Incomplete handle scaling of radius?
 transform :: (using sphere : *Sphere, transform : Matrix4) {
-    center = (transform * make_vector4(center, 1.)).xyz;
+    center = transform_point(transform, center);
 }
 
 // @Cleanup Use optional value bakes on keep_center_of_this parameter

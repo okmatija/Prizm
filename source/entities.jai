@@ -45,6 +45,10 @@ Entity :: struct {
 
     render_info : Render_Info;
     display_info : Display_Info;
+
+    // Note the transform stored in this mesh also applies to:
+    // - Shape geometry in the specialized types
+    // - Bounding shapes in render_info
     mesh : Mesh;
 
     // Interpretation depends on Entity_Type (I think)
@@ -118,14 +122,14 @@ Mesh_Entity :: struct {
     shape : Shape = ---; // Alias for consistency
 }
 
-transform :: (entity : *Entity, shift : Vector3) {
+update_entity_transform :: (entity : *Entity, shift : Vector3) {
     {
         using entity.mesh.world_from_model;
         _14, _24, _34 += shift.x, shift.y, shift.z;
     }
 
     // Don't update entity.render_info because that uses entity.mesh.world_from_model
-    // in the same way as the mesh data i.e., the transforms are not baked into the data
+    // in the same way as the mesh data i.e., those shapes are defined in model space
 
     // entity.render_info.bounding_sphere.center  += shift;
     // entity.render_info.bounding_aabb.min_point += shift;

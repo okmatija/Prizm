@@ -387,7 +387,7 @@ show_selection_ui :: () {
 
                 maybe_update_render_info(*it.render_info, *it.mesh);
                 aabb := it.render_info.bounding_aabb;
-                ImGui.Text("AABB [%, %, %], [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z, aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
+                imgui_text_for_aabb(it.render_info.bounding_aabb);
             }
 
             ImGui.TableNextRow();
@@ -670,15 +670,8 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES) || entity.type == .POLYGON_SOUP;
             maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-            transformed_aabb := entity.render_info.bounding_aabb;
-            {
-                // @Volatile @Cleanup only works for a shift
-                using transformed_aabb;
-                min_point = (entity.mesh.world_from_model * make_vector4(min_point, 1)).xyz;
-                max_point = (entity.mesh.world_from_model * make_vector4(max_point, 1)).xyz;
-            }
-
-            set := display_info_ui(*entity.display_info, transformed_aabb, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
+            aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
+            set := display_info_ui(*entity.display_info, aabb_world, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
             if set.color_reset entity.display_info.surface_color = color_from_path(entity.fully_pathed_filename);
 
             display_stats(entity);
@@ -1112,7 +1105,7 @@ Display_Info_Update :: struct {
 show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
     // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
     update.show_index      = ImGui.Checkbox("Label indices", *theme.show_index);
-    update.show_position   = ImGui.Checkbox("Label coordinates", *theme.show_position);
+    update.show_position   = ImGui.Checkbox("Label coordinates (model space)", *theme.show_position);
     update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
     update.show_backfacing = ImGui.Checkbox("Label backfacing", *theme.show_backfacing);
     update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
@@ -1290,20 +1283,21 @@ display_stats :: (entity : *Entity) {
                 }
         }
         maybe_update_render_info(*entity.render_info, *entity.mesh);
-        aabb := entity.render_info.bounding_aabb;
-        ImGui.Text("Model space AABB:");
-        ImGui.Text("Max [%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
-        ImGui.Text("Min [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z);
+
+        imgui_text_for_aabb(entity.render_info.bounding_aabb);
     }
 }
 
 display_transform :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Transform", .SpanAvailWidth) {
         defer ImGui.TreePop();
+        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        ImGui.Text("This is a \"world from model\" transform");
+        ImGui.PopStyleColor();
         shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
         prev_shift := shift;
         if ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05) {
-            transform(entity, shift - prev_shift);
+            update_entity_transform(entity, shift - prev_shift);
         }
     }
 }
@@ -1489,3 +1483,9 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
 #scope_file
 
 display_action_buttons := true;
+
+imgui_text_for_aabb :: (aabb : AxisBox3) {
+    ImGui.Text("Model space AABB:");
+    ImGui.Text("Max [%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
+    ImGui.Text("Min [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z);
+}

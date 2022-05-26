@@ -145,6 +145,13 @@ expand :: (using box : *$T/AxisBox, other : T) {
     }
 }
 
+transform_axis_box3 :: (transform : Matrix4, using box : AxisBox3) -> AxisBox3 {
+    result : AxisBox3 = box;
+    result.min_point = transform_point(transform, result.min_point);
+    result.max_point = transform_point(transform, result.max_point);
+    return result;
+}
+
 center_point :: (using box : $T/AxisBox) -> T.Point #must {
     return (max_point + min_point) / 2;
 }
