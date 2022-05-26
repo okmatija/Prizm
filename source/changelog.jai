@@ -1,7 +1,3 @@
-// nocommit Test/verify clipping/shifting/labeling/selecting works with polylines
-
-// FIXME element labels are wrong on meshes when the mesh has been transposed. Position correctly accounts for world_from_model but I think the ray cast does not.
-
 // TODO Refactor selection mode: decouple from clipping sphere mode, support multiple selection sets, allow selection of triangles
 // TODO Make clipping sphere mode work for point sets
 // TODO Fix not accounting for transformation when doing sphere clipping. Load widget twice, transform one and try to sphere clip it. It doesn't work.

@@ -162,11 +162,16 @@ render_selections :: () {
 
     projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
 
+    // We intentionally always all the text for selections since there usually aren't lots
+    // of overlapping ones and its annoying not to see everything. We also don't consider
+    // the clipping sphere (there is no way to set it right now, anyway) since this is also
+    // annoying in the case of selections
+
     Simp.ScopeContext();
     point_theme := entity.display_info.vertex_label_style;
     for mesh.positions {
         text := get_point_text(it, it_index, point_theme);
-        text_position_px := get_text_screen_position(make_vector4(it, 1), projection_from_model);
+        text_position_px := get_text_screen_position(it, projection_from_model);
         Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, point_theme.label_color, scale=point_theme.label_scale);
     }
 }

@@ -90,7 +90,7 @@ AABB_Tree :: struct(Shape : Type) {
 
     nodes : [..]Node;
     primitive_info : [..]Primitive_Info;
-    shape : *Shape; // Not an owning pointer
+    shape : *Shape; // Borrowed
 }
 
 init :: (tree : *$T/AABB_Tree, target : *T.Shape) {

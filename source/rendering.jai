@@ -482,6 +482,26 @@ get_text_screen_position :: (point : Vector3, projection_from_model : Matrix4) -
     return result.xy;
 }
 
+on_screen_in_disk :: (text_position_px : Vector2, theme : Label_Theme) -> bool {
+    if io().MousePos == make_ImVec2(-FLOAT32_MAX,-FLOAT32_MAX) {
+        return false;
+    }
+
+    if text_position_px.x < 0 ||
+       text_position_px.y < 0 ||
+       text_position_px.x > xx app.current_window_width ||
+       text_position_px.y > xx app.current_window_height {
+        return false;
+    }
+
+    mouse_position_px := make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y);
+    if distance(mouse_position_px, text_position_px) > xx theme.visible_radius_px {
+        return false;
+    }
+
+    return true;
+}
+
 render_entities :: () {
 
     Scope_GL_State();
@@ -571,26 +591,6 @@ render_entities :: () {
         // defer glEnable(GL_CULL_FACE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-        on_screen_in_disk :: (text_position_px : Vector2, theme : Label_Theme) -> bool {
-            if io().MousePos == make_ImVec2(-FLOAT32_MAX,-FLOAT32_MAX) {
-                return false;
-            } 
-
-            if text_position_px.x < 0 ||
-               text_position_px.y < 0 ||
-               text_position_px.x > xx app.current_window_width ||
-               text_position_px.y > xx app.current_window_height {
-                return false;
-            } 
-
-            mouse_position_px := make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y);
-            if distance(mouse_position_px, text_position_px) > xx theme.visible_radius_px {
-                return false;
-            }
-
-            return true;
-        }
 
         // Caches for glyph quads
         point_label_quads :   [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
