@@ -1,17 +1,11 @@
 // TODO Refactor selection mode: decouple from clipping sphere mode, support multiple selection sets, allow selection of triangles
-// TODO Make clipping sphere mode work for point sets
-// TODO Fix not accounting for transformation when doing sphere clipping. Load widget twice, transform one and try to sphere clip it. It doesn't work.
 // TODO Fix sphere clipping not working right after perturbing vertices. Load cube twice, perturb by a significant amount. Note that sphere clipping seems to work on the original cube geometry.
 // TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
-
 // TODO Fix missing shading when using face-normal rendering. looks like its just a solid color??
-
 // TODO Make tooltips over item color square show the shortcuts
-// TODO Add item_flip_normals
-
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
-PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
+PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "26 May 2022", #string DONE
 - Added a basic annotation functionality where comments in obj files are parsed and stored on the items
   - Annotations are accessible in a foldable section in the item context menu
   - Standalone/block comments are collected and any comment starting the file is displayed in a tooltip when the item is hovered, this can be disabled under 'Options' in the main panel
