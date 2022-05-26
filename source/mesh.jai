@@ -58,6 +58,7 @@ get_triangle_vertex_tuple :: (using mesh : Mesh, triangle_index : int, $checked 
     return inline make_Tuple3(i0, i1, i2);
 }
 
+// Return the triangle in model space
 get_triangle :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Triangle3 {
     tuple := inline get_triangle_vertex_tuple(mesh, triangle_index, checked);
 

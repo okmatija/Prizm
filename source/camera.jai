@@ -359,6 +359,7 @@ to_ndc :: (position_px : Vector2) -> Vector2
     return position_ndc;
 }
 
+// @Cleanup Rename to make it clear this is in world space
 make_camera_ray :: () -> Ray3 {
     view_from_clip := inverse(make_orthographic_projection_matrix(app.camera));
     world_from_view := inverse(make_look_at_matrix(app.camera));
@@ -382,12 +383,10 @@ entities_bounding_sphere :: ($filter : (*Entity)->bool = (e)=>(true), accurate :
     return entities_bounding_sphere_fast(filter);
 }
 
-#scope_file
-
 // Returns a bounding sphere of the visible items in the scene in world space, considers clipping sphere/planes
-entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sphere
+entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true), fixed_center : *Vector3 = null) -> Sphere
 {
-    expand_sphere :: (result : *Sphere, mesh : *Mesh, info : *Render_Info, display_info : Display_Info, first : bool) {
+    expand_sphere :: (result : *Sphere, mesh : *Mesh, info : *Render_Info, display_info : Display_Info, first : bool, keep_center : bool) {
         if mesh.positions.count == 0 return;
 
         maybe_update_render_info(info, mesh);
@@ -404,7 +403,7 @@ entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sp
             if first {
                 <<result = sphere;
             } else {
-                expand(result, sphere);
+                expand(result, sphere, keep_center);
             }
             clipped = true;
         }
@@ -422,7 +421,7 @@ entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sp
             if first {
                 <<result = sphere;
             } else {
-                expand(result, sphere);
+                expand(result, sphere, keep_center);
             }
         }
     }
@@ -432,18 +431,30 @@ entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sp
     result : Sphere;
 
     first := true;
+    keep_center := false;
+
+    if fixed_center {
+        result.center = <<fixed_center;
+        result.radius = 0;
+        keep_center = true;
+        first = false;
+    }
+
     for :Iterator app.entities {
-        expand_sphere(*result, *it.mesh, *it.render_info, it.display_info, first);
+        expand_sphere(*result, *it.mesh, *it.render_info, it.display_info, first, keep_center);
         first = false;
     }
 
     if app.user_selection.is_visible {
-        expand_sphere(*result, *app.user_selection.mesh, *app.user_selection.render_info, app.user_selection.display_info, first);
+        expand_sphere(*result, *app.user_selection.mesh, *app.user_selection.render_info, app.user_selection.display_info, first, keep_center);
         first = false;
     }
 
     return result;
 }
+
+#scope_file
+
 
 // Returns a bounding sphere of the visible items in the scene in world space
 entities_bounding_sphere_accurate :: ($filter : (*Entity)->bool = (e)=>(true)) -> Sphere
@@ -457,7 +468,7 @@ entities_bounding_sphere_accurate :: ($filter : (*Entity)->bool = (e)=>(true)) -
         warn := false;
         for entity.display_info.clip_ranges if it.is_active warn = true;
         if  entity.display_info.clip_sphere.is_active       warn = true;
-        if warn log_warning("Updating the bounding sphere doesn't yet properly consider clipping planes @Incomplete");
+        if warn log_warning("Updating the bounding sphere doesn't yet properly consider clipping domains @Incomplete");
 
         for * entity.mesh.positions {
             p := (entity.mesh.world_from_model * make_vector4(it, 1.)).xyz;

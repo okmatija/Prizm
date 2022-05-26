@@ -65,6 +65,7 @@ Clip_Range :: struct {
     max : float = 0h7F800000; // +inf
 }
 
+// Note: clip_ranges and point are in world space
 is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
     for clip : clip_ranges if clip.is_active {
         plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
@@ -83,6 +84,7 @@ Clip_Sphere :: struct {
     is_active : bool = false;
 }
 
+// Note: clip_sphere and point are in world space
 is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     if clip_sphere.is_active {
         if !contains(clip_sphere, point) {
@@ -151,7 +153,8 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
             }
         }
 
-        // @Incomplete consider transform here??
+        // Note: We do _not_ apply the mesh.world_from_model transform here, that is
+        // stored separately to the raw position data so it can be changed efficiently
         info.bounding_sphere = bounding_sphere_ritter(mesh.positions);
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
@@ -750,12 +753,14 @@ render_entities :: () {
                     for :TrianglesIterator mesh.mesh ProcessTriangle(it, it_index);
                 } else {
                     // log_error("Use spatial index");
-                    ray := make_camera_ray();
+
+                    ray_world : Ray3 = make_camera_ray();
+                    ray_model : Ray3 = transform_ray(inverse(mesh.mesh.world_from_model), ray_world);
 
                     // @Incomplete Support perspective projection
                     distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
 
-                    Visit_Primitives_Near_Ray(mesh.spatial, ray, distance, #code ProcessTriangle(primitive, primitive_id));
+                    Visit_Primitives_Near_Ray(mesh.spatial, ray_model, distance, #code ProcessTriangle(primitive, primitive_id));
                 }
         }
 

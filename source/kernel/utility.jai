@@ -1,3 +1,14 @@
+transform_ray :: (transform : Matrix4, ray : Ray3) -> Ray3 {
+    result : Ray3 = ---;
+    result.origin = transform_point(transform, ray.origin);
+    result.direction = transform_vector(transform, ray.direction);
+
+    check := normalize_or_zero(*result.direction);
+    assert(check != 0);
+
+    return result;
+}
+
 compute_normal :: inline (t : Triangle3, $normalize : bool = true) -> Vector3 {
     ab := t.b - t.a;
     ac := t.c - t.a;
@@ -23,17 +34,26 @@ transform :: (using sphere : *Sphere, transform : Matrix4) {
     center = (transform * make_vector4(center, 1.)).xyz;
 }
 
-expand :: (using this : *Sphere, other : Sphere) {
+// @Cleanup Use optional value bakes on keep_center_of_this parameter
+expand :: (using this : *Sphere, other : Sphere, keep_center_of_this := false) {
     center_distance := distance(this.center, other.center);
 
     if this.radius > center_distance + other.radius {
         // Do nothing, this sphere contains other sphere
     } else if other.radius > center_distance + this.radius {
         // Update this sphere, it's contained in the other sphere
-        <<this = other;
+        if keep_center_of_this {
+            this.radius = center_distance + other.radius;
+        } else {
+            <<this = other;
+        }
     } else {
-        this.radius = center_distance / 2 + max(this.radius, other.radius);
-        this.center = (this.center + other.center) / 2;
+        if keep_center_of_this {
+            this.radius = center_distance + max(this.radius, other.radius);
+        } else {
+            this.radius = center_distance / 2 + max(this.radius, other.radius);
+            this.center = (this.center + other.center) / 2;
+        }
     }
 
     return;

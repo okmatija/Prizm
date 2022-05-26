@@ -1301,8 +1301,10 @@ display_transform :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Transform", .SpanAvailWidth) {
         defer ImGui.TreePop();
         shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
-        ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
-        entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
+        prev_shift := shift;
+        if ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05) {
+            transform(entity, shift - prev_shift);
+        }
     }
 }
 

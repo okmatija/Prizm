@@ -118,6 +118,32 @@ Mesh_Entity :: struct {
     shape : Shape = ---; // Alias for consistency
 }
 
+transform :: (entity : *Entity, shift : Vector3) {
+    {
+        using entity.mesh.world_from_model;
+        _14, _24, _34 += shift.x, shift.y, shift.z;
+    }
+
+    // Don't update entity.render_info because that uses entity.mesh.world_from_model
+    // in the same way as the mesh data i.e., the transforms are not baked into the data
+
+    // entity.render_info.bounding_sphere.center  += shift;
+    // entity.render_info.bounding_aabb.min_point += shift;
+    // entity.render_info.bounding_aabb.max_point += shift;
+
+    update_clip_domains :: true; // @Think maybe expose this?
+    if update_clip_domains {
+        using entity.display_info;
+        clip_sphere.center += shift;
+        clip_sphere_prev.center += shift;
+        for * clip_ranges {
+            delta := dot_product(it.normal, shift);
+            it.min += delta;
+            it.max += delta;
+        }
+    }
+}
+
 clear :: (base : *Entity) {
     if #complete base.type == {
         case .UNKNOWN;
@@ -367,7 +393,7 @@ load_entity_from_file :: (filename : string) -> *Entity {
 }
 
 Point_On_Entity :: struct {
-    position : Point3;
+    position : Point3; // World space
     element_index : int = -1; // Vertex or Triangle
     entity_index : int = -1;
 }
@@ -375,7 +401,7 @@ Point_On_Entity :: struct {
 // @Cleanup Add a threshold for how close you need to be to consider adding a vertex
 find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
-    ray := make_camera_ray();
+    ray_world : Ray3 = make_camera_ray();
 
     result : Point_On_Entity;
 
@@ -395,8 +421,8 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
                         continue;
                     }
 
-                    p := (entity.mesh.world_from_model * make_vector4(vertex, 1.)).xyz;
-                    c, d2, t := distance_point3_ray3(p, ray);
+                    p : Vector3 = transform_point(entity.mesh.world_from_model, vertex);
+                    c, d2, t := distance_point3_ray3(p, ray_world);
 
                     if d2 < dist2 {
 
@@ -422,7 +448,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     sphere_clipped :: true;
     range_clipped :: true;
 
-    ray := make_camera_ray();
+    ray_world := make_camera_ray();
 
     result : Point_On_Entity;
 
@@ -454,12 +480,13 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
             continue;
         }
     
-        if is_clipped(`entity.display_info, point, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
+        point_world : Vector3 = transform_point(`entity.mesh.world_from_model, point);
+        if is_clipped(`entity.display_info, point_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
             continue;
         }
     
         `t_min = t;
-        `result.position = point;
+        `result.position = point_world;
         `result.element_index = primitive_id;
         `result.entity_index = `entity_index;
         `intersected_triangle = true;
@@ -467,6 +494,9 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     for :Visible_Selectable_Mesh entity, entity_index : app.entities {
         mesh_entity := cast(*Mesh_Entity)entity;
+
+        // ray in model space
+        ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         if mesh_entity.spatial == null {
 
@@ -490,6 +520,10 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     d_min := FLOAT32_INFINITY;
     if (has_degenerate_triangles) {
         for :Visible_Selectable_Mesh entity, entity_index : app.entities {
+
+            // ray in model space
+            ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+
             for i : 0..(entity.mesh.indices.count/3)-1 {
 
                 triangle : Triangle3;
@@ -512,6 +546,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
                     segment3.end = triangle.a;
                 }
 
+                // These are in model space
                 closest_point := closest_point_ray_segment(ray, segment3);
                 ipoint := closest_point.closest[1];
                 d := closest_point.distance;
@@ -520,12 +555,13 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
                 if d < d_min {
 
-                    if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                    ipoint_world := transform_point(entity.mesh.world_from_model, ipoint);
+                    if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                         continue;
                     }
 
                     d_min = d;
-                    result.position = ipoint;
+                    result.position = ipoint_world;
                     result.element_index = 0; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                     result.entity_index = entity_index;
                 }
@@ -542,6 +578,10 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
+
+        // ray in model space
+        ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+
         // @Incomplete If available, use the spatial index
         for :SegmentIterator segment, segment_index : soup.shape {
             segment3 : Segment3;
@@ -556,12 +596,13 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
             if d < d_min {
 
-                if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                ipoint_world := transform_point(entity.mesh.world_from_model, ipoint);
+                if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                     continue;
                 }
 
                 d_min = d;
-                result.position = ipoint;
+                result.position = ipoint_world;
                 result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                 result.entity_index = entity_index;
             }
@@ -578,6 +619,10 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
     for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
+
+        // ray in model space
+        ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+
         // @Incomplete If available, use the spatial index
         for :SegmentIterator segment, segment_index : soup.shape {
             segment3 : Segment3;
@@ -592,12 +637,13 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
             if d < d_min {
 
-                if is_clipped(entity.display_info, ipoint, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                ipoint_world := transform_point(entity.mesh.world_from_model, ipoint);
+                if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                     continue;
                 }
 
                 d_min = d;
-                result.position = ipoint;
+                result.position = ipoint_world;
                 result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                 result.entity_index = entity_index;
             }

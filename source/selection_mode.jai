@@ -27,10 +27,11 @@ do_selection_mode :: () {
     if app.clipping_sphere_mode_entity_index >= 0 {
 
         entity := app.entities[app.clipping_sphere_mode_entity_index];
+        sphere := entity.display_info.clip_sphere;
 
         // Find plane though point we clicked normal to the camera and compute intersection of mouse ray with that plane to set the radius
         ray := make_camera_ray();
-        plane := make_hyperplane3(plane_normal=current_look_direction(), point_on_plane=entity.display_info.clip_sphere.center);
+        plane := make_hyperplane3(plane_normal=current_look_direction(), point_on_plane=sphere.center);
         intersect_count, intersect_t := find_intersect_ray3_plane3(ray, plane);
         if intersect_count != 1 {
             log_error("Expected an intersection");
@@ -38,12 +39,12 @@ do_selection_mode :: () {
         }
         current_point := to_point(ray, intersect_t);
         SPEED :: 2;
-        new_radius := SPEED * distance(entity.display_info.clip_sphere.center, current_point);
+        new_radius := SPEED * distance(sphere.center, current_point);
 
         // TODO Set a minimum radius size in pixels so if the user just clicks and releases the shape does not completely disappear
 
         // Update the the radius of the current sphere
-        new_sphere : Clip_Sphere = entity.display_info.clip_sphere;
+        new_sphere : Clip_Sphere = sphere;
         new_sphere.radius = new_radius;
 
         // Set the updated sphere on the relevant entities
@@ -106,25 +107,7 @@ do_selection_mode :: () {
 
             if use_result_for_repositioning_camera {
 
-                sphere : Sphere;
-                sphere.center = closest.position;
-
-                // Compute the bounding sphere of the points in the scene
-                sphere.radius = 0;
-                for :Visible entity : app.entities {
-                    for * entity.mesh.positions {
-                        p := (entity.mesh.world_from_model * make_vector4(it, 1.)).xyz;
-                        sphere.radius = max(sphere.radius, length_squared(closest.position - p));
-                    }
-                }
-                if app.user_selection.is_visible {
-                    mesh := *app.user_selection.mesh;
-                    for * mesh.positions {
-                        p := (mesh.world_from_model * make_vector4(it, 1.)).xyz;
-                        sphere.radius = max(sphere.radius, length_squared(closest.position - p));
-                    }
-                }
-                sphere.radius = sqrt(sphere.radius);
+                sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.is_visible), fixed_center=*closest.position);
 
                 view_from_world := make_look_at_matrix(app.camera);
                 closest_view := view_from_world * make_vector4(closest.position, 1.);

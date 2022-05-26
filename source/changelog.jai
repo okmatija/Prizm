@@ -1,7 +1,11 @@
+// nocommit Test/verify clipping/shifting/labeling/selecting works with polylines
+
+// FIXME element labels are wrong on meshes when the mesh has been transposed. Position correctly accounts for world_from_model but I think the ray cast does not.
+
 // TODO Refactor selection mode: decouple from clipping sphere mode, support multiple selection sets, allow selection of triangles
 // TODO Make clipping sphere mode work for point sets
 // TODO Fix not accounting for transformation when doing sphere clipping. Load widget twice, transform one and try to sphere clip it. It doesn't work.
-// TODO Fix sphere clipping not working right after perturbing vertices. Load cube twice, perturb by a significant amount. Note that sphere clipping seems to work on the original cube geometry
+// TODO Fix sphere clipping not working right after perturbing vertices. Load cube twice, perturb by a significant amount. Note that sphere clipping seems to work on the original cube geometry.
 // TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
 
 // TODO Fix missing shading when using face-normal rendering. looks like its just a solid color??
@@ -22,6 +26,7 @@ PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "WIP", #string DONE
 - Fixed alignment of the 'Reload'buttons in the item context menu
 - Fixed a bug where preset items were cleared when pressing the 'Reload' button in the item context menu
 - Fixed a bug where the camera wouldn't follow the cursor correctly after running a item_focus_vertex command was executed
+- Fixed a bunch of bugs that occur when items have non-identity transforms because of various confusions between model/world space
 DONE
 };
 
