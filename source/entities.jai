@@ -359,40 +359,22 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
     }
 }
 
-load_entity_from_memory :: (filename : string, contents : string) -> *Entity {
-    result : *Entity;
 
-    if ends_with_nocase(filename, "obj") {
-        result = load_obj(filename, contents);
-    } else if ends_with_nocase(filename, "wkt") {
-        result = load_wkt(filename, contents);
+
+// Returns the entity having the given `fully_pathed_filename` with maximum generation index, or null if no such entity exists
+find_entity_with_max_generation_index :: (fully_pathed_filename : string) -> *Entity, int
+{
+    entity_index := -1;
+    max_generation_index := -1;
+    max_generation_index_entity : *Entity;
+    for app.entities {
+        if it.fully_pathed_filename == fully_pathed_filename && it.generation_index > max_generation_index {
+            max_generation_index = it.generation_index;
+            max_generation_index_entity = it;
+            entity_index = it_index;
+        }
     }
-
-    if result {
-        log("Loaded file '%', with type %", filename, result.type);
-    } else {
-        log_error("Could not load file '%'", filename);
-    }
-
-    return result;
-}
-
-load_entity_from_file :: (filename : string) -> *Entity {
-    result : *Entity;
-
-    if ends_with_nocase(filename, "obj") {
-        result = load_obj(filename);
-    } else if ends_with_nocase(filename, "wkt") {
-        result = load_wkt(filename);
-    }
-
-    if result {
-        log("Loaded file '%', with type %", filename, result.type);
-    } else {
-        log_error("Could not load file '%'", filename);
-    }
-
-    return result;
+    return max_generation_index_entity, entity_index;
 }
 
 Point_On_Entity :: struct {
@@ -656,6 +638,67 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     return result;
 }
 
+num_selected_entities :: () -> int {
+    count := 0;
+    for :Selected app.entities {
+        count += 1;
+    }
+    return count;
+}
+
+load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour = .APPEND) -> *Entity {
+    contents := read_entire_file(filename);
+    defer free(contents);
+
+    return load_one_file_from_memory(filename, contents, matching_name_behaviour);
+}
+
+load_one_file_from_memory :: (filename : string, contents : string, matching_name_behaviour : Duplicate_File_Behaviour = .APPEND) -> *Entity {
+    if !contents {
+        log_warning("Skipped file: '%' (empty or missing)\n", filename);
+        return null;
+    }
+
+    found, found_index := find_entity_with_max_generation_index(filename);
+    if found {
+        if #complete matching_name_behaviour == {
+            case .IGNORE;
+
+                log_warning("Skipped file: '%' (already loaded)\n", filename);
+
+            case .OVERWRITE;
+
+                // Only affects the entity with maximum generation index
+                entity := load_entity_from_memory(filename, contents);
+                if entity {
+                    entity.generation_index = found.generation_index;
+                    entity.display_info = found.display_info;
+                    deinit(found);
+                    app.entities[found_index] = entity;
+                    return entity;
+                }
+
+            case .APPEND;
+
+                entity := load_entity_from_memory(filename, contents);
+                if entity {
+                    entity.generation_index = found.generation_index + 1;
+                    array_add(*app.entities, entity);
+                    return entity;
+                }
+        }
+    } else {
+        entity := load_entity_from_memory(filename, contents);
+        if entity {
+            array_add(*app.entities, entity);
+            return entity;
+        }
+    }
+
+    return null;
+}
+
+// @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity) -> *Entity {
 
@@ -664,7 +707,12 @@ reload_entity :: (entity : *Entity) -> *Entity {
         return entity;
     }
 
-    new_entity : *Entity = load_entity_from_file(entity.fully_pathed_filename);
+    log("Reloading file '%'... ", entity.fully_pathed_filename);
+
+    contents := read_entire_file(entity.fully_pathed_filename);
+    defer free(contents);
+
+    new_entity : *Entity = load_entity_from_memory(entity.fully_pathed_filename, contents);
 
     if new_entity {
         // Maintain the following information after the entity reload
@@ -685,10 +733,22 @@ reload_entity :: (entity : *Entity) -> *Entity {
     return entity;
 }
 
-num_selected_entities :: () -> int {
-    count := 0;
-    for :Selected app.entities {
-        count += 1;
+#scope_file
+
+load_entity_from_memory :: (filename : string, contents : string) -> *Entity {
+    result : *Entity;
+
+    if ends_with_nocase(filename, "obj") {
+        result = load_obj(filename, contents);
+    } else if ends_with_nocase(filename, "wkt") {
+        result = load_wkt(filename, contents);
     }
-    return count;
+
+    if result {
+        log("Loaded file '%', with type %", filename, result.type);
+    } else {
+        log_error("Could not load file '%'", filename);
+    }
+
+    return result;
 }

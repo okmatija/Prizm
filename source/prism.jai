@@ -196,66 +196,6 @@ main :: () {
     SDL_Quit();
 }
 
-load_one_file :: (filename : string, loading_from_command_line : bool) -> *Entity {
-    contents := read_entire_file(filename);
-    defer free(contents);
-
-    return load_one_file(filename, contents, loading_from_command_line);
-}
-
-load_one_file :: (filename : string, contents : string, loading_from_command_line : bool) -> *Entity {
-    if !contents {
-        log_warning("Skipped file: '%' (empty or missing)\n", filename);
-        return null;
-    }
-
-    found, found_index := find_entity_with_max_generation_index(filename);
-    if found {
-        if #complete app.settings.duplicate_file_behaviour == {
-            case .IGNORE;
-
-                log_warning("Skipped file: '%' (already loaded)\n", filename);
-
-            case .OVERWRITE;
-
-                if loading_from_command_line {
-
-                    // When loading files from the command line .OVERWRITE and .IGNORE have the same behaviour
-                    log_warning("Skipped file: '%' (already loaded)\n", filename);
-
-                } else {
-
-                    // Only affects the entity with maximum generation index
-                    entity := load_entity_from_memory(filename, contents);
-                    if entity {
-                        entity.generation_index = found.generation_index;
-                        entity.display_info = found.display_info;
-                        deinit(found);
-                        app.entities[found_index] = entity;
-                        return entity;
-                    }
-
-                }
-
-            case .APPEND;
-
-                entity := load_entity_from_memory(filename, contents);
-                if entity {
-                    entity.generation_index = found.generation_index + 1;
-                    array_add(*app.entities, entity);
-                    return entity;
-                }
-        }
-    } else {
-        entity := load_entity_from_memory(filename, contents);
-        if entity {
-            array_add(*app.entities, entity);
-            return entity;
-        }
-    }
-
-    return null;
-}
 
 load_from_command_line :: () {
 
@@ -275,11 +215,11 @@ load_from_command_line :: () {
                 file := _file;
                 file = canonically_formatted_path_string(file);
                 if wildcard_match(file, pattern) {
-                    load_one_file(file, loading_from_command_line=true);
+                    load_one_file(file, matching_name_behaviour=.IGNORE);
                 }
             }
         } else {
-            load_one_file(pattern, loading_from_command_line=true);
+            load_one_file(pattern, matching_name_behaviour=.IGNORE);
         }
     }
     fit_scene_on_screen();
@@ -352,7 +292,7 @@ handle_events :: () {
                 // @Leak event.drop.file should be free'd using SDL_free
                 dropped := canonically_formatted_path_string(to_string(event.drop.file));
 
-                load_one_file(dropped, loading_from_command_line=false);
+                load_one_file(dropped, matching_name_behaviour=app.settings.duplicate_file_behaviour);
 
                 if app.settings.fit_to_screen_on_file_drop_event {
                     fit_scene_on_screen();
@@ -360,22 +300,6 @@ handle_events :: () {
             }
         }
     }
-}
-
-// Returns the entity having the given `fully_pathed_filename` with maximum generation index, or null if no such entity exists
-find_entity_with_max_generation_index :: (fully_pathed_filename : string) -> *Entity, int
-{
-    entity_index := -1;
-    max_generation_index := -1;
-    max_generation_index_entity : *Entity;
-    for app.entities {
-        if it.fully_pathed_filename == fully_pathed_filename && it.generation_index > max_generation_index {
-            max_generation_index = it.generation_index;
-            max_generation_index_entity = it;
-            entity_index = it_index;
-        }
-    }
-    return max_generation_index_entity, entity_index;
 }
 
 to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {

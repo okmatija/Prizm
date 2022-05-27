@@ -1,12 +1,3 @@
-load_wkt :: (filename : string) -> *Entity {
-    log("Loading file '%'... ", filename);
-
-    data := read_entire_file(filename);
-    defer free(data);
-
-    return load_wkt(filename, data);
-}
-
 load_wkt :: (filename : string, data : string) -> *Entity {
 
     if !data {

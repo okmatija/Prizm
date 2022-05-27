@@ -2,15 +2,7 @@
 
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Tests
-
-load_obj :: (filename : string) -> *Entity {
-    log("Loading file '%'... ", filename);
-
-    contents := read_entire_file(filename);
-    defer free(contents);
-
-    return load_obj(filename, contents);
-}
+// @Incomplete Parameter to enable objs with segments to not get converted to polylines?
 
 // @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
 load_obj :: (filename : string, data : string) -> *Entity {

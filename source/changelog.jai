@@ -1,9 +1,20 @@
+// TODO Integrate a newer version of Simp and make it share the context so that rendering works correctly
 // TODO Refactor selection mode: decouple from clipping sphere mode, support multiple selection sets, allow selection of triangles
 // TODO Fix sphere clipping not working right after perturbing vertices. Load cube twice, perturb by a significant amount. Note that sphere clipping seems to work on the original cube geometry.
 // TODO Make action buttons cycle forward with LMB and backward with RMB? or maybe if you scroll while on them
 // TODO Fix missing shading when using face-normal rendering. looks like its just a solid color??
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
+
+PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
+- Improved item reloading behaviour:
+  - TODO Items which are preset shapes are 'reloaded' by calling their creation functions again
+  - TODO Items which are outputs of console commands 'reloaded' by re-evaluating the console command string. Note it will be up to the command author to define the semantics of this operation e.g., if a command creates multiples files make this work WHAT IF A CONSOLE COMMAND GENERATES MORE THAN ONE OUTPUT??
+- TODO implement item_layout_selected :: (dimension : int) to layout selected items in a 1d, 2d or 3d grid, starting from location of item with smallest index
+- TODO implement item_clone
+- Preset buttons now act consistently with the global duplicate file behaviour setting (located under the 'Settings' in the help menu)
+DONE
+};
 
 PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "26 May 2022", #string DONE
 - Added a basic annotation functionality where comments in obj files are parsed and stored on the items
@@ -168,6 +179,7 @@ DONE
 };
 
 init_changelog :: () {
+    array_add(*app.changelog, PRISM_VERSION_0_2_4);
     array_add(*app.changelog, PRISM_VERSION_0_2_3);
     array_add(*app.changelog, PRISM_VERSION_0_2_2);
     array_add(*app.changelog, PRISM_VERSION_0_2_1);
