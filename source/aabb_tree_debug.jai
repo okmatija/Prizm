@@ -34,6 +34,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         entity := New(Polyline_Soup3_Entity);
         assert(entity != null);
 
+        entity.source = .COMMAND_OUTPUT;
         entity.shape = shape;
         entity.mesh = to_Mesh(entity.shape);
         init_entity_base_parameters(entity, tprint("%_debug_spatial", mesh_entity.fully_pathed_filename), entity.mesh);
@@ -57,6 +58,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     entity := New(Mesh_Entity);
                     assert(entity != null);
 
+                    entity.source = .COMMAND_OUTPUT;
                     entity.mesh = to_edge_Mesh(node.aabb);
                     init_entity_base_parameters(entity, tprint("%_debug_spatial_%", fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
 
@@ -111,6 +113,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     entity := New(Mesh_Entity);
                     assert(entity != null);
 
+                    entity.source = .COMMAND_OUTPUT;
                     entity.mesh = to_edge_Mesh(node.aabb);
                     init_entity_base_parameters(entity, tprint("%_debug_spatial_%", fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
 

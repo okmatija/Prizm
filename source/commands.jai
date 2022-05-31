@@ -152,16 +152,16 @@ sort_by_name :: (reversed : int = 0) {
 sort_by_time :: (ascending : int = 1) {
     compare_ascending :: (a : *Entity, b : *Entity) -> s64 {
         // @Cleanup This is a pretty weird way to do this...
-        at := filetime_to_readable_date(a.loaded_filetime);
-        bt := filetime_to_readable_date(b.loaded_filetime);
+        at := filetime_to_readable_date(a.creation_time);
+        bt := filetime_to_readable_date(b.creation_time);
         if at == bt return compare_strings(b.fully_pathed_filename, a.fully_pathed_filename);
         return compare_strings(bt, at);
     }
 
     compare_descending :: (a : *Entity, b : *Entity) -> s64 {
         // @Cleanup This is a pretty weird way to do this...
-        at := filetime_to_readable_date(a.loaded_filetime);
-        bt := filetime_to_readable_date(b.loaded_filetime);
+        at := filetime_to_readable_date(a.creation_time);
+        bt := filetime_to_readable_date(b.creation_time);
         if at == bt return compare_strings(a.fully_pathed_filename, b.fully_pathed_filename);
         return compare_strings(at, bt);
     }
@@ -534,6 +534,7 @@ item_find_open_edges :: (id : int) {
 
     // Add a new item
     new_entity := New(Polyline_Soup3_Entity);
+    new_entity.source = .COMMAND_OUTPUT;
     new_entity.shape = segment_soup;
     new_entity.mesh = to_Mesh(new_entity.shape);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
@@ -771,6 +772,7 @@ make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : 
 
     new_entity := New(Polyline_Soup3_Entity);
 
+    new_entity.source = .COMMAND_OUTPUT;
     new_entity.shape = to_Polyline_Soup3(grid, extents);
     new_entity.mesh = to_Mesh(new_entity.shape);
     init_entity_base_parameters(new_entity, name, new_entity.mesh);

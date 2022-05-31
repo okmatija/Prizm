@@ -859,7 +859,7 @@ my_debug_function :: () {
 add_preset_cube :: () {
     CONTENTS :: #run read_entire_file("shapes/cube.obj");
     entity := load_one_file_from_memory("Preset cube.obj", CONTENTS, matching_name_behaviour=app.settings.duplicate_file_behaviour);
-    entity.is_preset_shape = true;
+    entity.source = .PRESET_SHAPE;
     // @Incomplete Shift along the cube based on the generation index, so we can keep adding them and they won't be coincident?
     // found, found_index := find_entity_with_max_generation_index("preset cube");
     // if found {
@@ -873,6 +873,6 @@ add_preset_cube :: () {
 add_preset_widget :: () {
     CONTENTS :: #run read_entire_file("shapes/widget.obj");
     entity := load_one_file_from_memory("Preset widget.obj", CONTENTS, matching_name_behaviour=app.settings.duplicate_file_behaviour);
-    entity.is_preset_shape = true;
+    entity.source = .PRESET_SHAPE;
     fit_scene_on_screen();
 }

@@ -334,6 +334,8 @@ load_obj :: (filename : string, data : string) -> *Entity {
             assert(false, "Should have handled UNKNOWN geometry format by now\n");
     }
 
+    result.source = .FILE_ON_DISK;
+
     return result;
 }
 

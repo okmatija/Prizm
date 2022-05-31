@@ -101,7 +101,7 @@ show_item_list_ui :: () {
                 if it.fully_pathed_filename.count {
                     text := entity_filename(it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
 
-                    delta_time := get_current_file_time() - it.loaded_filetime;
+                    delta_time := get_current_file_time() - it.creation_time;
                     FADE_TIME_SECS := 1;
                     base_color := ifx is_empty(it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
                     color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);

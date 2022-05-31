@@ -8,6 +8,14 @@ Entity_Type :: enum {
     UNKNOWN;
 }
 
+// Used for entity reloading
+Entity_Source :: enum {
+    FILE_ON_DISK;
+    PRESET_SHAPE;
+    COMMAND_OUTPUT;
+    UNKNOWN;
+}
+
 Annotation :: struct {
     Kind :: enum {
         VERTEX;
@@ -37,10 +45,10 @@ find_header_annotation :: (entity : *Entity) -> *Annotation {
 
 Entity :: struct {
     type : Entity_Type = .UNKNOWN;
+    source : Entity_Source = .UNKNOWN;
 
     is_selected := false;
     is_hovered := false;
-    is_preset_shape := false;
 
     render_info : Render_Info;
     display_info : Display_Info;
@@ -57,7 +65,7 @@ Entity :: struct {
     // user_data : *void; // Registered commands may want to attach data here
 
     fully_pathed_filename : string;
-    loaded_filetime : u64;
+    creation_time : u64;
 
     // @Refactor consider keeping the fully_pathed_filename and the generation index together in a struct
     generation_index : int; // entities with the same fully pathed_filename will increment this
@@ -286,7 +294,7 @@ entity_filename :: (using entity : Entity, with_generation_index : bool, with_sh
     time_text := "";
     time_separator := "";
     if with_loaded_time {
-        time_text = filetime_to_readable_date(loaded_filetime);
+        time_text = filetime_to_readable_date(creation_time);
         time_separator = " @ ";
     }
 
@@ -329,7 +337,7 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
     if !entity return;
 
     entity.fully_pathed_filename = copy_string(filename);
-    entity.loaded_filetime = get_current_file_time();
+    entity.creation_time = get_current_file_time();
 
     if #complete mesh.geometry_format == {
         case .LINES;
@@ -702,8 +710,8 @@ load_one_file_from_memory :: (filename : string, contents : string, matching_nam
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity) -> *Entity {
 
-    if entity.is_preset_shape {
-        log("Skipped reloading entity '%' because it is a preset shape baked into the executable", entity.fully_pathed_filename);
+    if entity.source != .FILE_ON_DISK {
+        log("Skipped reloading item '%' as it has source type %. Only items with source type % can be reloaded (for now.. @Incomplete)", entity.fully_pathed_filename, entity.source, Entity_Source.FILE_ON_DISK);
         return entity;
     }
 

@@ -193,6 +193,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
     }
 
     init_entity_base_parameters(entity, filename, entity.mesh);
+    entity.source = .FILE_ON_DISK;
 
     return entity;
 }
