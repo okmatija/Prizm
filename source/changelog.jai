@@ -8,7 +8,7 @@
 
 PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
 - Improved item reloading behaviour:
-  - TODO Items which are preset shapes are 'reloaded' by calling their creation functions again
+  - Items which are preset shapes are 'reloaded' by calling their creation functions again
   - TODO Items which are outputs of console commands 'reloaded' by re-evaluating the console command string. Note it will be up to the command author to define the semantics of this operation e.g., if a command creates multiples files make this work WHAT IF A CONSOLE COMMAND GENERATES MORE THAN ONE OUTPUT??
 - TODO implement item_layout_selected :: (dimension : int) to layout selected items in a 1d, 2d or 3d grid, starting from location of item with smallest index
 - TODO implement item_clone

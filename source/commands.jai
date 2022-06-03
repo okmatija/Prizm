@@ -89,12 +89,18 @@ select_if_empty :: () {
 
 // @CompilerBug By passing *void data to the should_select procedure we could use the generic version above
 
-// Add all items matching the given `pattern` to the selection
+// Add all items with names/filenames that match the given `pattern` to the selection
 // The following wildcards/regex patterns are supported: * ? [] [-]
 select_if_match :: (pattern : string) {
     count := 0;
     for app.entities {
-        text := entity_filename(it, false, true, false);
+        text : string;
+        if it.source == {
+            case .FILE_ON_DISK;
+                text = it.fully_pathed_filename; // So we can select all items in a sub-folder with wildcards
+            case;
+                text = it.name;
+        }
         if wildcard_match(text, pattern) {
             it.is_selected = true;
             count += 1;
@@ -137,11 +143,11 @@ select_remove_selected_items :: () {
 // Sorts items in alphabetical order
 sort_by_name :: (reversed : int = 0) {
     compare_alphabetical :: (a : *Entity, b : *Entity) -> s64 {
-        return compare_strings(a.fully_pathed_filename, b.fully_pathed_filename);
+        return compare_strings(a.name, b.name);
     }
 
     compare_reverse_alphabetical :: (a : *Entity, b : *Entity) -> s64 {
-        return compare_strings(b.fully_pathed_filename, a.fully_pathed_filename);
+        return compare_strings(b.name, a.name);
     }
 
     if   reversed quick_sort(app.entities, compare_reverse_alphabetical);
@@ -154,7 +160,7 @@ sort_by_time :: (ascending : int = 1) {
         // @Cleanup This is a pretty weird way to do this...
         at := filetime_to_readable_date(a.creation_time);
         bt := filetime_to_readable_date(b.creation_time);
-        if at == bt return compare_strings(b.fully_pathed_filename, a.fully_pathed_filename);
+        if at == bt return compare_strings(b.name, a.name);
         return compare_strings(bt, at);
     }
 
@@ -162,7 +168,7 @@ sort_by_time :: (ascending : int = 1) {
         // @Cleanup This is a pretty weird way to do this...
         at := filetime_to_readable_date(a.creation_time);
         bt := filetime_to_readable_date(b.creation_time);
-        if at == bt return compare_strings(a.fully_pathed_filename, b.fully_pathed_filename);
+        if at == bt return compare_strings(a.name, b.name);
         return compare_strings(at, bt);
     }
 
@@ -174,14 +180,14 @@ sort_by_time :: (ascending : int = 1) {
 sort_by_size :: (ascending : int = 1) {
     compare_ascending :: (a : *Entity, b : *Entity) -> s64 {
         if a.mesh.positions.count == b.mesh.positions.count {
-            return compare_strings(a.fully_pathed_filename, b.fully_pathed_filename);
+            return compare_strings(a.name, b.name);
         }
         return compare_floats(xx a.mesh.positions.count, xx b.mesh.positions.count);
     }
 
     compare_descending :: (a : *Entity, b : *Entity) -> s64 {
         if a.mesh.positions.count == b.mesh.positions.count {
-            return compare_strings(b.fully_pathed_filename, a.fully_pathed_filename);
+            return compare_strings(b.name, a.name);
         }
         return compare_floats(xx b.mesh.positions.count, xx a.mesh.positions.count);
     }
@@ -535,17 +541,20 @@ item_find_open_edges :: (id : int) {
     // Add a new item
     new_entity := New(Polyline_Soup3_Entity);
     new_entity.source = .COMMAND_OUTPUT;
+    assert(app.console.history.count > 0);
+    new_entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
     new_entity.shape = segment_soup;
     new_entity.mesh = to_Mesh(new_entity.shape);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
     name : string;
     {
         push_allocator(temp);
-        name = join(app.entities[id].fully_pathed_filename, "_open_edges");
+        name = join(app.entities[id].name, "_open_edges");
     }
-    init_entity_base_parameters(new_entity, name, new_entity.mesh);
+    color := color_from_string(name);
+    init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
     new_entity.display_info.wireframe_width = 3;
-    found_entity := find_entity_with_max_generation_index(new_entity.fully_pathed_filename);
+    found_entity := find_entity_with_max_generation_index(new_entity.name);
     if found_entity {
         new_entity.generation_index = found_entity.generation_index + 1;
     }
@@ -779,12 +788,9 @@ make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : 
     new_entity.source = .COMMAND_OUTPUT;
     new_entity.shape = to_Polyline_Soup3(grid, extents);
     new_entity.mesh = to_Mesh(new_entity.shape);
-    init_entity_base_parameters(new_entity, name, new_entity.mesh);
+    init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-    primary_color := entity_primary_color(new_entity);
-    if primary_color {
-        <<primary_color = color;
-    }
+
     found_entity := find_entity_with_max_generation_index(name);
     if found_entity {
         new_entity.generation_index = found_entity.generation_index + 1;

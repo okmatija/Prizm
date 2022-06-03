@@ -37,7 +37,9 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         entity.source = .COMMAND_OUTPUT;
         entity.shape = shape;
         entity.mesh = to_Mesh(entity.shape);
-        init_entity_base_parameters(entity, tprint("%_debug_spatial", mesh_entity.fully_pathed_filename), entity.mesh);
+        name := tprint("%_debug_spatial", mesh_entity.name);
+        color := color_from_string(name);
+        init_entity_base_parameters(entity, name, color, entity.mesh);
         array_add(*app.entities, entity);
     } else {
         // Internal nodes will be polyline soup entities showing AABBs
@@ -60,7 +62,9 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     entity.source = .COMMAND_OUTPUT;
                     entity.mesh = to_edge_Mesh(node.aabb);
-                    init_entity_base_parameters(entity, tprint("%_debug_spatial_%", fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
+                    entity_name := tprint("%_debug_spatial_%", data.name, depth);
+                    color := color_from_string(entity_name);
+                    init_entity_base_parameters(entity, entity_name, color, entity.mesh); // @Incomplete pad depth integer?
 
                     {
                         using primitives : Mesh;
@@ -115,7 +119,9 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     entity.source = .COMMAND_OUTPUT;
                     entity.mesh = to_edge_Mesh(node.aabb);
-                    init_entity_base_parameters(entity, tprint("%_debug_spatial_%", fully_pathed_filename, depth), entity.mesh); // @Incomplete pad depth integer?
+                    entity_name := tprint("%_debug_spatial_%", data.name, depth);
+                    color := color_from_string(entity_name);
+                    init_entity_base_parameters(entity, entity_name, color, entity.mesh); // @Incomplete pad depth integer?
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
@@ -136,12 +142,12 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
         Visitor_Data :: struct {
             entity_at_depth : *Table(int, *Entity);
-            fully_pathed_filename : string;
+            name : string;
             tree : *AABB_Tree(Mesh); // Needed so iterator can work
         }
         visitor_data : Visitor_Data;
         visitor_data.entity_at_depth = *entity_at_depth;
-        visitor_data.fully_pathed_filename = mesh_entity.fully_pathed_filename;
+        visitor_data.name = mesh_entity.name;
         visitor_data.tree = spatial;
 
         visitor : spatial.Node_Visitor;

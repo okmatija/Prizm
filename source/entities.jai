@@ -64,11 +64,22 @@ Entity :: struct {
     // @Incomplete
     // user_data : *void; // Registered commands may want to attach data here
 
-    fully_pathed_filename : string;
-    creation_time : u64;
+    using source_info : union {
+        // The fully pathed filename pointing to file on disk that created the entity
+        fully_pathed_filename : string;
 
-    // @Refactor consider keeping the fully_pathed_filename and the generation index together in a struct
-    generation_index : int; // entities with the same fully pathed_filename will increment this
+        // The console command the user executed to generate the entity
+        console_command : string;
+
+        // The function that was called to generate the entity
+        preset_proc : #type () -> *Entity;
+    }
+
+    name : string;
+
+    creation_time : u64; // @Cleanup Use Apollo_Time
+
+    generation_index : int; // entities with the same 'name' will increment this
 }
 
 Polyline_Soup2_Entity :: struct {
@@ -238,11 +249,19 @@ deinit :: (base : *Entity) {
             array_reset(*entity.annotations);
     }
 
+    if #complete base.source == {
+        case .FILE_ON_DISK;   free(base.fully_pathed_filename);
+        case .COMMAND_OUTPUT; free(base.console_command);
+        case .PRESET_SHAPE;   // Do nothing
+        case .UNKNOWN;        // Do nothing
+    }
+
+    free(base.name);
+
     // Remove data from gpu memory as well
     if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
     if base.render_info.ibo glDeleteBuffers(1, *base.render_info.ibo);
     base.render_info = .{};
-    free(base.fully_pathed_filename);
     base = null;
 }
 
@@ -256,49 +275,55 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4 {
         case .POLYLINE_SOUP3; return *display_info.wireframe_color;
         case .POLYGON_SOUP;   return *display_info.surface_color;
         case .POINT_CLOUD;    return *display_info.points_color;
-        case .UNKNOWN;     #through;
+        case .UNKNOWN;        #through;
         case .MESH;
             if #complete mesh.geometry_format == {
                 case .POINTS;    return *display_info.points_color;
                 case .LINES;     return *display_info.wireframe_color;
-                case .UNKNOWN; #through;
+                case .UNKNOWN;   #through;
                 case .TRIANGLES; return *display_info.surface_color;
             }
     }
     return null;
 }
 
-entity_filename :: (using entity : Entity, with_generation_index : bool, with_short_filename : bool, with_loaded_time : bool) -> string {
-
-    name_text := fully_pathed_filename;
-
-#if OS == .WINDOWS {
-    for 0..name_text.count-1 {
-        if name_text[it] == #char "\\" name_text[it] = #char "/";
+reset_entity_primary_color :: (entity : *Entity) {
+    color := entity_primary_color(entity);
+    if entity.source == .FILE_ON_DISK {
+        <<color = color_from_path(entity.fully_pathed_filename);
+    } else {
+        <<color = color_from_string(entity.name);
     }
 }
 
-    if with_short_filename {
-        push_allocator(temp);
-        path := parse_path(fully_pathed_filename);
-        if path.words.count {
-            name_text = path.words[path.words.count - 1];
-        }
+// Assumes that fully_pathed_filename is canonically formatted (see canonically_formatted_path_string)
+// Returns a string pointing into the argument
+get_entity_name_from_fully_pathed_filename :: (fully_pathed_filename : string) -> string {
+    name := fully_pathed_filename;
+
+    path := parse_path(name);
+    if path.words.count {
+        name = path.words[path.words.count - 1];
     }
 
+    return name;
+}
+
+entity_description :: (using entity : Entity, with_creation_time : bool) -> string {
+
     index_text := "";
-    if generation_index != 0 && with_generation_index {
+    if generation_index != 0 {
         index_text = tprint(" <%>", generation_index);
     }
 
     time_text := "";
     time_separator := "";
-    if with_loaded_time {
+    if with_creation_time {
         time_text = filetime_to_readable_date(creation_time);
         time_separator = " @ ";
     }
 
-    return tprint("%1%2%3%4", name_text, index_text, time_separator, time_text);
+    return tprint("%1%2%3%4", name, index_text, time_separator, time_text);
 }
 
 color_from_path :: (path : string) -> Vector4 {
@@ -333,10 +358,10 @@ color_from_string :: (str : string) -> Vector4 {
     return make_vector4(r, g, b, 1.);
 }
 
-init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh, loc := #caller_location) {
+init_entity_base_parameters :: (entity : *Entity, name : string, primary_color : Vector4, mesh : Mesh, loc := #caller_location) {
     if !entity return;
 
-    entity.fully_pathed_filename = copy_string(filename);
+    entity.name = copy_string(name);
     entity.creation_time = get_current_file_time();
 
     if #complete mesh.geometry_format == {
@@ -345,13 +370,13 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
             entity.mesh = mesh;
             entity.display_info.wireframe_visible = true;
             entity.display_info.wireframe_width = 1;
-            entity.display_info.wireframe_color = color_from_path(filename);
+            entity.display_info.wireframe_color = primary_color;
 
         case .TRIANGLES;
 
             entity.mesh = mesh;
             entity.display_info.surface_visible = true;
-            entity.display_info.surface_color = color_from_path(filename);
+            entity.display_info.surface_color = primary_color;
 
         case .POINTS;
 
@@ -359,7 +384,7 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
             entity.display_info.surface_visible = true;
             entity.display_info.points_visible = true;
             entity.display_info.points_size = 2;
-            entity.display_info.points_color = color_from_path(filename);
+            entity.display_info.points_color = primary_color;
 
         case .UNKNOWN;
 
@@ -369,14 +394,14 @@ init_entity_base_parameters :: (entity : *Entity, filename : string, mesh : Mesh
 
 
 
-// Returns the entity having the given `fully_pathed_filename` with maximum generation index, or null if no such entity exists
-find_entity_with_max_generation_index :: (fully_pathed_filename : string) -> *Entity, int
+// Returns the entity having the given `name` with maximum generation index, or null if no such entity exists
+find_entity_with_max_generation_index :: (name : string) -> *Entity, int
 {
     entity_index := -1;
     max_generation_index := -1;
     max_generation_index_entity : *Entity;
     for app.entities {
-        if it.fully_pathed_filename == fully_pathed_filename && it.generation_index > max_generation_index {
+        if it.name == name && it.generation_index > max_generation_index {
             max_generation_index = it.generation_index;
             max_generation_index_entity = it;
             entity_index = it_index;
@@ -654,30 +679,32 @@ num_selected_entities :: () -> int {
     return count;
 }
 
-load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour = .APPEND) -> *Entity {
+load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
     contents := read_entire_file(filename);
     defer free(contents);
 
-    return load_one_file_from_memory(filename, contents, matching_name_behaviour);
+    name := get_entity_name_from_fully_pathed_filename(filename);
+    return load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
 }
 
-load_one_file_from_memory :: (filename : string, contents : string, matching_name_behaviour : Duplicate_File_Behaviour = .APPEND) -> *Entity {
+// nocommit rename to load_from_memory, and rename the filename argument..? or add another name parameter (or just set that after HMMMM)
+load_one_file_from_memory :: (filename : string, contents : string, name : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
     if !contents {
         log_warning("Skipped file: '%' (empty or missing)\n", filename);
         return null;
     }
 
-    found, found_index := find_entity_with_max_generation_index(filename);
+    found, found_index := find_entity_with_max_generation_index(name);
     if found {
         if #complete matching_name_behaviour == {
             case .IGNORE;
 
-                log_warning("Skipped file: '%' (already loaded)\n", filename);
+                log_warning("Skipped file: '%' (already loaded)\n", name);
 
             case .OVERWRITE;
 
                 // Only affects the entity with maximum generation index
-                entity := load_entity_from_memory(filename, contents);
+                entity := load_one_file_from_memory(filename, contents, name);
                 if entity {
                     entity.generation_index = found.generation_index;
                     entity.display_info = found.display_info;
@@ -688,7 +715,7 @@ load_one_file_from_memory :: (filename : string, contents : string, matching_nam
 
             case .APPEND;
 
-                entity := load_entity_from_memory(filename, contents);
+                entity := load_one_file_from_memory(filename, contents, name);
                 if entity {
                     entity.generation_index = found.generation_index + 1;
                     array_add(*app.entities, entity);
@@ -696,7 +723,7 @@ load_one_file_from_memory :: (filename : string, contents : string, matching_nam
                 }
         }
     } else {
-        entity := load_entity_from_memory(filename, contents);
+        entity := load_one_file_from_memory(filename, contents, name);
         if entity {
             array_add(*app.entities, entity);
             return entity;
@@ -710,17 +737,25 @@ load_one_file_from_memory :: (filename : string, contents : string, matching_nam
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity) -> *Entity {
 
-    if entity.source != .FILE_ON_DISK {
-        log("Skipped reloading item '%' as it has source type %. Only items with source type % can be reloaded (for now.. @Incomplete)", entity.fully_pathed_filename, entity.source, Entity_Source.FILE_ON_DISK);
-        return entity;
+    new_entity : *Entity;
+
+    if #complete entity.source == {
+        case .FILE_ON_DISK;
+
+            log("Reloading file '%'... ", entity.fully_pathed_filename);
+            new_entity = load_one_file(entity.fully_pathed_filename, app.settings.duplicate_file_behaviour);
+
+        case .PRESET_SHAPE;
+
+            log("Reloading preset shape '%'... ", entity.name);
+            new_entity = entity.preset_proc();
+
+        case .COMMAND_OUTPUT; #through;
+        case .UNKNOWN;
+
+            log("Skipped reloading item '%' as it has source type %. Only items with source type % can be reloaded (for now.. @Incomplete)", entity.fully_pathed_filename, entity.source, Entity_Source.FILE_ON_DISK);
+            return entity;
     }
-
-    log("Reloading file '%'... ", entity.fully_pathed_filename);
-
-    contents := read_entire_file(entity.fully_pathed_filename);
-    defer free(contents);
-
-    new_entity : *Entity = load_entity_from_memory(entity.fully_pathed_filename, contents);
 
     if new_entity {
         // Maintain the following information after the entity reload
@@ -731,6 +766,7 @@ reload_entity :: (entity : *Entity) -> *Entity {
 
         deinit(entity);
 
+        // nocommit replace with code to set the dirty flag
         maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
 
         return new_entity;
@@ -743,13 +779,13 @@ reload_entity :: (entity : *Entity) -> *Entity {
 
 #scope_file
 
-load_entity_from_memory :: (filename : string, contents : string) -> *Entity {
+load_one_file_from_memory :: (filename : string, contents : string, name : string) -> *Entity {
     result : *Entity;
 
     if ends_with_nocase(filename, "obj") {
-        result = load_obj(filename, contents);
+        result = load_obj(filename, contents, name);
     } else if ends_with_nocase(filename, "wkt") {
-        result = load_wkt(filename, contents);
+        result = load_wkt(filename, contents, name);
     }
 
     if result {

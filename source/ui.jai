@@ -59,8 +59,7 @@ show_item_list_ui :: () {
                         cycle_display_mode(*it.display_info.display_mode);
                     } else if ImGui.IsItemClicked(.Middle) {
                         if it.display_info.display_mode != .NORMALS {
-                            color := entity_primary_color(it);
-                            <<color = color_from_path(it.fully_pathed_filename);
+                            reset_entity_primary_color(it);
                         }
                     }
                 }
@@ -98,8 +97,8 @@ show_item_list_ui :: () {
                 // Write filename
                 ImGui.TableNextColumn();
                 // ImGui.SetNextItemWidth(-FLOAT32_MIN);
-                if it.fully_pathed_filename.count {
-                    text := entity_filename(it, with_short_filename=true, with_generation_index=true, with_loaded_time=false);
+                if it.name.count {
+                    text := entity_description(it, with_creation_time=false);
 
                     delta_time := get_current_file_time() - it.creation_time;
                     FADE_TIME_SECS := 1;
@@ -628,8 +627,7 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
         }
 
         if set.color_reset {
-            color  := entity_primary_color(it);
-            <<color = color_from_path(it.fully_pathed_filename);
+            reset_entity_primary_color(it);
         }
 
         for i : 0..clip_ranges.count-1 {
@@ -655,13 +653,14 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         ScopedPopupBorderTheme(original_border_color, original_border_size);
 
         if !entity.is_selected {
-            if entity.fully_pathed_filename.count {
+            if entity.name.count {
                 if ImGui.Button(imgui_label("Reload", entity)) {
                     app.entities[entity_index] = reload_entity(entity);
                 }
                 ImGui.SameLine();
-                text := entity_filename(entity, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                text := entity_description(entity, with_creation_time=true);
                 ImGui.TextUnformatted(text);
+                entity_source_tooltip(entity);
             }
 
             ImGui.Separator();
@@ -673,7 +672,9 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
             set := display_info_ui(*entity.display_info, aabb_world, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
-            if set.color_reset entity.display_info.surface_color = color_from_path(entity.fully_pathed_filename);
+            if set.color_reset {
+                reset_entity_primary_color(entity);
+            }
 
             display_stats(entity);
 
@@ -685,13 +686,14 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 defer ImGui.TreePop();
 
                 for :Selected app.entities {
-                    if it.fully_pathed_filename.count {
+                    if it.name.count {
                         if ImGui.Button(imgui_label("Reload", it)) {
                             app.entities[it_index] = reload_entity(it);
                         }
                         ImGui.SameLine();
-                        text := entity_filename(it, with_generation_index=true, with_short_filename=false, with_loaded_time=true);
+                        text := entity_description(it, with_creation_time=true);
                         ImGui.TextUnformatted(text);
+                        entity_source_tooltip(it);
                     }
                 }
 
@@ -1496,4 +1498,13 @@ imgui_text_for_aabb :: (aabb : AxisBox3) {
     ImGui.Text("Model space AABB:");
     ImGui.Text("Max [%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
     ImGui.Text("Min [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z);
+}
+
+entity_source_tooltip :: (entity : Entity) {
+    if #complete entity.source == {
+        case .FILE_ON_DISK;   Show_Tooltip(tprint("File: %", entity.fully_pathed_filename));
+        case .COMMAND_OUTPUT; Show_Tooltip(tprint("Command: %", entity.console_command));
+        case .PRESET_SHAPE;   Show_Tooltip("Preset shape");
+        case .UNKNOWN;        // Do nothing
+    }
 }

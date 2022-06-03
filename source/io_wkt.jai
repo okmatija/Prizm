@@ -1,4 +1,4 @@
-load_wkt :: (filename : string, data : string) -> *Entity {
+load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
     if !data {
         log("File was empty");
@@ -43,7 +43,6 @@ load_wkt :: (filename : string, data : string) -> *Entity {
             }
 
             e := cast(*Point_Cloud_Entity)entity;
-            init_entity_base_parameters(entity, filename, entity.mesh);
             e.spatial = New(AABB_Tree(e.Shape));
             init(e.spatial, *e.shape);
 
@@ -68,7 +67,6 @@ load_wkt :: (filename : string, data : string) -> *Entity {
             }
 
             e := cast(*Point_Cloud_Entity)entity;
-            init_entity_base_parameters(entity, filename, entity.mesh);
             e.spatial = New(AABB_Tree(e.Shape));
             init(e.spatial, *e.shape);
 
@@ -82,6 +80,7 @@ load_wkt :: (filename : string, data : string) -> *Entity {
                 break;
             } else if dim == 0 {
 
+                // @Cleanup what the heck is this code, just fail??
                 empty_shape : Polyline_Soup3;
                 empty_mesh : Mesh;
                 empty_mesh.geometry_format = .LINES;
@@ -187,13 +186,15 @@ load_wkt :: (filename : string, data : string) -> *Entity {
         }
     }
 
+    entity.source = .FILE_ON_DISK;
+    entity.fully_pathed_filename = copy_string(filename);
+    color := color_from_path(filename);
+    init_entity_base_parameters(entity, name, color, entity.mesh);
+
     if parser.failed || (entity && entity.type == .UNKNOWN) {
         deinit(entity);
         return null;
     }
-
-    init_entity_base_parameters(entity, filename, entity.mesh);
-    entity.source = .FILE_ON_DISK;
 
     return entity;
 }

@@ -153,6 +153,7 @@ console_execute_command :: (_command : string) {
     for app.console.commands {
         if it.name == command_name {
 
+            // @Volatile if Entity.source is .COMMAND_OUTPUT we assume Entity.source_info.console_command is the last history item
             console_add_history("%", _command);
             log("%", _command);
             it.procedure(command_args);
@@ -254,7 +255,7 @@ console_draw :: () {
             }
             if ImGui.Button("Save to LOG.txt") {
                 contents : string;
-                defer free(contents);
+                defer free(contents); // @Leaks the intermediate allocations!?
                 time := filetime_to_readable_date(get_current_file_time(), true);
                 contents = join(contents, tprint("This console log was saved at % via a button in the Prism application\n", time));
                 contents = join(contents, "Press '`' to open the console and find the button in the Options menu\n\n\n\n");

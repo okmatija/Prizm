@@ -856,23 +856,35 @@ my_debug_function :: () {
     // Write your debug code here
 }
 
+preset_shape_proc :: ($NAME : string, $FILENAME : string, $PROC : ()->*Entity) -> *Entity {
+    CONTENTS, OK :: #run read_entire_file(FILENAME);
+    #assert(OK); // If this fails then FILENAME is probably invalid
+
+    result := load_one_file_from_memory(FILENAME, CONTENTS, NAME, .OVERWRITE);
+
+    // Update the source to be a preset
+    result.source = .PRESET_SHAPE;
+    free(result.fully_pathed_filename); // Must do this before we overwrite the union memory on the next line!
+    result.preset_proc = PROC;
+    reset_entity_primary_color(result);
+
+    return result;
+}
+
+preset_cube_proc :: () -> *Entity {
+    return preset_shape_proc("preset cube", "shapes/cube.obj", preset_cube_proc);
+}
+
+preset_widget_proc :: () -> *Entity {
+    return preset_shape_proc("preset widget", "shapes/widget.obj", preset_widget_proc);
+}
+
 add_preset_cube :: () {
-    CONTENTS :: #run read_entire_file("shapes/cube.obj");
-    entity := load_one_file_from_memory("Preset cube.obj", CONTENTS, matching_name_behaviour=app.settings.duplicate_file_behaviour);
-    entity.source = .PRESET_SHAPE;
-    // @Incomplete Shift along the cube based on the generation index, so we can keep adding them and they won't be coincident?
-    // found, found_index := find_entity_with_max_generation_index("preset cube");
-    // if found {
-    //     shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
-    //     ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05);
-    //     entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34 = shift.x, shift.y, shift.z;
-    // }
+    preset_cube_proc();
     fit_scene_on_screen();
 }
 
 add_preset_widget :: () {
-    CONTENTS :: #run read_entire_file("shapes/widget.obj");
-    entity := load_one_file_from_memory("Preset widget.obj", CONTENTS, matching_name_behaviour=app.settings.duplicate_file_behaviour);
-    entity.source = .PRESET_SHAPE;
+    preset_widget_proc();
     fit_scene_on_screen();
 }

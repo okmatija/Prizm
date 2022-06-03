@@ -5,7 +5,7 @@
 // @Incomplete Parameter to enable objs with segments to not get converted to polylines?
 
 // @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
-load_obj :: (filename : string, data : string) -> *Entity {
+load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
     if !data {
         log("File was empty");
@@ -245,7 +245,6 @@ load_obj :: (filename : string, data : string) -> *Entity {
     // Sort annotations by kind then by id
     quick_sort(annotations, (a,b)=>(compare_annotations(a, b)));
 
-    // @Cleanup it's annoying that init_entity_base_parameters must happen after the new and before the init
     result : *Entity;
     if #complete mesh.geometry_format == {
         case .LINES;
@@ -258,9 +257,9 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 e := cast(*Polyline_Soup2_Entity)result;
                 e.shape, ok = to_Polyline_Soup2(mesh);
                 if !ok {
-                    deinit(result);
+                    deinit(*e.shape);
+                    return null;
                 }
-                init_entity_base_parameters(result, filename, mesh);
                 e.spatial = New(AABB_Tree(e.Shape));
                 init(e.spatial, *e.shape);
 
@@ -286,9 +285,9 @@ load_obj :: (filename : string, data : string) -> *Entity {
                 e := cast(*Polyline_Soup3_Entity)result;
                 e.shape, ok = to_Polyline_Soup3(mesh);
                 if !ok {
-                    deinit(result);
+                    deinit(*e.shape);
+                    return null;
                 }
-                init_entity_base_parameters(result, filename, mesh);
                 e.spatial = New(AABB_Tree(e.Shape));
                 init(e.spatial, *e.shape);
 
@@ -315,7 +314,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
             result = New(Point_Cloud_Entity);
             e := cast(*Point_Cloud_Entity)result;
-            init_entity_base_parameters(result, filename, mesh);
+            e.mesh = mesh;
             e.spatial = New(AABB_Tree(e.Shape));
             init(e.spatial, *e.shape);
             result.annotations = annotations;
@@ -324,7 +323,7 @@ load_obj :: (filename : string, data : string) -> *Entity {
 
             result = New(Mesh_Entity);
             e := cast(*Mesh_Entity)result;
-            init_entity_base_parameters(result, filename, mesh);
+            e.mesh = mesh;
             e.spatial = New(AABB_Tree(e.Shape));
             init(e.spatial, *e.shape);
             result.annotations = annotations;
@@ -335,6 +334,9 @@ load_obj :: (filename : string, data : string) -> *Entity {
     }
 
     result.source = .FILE_ON_DISK;
+    result.fully_pathed_filename = copy_string(filename);
+    color := color_from_path(filename);
+    init_entity_base_parameters(result, name, color, mesh);
 
     return result;
 }

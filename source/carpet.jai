@@ -263,9 +263,10 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
     return old_state != <<state;
 }
 
+//  nocommit Rename Show_Tooltip* since these dont need to be macros
 
 // @Incomplete add a delay before popup, see https://github.com/ocornut/imgui/issues/1485
-Show_Tooltip :: (description : string) #expand {
+Show_Tooltip :: (description : string) {
     if (ImGui.IsItemHovered()) {
         ImGui.BeginTooltip();
         // ImGui.PushTextWrapPos(450);
@@ -275,6 +276,7 @@ Show_Tooltip :: (description : string) #expand {
     }
 }
 
+// @CompilerBug This does not compile if its not a macro, because we dont find KEYBINDING_COLOR, but that should work..!
 Show_Tooltip_Binding :: (description : string, binding : string) #expand {
     if (ImGui.IsItemHovered()) {
         ImGui.BeginTooltip();
