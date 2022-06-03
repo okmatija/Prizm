@@ -538,7 +538,11 @@ item_find_open_edges :: (id : int) {
     new_entity.shape = segment_soup;
     new_entity.mesh = to_Mesh(new_entity.shape);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-    name := join(app.entities[id].fully_pathed_filename, "_open_edges"); // @Leak
+    name : string;
+    {
+        push_allocator(temp);
+        name = join(app.entities[id].fully_pathed_filename, "_open_edges");
+    }
     init_entity_base_parameters(new_entity, name, new_entity.mesh);
     new_entity.display_info.wireframe_width = 3;
     found_entity := find_entity_with_max_generation_index(new_entity.fully_pathed_filename);

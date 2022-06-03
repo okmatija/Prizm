@@ -63,10 +63,8 @@ console_add_history :: (format_string: string, args: .. Any) {
 } @PrintLike
 
 console_save_history :: () {
-    history_string : string;
-    for app.console.history {
-        history_string = join(history_string, it, "\n"); // @Leak
-    }
+    push_allocator(temp);
+    history_string : string = join(..app.console.history, separator="\n");
     write_entire_file("console_history.txt", history_string);
 }
 
