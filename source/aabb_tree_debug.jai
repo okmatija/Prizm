@@ -35,12 +35,16 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         assert(entity != null);
 
         entity.source = .COMMAND_OUTPUT;
+        assert(app.console.history.count > 0);
+        entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
         entity.shape = shape;
         entity.mesh = to_Mesh(entity.shape);
         name := tprint("%_debug_spatial", mesh_entity.name);
         color := color_from_string(name);
         init_entity_base_parameters(entity, name, color, entity.mesh);
-        array_add(*app.entities, entity);
+
+        add_entity(entity, .OVERWRITE);
+
     } else {
         // Internal nodes will be polyline soup entities showing AABBs
         // Leaf nodes will be mesh entitites so that the AABB and primitive data can be shown
@@ -61,6 +65,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     assert(entity != null);
 
                     entity.source = .COMMAND_OUTPUT;
+                    assert(app.console.history.count > 0);
+                    entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
                     entity.mesh = to_edge_Mesh(node.aabb);
                     entity_name := tprint("%_debug_spatial_%", data.name, depth);
                     color := color_from_string(entity_name);
@@ -118,6 +124,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     assert(entity != null);
 
                     entity.source = .COMMAND_OUTPUT;
+                    assert(app.console.history.count > 0);
+                    entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
                     entity.mesh = to_edge_Mesh(node.aabb);
                     entity_name := tprint("%_debug_spatial_%", data.name, depth);
                     color := color_from_string(entity_name);
@@ -173,9 +181,9 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         quick_sort(sorted_by_depth, x=>x.depth);
 
         for sorted_by_depth {
-            array_add(*app.entities, it.entity);
+            add_entity(it.entity, .OVERWRITE);
         }
-    }
+    } // end else of if jumbo_item
 } @RegisterCommand
 
 debug_delete_spatial_index :: (id : int) {

@@ -554,11 +554,10 @@ item_find_open_edges :: (id : int) {
     color := color_from_string(name);
     init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
     new_entity.display_info.wireframe_width = 3;
-    found_entity := find_entity_with_max_generation_index(new_entity.name);
-    if found_entity {
-        new_entity.generation_index = found_entity.generation_index + 1;
-    }
-    array_add(*app.entities, new_entity);
+
+    // Set generation_index before adding to overwrite the correct entity
+    new_entity.generation_index = app.entities[id].generation_index;
+    add_entity(new_entity, .OVERWRITE);
 
 } @RegisterCommand
 
@@ -786,17 +785,16 @@ make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : 
     new_entity := New(Polyline_Soup3_Entity);
 
     new_entity.source = .COMMAND_OUTPUT;
+    assert(app.console.history.count > 0);
+    new_entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
     new_entity.shape = to_Polyline_Soup3(grid, extents);
     new_entity.mesh = to_Mesh(new_entity.shape);
     init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
 
-    found_entity := find_entity_with_max_generation_index(name);
-    if found_entity {
-        new_entity.generation_index = found_entity.generation_index + 1;
-    }
-
-    array_add(*app.entities, new_entity);
+    // Set generation_index before adding to overwrite the correct entity
+    new_entity.generation_index = 0;
+    add_entity(new_entity, .OVERWRITE);
 }
 
 #scope_file

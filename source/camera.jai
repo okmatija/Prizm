@@ -226,15 +226,17 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 }
 
 // Adjust the camera position and viewing volume to fit the visible geometry while preserving the camera look direction
+// The camera orbit will be centered on the centroid of all visible entities
 fit_scene_on_screen :: (accurate : bool = false) {
     sphere := entities_bounding_sphere((e)=>(e.display_info.is_visible), accurate);
     fit_sphere_on_screen(sphere, sphere.radius);
 }
 
 // Adjust the camera position and viewing volume to fit the entity while preserving the camera look direction
+// The camera orbit will be centered on the entity bounding sphere center
 fit_on_screen :: (entity : *Entity, accurate : bool = false)
 {
-    if !entity.display_info.is_visible {
+    if entity.display_info.is_visible == false {
         return;
     }
 
@@ -249,6 +251,28 @@ fit_on_screen :: (entity : *Entity, accurate : bool = false)
     sphere.radius += distance(sphere.center, scene_sphere.center);
 
     fit_sphere_on_screen(sphere);
+}
+
+// Like fit_on_screen but:
+// - top/bottom/left/right to tightly bound the entity bounding sphere
+// - near/far planes are adjusted so that the rest of the visible items aren't clipped
+fit_on_screen_filled :: (entity : *Entity, accurate : bool = false) {
+    if entity.display_info.is_visible == false {
+        return;
+    }
+
+    fit_on_screen(entity, accurate);
+    cached := app.camera;
+
+    sphere := entity.render_info.bounding_sphere;
+    transform(*sphere, entity.mesh.world_from_model);
+    if entity.display_info.clip_sphere.is_active {
+        sphere = entity.display_info.clip_sphere;
+    }
+    fit_sphere_on_screen(sphere);
+
+    app.camera.near = cached.near;
+    app.camera.far = cached.far;
 }
 
 // Adjust the camera position and viewing volume to fit the world space sphere while preserving the camera look direction

@@ -215,11 +215,13 @@ load_from_command_line :: () {
                 file := _file;
                 file = canonically_formatted_path_string(file);
                 if wildcard_match(file, pattern) {
-                    load_one_file(file, matching_name_behaviour=.IGNORE);
+                    entity := load_one_file(file, .IGNORE);
+                    add_entity(entity, .IGNORE);
                 }
             }
         } else {
-            load_one_file(pattern, matching_name_behaviour=.IGNORE);
+            entity := load_one_file(pattern, .IGNORE);
+            add_entity(entity, .IGNORE);
         }
     }
     fit_scene_on_screen();
@@ -292,7 +294,8 @@ handle_events :: () {
                 // @Leak event.drop.file should be free'd using SDL_free
                 dropped := canonically_formatted_path_string(to_string(event.drop.file));
 
-                load_one_file(dropped, matching_name_behaviour=app.settings.duplicate_file_behaviour);
+                entity := load_one_file(dropped, app.settings.duplicate_file_behaviour);
+                add_entity(entity, app.settings.duplicate_file_behaviour); 
 
                 if app.settings.fit_to_screen_on_file_drop_event {
                     fit_scene_on_screen();

@@ -9,7 +9,10 @@
 PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
 - Improved item reloading behaviour:
   - Items which are preset shapes are 'reloaded' by calling their creation functions again
-  - TODO Items which are outputs of console commands 'reloaded' by re-evaluating the console command string. Note it will be up to the command author to define the semantics of this operation e.g., if a command creates multiples files make this work WHAT IF A CONSOLE COMMAND GENERATES MORE THAN ONE OUTPUT??
+  - Items which are outputs of console commands 'reloaded' by re-evaluating the console command string. Note:
+    - It is up to the command author to define the semantics of this operation.
+    - This feature makes the make_Grid_on_near_plane command more useful as it can be re-evaluated after you move the camera. This function is still mostly a weird experiment though.
+- Added a feature where Shift LMB on the item name will center the camera on the item and have the item fill the screen while positioning near/far planes so the rest of the scene is visible
 - TODO implement item_layout_selected :: (dimension : int) to layout selected items in a 1d, 2d or 3d grid, starting from location of item with smallest index
 - TODO implement item_clone
 - Preset buttons now act consistently with the global duplicate file behaviour setting (located under the 'Settings' in the help menu)

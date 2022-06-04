@@ -806,7 +806,7 @@ kinda_toggle_is_visible :: (target : Target_Items) {
 
 reload_items :: (target : Target_Items) {
     for app.entities if Is_Target(it) {
-        app.entities[it_index] = reload_entity(it);
+        reload_entity(it);
     }
 }
 
@@ -860,7 +860,7 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $PROC : ()->*Entity) -
     CONTENTS, OK :: #run read_entire_file(FILENAME);
     #assert(OK); // If this fails then FILENAME is probably invalid
 
-    result := load_one_file_from_memory(FILENAME, CONTENTS, NAME, .OVERWRITE);
+    result := load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
 
     // Update the source to be a preset
     result.source = .PRESET_SHAPE;
@@ -880,11 +880,13 @@ preset_widget_proc :: () -> *Entity {
 }
 
 add_preset_cube :: () {
-    preset_cube_proc();
+    entity := preset_cube_proc();
+    add_entity(entity, app.settings.duplicate_file_behaviour);
     fit_scene_on_screen();
 }
 
 add_preset_widget :: () {
-    preset_widget_proc();
+    entity := preset_widget_proc();
+    add_entity(entity, app.settings.duplicate_file_behaviour);
     fit_scene_on_screen();
 }

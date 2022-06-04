@@ -170,9 +170,19 @@ show_item_list_ui :: () {
                 } else {
                     ImGui.Selectable("---", *it.is_selected);
                 }
+
+                // No tooltip for this behaviour since we reserve the tooltip for annotations
                 if ImGui.IsItemClicked() {
-                    if !io().KeyCtrl && !is_empty(it) {
-                        fit_on_screen(it);
+                    if is_empty(it) == false {
+                        if io().KeyCtrl {
+                            // Do nothing, this selects the item
+                        } else if io().KeyShift {
+                            // This is similar but a bit different to the behaviour when sweeping visibility checkboxes but its fine, I think that that code should not know about entities..?
+                            fit_on_screen_filled(it);
+                        } else {
+                            // Fit all visible items on the screen
+                            fit_on_screen(it);
+                        }
                     }
                 }
                 was_hovered := it.is_hovered;
@@ -655,7 +665,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         if !entity.is_selected {
             if entity.name.count {
                 if ImGui.Button(imgui_label("Reload", entity)) {
-                    app.entities[entity_index] = reload_entity(entity);
+                    reload_entity(entity);
                 }
                 ImGui.SameLine();
                 text := entity_description(entity, with_creation_time=true);
@@ -688,7 +698,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 for :Selected app.entities {
                     if it.name.count {
                         if ImGui.Button(imgui_label("Reload", it)) {
-                            app.entities[it_index] = reload_entity(it);
+                            reload_entity(it);
                         }
                         ImGui.SameLine();
                         text := entity_description(it, with_creation_time=true);
@@ -699,7 +709,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                 if ImGui.Button("Reload Selection") {
                     for :Selected app.entities {
-                        app.entities[it_index] = reload_entity(it);
+                        reload_entity(it);
                     }
                     // ImGui.CloseCurrentPopup();
                 }
@@ -933,6 +943,7 @@ show_help_ui :: () {
         ImGui.NextColumn(); ImGui.NextColumn();
         Show_Binding("LMB", "(on a filename) Focus an item");
         Show_Binding("Ctrl LMB", "(on a filename) Select an item");
+        Show_Binding("Shift LMB", "(on a filename) Focus an item and zoom in");
         Show_Binding("RMB", "(on a filename) Open context menu which modifies only clicked item");
         Show_Binding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
         Show_Binding("RMB", "(on a color) Cycle shading styles");

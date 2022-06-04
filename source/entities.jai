@@ -10,10 +10,10 @@ Entity_Type :: enum {
 
 // Used for entity reloading
 Entity_Source :: enum {
+    UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded
     FILE_ON_DISK;
     PRESET_SHAPE;
     COMMAND_OUTPUT;
-    UNKNOWN;
 }
 
 Annotation :: struct {
@@ -262,7 +262,54 @@ deinit :: (base : *Entity) {
     if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
     if base.render_info.ibo glDeleteBuffers(1, *base.render_info.ibo);
     base.render_info = .{};
-    base = null;
+}
+
+// If matching_name_behaviour == .OVERWRITE you need to also set entity.generation_index to the value you wanted
+add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behaviour) {
+    if entity == null {
+        return;
+    }
+
+    found : *Entity;
+    found_index : int = -1;
+    if matching_name_behaviour == .APPEND {
+        // Finds the entity with maximum generation index
+        found, found_index = find_entity(entity.name, -1);
+    } else {
+        // Finds the entity with matching generation index
+        found, found_index = find_entity(entity.name, entity.generation_index);
+    }
+
+    if found {
+
+        if #complete matching_name_behaviour == {
+
+            case .IGNORE;
+
+                // Do nothing
+
+            case .OVERWRITE;
+
+                entity.mesh.world_from_model = found.mesh.world_from_model;
+                // entity.generation_index =   found.generation_index; // Already matches
+                entity.display_info =          found.display_info;
+                entity.is_selected =           found.is_selected;
+
+                deinit(found);
+
+                // nocommit replace with code to set the dirty flag
+                maybe_update_render_info(*entity.render_info, *entity.mesh);
+
+                app.entities[found_index] = entity;
+
+            case .APPEND;
+
+                entity.generation_index = found.generation_index + 1;
+                array_add(*app.entities, entity);
+        }
+    } else {
+        array_add(*app.entities, entity);
+    }
 }
 
 is_empty :: (entity : Entity) -> bool {
@@ -392,22 +439,34 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
     }
 }
 
+// If generation_index >= 0 then find the entity with matching name and generation_index
+// Otherwise find the entity with matching name and maximum generation_index 
+// Return null, -1 if no matching entity is found
+find_entity :: (name : string, generation_index : int) -> *Entity, int {
 
+    found : *Entity;
+    found_index : int = -1;
 
-// Returns the entity having the given `name` with maximum generation index, or null if no such entity exists
-find_entity_with_max_generation_index :: (name : string) -> *Entity, int
-{
-    entity_index := -1;
-    max_generation_index := -1;
-    max_generation_index_entity : *Entity;
-    for app.entities {
-        if it.name == name && it.generation_index > max_generation_index {
-            max_generation_index = it.generation_index;
-            max_generation_index_entity = it;
-            entity_index = it_index;
+    if generation_index >= 0 {
+        for app.entities {
+            if it.name == name && it.generation_index == generation_index {
+                found = it;
+                found_index = it_index;
+                break;
+            }
+        }
+    } else {
+        max_generation_index : int = -1;
+        for app.entities {
+            if it.name == name && it.generation_index > max_generation_index {
+                max_generation_index = it.generation_index;
+                found = it;
+                found_index = it_index;
+            }
         }
     }
-    return max_generation_index_entity, entity_index;
+
+    return found, found_index;
 }
 
 Point_On_Entity :: struct {
@@ -680,10 +739,20 @@ num_selected_entities :: () -> int {
 }
 
 load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
+    name := get_entity_name_from_fully_pathed_filename(filename);
+
+    // Check if we can early exit and avoid save reading the file from disk
+    {
+        found, found_index := find_entity(name, -1);
+        if found && matching_name_behaviour == .IGNORE {
+            log_warning("Skipped file: '%' (already loaded)\n", name);
+            return null;
+        }
+    }
+
     contents := read_entire_file(filename);
     defer free(contents);
 
-    name := get_entity_name_from_fully_pathed_filename(filename);
     return load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
 }
 
@@ -694,87 +763,56 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
         return null;
     }
 
-    found, found_index := find_entity_with_max_generation_index(name);
-    if found {
-        if #complete matching_name_behaviour == {
-            case .IGNORE;
-
-                log_warning("Skipped file: '%' (already loaded)\n", name);
-
-            case .OVERWRITE;
-
-                // Only affects the entity with maximum generation index
-                entity := load_one_file_from_memory(filename, contents, name);
-                if entity {
-                    entity.generation_index = found.generation_index;
-                    entity.display_info = found.display_info;
-                    deinit(found);
-                    app.entities[found_index] = entity;
-                    return entity;
-                }
-
-            case .APPEND;
-
-                entity := load_one_file_from_memory(filename, contents, name);
-                if entity {
-                    entity.generation_index = found.generation_index + 1;
-                    array_add(*app.entities, entity);
-                    return entity;
-                }
-        }
-    } else {
-        entity := load_one_file_from_memory(filename, contents, name);
-        if entity {
-            array_add(*app.entities, entity);
-            return entity;
+    // Check if we can early exit and avoid parsing the contents
+    {
+        found, found_index := find_entity(name, -1);
+        if found && matching_name_behaviour == .IGNORE {
+            log_warning("Skipped file: '%' (already loaded)\n", name);
+            return null;
         }
     }
 
-    return null;
+    return load_one_file_from_memory(filename, contents, name);
 }
 
 // @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
-reload_entity :: (entity : *Entity) -> *Entity {
-
-    new_entity : *Entity;
-
+reload_entity :: (entity : *Entity) {
     if #complete entity.source == {
         case .FILE_ON_DISK;
 
             log("Reloading file '%'... ", entity.fully_pathed_filename);
-            new_entity = load_one_file(entity.fully_pathed_filename, app.settings.duplicate_file_behaviour);
+            new_entity := load_one_file(entity.fully_pathed_filename, .OVERWRITE);
+            if new_entity {
+                // Set generation_index before adding to overwrite the correct entity
+                new_entity.generation_index = entity.generation_index;
+                add_entity(new_entity, .OVERWRITE);
+            } else {
+                clear(entity);
+            }
 
         case .PRESET_SHAPE;
 
             log("Reloading preset shape '%'... ", entity.name);
-            new_entity = entity.preset_proc();
+            new_entity := entity.preset_proc();
+            assert(new_entity != null);
 
-        case .COMMAND_OUTPUT; #through;
+            // Set generation_index before adding to overwrite the correct entity
+            new_entity.generation_index = entity.generation_index;
+            add_entity(new_entity, .OVERWRITE);
+
+        case .COMMAND_OUTPUT;
+
+            // nocommit Maybe remove this comment
+            // Note: This is only intended to support simple use cases,
+            // reloading command output can easily break if e.g., item indices change
+            log("Re-executing console command '%'... ", entity.console_command);
+            console_execute_command(entity.console_command);
+
         case .UNKNOWN;
 
             log("Skipped reloading item '%' as it has source type %. Only items with source type % can be reloaded (for now.. @Incomplete)", entity.fully_pathed_filename, entity.source, Entity_Source.FILE_ON_DISK);
-            return entity;
     }
-
-    if new_entity {
-        // Maintain the following information after the entity reload
-        new_entity.is_selected =           entity.is_selected;
-        new_entity.display_info =          entity.display_info;
-        new_entity.generation_index =      entity.generation_index;
-        new_entity.mesh.world_from_model = entity.mesh.world_from_model;
-
-        deinit(entity);
-
-        // nocommit replace with code to set the dirty flag
-        maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-
-        return new_entity;
-    }
-
-    clear(entity);
-
-    return entity;
 }
 
 #scope_file
