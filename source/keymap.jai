@@ -805,6 +805,8 @@ kinda_toggle_is_visible :: (target : Target_Items) {
 */
 
 reload_items :: (target : Target_Items) {
+    // nocommit Load files from disk first, and load in chronological order
+
     for app.entities if Is_Target(it) {
         reload_entity(it);
     }

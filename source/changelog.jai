@@ -1,3 +1,20 @@
+/*
+
+Add asterisk in item list when the file has changed on disk
+Check all the array_add(*app.entitites, ...) to see if we want add_entity(...) instead
+Fix the FIXME in item perturb points function since it screws up if there was a transform I think
+Fix if there are no visible items and we make one visible the camera should update
+Add dependencies to items, so that reload can reload all the needed items (what happens if we get an error, and do we need to return a boolean from registered commands?)
+Fix path from command line load not being fully pathed
+Fix annotations on polyline soup entities
+Auto update the entity names to disambiguate the same name in different folders
+TODO Add an option to APPEND grid items
+Fix crash when using IGNORE and reloading presets
+Maybe color picking should account for generation_index?
+
+*/
+
+
 // TODO Integrate a newer version of Simp and make it share the context so that rendering works correctly
 // TODO Refactor selection mode: decouple from clipping sphere mode, support multiple selection sets, allow selection of triangles
 // TODO Fix sphere clipping not working right after perturbing vertices. Load cube twice, perturb by a significant amount. Note that sphere clipping seems to work on the original cube geometry.
@@ -12,7 +29,11 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
   - Items which are outputs of console commands 'reloaded' by re-evaluating the console command string. Note:
     - It is up to the command author to define the semantics of this operation.
     - This feature makes the make_Grid_on_near_plane command more useful as it can be re-evaluated after you move the camera. This function is still mostly a weird experiment though.
+  - TODO Items are reloaded in order of decreasing creation time, with items loaded from disk preceeding console command output items or preset shape items
+    - This heuristic is designed to give the expected behaviour in simple cases like reload a file from disk, run command A on it and then run command B on that
 - Added a feature where Shift LMB on the item name will center the camera on the item and have the item fill the screen while positioning near/far planes so the rest of the scene is visible
+- Changed sort_by_name command to make it case insensitive
+- Removed select_remove_selected_items since this is easily accomplished by making a selection and pressing the delete key
 - TODO implement item_layout_selected :: (dimension : int) to layout selected items in a 1d, 2d or 3d grid, starting from location of item with smallest index
 - TODO implement item_clone
 - Preset buttons now act consistently with the global duplicate file behaviour setting (located under the 'Settings' in the help menu)

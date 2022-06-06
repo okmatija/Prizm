@@ -117,37 +117,14 @@ select_toggle_selected_items :: () {
     }
 } @RegisterCommand
 
-// Removes all selected items
-select_remove_selected_items :: () {
-    to_remove : [..]*Entity;
-    defer array_reset(*to_remove);
-
-    count := 0;
-    for app.entities {
-        if it.is_selected {
-            array_add(*to_remove, it);
-            count += 1;
-            remove it;
-        }
-    }
-
-    for to_remove {
-        deinit(it);
-        free(it);
-    }
-
-    if count == 1 log("# removed 1 selected entity");
-    else          log("# removed % selected entities", count);
-} @RegisterCommand
-
 // Sorts items in alphabetical order
 sort_by_name :: (reversed : int = 0) {
     compare_alphabetical :: (a : *Entity, b : *Entity) -> s64 {
-        return compare_strings(a.name, b.name);
+        return compare_nocase(a.name, b.name);
     }
 
     compare_reverse_alphabetical :: (a : *Entity, b : *Entity) -> s64 {
-        return compare_strings(b.name, a.name);
+        return compare_nocase(b.name, a.name);
     }
 
     if   reversed quick_sort(app.entities, compare_reverse_alphabetical);
@@ -160,16 +137,16 @@ sort_by_time :: (ascending : int = 1) {
         // @Cleanup This is a pretty weird way to do this...
         at := filetime_to_readable_date(a.creation_time);
         bt := filetime_to_readable_date(b.creation_time);
-        if at == bt return compare_strings(b.name, a.name);
-        return compare_strings(bt, at);
+        if at == bt return compare_nocase(b.name, a.name);
+        return compare_nocase(bt, at);
     }
 
     compare_descending :: (a : *Entity, b : *Entity) -> s64 {
         // @Cleanup This is a pretty weird way to do this...
         at := filetime_to_readable_date(a.creation_time);
         bt := filetime_to_readable_date(b.creation_time);
-        if at == bt return compare_strings(a.name, b.name);
-        return compare_strings(at, bt);
+        if at == bt return compare_nocase(a.name, b.name);
+        return compare_nocase(at, bt);
     }
 
     if   ascending quick_sort(app.entities, compare_ascending);
@@ -180,14 +157,14 @@ sort_by_time :: (ascending : int = 1) {
 sort_by_size :: (ascending : int = 1) {
     compare_ascending :: (a : *Entity, b : *Entity) -> s64 {
         if a.mesh.positions.count == b.mesh.positions.count {
-            return compare_strings(a.name, b.name);
+            return compare_nocase(a.name, b.name);
         }
         return compare_floats(xx a.mesh.positions.count, xx b.mesh.positions.count);
     }
 
     compare_descending :: (a : *Entity, b : *Entity) -> s64 {
         if a.mesh.positions.count == b.mesh.positions.count {
-            return compare_strings(b.name, a.name);
+            return compare_nocase(b.name, a.name);
         }
         return compare_floats(xx b.mesh.positions.count, xx a.mesh.positions.count);
     }
