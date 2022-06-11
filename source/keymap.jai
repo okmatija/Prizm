@@ -805,9 +805,22 @@ kinda_toggle_is_visible :: (target : Target_Items) {
 */
 
 reload_items :: (target : Target_Items) {
-    // nocommit Load files from disk first, and load in chronological order
 
-    for app.entities if Is_Target(it) {
+    no_dependencies_first_then_chronological :: (a : *Entity, b : *Entity) -> s64 {
+        // FILE_ON_DISK and PRESET_SHAPE sources do not depend on other entities, but command outputs can, so we load those last and in order of 
+        if cast(int) a.source > cast(int) b.source return  1;
+        if cast(int) a.source < cast(int) b.source return -1;
+        assert(a.source == b.source);
+        if a.creation_time > b.creation_time       return  1;
+        if a.creation_time < b.creation_time       return -1;
+        return 0;
+    }
+
+    tmp := array_copy(app.entities);
+    defer array_free(tmp);
+    quick_sort(tmp, no_dependencies_first_then_chronological);
+
+    for tmp if Is_Target(it) {
         reload_entity(it);
     }
 }

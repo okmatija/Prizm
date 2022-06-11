@@ -8,12 +8,12 @@ Entity_Type :: enum {
     UNKNOWN;
 }
 
-// Used for entity reloading
+// Used for entity reloading, order is important here becaues reload_items uses it for sorting
 Entity_Source :: enum {
-    UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded
     FILE_ON_DISK;
     PRESET_SHAPE;
     COMMAND_OUTPUT;
+    UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded
 }
 
 Annotation :: struct {
