@@ -198,7 +198,6 @@ Simp :: #import "Simp_beta_0_1_016";
 #import "GL";
 #import "Deep_Copy";
 #import "Debug";
-#import "Time";
 #import "Hash";
 #import "Hash_Table";
 #import "freetype255";

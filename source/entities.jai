@@ -77,7 +77,7 @@ Entity :: struct {
 
     name : string;
 
-    creation_time : u64; // @Cleanup Use Apollo_Time
+    creation_time : Apollo_Time;
 
     generation_index : int; // entities with the same 'name' will increment this
 }
@@ -409,7 +409,7 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
     if !entity return;
 
     entity.name = copy_string(name);
-    entity.creation_time = get_current_file_time();
+    entity.creation_time = current_time_consensus();
 
     if #complete mesh.geometry_format == {
         case .LINES;

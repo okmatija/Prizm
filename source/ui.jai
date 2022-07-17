@@ -100,12 +100,13 @@ show_item_list_ui :: () {
                 if it.name.count {
                     text := entity_description(it, with_creation_time=false);
 
-                    delta_time := get_current_file_time() - it.creation_time;
-                    FADE_TIME_SECS := 1;
+                    FADE_TIME_SECS :: 1.;
+
+                    delta_time_s := to_float64_seconds(current_time_consensus() - it.creation_time);
                     base_color := ifx is_empty(it) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
                     color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
-                    if delta_time < xx (FADE_TIME_SECS * 10_000_000.) {
-                        alpha := clamp(delta_time / (FADE_TIME_SECS * 10_000_000.), 0., 1.);
+                    if delta_time_s < FADE_TIME_SECS {
+                        alpha := clamp(delta_time_s / FADE_TIME_SECS, 0., 1.);
                         color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
                         color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
                     }
@@ -1008,7 +1009,7 @@ show_help_ui :: () {
         if ImGui.Button("Save to CHANGELOG.md") {
             contents : string;
             defer free(contents);
-            time := filetime_to_readable_date(get_current_file_time(), true);
+            time := filetime_to_readable_date(current_time_consensus(), true);
             contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\n", time));
             contents = join(contents, "Press 'h' for the help window and find the button in the Changelog subsection\n\n\n\n");
             for app.changelog {
