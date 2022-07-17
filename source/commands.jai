@@ -488,7 +488,7 @@ item_find_open_edges :: (id : int) {
     for :TriangleTuplesIterator mesh {
         Process_Edge :: (i : u32, j : u32) #expand {
             edge := make_Tuple2(i, j);
-            value, found := table_find(edge_to_origin, edge);
+            value, found := table_find(*edge_to_origin, edge);
             if found {
                 table_remove(*edge_to_origin, edge);
             } else {
