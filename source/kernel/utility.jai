@@ -60,7 +60,7 @@ expand :: (using this : *Sphere, other : Sphere, keep_center_of_this := false) {
 }
 
 // Return true if this contains other
-contains :: (using this : *Sphere, other : Sphere) -> bool {
+contains :: (using this : Sphere, other : Sphere) -> bool {
     center_distance := distance(this.center, other.center);
     return this.radius > center_distance + other.radius;
 }

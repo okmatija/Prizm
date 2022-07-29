@@ -81,7 +81,7 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
-    using sphere : Sphere;
+    using #as sphere : Sphere;
     radius = 0h7F800000; // +inf
     is_active : bool = false;
 }
