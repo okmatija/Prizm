@@ -1,12 +1,12 @@
 // Things with no clear file to go in just get shoved under the carpet.jai
 
 // Returns a string in temporary storage
-filetime_to_readable_date :: (filetime : Apollo_Time, include_date := false) -> string {
+filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> string {
     lt : Calendar_Time = to_calendar(filetime, time_zone=.LOCAL);
     if include_date {
-        return tprint("%:%:% on %-%-%",
-                      formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2),
-                      formatInt(lt.year, minimum_digits=4), formatInt(lt.month_starting_at_0 + 1, minimum_digits=2), formatInt(lt.day_of_month_starting_at_0 + 1, minimum_digits=2));
+        return tprint("%-%-% %:%:% ",
+                      formatInt(lt.year, minimum_digits=4), formatInt(lt.month_starting_at_0 + 1, minimum_digits=2), formatInt(lt.day_of_month_starting_at_0 + 1, minimum_digits=2),
+                      formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2));
     } else {
         return tprint("%:%:%",
                       formatInt(lt.hour, minimum_digits=2), formatInt(lt.minute, minimum_digits=2), formatInt(lt.second, minimum_digits=2));

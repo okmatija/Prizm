@@ -37,6 +37,11 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
 - Changed sort_by_name command to make it case insensitive
 - Removed select_remove_selected_items since this is easily accomplished by making a selection and pressing the delete key
 - Preset buttons now act consistently with the global duplicate file behaviour setting (located under the 'Settings' in the help menu)
+- Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behaviour changes:
+  - Changed the timestamp associated with items loaded from disk to be the file mod time. Previously this was the time the file was loaded into Prism.
+  - Changed reload item button so its disabled if the file mod time and file size are unchanged from when the file was first loaded. The old behaviour where reloads can be triggered with no constraints by unchecking the 'Disable reload if file unchange' box in under Settings. Press h for help
+  - Added an asterisk to the end of item names for items read from disk if the file has been modified or has changed size since it was loaded
+- Updated to compiler version beta 0.1.033
 DONE
 };
 

@@ -77,7 +77,10 @@ Entity :: struct {
 
     name : string;
 
+    // if source == .FILE_ON_DISK these are filled using file_modtime_and_size
+    // otherwise these are the current_time_consensus and the mesh vertex count
     creation_time : Apollo_Time;
+    creation_size : s64;
 
     generation_index : int; // entities with the same 'name' will increment this
 }
@@ -316,6 +319,18 @@ is_empty :: (entity : Entity) -> bool {
     return entity.mesh.positions.count == 0;
 }
 
+is_changed_on_disk :: (using entity : Entity) -> bool {
+    changed := false;
+    if source == .FILE_ON_DISK {
+        modtime, size, ok := file_modtime_and_size(fully_pathed_filename);
+        if modtime > creation_time || size != creation_size {
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+
 entity_primary_color :: (using entity : *Entity) -> *Vector4 {
     if #complete type == {
         case .POLYLINE_SOUP2; return *display_info.wireframe_color;
@@ -408,8 +423,31 @@ color_from_string :: (str : string) -> Vector4 {
 init_entity_base_parameters :: (entity : *Entity, name : string, primary_color : Vector4, mesh : Mesh, loc := #caller_location) {
     if !entity return;
 
+    // Make sure we set the source type before calling this function
+    if entity.source == .UNKNOWN return;
+
     entity.name = copy_string(name);
-    entity.creation_time = current_time_consensus();
+    if #complete entity.source == {
+        case .COMMAND_OUTPUT; #through;
+        case .PRESET_SHAPE;
+
+            entity.creation_time = current_time_consensus();
+            entity.creation_size = mesh.positions.count;
+
+        case .FILE_ON_DISK;
+
+            modtime, size, ok := file_modtime_and_size(entity.fully_pathed_filename);
+            if ok {
+                entity.creation_time = modtime;
+                entity.creation_size = size;
+            } else {
+                log_error("Function % failed for entity '%' when called in %. Called from %", #procedure_name(file_modtime_and_size), name, #procedure_name(), loc);
+            }
+
+        case .UNKNOWN;
+
+            log_error("Unexpected % source type for entity '%' in %. Called from %", entity.source, name, #procedure_name(), loc);
+    }
 
     if #complete mesh.geometry_format == {
         case .LINES;
@@ -435,7 +473,7 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
 
         case .UNKNOWN;
 
-            log_warning("Unexpected unknown geometry format in init_entity_base_parameters, called from %", loc);
+            log_warning("Unexpected % geometry format for item '%' in %. Called from %", mesh.geometry_format, name, #procedure_name(), loc);
     }
 }
 
@@ -775,20 +813,31 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
     return load_one_file_from_memory(filename, contents, name);
 }
 
+enable_reload_button :: (entity : Entity) -> bool {
+    if app.settings.disable_reload_if_file_unchanged {
+        return is_changed_on_disk(entity);
+    }
+    return true;
+}
+
+
 // @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
-reload_entity :: (entity : *Entity) {
+reload_entity :: (entity : *Entity) -> did_reload : bool {
     if #complete entity.source == {
         case .FILE_ON_DISK;
 
-            log("Reloading file '%'... ", entity.fully_pathed_filename);
-            new_entity := load_one_file(entity.fully_pathed_filename, .OVERWRITE);
-            if new_entity {
-                // Set generation_index before adding to overwrite the correct entity
-                new_entity.generation_index = entity.generation_index;
-                add_entity(new_entity, .OVERWRITE);
-            } else {
-                clear(entity);
+            if enable_reload_button(entity) {
+                log("Reloading file '%'... ", entity.fully_pathed_filename);
+                new_entity := load_one_file(entity.fully_pathed_filename, .OVERWRITE);
+                if new_entity {
+                    // Set generation_index before adding to overwrite the correct entity
+                    new_entity.generation_index = entity.generation_index;
+                    add_entity(new_entity, .OVERWRITE);
+                } else {
+                    clear(entity);
+                }
+                return true;
             }
 
         case .PRESET_SHAPE;
@@ -800,6 +849,7 @@ reload_entity :: (entity : *Entity) {
             // Set generation_index before adding to overwrite the correct entity
             new_entity.generation_index = entity.generation_index;
             add_entity(new_entity, .OVERWRITE);
+            return true;
 
         case .COMMAND_OUTPUT;
 
@@ -808,11 +858,15 @@ reload_entity :: (entity : *Entity) {
             // reloading command output can easily break if e.g., item indices change
             log("Re-executing console command '%'... ", entity.console_command);
             console_execute_command(entity.console_command);
+            return true;
 
         case .UNKNOWN;
 
             log("Skipped reloading item '%' as it has source type %. Only items with source type % can be reloaded (for now.. @Incomplete)", entity.fully_pathed_filename, entity.source, Entity_Source.FILE_ON_DISK);
+            return false;
     }
+
+    return false;
 }
 
 #scope_file

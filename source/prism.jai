@@ -135,6 +135,7 @@ main :: () {
     ImGui.GetStyle().FrameRounding = 2;
     ImGui.GetStyle().FrameBorderSize = 1;
     ImGui.GetStyle().ChildBorderSize = 5;
+    ImGui.GetStyle().DisabledAlpha = .5;
 
     load_from_command_line();
 

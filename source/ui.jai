@@ -98,8 +98,6 @@ show_item_list_ui :: () {
                 ImGui.TableNextColumn();
                 // ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 if it.name.count {
-                    text := entity_description(it, with_creation_time=false);
-
                     FADE_TIME_SECS :: 1.;
 
                     delta_time_s := to_float64_seconds(current_time_consensus() - it.creation_time);
@@ -115,6 +113,14 @@ show_item_list_ui :: () {
                     defer ImGui.PopStyleColor();
                     {
                         push_allocator(temp); // to free the join'd string
+
+                        text : string;
+                        desc := entity_description(it, with_creation_time=false);
+                        if is_changed_on_disk(it) {
+                            text = join(desc, tprint("*##%", it));
+                        } else {
+                            text = join(desc, tprint("##%", it));
+                        }
 
                         // @Cleanup Add these aliases to make the following code easier to understand
                         // Note that the ImGui.Selectable widget has this line to set the colors:
@@ -140,7 +146,7 @@ show_item_list_ui :: () {
                         popup_item := get_context_menu_target_item();
                         if popup_item == -1 {
                             // Use the default Selectable widget
-                            if ImGui.Selectable(to_c_string(join(text, tprint("##%", it))), *it.is_selected) {
+                            if ImGui.Selectable(to_c_string(text), *it.is_selected) {
                                 if !io().KeyCtrl it.is_selected = !it.is_selected;
                             }
                         } else { // Need to fiddle with some colors to indicate what the popup is editing
@@ -665,9 +671,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
         if !entity.is_selected {
             if entity.name.count {
-                if ImGui.Button(imgui_label("Reload", entity)) {
-                    reload_entity(entity);
-                }
+
+                enable_reload := enable_reload_button(entity);
+                if !enable_reload ImGui.BeginDisabled();
+                if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
+                if !enable_reload ImGui.EndDisabled();
+
                 ImGui.SameLine();
                 text := entity_description(entity, with_creation_time=true);
                 ImGui.TextUnformatted(text);
@@ -696,29 +705,32 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
                 defer ImGui.TreePop();
 
-                for :Selected app.entities {
-                    if it.name.count {
-                        if ImGui.Button(imgui_label("Reload", it)) {
-                            reload_entity(it);
-                        }
+                for :Selected entity : app.entities {
+                    if entity.name.count {
+
+                        enable_reload := enable_reload_button(entity);
+                        if !enable_reload ImGui.BeginDisabled();
+                        if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
+                        if !enable_reload ImGui.EndDisabled();
+
                         ImGui.SameLine();
-                        text := entity_description(it, with_creation_time=true);
+                        text := entity_description(entity, with_creation_time=true);
                         ImGui.TextUnformatted(text);
-                        entity_source_tooltip(it);
+                        entity_source_tooltip(entity);
                     }
                 }
 
                 if ImGui.Button("Reload Selection") {
-                    for :Selected app.entities {
-                        reload_entity(it);
+                    for :Selected entity : app.entities {
+                        reload_entity(entity);
                     }
                     // ImGui.CloseCurrentPopup();
                 }
 
                 ImGui.SameLine();
                 if ImGui.Button("Deselect All") {
-                    for :Selected app.entities {
-                        it.is_selected = false;
+                    for :Selected entity : app.entities {
+                        entity.is_selected = false;
                     }
                     ImGui.CloseCurrentPopup();
                 }
@@ -1514,9 +1526,9 @@ imgui_text_for_aabb :: (aabb : AxisBox3) {
 
 entity_source_tooltip :: (entity : Entity) {
     if #complete entity.source == {
-        case .FILE_ON_DISK;   Show_Tooltip(tprint("File: %", entity.fully_pathed_filename));
-        case .COMMAND_OUTPUT; Show_Tooltip(tprint("Command: %", entity.console_command));
-        case .PRESET_SHAPE;   Show_Tooltip("Preset shape");
+        case .FILE_ON_DISK;   Show_Tooltip(tprint("File:    %\nCreated: %", entity.fully_pathed_filename, filetime_to_readable_date(entity.creation_time)));
+        case .COMMAND_OUTPUT; Show_Tooltip(tprint("Command: %\nCreated: %", entity.console_command, filetime_to_readable_date(entity.creation_time)));
+        case .PRESET_SHAPE;   Show_Tooltip(tprint("Preset shape\nCreated: %", filetime_to_readable_date(entity.creation_time)));
         case .UNKNOWN;        // Do nothing
     }
 }
