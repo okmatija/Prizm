@@ -70,6 +70,17 @@ die :: (loc := #caller_location) {
     exit(1);
 }
 
+// Returns the directory in temporary storage
+get_directory :: (fully_pathed_filename : string) -> string {
+    push_allocator(temp);  // This macro in Basic makes temporary_allocator active until the scope closes.
+
+    path : Path;
+    path = parse_path(fully_pathed_filename); 
+    path.words.count -= 1;
+    directory : string = path_to_string(reduce_path(path));
+    return directory;
+}
+
 make_Vector2 :: inline (v : ImGui.ImVec2) -> Vector2 {
     result : Vector2 = ---;
     result.x = v.x;

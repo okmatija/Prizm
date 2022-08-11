@@ -95,6 +95,8 @@ App :: struct {
     closing_application := false; // Set this to true to quit the application on the next frame
     show_imgui_demo_window := false;
 
+    file_watcher : File_Watcher;
+
     Version :: struct {
         name : string;
         date : string;
@@ -110,6 +112,58 @@ App :: struct {
 
     debug_frame := false;
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
+}
+
+// @Incomplete Deduplicate file watcher directories on linux
+
+add_file_watcher_directory :: (fully_pathed_filename : string) {
+    directory : string = get_directory(fully_pathed_filename);
+
+    #if OS == .WINDOWS {
+    found := false;
+    for app.file_watcher.directories {
+        if it.name == directory {
+            found = true;
+            break;
+        }
+    }
+    if !found {
+        add_directories(*app.file_watcher, directory);
+    }
+    } else {
+        // @Incomplete
+    }
+}
+
+remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_ignore : *Entity) {
+    for app.file_watcher.directories print("dir[%] = %\n", it_index, <<it);
+
+    if entity_to_ignore.source != .FILE_ON_DISK {
+        return;
+    }
+
+    directory : string = get_directory(fully_pathed_filename);
+
+    // Check if no other entities will need to watch this directory
+    remove_directory := true;
+    for app.entities {
+        if it != entity_to_ignore && it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory {
+            remove_directory = false;
+        }
+    }
+
+    if remove_directory {
+        #if OS == .WINDOWS {
+        for app.file_watcher.directories {
+            if it.name == directory {
+                remove it;
+                break;
+            }
+        }
+        } else {
+            // @Incomplete
+        }
+    }
 }
 
 // Specfied since we use the values as an index into an array
@@ -187,6 +241,7 @@ clamp_user_settings :: ()
 #import "Basic";
 // #import "Basic"()(MEMORY_DEBUGGER=true);
 #import "File";
+#import "File_Watcher";
 #import "File_Utilities";
 #import "String";
 #import "Sort";

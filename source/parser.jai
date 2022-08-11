@@ -1,5 +1,5 @@
 Parser :: struct {
-    tokens: [..] Token; // owned
+    tokens: [..] Token; // owned @Cleanup, use a pool? or mark temporary storage
     current_token: s64;
     data: string; // borrowed
 

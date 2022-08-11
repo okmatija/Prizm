@@ -75,6 +75,8 @@ Entity :: struct {
         preset_proc : #type () -> *Entity;
     }
 
+    auto_reload : bool;
+
     name : string;
 
     // if source == .FILE_ON_DISK these are filled using file_modtime_and_size
@@ -207,6 +209,31 @@ clear :: (base : *Entity) {
     if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
     if base.render_info.ibo glDeleteBuffers(1, *base.render_info.ibo);
     base.render_info = .{};
+}
+
+
+remove_entity_by_index :: (entity_to_remove_index : int) {
+    if entity_to_remove_index >= 0 && entity_to_remove_index < app.entities.count {
+        entity_to_remove : *Entity = app.entities[entity_to_remove_index];
+        if entity_to_remove.source == .FILE_ON_DISK {
+            remove_file_watcher_directory(entity_to_remove.fully_pathed_filename, entity_to_remove);
+        }
+        deinit(entity_to_remove);
+        free(entity_to_remove);
+        array_ordered_remove_by_index(*app.entities, entity_to_remove_index);
+    }
+}
+
+// @FIXME This should be an ordered remove!
+remove_entities_if_selected :: () {
+    for app.entities if it.is_selected {
+        if it.source == .FILE_ON_DISK {
+            remove_file_watcher_directory(it.fully_pathed_filename, it);
+        }
+        deinit(it);
+        free(it);
+        remove it; // @FIXME this screws up the order of items in the list
+    }
 }
 
 deinit :: (base : *Entity) {
@@ -779,7 +806,7 @@ num_selected_entities :: () -> int {
 load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
     name := get_entity_name_from_fully_pathed_filename(filename);
 
-    // Check if we can early exit and avoid save reading the file from disk
+    // Check if we can early exit and avoid reading the file from disk
     {
         found, found_index := find_entity(name, -1);
         if found && matching_name_behaviour == .IGNORE {
@@ -787,6 +814,9 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
             return null;
         }
     }
+
+    // Update the list of watched directories so that we can reload this entity
+    add_file_watcher_directory(filename);
 
     contents := read_entire_file(filename);
     defer free(contents);

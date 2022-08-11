@@ -262,9 +262,7 @@ show_item_list_ui :: () {
             }
 
             if entity_to_remove >= 0 && entity_to_remove < entities.count {
-                deinit(entities[entity_to_remove]);
-                free(entities[entity_to_remove]);
-                array_ordered_remove_by_index(*entities, entity_to_remove);
+                remove_entity_by_index(entity_to_remove);
             }
         }
     }
@@ -678,6 +676,10 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 if !enable_reload ImGui.EndDisabled();
 
                 ImGui.SameLine();
+                ImGui.Checkbox(imgui_label("", entity), *entity.auto_reload);
+                Show_Tooltip("Auto-reload if file changes on disk");
+
+                ImGui.SameLine();
                 text := entity_description(entity, with_creation_time=true);
                 ImGui.TextUnformatted(text);
                 entity_source_tooltip(entity);
@@ -712,6 +714,10 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                         if !enable_reload ImGui.BeginDisabled();
                         if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
                         if !enable_reload ImGui.EndDisabled();
+
+                        ImGui.SameLine();
+                        ImGui.Checkbox(imgui_label("", entity), *entity.auto_reload);
+                        Show_Tooltip("Auto-reload if file changes on disk");
 
                         ImGui.SameLine();
                         text := entity_description(entity, with_creation_time=true);

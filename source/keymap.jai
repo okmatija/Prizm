@@ -459,7 +459,7 @@ init_keymap :: () {
     add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, toggle_current_selection_if_visible, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
-    add_key(*app.keymap, remove_selection, "Remove selected items", xx Special_Key_Code.DELETE);
+    add_key(*app.keymap, remove_entities_if_selected, "Remove selected items", xx Special_Key_Code.DELETE);
     add_key(*app.keymap, add_preset_cube, "Add preset shape - cube", xx Special_Key_Code.F1);
     add_key(*app.keymap, add_preset_widget, "Add preset shape - widget", xx Special_Key_Code.F2);
     add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
@@ -830,14 +830,6 @@ toggle_fullscreen :: () {
     app.fullscreen = !app.fullscreen;
     flags : u32 = ifx app.fullscreen then cast(u32) 0 else xx SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP;
     ok := SDL_SetWindowFullscreen(app.window, flags); // @Robustness handle error
-}
-
-remove_selection :: () {
-    for app.entities if it.is_selected {
-        deinit(it);
-        free(it);
-        remove it;
-    }
 }
 
 select_or_deselect_all :: () {

@@ -104,6 +104,24 @@ main :: () {
     init_keymap();
     init_known_issues();
 
+    file_change_callback :: (watcher: *File_Watcher, change: *File_Change) {
+        for app.entities {
+            if it.source == .FILE_ON_DISK && it.auto_reload && it.fully_pathed_filename == change.full_path {
+                reload_entity(it);
+            }
+        }
+        // print("Change for path %: %", change.full_path, change.events);
+    }
+
+    // Setup file watcher
+    file_events_to_watch : File_Change_Event;
+    file_events_to_watch |= File_Change_Event.ADDED | .MODIFIED;
+    if !init(*app.file_watcher, file_change_callback, file_events_to_watch, merge_window_seconds = .1, watch_recursively = false, verbose = false) {
+        log_error("Could not init file watcher"); // @Cleanup Should just disable this feature in this case..
+        exit(1);
+    }
+    defer deinit(app.file_watcher);
+
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
     ImGui_Impl_CreateContext();
@@ -142,6 +160,8 @@ main :: () {
     // Main loop
     while !app.closing_application {
         handle_events();
+
+        changed, needs_wait, wait_seconds := process_changes(*app.file_watcher);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
