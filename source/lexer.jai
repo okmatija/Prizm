@@ -1,10 +1,9 @@
-// @Incomplete support NaN, inf, -inf
 // @Incomplete support floats in hex 0h7fbf_ffff
 // @Incomplete return errors when we have 123542abdc ie number with letters in it
 // @Incomplete support binary 0b10101001
 
-ISSUE_001 :: "The lexer does not support files containing 'inf'"; @KnownIssue
-ISSUE_002 :: "The lexer does not gracefully handle files containing 'nan'"; @KnownIssue
+// ISSUE_001 :: "The lexer does not support files containing 'inf'"; @KnownIssue
+// ISSUE_002 :: "The lexer does not gracefully handle files containing 'nan'"; @KnownIssue
 
 Token :: struct {
 
@@ -37,6 +36,7 @@ Token :: struct {
     // Note:
     // - The decimal format is the same as https://en.cppreference.com/w/cpp/string/basic_string/stof but note that
     // - The hexadecimal prefix is used for integers only, unlike https://en.cppreference.com/w/cpp/string/basic_string/stof
+    // - String values like +/-inf and nan are not encoded here, these must be deduced by the parser so that in a non-floating point context these could be identifiers
     float_value: float64;
 
     string_value: string;
@@ -370,6 +370,8 @@ get_token :: (lex: *Lexer) -> success: bool, tok: Token {
     if starts_number(lex.data) {
 
         if starts_float(lex.data) {
+
+            // Note special values like nan/inf/-inf/+inf are handled in the parser and deduced from a sign and identifier token
 
             // decimal float
             tok := make_token(lex, .FLOAT);

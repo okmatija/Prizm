@@ -42,6 +42,13 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
   - Changed reload item button so its disabled if the file mod time and file size are unchanged from when the file was first loaded. The old behaviour where reloads can be triggered with no constraints by unchecking the 'Disable reload if file unchange' box in under Settings. Press h for help
   - Added an asterisk to the end of item names for items read from disk if the file has been modified or has changed size since it was loaded
   - Added a checkbox to enable auto-reloading when the file of an item read from disk is modified
+- Changed the behaviour of .obj loading so it logs warnings and tries to display broken geometry rather failing to load the shape
+  - Missing normals (occuring when a face uses an index which exceeds the number of normals in the file) are set to zero
+  - Missing vertices (occuring when a face uses an index which exceeds the number of vertices in the file) are positioned at an "Invalid Point" position
+  - Vertices with invalid components (inf/nan) have those components set to the corresponding component of "Invalid Point"
+  - Normals/tangents with invalid components (inf/nan) have those components set to zero
+  - Invalid faces are ignored in some cases, in other cases we still fail to parse and don't load the shape
+  - Note: The "Invalid Point" defaults to (0,0,0) but is customizable under 'Options' in the main panel
 - Updated to compiler version beta 0.1.033
 DONE
 };

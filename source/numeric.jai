@@ -103,3 +103,44 @@ operator == :: (a : $T/Tuple2, b : T) -> bool {
 operator == :: (a : $T/Tuple3, b : T) -> bool {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
+
+ensure_finite :: (input : Vector3, fallback : Vector3 = .{0,0,0}) -> Vector3, bool {
+    using result : Vector3 = input;
+
+    finite := true;
+
+    if !is_finite(x) {
+        x = fallback.x;
+        finite = false;
+    }
+
+    if !is_finite(y) {
+        y = fallback.y;
+        finite = false;
+    }
+
+    if !is_finite(z) {
+        z = fallback.z;
+        finite = false;
+    }
+
+    return result, finite;
+}
+
+ensure_finite :: (input : Vector2, fallback : Vector2 = .{0,0}) -> Vector2, bool {
+    using result : Vector2 = input;
+
+    finite := true;
+
+    if !is_finite(x) {
+        x = fallback.x;
+        finite = false;
+    }
+
+    if !is_finite(y) {
+        y = fallback.y;
+        finite = false;
+    }
+
+    return result, finite;
+}

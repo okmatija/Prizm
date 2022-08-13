@@ -97,6 +97,11 @@ App :: struct {
 
     file_watcher : File_Watcher;
 
+    // Vertices with inf/nan components are replaced with the corresponding coordinate of invalid_point
+    // Indices that reference missing vertices will reference a new point positioned at invalid_point
+    // The user can change this coordinate if the default zero value is inconvenient, reloading the file will show the new result
+    invalid_point : Vector3 = .{0, 0, 0};
+
     Version :: struct {
         name : string;
         date : string;
@@ -136,8 +141,6 @@ add_file_watcher_directory :: (fully_pathed_filename : string) {
 }
 
 remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_ignore : *Entity) {
-    for app.file_watcher.directories print("dir[%] = %\n", it_index, <<it);
-
     if entity_to_ignore.source != .FILE_ON_DISK {
         return;
     }
@@ -213,7 +216,7 @@ User_Settings :: struct {
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
 
     show_header_annotation_tooltips := true;
-    disable_reload_if_file_unchanged := true;
+    disable_reload_if_file_unchanged := true; // This can be annoying but otoh saves pointlessly loading unchanged files
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {

@@ -75,7 +75,7 @@ Entity :: struct {
         preset_proc : #type () -> *Entity;
     }
 
-    auto_reload : bool;
+    auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
 
     name : string;
 
@@ -324,6 +324,7 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
                 // entity.generation_index =   found.generation_index; // Already matches
                 entity.display_info =          found.display_info;
                 entity.is_selected =           found.is_selected;
+                entity.auto_reload =           found.auto_reload;
 
                 deinit(found);
 
@@ -824,7 +825,7 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
     return load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
 }
 
-// nocommit rename to load_from_memory, and rename the filename argument..? or add another name parameter (or just set that after HMMMM)
+// @Cleanup rename to load_from_memory, and rename the filename argument..? or add another name parameter (or just set that after HMMMM)
 load_one_file_from_memory :: (filename : string, contents : string, name : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
     if !contents {
         log_warning("Skipped file: '%' (empty or missing)\n", filename);
@@ -883,7 +884,6 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
 
         case .COMMAND_OUTPUT;
 
-            // nocommit Maybe remove this comment
             // Note: This is only intended to support simple use cases,
             // reloading command output can easily break if e.g., item indices change
             log("Re-executing console command '%'... ", entity.console_command);

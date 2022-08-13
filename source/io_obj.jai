@@ -35,6 +35,8 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         }
     }
 
+    found_inf_or_nan : bool;
+
     ok : bool = true;
 
     while peek_token(*parser).type != .EOF && !parser.failed {
@@ -45,7 +47,10 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
             point2 : Vector2 = ---;
             point3 : Vector3 = ---;
-            dim := obj_parse_point(*parser, *point2, *point3);
+            dim, finite := obj_parse_point(*parser, *point2, *point3);
+            if !finite {
+                found_inf_or_nan = true;
+            }
 
             if dim == 2 {
                 array_add(*mesh.positions, make_vector3(point2, 0));
@@ -71,7 +76,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
         } else if eat_possible_identifier(*parser, "vn") {
 
-            normal := parse_vector3(*parser);
+            normal, finite := ensure_finite(parse_vector3(*parser));
+            if !finite {
+                found_inf_or_nan = true;
+            }
+
             array_add(*mesh.normals, normal);
 
             tok := peek_token(*parser);
@@ -82,7 +91,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
         } else if eat_possible_identifier(*parser, "vt") {
 
-            uv := parse_vector2(*parser);
+            uv, finite := ensure_finite(parse_vector2(*parser));
+            if !finite {
+                // @Incomplete
+                //found_inf_or_nan = true;
+            }
             // @Incomplete
             // array_add(*mesh.uvs0, uv);
 
@@ -137,36 +150,37 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         } else if eat_possible_identifier(*parser, "f") {
 
             face := parse_face(*parser);
-            if face.index_count != 3 && face.index_count != 4 {
-                error(*parser, peek_token(*parser), "Invalid number of vertex references for 'f' directive, got %, wanted 3 or 4.\n", face.index_count);
-            }
-
-            // @Incomplete Do something with the texture and normal indices
-            array_add(*mesh.indices, face.indices[0]);
-            array_add(*mesh.indices, face.indices[1]);
-            array_add(*mesh.indices, face.indices[2]);
-            if face.index_count == 4 {
+            if face.index_count == 3 || face.index_count == 4 {
+                // @Incomplete Do something with the texture and normal indices
                 array_add(*mesh.indices, face.indices[0]);
+                array_add(*mesh.indices, face.indices[1]);
                 array_add(*mesh.indices, face.indices[2]);
-                array_add(*mesh.indices, face.indices[3]);
-            }
+                if face.index_count == 4 {
+                    array_add(*mesh.indices, face.indices[0]);
+                    array_add(*mesh.indices, face.indices[2]);
+                    array_add(*mesh.indices, face.indices[3]);
+                }
 
-            if mesh.geometry_format == .UNKNOWN {
-                mesh.geometry_format = .TRIANGLES;
-            } else if mesh.geometry_format != .TRIANGLES {
-                error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.TRIANGLES, mesh.geometry_format);
-            }
+                if mesh.geometry_format == .UNKNOWN {
+                    mesh.geometry_format = .TRIANGLES;
+                } else if mesh.geometry_format != .TRIANGLES {
+                    error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.TRIANGLES, mesh.geometry_format);
+                }
 
-            tok := peek_token(*parser);
-            if tok.type == .COMMENT && tok.line_number == current_line {
-                annotation : Annotation;
+                tok := peek_token(*parser);
+                if tok.type == .COMMENT && tok.line_number == current_line {
+                    annotation : Annotation;
 
-                annotation.kind = .TRIANGLE;
-                annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
-                annotation.id = mesh.indices.count / 3 - 1;
-                array_add(*annotations, annotation);
+                    annotation.kind = .TRIANGLE;
+                    annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                    annotation.id = mesh.indices.count / 3 - 1;
+                    array_add(*annotations, annotation);
 
-                eat_token(*parser);
+                    eat_token(*parser);
+                }
+            } else {
+                log_warning("Ignoring invalid face on line %\n", current_line);
+                // Do not error here! 
             }
 
         } else if eat_possible_identifier(*parser, "g") ||
@@ -212,15 +226,32 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         }
     }
 
+    if found_inf_or_nan {
+        log_warning("Detected inf/nan floats in file. In positions these set to the corresponding component of the \"Invalid Point\", elsewhere these are set to zero");
+    }
+
     // Check obj indices
     max_index : s64 = -1;
-    for mesh.indices max_index = max(max_index, it);
+    out_of_range_count : u64 = 0;
+    for mesh.indices {
+        if it > max_index {
+            max_index = it;
+        }
+        if it >= mesh.positions.count {
+            out_of_range_count += 1;
+        }
+    }
+
     if max_index >= mesh.positions.count {
-        log_error("Detected out-of-range .obj index, found 1-based index %, but loaded mesh has % points", max_index + 1, mesh.positions.count);
-        parser.failed = true;
+        log_warning("Detected % missing points in the mesh file '%'. These will be positioned at %", out_of_range_count, filename, app.invalid_point);
+        for * mesh.indices if <<it >= mesh.positions.count {
+            <<it = xx mesh.positions.count; // Point to the missing/invalid point location
+        }
+        array_add(*mesh.positions, app.invalid_point);
+        // parser.failed = true; // Do not fail here! better to show a weird looking file!
     } else if mesh.normals.count != 0 && max_index >= mesh.normals.count {
-        log_error("Detected out-of-range .obj index, found 1-based index %, but loaded mesh has % normals", max_index + 1, mesh.normals.count);
-        parser.failed = true;
+        log_warning("Detected % missing normals in the mesh file '%'. These will be set to zero.", max_index + 1 - mesh.normals.count, filename);
+        // parser.failed = true; // Do not fail here! better to show a weird looking file!
     }
 
     // Check inferred geometry format
@@ -376,7 +407,7 @@ save_obj :: (filename : string, mesh : Mesh) -> bool
             }
         }
     } else {
-        print("@Incomplete save_obj only supports TRIANGLE geometry format, got %\n", mesh.geometry_format);
+        log_warning("@Incomplete save_obj only supports TRIANGLE geometry format, got %\n", mesh.geometry_format);
         return false;
     }
 
@@ -388,32 +419,31 @@ save_obj :: (filename : string, mesh : Mesh) -> bool
 
 BYTES_TO_TRIM :: "# \t\r\n";
 
-obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int {
+obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, bool {
     is_number :: (t : Token) -> bool {
-        return t.type == .INTEGER || t.type == .FLOAT;
+        // Identifier for nan and inf, parse_vectorN functions will error if the identifier is unrecognised
+        return t.type == .INTEGER || t.type == .FLOAT || t.type == .IDENTIFIER;
     }
 
     // Look ahead to figure out if we have a 2D or 3D point
     dim := 0;
-    cursor := 0;
-    if peek_ahead(p, cursor).type == xx #char "-" { cursor += 1; }
-    dim += xx is_number(peek_ahead(p, cursor));
-    cursor += 1;
-    if peek_ahead(p, cursor).type == xx #char "-" { cursor += 1; }
-    dim += xx is_number(peek_ahead(p, cursor));
-    cursor += 1;
-    if peek_ahead(p, cursor).type == xx #char "-" { cursor += 1; }
-    dim += xx is_number(peek_ahead(p, cursor));
+    dim += xx is_number(peek_ahead(p, 0));
+    dim += xx is_number(peek_ahead(p, 1));
+    dim += xx is_number(peek_ahead(p, 2));
+
+    finite := true;
 
     if dim == 1 {
         error(p, peek_token(p), "Expected 2D or 3D point, but only got one component %.\n", to_string(peek_token(p)));
     } else if dim == 2 {
-        <<point2 = parse_vector2(p);
+        fallback : Vector2 = make_vector2(app.invalid_point.x, app.invalid_point.y);
+        <<point2, finite = ensure_finite(parse_vector2(p), fallback);
     } else if dim == 3 {
-        <<point3 = parse_vector3(p);
+        fallback : Vector3 = app.invalid_point;
+        <<point3, finite = ensure_finite(parse_vector3(p), fallback);
     }
 
-    return dim;
+    return dim, finite;
 }
 
 obj_parse_index :: (p : *Parser) -> u32 {

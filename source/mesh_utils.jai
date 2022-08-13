@@ -123,7 +123,9 @@ to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #
 
 to_Mesh :: (shape : Polygon_Soup) -> Mesh {
     // @Incomplete
-    return .{};
+    using result : Mesh;
+    geometry_format = .TRIANGLES;
+    return result;
 }
 
 

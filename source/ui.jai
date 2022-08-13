@@ -289,7 +289,8 @@ show_options :: () {
                 SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
             }
         }
-
+        ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
+        Show_Tooltip("Used to handle invalid .obj files. Missing points\nwill be given this position. Invalid (inf/nan)\ncomponents get the corresponding component value");
     }
 }
 

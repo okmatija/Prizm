@@ -41,8 +41,7 @@ warning :: (p: *Parser, token : Token, format: string, args: .. Any, flags := Lo
 
 eat_token :: next_token;
 next_token :: (using p: *Parser) -> Token {
-    if current_token >= tokens.count return tokens[tokens.count-1];
-    tok := tokens[current_token];
+    tok := peek_token(p);
     current_token += 1;
     return tok;
 }
@@ -106,17 +105,73 @@ expect_and_eat :: (p: *Parser, type: Token.Type, loc := #caller_location) {
 }
 
 parse_float :: (p: *Parser) -> float {
-    tok := peek_token(p);
+    tok : Token = peek_token(p);
+
     value: float;
-    if tok.type == Token.Type.INTEGER {
+    if tok.type == .INTEGER {
+
         value = cast(float) tok.integer_value;
-        expect_and_eat(p, Token.Type.INTEGER);
-    } else {
-        expect(p, Token.Type.FLOAT);
-        tok := next_token(p);
+        expect_and_eat(p, .INTEGER);
+
+    } else if tok.type == .FLOAT {
+
+        tok = eat_token(p);
         value = cast(float) tok.float_value;
-    }
-    return xx value;
+
+    } else if tok.type == .IDENTIFIER {
+
+        tok = eat_token(p);
+        if equal_nocase(tok.string_value, "inf") {
+            value = cast(float)FLOAT64_INFINITY;
+        } else if equal_nocase(tok.string_value, "nan") {
+            value = cast(float)FLOAT64_NAN;
+        } else {
+            error(p, "Parse error at %:%:%. Could not parse float from token %.\n",
+                  tok.location.fully_pathed_filename,
+                  tok.location.line_number,
+                  tok.location.character_number,
+                  to_string(tok));
+        }
+
+    } else if tok.type == xx #char "+" {
+
+        tok = eat_token(p); // Eat the sign
+        tok = eat_token(p); // Each the identifier
+        if tok.type == .IDENTIFIER && equal_nocase(tok.string_value, "inf") {
+            value = cast(float)FLOAT64_INFINITY;
+        } else {
+            error(p, "Parse error at %:%:%. Could not parse float from token %.\n",
+                  tok.location.fully_pathed_filename,
+                  tok.location.line_number,
+                  tok.location.character_number,
+                  to_string(tok));
+        }
+
+    } else if tok.type == xx #char "-" {
+
+        tok = eat_token(p); // Eat the sign
+        tok = eat_token(p); // Each the identifier
+        if tok.type == .IDENTIFIER && equal_nocase(tok.string_value, "inf") {
+            value = -cast(float)FLOAT64_INFINITY;
+        } else {
+            error(p, "Parse error at %:%:%. Could not parse float from token %.\n",
+                  tok.location.fully_pathed_filename,
+                  tok.location.line_number,
+                  tok.location.character_number,
+                  to_string(tok));
+        }
+
+   } else {
+
+        error(p, "Parse error at %:%:%. Could not parse float from token %.\n",
+              tok.location.fully_pathed_filename,
+              tok.location.line_number,
+              tok.location.character_number,
+              to_string(tok));
+
+   }
+
+   return xx value;
 }
 
 parse_integer :: (p: *Parser) -> s64 {
@@ -125,10 +180,17 @@ parse_integer :: (p: *Parser) -> s64 {
     return tok.integer_value;
 }
 
+// @Incomplete Report when the fallback was used so we can tell the user about nans/infs
+
 parse_vector3 :: (p: *Parser) -> Vector3 {
-    return make_vector3(parse_float(p), parse_float(p), parse_float(p));
+    x := parse_float(p);
+    y := parse_float(p);
+    z := parse_float(p);
+    return make_vector3(x, y, z);
 }
 
 parse_vector2 :: (p: *Parser) -> Vector2 {
-    return make_vector2(parse_float(p), parse_float(p));
+    x := parse_float(p);
+    y := parse_float(p);
+    return make_vector2(x, y);
 }
