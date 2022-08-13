@@ -281,6 +281,7 @@ show_options :: () {
         if app.background_style == .SOLID_COLOR {
             ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
         }
+        ImGui.Checkbox("Disable reload when file unchanged", *app.settings.disable_reload_if_file_unchanged);
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
         ImGui.Checkbox("Show ImGui Demo", *app.show_imgui_demo_window);
@@ -727,20 +728,36 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     }
                 }
 
-                if ImGui.Button("Reload Selection") {
+                if ImGui.Button("Reload Selection  ") {
                     for :Selected entity : app.entities {
                         reload_entity(entity);
                     }
                     // ImGui.CloseCurrentPopup();
                 }
 
-                ImGui.SameLine();
-                if ImGui.Button("Deselect All") {
-                    for :Selected entity : app.entities {
-                        entity.is_selected = false;
+                if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
+                    // Find the state to toggle
+                    state := false;
+                    for :Selected app.entities {
+                        state = !it.auto_reload;
+                        break;
                     }
-                    ImGui.CloseCurrentPopup();
+
+                    for :Selected app.entities {
+                        it.auto_reload = state;
+                    }
                 }
+                Show_Tooltip("Toggle auto-reload state on selected items");
+
+
+                // This isn't actually very useful, user should use the Ctrl-a binding instead
+                //ImGui.SameLine();
+                //if ImGui.Button("Deselect All") {
+                //    for :Selected entity : app.entities {
+                //        entity.is_selected = false;
+                //    }
+                //    ImGui.CloseCurrentPopup();
+                //}
             }
 
             // Add a separator to be consistent with the menu layout when there is one item and no selection
