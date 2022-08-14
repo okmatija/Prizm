@@ -1,8 +1,7 @@
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
-show_item_list_ui :: () {
-    using app;
+show_main_panel :: () {
 
     // Set window border color to match the selection/RMB target item color
     original_border_color, original_border_size := ScopedWindowBorderTheme(ITEM_LIST_BORDER_COLOR, ITEM_LIST_BORDER_SIZE);
@@ -18,10 +17,20 @@ show_item_list_ui :: () {
 
     // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
 
+    show_item_list_ui();
+
+    show_selection_ui();
+
+    show_item_list_actions_ui();
+
+    show_options();
+}
+
+show_item_list_ui :: () {
     if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
         defer ImGui.TreePop();
 
-        // if entities.count == 0 {
+        // if app.entities.count == 0 {
         //     ImGui.Text("(none)");
         //     Show_Tooltip("Drag and drop files or pass them\nas command-line arguments");
         // }
@@ -35,7 +44,7 @@ show_item_list_ui :: () {
             defer ImGui.EndTable();
 
             entity_to_remove := -1;
-            for entities {
+            for app.entities {
                 ImGui.TableNextRow();
 
                 // Remove button
@@ -261,18 +270,13 @@ show_item_list_ui :: () {
                 fit_scene_on_screen();
             }
 
-            if entity_to_remove >= 0 && entity_to_remove < entities.count {
+            if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
                 remove_entity_by_index(entity_to_remove);
             }
         }
     }
-
-    show_selection_ui();
-
-    show_item_list_actions_ui();
-
-    show_options();
 }
+
 
 show_options :: () {
     if ImGui.TreeNodeEx("Options", ImGui.TreeNodeFlags.SpanAvailWidth) {
