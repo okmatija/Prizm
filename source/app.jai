@@ -129,34 +129,38 @@ App :: struct {
 
 // @Incomplete Deduplicate file watcher directories on linux
 
-add_directory :: (directory_path : string) {
+add_directory :: (directory_path : string) -> *app.Directory {
+    result : *app.Directory;
+
     got_directory, got_directory_valid := is_directory(directory_path);
     if !got_directory_valid || !got_directory {
         log_warning("Expected a directory, but got something else ('%')", directory_path);
-        return;
+        return result;
     }
     directory : app.Directory;
     directory.path = copy_string(directory_path);
 
 #if OS == .WINDOWS {
-    found := false;
-    for app.directories {
+    for * app.directories {
         if it.path == directory.path {
-            found = true;
+            result = it;
             break;
         }
     }
-    if !found {
+    if !result {
         array_add(*app.directories, directory);
 
         // Update the list of watched directories so that we can reload this entity
         add_directories(*app.file_watcher, directory.path);
 
         assert(app.directories.count == app.file_watcher.directories.count);
+
+        result = *app.directories[app.directories.count - 1];
     }
 } else {
     // @Incomplete
 }
+    return result;
 }
 
 remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_ignore : *Entity) {
@@ -175,6 +179,13 @@ remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_igno
     }
 
     if remove_directory {
+        for app.directories {
+            if it.path == directory {
+                remove it;
+                break;
+            }
+        }
+
         #if OS == .WINDOWS {
         for app.file_watcher.directories {
             if it.name == directory {
