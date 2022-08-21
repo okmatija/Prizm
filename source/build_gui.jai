@@ -96,15 +96,15 @@ build_gui :: (
                 // debugger
 
                 Combo_Box :: (code : Code) -> bool #expand {
-                    return combo_box(get_ident_name(code), *#insert_internal code, type_info(type_of(#insert_internal code)));
+                    return combo_box(get_ident_name(code), *#insert,scope() code, type_info(type_of(#insert,scope() code)));
                 }
 
                 Check_Box :: (code : Code) -> bool #expand {
-                    return ImGui.Checkbox(temp_c_string(get_ident_name(code)), *#insert_internal code);
+                    return ImGui.Checkbox(temp_c_string(get_ident_name(code)), *#insert,scope() code);
                 }
 
                 Input_Int :: (code : Code) -> bool #expand {
-                    return ImGui.InputInt(temp_c_string(get_ident_name(code)), *#insert_internal code);
+                    return ImGui.InputInt(temp_c_string(get_ident_name(code)), *#insert,scope() code);
                 }
 
                 //output_type : enum;

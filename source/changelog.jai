@@ -49,7 +49,7 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
   - Normals/tangents with invalid components (inf/nan) have those components set to zero
   - Invalid faces are ignored in some cases, in other cases we still fail to parse and don't load the shape
   - Note: The "Invalid Point" defaults to (0,0,0) but is customizable under 'Options' in the main panel
-- Updated to compiler version beta 0.1.033
+- Updated to compiler version beta 0.1.036
 DONE
 };
 
