@@ -157,6 +157,18 @@ main :: () {
 
     load_from_command_line();
 
+    // nocommit
+    for app.entities {
+        n := it.fully_pathed_filename;
+        dir := canonically_formatted_path_string(get_absolute_path(tprint("%/..", n)));
+        isdir := is_directory(dir);
+        path := parse_path(n);
+        printv(n);
+        printv(dir);
+        printv(isdir);
+        printv(path);
+    }
+
     // Main loop
     while !app.closing_application {
         handle_events();
@@ -312,14 +324,22 @@ handle_events :: () {
                 }
             }
             case SDL_DROPFILE; {
+
                 // @Leak event.drop.file should be free'd using SDL_free
                 dropped := canonically_formatted_path_string(to_string(event.drop.file));
 
-                entity := load_one_file(dropped, app.settings.duplicate_file_behaviour);
-                add_entity(entity, app.settings.duplicate_file_behaviour); 
-
-                if app.settings.fit_to_screen_on_file_drop_event {
-                    fit_scene_on_screen();
+                got_directory, got_directory_valid := is_directory(dropped);
+                if !got_directory_valid {
+                    log_warning("Expected a filename or directory, got '%'", dropped);
+                } else if got_directory {
+                    print("DIRECTORY = %, %, %\n", event.drop, dropped, is_directory(dropped)); // nocommit
+                    add_directory(dropped);
+                } else {
+                    entity := load_one_file(dropped, app.settings.duplicate_file_behaviour);
+                    add_entity(entity, app.settings.duplicate_file_behaviour); 
+                    if app.settings.fit_to_screen_on_file_drop_event {
+                        fit_scene_on_screen();
+                    }
                 }
             }
         }

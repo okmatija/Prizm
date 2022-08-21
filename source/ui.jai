@@ -35,27 +35,33 @@ show_item_list_ui :: () {
         //     Show_Tooltip("Drag and drop files or pass them\nas command-line arguments");
         // }
 
-        any_visibility_changed := false;
+        // nocommit
+        for app.directories {
+            printv(it);
+            display_path : string = it.path; // nocommit Make this C:/.../folder etc
+            if ImGui.TreeNodeEx(imgui_label(display_path, *it), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+                defer ImGui.TreePop();
+            }
+        }
 
         {
-            show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
+            Item_Entry_Update :: struct {
+                visibility_changed := false;
+                entity_to_remove := -1;
+            }
 
-            ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
-            defer ImGui.EndTable();
-
-            entity_to_remove := -1;
-            for app.entities {
-                ImGui.TableNextRow();
+            show_item_entry :: (it : *Entity, it_index : int, show_entity_index : bool) -> Item_Entry_Update {
+                result : Item_Entry_Update;
 
                 // Remove button
                 ImGui.TableNextColumn();
                 if ImGui.Button(imgui_label("Remove", it)) {
-                    entity_to_remove = it_index;
+                    result.entity_to_remove = it_index;
                 }
 
                 // Color selection
+                ImGui.TableNextColumn();
                 {
-                    ImGui.TableNextColumn();
                     if it.display_info.display_mode == .NORMALS {
                         ImGui.TextDisabled("NR.");
                     } else {
@@ -74,11 +80,11 @@ show_item_list_ui :: () {
                 }
 
                 // Toggle visibility checkbox
+                ImGui.TableNextColumn();
                 {
-                    ImGui.TableNextColumn();
                     was_visible := it.display_info.is_visible;
                     visibility_changed := checkbox_press_or_sweep_to_toggle(*it.display_info.is_visible, imgui_label("##Visible", it), *app.sweep_state, app.window);
-                    any_visibility_changed = any_visibility_changed || visibility_changed;
+                    result.visibility_changed = visibility_changed;
                     Show_Tooltip("Visible");
 
                     if !was_visible && it.display_info.is_visible {
@@ -236,44 +242,62 @@ show_item_list_ui :: () {
                 it.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
 
                 show_item_context_menu(it, it_index);
+
+                return result;
             }
 
-            ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            ImGui.Button("Add   ");
-            Show_Tooltip("Click for preset shapes, or\nDrag and Drop files, or\nRestart with file arguments");
+            entity_to_remove := -1;
+            any_visibility_changed : bool;
 
-            current_pos := ImGui.GetWindowPos();
-            current_size := ImGui.GetWindowSize();
-            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
-            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-            
-            // Set popup border color to match the selection/RMB target item color
-            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-            if ImGui.BeginPopupContextItem("##Presets", popup_flags=.MouseButtonLeft) {
-                defer ImGui.EndPopup();
-
-                // Undo the previous thing so internals don't have this color
-                ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-                ImGui.Text("Preset shapes");
-                ImGui.Separator();
-
-                if ImGui.Button("Cube   ") { add_preset_cube(); ImGui.CloseCurrentPopup(); }
-                ImGui.SameLine();
-                if ImGui.Button("Widget ") { add_preset_widget(); ImGui.CloseCurrentPopup(); }
-            }
-
-
-            if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
-                fit_scene_on_screen();
+            {
+                show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
+                ImGui.BeginTable("Item List Table", xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
+                for app.entities {
+                    update := show_item_entry(it, it_index, show_entity_index);
+                    if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
+                    if update.visibility_changed    any_visibility_changed = true;
+                }
+                ImGui.EndTable();
             }
 
             if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
                 remove_entity_by_index(entity_to_remove);
             }
+
+            if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
+                fit_scene_on_screen();
+            }
+
+            show_add_item_ui();
         }
+    }
+}
+
+
+show_add_item_ui :: () {
+    ImGui.Button("Add   ");
+    Show_Tooltip("Click for preset shapes, or\nDrag and Drop files, or\nRestart with file arguments");
+
+    current_pos := ImGui.GetWindowPos();
+    current_size := ImGui.GetWindowSize();
+    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+    ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+
+    // Set popup border color to match the selection/RMB target item color
+    original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
+    if ImGui.BeginPopupContextItem("##Presets", popup_flags=.MouseButtonLeft) {
+        defer ImGui.EndPopup();
+
+        // Undo the previous thing so internals don't have this color
+        ScopedPopupBorderTheme(original_border_color, original_border_size);
+
+        ImGui.Text("Preset shapes");
+        ImGui.Separator();
+
+        if ImGui.Button("Cube   ") { add_preset_cube(); ImGui.CloseCurrentPopup(); }
+        ImGui.SameLine();
+        if ImGui.Button("Widget ") { add_preset_widget(); ImGui.CloseCurrentPopup(); }
     }
 }
 
