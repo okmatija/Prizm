@@ -805,6 +805,12 @@ num_selected_entities :: () -> int {
 }
 
 load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
+    check, check_ok := is_directory(filename);
+    if check || !check_ok {
+        log_warning("Expected a fully pathed filename, got '%'\n", filename);
+        return null;
+    }
+
     name := get_entity_name_from_fully_pathed_filename(filename);
 
     // Check if we can early exit and avoid reading the file from disk
@@ -816,13 +822,15 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
         }
     }
 
-    // Update the list of watched directories so that we can reload this entity
-    add_file_watcher_directory(filename);
+    add_directory(get_directory(filename));
 
     contents := read_entire_file(filename);
     defer free(contents);
 
-    return load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
+    result : *Entity = load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
+    // nocommit check the directory has been set correctly here?
+
+    return result;
 }
 
 // @Cleanup rename to load_from_memory, and rename the filename argument..? or add another name parameter (or just set that after HMMMM)

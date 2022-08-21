@@ -6,6 +6,16 @@ App :: struct {
     window : *SDL_Window = null;
     simp_font: *Simp.Dynamic_Font;
 
+    Directory :: struct {
+        path : string;
+        auto_reload : bool = false;   // Whether to automatically load/reload files in the folder when they are created/modified
+        // nested :      [..]*Directory; // Pointers into app.directories
+    }
+
+    // When we source and entity from a file we update the directories in these members
+    directories : [..]Directory;
+    file_watcher : File_Watcher;
+
     INITIAL_WINDOW_WIDTH  : s32 : 1440;
     INITIAL_WINDOW_HEIGHT : s32 : 900;
 
@@ -95,8 +105,6 @@ App :: struct {
     closing_application := false; // Set this to true to quit the application on the next frame
     show_imgui_demo_window := false;
 
-    file_watcher : File_Watcher;
-
     // Vertices with inf/nan components are replaced with the corresponding coordinate of invalid_point
     // Indices that reference missing vertices will reference a new point positioned at invalid_point
     // The user can change this coordinate if the default zero value is inconvenient, reloading the file will show the new result
@@ -121,23 +129,34 @@ App :: struct {
 
 // @Incomplete Deduplicate file watcher directories on linux
 
-add_file_watcher_directory :: (fully_pathed_filename : string) {
-    directory : string = get_directory(fully_pathed_filename);
+add_directory :: (directory_path : string) {
+    got_directory, got_directory_valid := is_directory(directory_path);
+    if !got_directory_valid || !got_directory {
+        log_warning("Expected a directory, but got something else ('%')", directory_path);
+        return;
+    }
+    directory : app.Directory;
+    directory.path = copy_string(directory_path);
 
-    #if OS == .WINDOWS {
+#if OS == .WINDOWS {
     found := false;
-    for app.file_watcher.directories {
-        if it.name == directory {
+    for app.directories {
+        if it.path == directory.path {
             found = true;
             break;
         }
     }
     if !found {
-        add_directories(*app.file_watcher, directory);
+        array_add(*app.directories, directory);
+
+        // Update the list of watched directories so that we can reload this entity
+        add_directories(*app.file_watcher, directory.path);
+
+        assert(app.directories.count == app.file_watcher.directories.count);
     }
-    } else {
-        // @Incomplete
-    }
+} else {
+    // @Incomplete
+}
 }
 
 remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_ignore : *Entity) {
@@ -264,6 +283,11 @@ Simp :: #import "Simp_beta_0_1_016";
 ImGui :: #import "ImGui";
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
+
+#if OS == .WINDOWS {
+#import "Windows";
+#import "Windows_Utf8";
+}
 
 #load "axis_box.jai";
 #load "polyline.jai";

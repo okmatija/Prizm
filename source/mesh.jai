@@ -84,10 +84,10 @@ element_count :: (using mesh : Mesh) -> int {
     }
 }
 
-copy_mesh :: (using mesh : Mesh) -> *Mesh {
-    result := Deep_Copy(*mesh);
-    return result;
-}
+// copy_mesh :: (using mesh : Mesh) -> *Mesh {
+//     result := Deep_Copy(*mesh, .{});
+//     return result;
+// }
 
 // Iterates over all triangles, computes the triangle normal and assigns it to the vertices
 // - Vertices which are referenced by more than one triangle, will be given the normal of the triangle with the largest triangle index

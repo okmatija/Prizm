@@ -13,6 +13,46 @@ filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> s
     }
 }
 
+// Returns a result in temporary storage
+get_absolute_path :: (partial : string) -> string, bool {
+#if OS == .WINDOWS {
+    // @CopyPasta from delete_directory in the File module
+
+    Bug1 :: #import "Windows_Utf8";
+    Bug2 :: #import "Windows";
+
+    // SHFileOperationW must be called with absolute paths, so we need to convert the path first
+    wide, success, length := Bug1.utf8_to_wide(partial);
+
+    full_path_size := Bug2.GetFullPathNameW(wide, 0, null, null);
+    if !full_path_size {
+        error_code, error_string := get_error_value_and_string();
+        log_error("In get_absolute_path(), GetFullPathNameW (without buffer) failed: % %", error_code, error_string);
+        return "", false;
+    }
+
+    absolute_path_wide: *u16 = temporary_alloc((full_path_size + 1) * 2); // +1 for the extra null at the end that’s needed by SHFileOperationW
+    final_length: Bug2.DWORD;
+    { 
+        final_length = Bug2.GetFullPathNameW(wide, full_path_size, absolute_path_wide, null);
+        if !final_length {
+            error_code, error_string := get_error_value_and_string();
+            log_error("In get_absolute_path(), GetFullPathNameW (with buffer) failed: % %", error_code, error_string);
+            return "", false;
+        }
+
+        assert(final_length <= full_path_size - 1); // -1 because on success, it does NOT include the null character, but on failure it does
+    }
+
+    absolute_path_wide[final_length] = 0; // Add the extra null character
+
+    return Bug1.wide_to_utf8(absolute_path_wide), true;
+} else if OS == .LINUX {
+    log_error("@Incomplete get_absolute_path not implemented for Linux, probably it should use the realpath() function");
+    return "", false;
+}
+}
+
 write_entire_file_to_cwd :: (filename : string, contents : string) {
     #import "System"; // @CompilerBug Why is this needed??? We import System in app.jai
     success, exe_path, exe_name := split_from_right(get_path_of_running_executable(), #char "/");
@@ -39,7 +79,7 @@ maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {
 }
 
 canonically_formatted_path_string :: (_path : string) -> string {
-    path := _path;
+    path := get_absolute_path(_path);
     path_overwrite_separators(path, #char "/");
     path = maybe_trim_leading_dot_forwardslash(path);
     return path;
