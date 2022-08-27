@@ -257,13 +257,18 @@ load_from_command_line :: () {
                 file := _file;
                 file = canonically_formatted_path_string(file);
                 if wildcard_match(file, pattern) {
-                    entity := load_one_file(file, .IGNORE);
-                    add_entity(entity, .IGNORE);
+                    handle_filename(file, .IGNORE);
                 }
             }
         } else {
-            entity := load_one_file(pattern, .IGNORE);
-            add_entity(entity, .IGNORE);
+            got_directory, got_directory_valid := is_directory(pattern);
+            if !got_directory_valid {
+                log_warning("Expected a filename or directory, got '%'", pattern);
+            } else if got_directory {
+                handle_directory(pattern);
+            } else {
+                handle_filename(pattern, app.settings.duplicate_file_behaviour);
+            }
         }
     }
     fit_scene_on_screen();
@@ -342,8 +347,12 @@ handle_events :: () {
                     log_warning("Expected a filename or directory, got '%'", dropped);
                 } else if got_directory {
                     handle_directory(dropped);
+                    // fit_scene_on_screen() is called when the pending directories are actually handled
                 } else {
-                    handle_filename(dropped);
+                    handle_filename(dropped, app.settings.duplicate_file_behaviour);
+                    if app.settings.fit_to_screen_on_file_drop_event {
+                        fit_scene_on_screen();
+                    }
                 }
             }
         }
@@ -378,12 +387,9 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 
 #scope_file
 
-handle_filename :: (fully_pathed_filename : string) {
-    entity := load_one_file(fully_pathed_filename, app.settings.duplicate_file_behaviour);
-    add_entity(entity, app.settings.duplicate_file_behaviour); 
-    if app.settings.fit_to_screen_on_file_drop_event {
-        fit_scene_on_screen();
-    }
+handle_filename :: (fully_pathed_filename : string, matching_name_behaviour : Duplicate_File_Behaviour) {
+    entity := load_one_file(fully_pathed_filename, matching_name_behaviour);
+    add_entity(entity, matching_name_behaviour); 
 }
 
 handle_directory :: (path : string) {

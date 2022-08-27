@@ -791,6 +791,7 @@ show_directory_context_menu :: (directory : *app.Directory) {
                 it.display_info.is_visible = visible_state;
             }
         }
+        // nocommit This should not reorder the directories
         if ImGui.Button("Remove group") {
             for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
                 remove it;

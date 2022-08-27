@@ -1,18 +1,31 @@
 /*
 
-Add asterisk in item list when the file has changed on disk
-Check all the array_add(*app.entitites, ...) to see if we want add_entity(...) instead
-Fix the FIXME in item perturb points function since it screws up if there was a transform I think
-Fix if there are no visible items and we make one visible the camera should update
-Add dependencies to items, so that reload can reload all the needed items (what happens if we get an error, and do we need to return a boolean from registered commands?)
-Fix path from command line load not being fully pathed
+Directories support (0.2.4)
+-------------------
+nocommit Fix flat shading not working on all backfaces when backface mode is set to .FIXED??
+nocommit Fix selection color not working across directories
+nocommit Fix sizing of help window and directory loading window. Look up the child window thing
+nocommit Highlight background of folder name when doing RMB menu
+nocommit RMB on preset group and command output group
+nocommit make the table in the folder UI nicer (sorting, )
+
+OBJ support (0.3.0)
+-----------
+>>> Improve the obj loading, make it work when indices are negative, and make the vertices store normals and tangents too
+Fix the missing annotations when reading file: E:\Dropbox\Prism\shapes-novc\Debug_Points_-1.000_+0.000_+0.000.obj
 Fix annotations on polyline soup entities
-Auto update the entity names to disambiguate the same name in different folders
-TODO Add an option to APPEND grid items
-Fix crash when using IGNORE and reloading presets
-Maybe color picking should account for generation_index?
-- TODO implement item_layout_selected :: (dimension : int) to layout selected items in a 1d, 2d or 3d grid, starting from location of item with smallest index
-- TODO implement item_clone
+Make -1 reference the last item in the item list, so you can run commands without knowing the entity index, this can be used make commands put into obj file comments work, particularly color related ones
+Just handle comments on the p directive, concat them with the comment on the vertex..?
+Check that floats with + starting them are parsed
+Is there a more robust string to float method?
+Don't crash when loading an invalid obj file e.g., delete vertices in the cube but keep the faces
+TODO Make mesh.normals.count == mesh.indices.count so we can support a separate normal at each face vertex, currently the code uses per-vertex normals which is very restrictive
+Asynchronously load files
+Enable visualization of tangent vectors
+
+Misc
+----
+nocommit Make the changelog more readable when its very long
 
 */
 
