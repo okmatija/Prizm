@@ -13,6 +13,29 @@ filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> s
     }
 }
 
+// @TODO :PluginFileFormats Make adding a format automatically extend this function 
+supported_format :: (filename_with_extension : string) -> bool {
+    extension, found_extension := path_extension(filename_with_extension);
+    if found_extension && (extension == "obj" || extension == "wkt") {
+        return true;
+    }
+    return false;
+}
+
+readable_memory_size_decimal :: (size_in_bytes : s64) -> (readable_size : s64, unit_string : string) {
+    size := size_in_bytes; if size < 1000 return size, "B";
+    size /= 1000;          if size < 1000 return size, "kB";
+    size /= 1000;          if size < 1000 return size, "MB";
+    size /= 1000;          if size < 1000 return size, "GB";
+    size /= 1000;          if size < 1000 return size, "TB";
+    size /= 1000;          if size < 1000 return size, "PB"; // petabyte
+    size /= 1000;          if size < 1000 return size, "EB"; // exabyte
+    size /= 1000;          if size < 1000 return size, "ZB"; // zettabyte
+    size /= 1000;          if size < 1000 return size, "YB"; // yottabyte
+    assert(false);
+    return 0, "Unknown";
+}
+
 // Returns a result in temporary storage
 get_absolute_path :: (partial : string) -> string, bool {
 #if OS == .WINDOWS {
@@ -238,6 +261,7 @@ Checkbox_Sweep_Mode_State :: struct {
 }
 
 // Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
+// @Incomplete Add flags for what sweep behaviours are acceptable e.g., control down variations are weird in some cases
 checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : *Checkbox_Sweep_Mode_State, window : *SDL_Window) -> bool {
 
     old_state := <<state;

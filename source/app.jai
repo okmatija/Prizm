@@ -7,14 +7,33 @@ App :: struct {
     simp_font: *Simp.Dynamic_Font;
 
     Directory :: struct {
-        path : string;
-        auto_reload : bool = false;   // Whether to automatically load/reload files in the folder when they are created/modified
-        // nested :      [..]*Directory; // Pointers into app.directories
+        path : string; // owned
+        auto_load_new_files := false;
+        set_auto_reload_on_newly_loaded_files := false;
     }
 
     // When we source and entity from a file we update the directories in these members
     directories : [..]Directory;
     file_watcher : File_Watcher;
+
+    Pending_Directory :: struct {
+        using directory : Directory;
+        unloadable_file_count : int;
+
+        Pending_File :: struct {
+            fully_pathed_filename : string; // owned
+            modtime : Apollo_Time;
+            size_in_bytes : s64;
+            is_selected := true;
+            is_loaded := false;
+        }
+        
+        // Loadable files present in the directory at the time the directory was queried
+        loadable_files : [..]Pending_File;
+    }
+
+    // When the user adds directories (via drag-drop or via the commandline on startup) show UI asking the user what should be done with the files in those directories
+    pending_directories : [..]Pending_Directory;
 
     INITIAL_WINDOW_WIDTH  : s32 : 1440;
     INITIAL_WINDOW_HEIGHT : s32 : 900;
@@ -87,9 +106,6 @@ App :: struct {
 
     clipping_sphere_mode_entity_index : int = -1; // The entity which set the clipping sphere center
 
-    // Checkbox sweep mode is enabled while LMB is held down if it was clicked on a sweepable checkbox, the mouse will be constrained to move only up and down and the inverse of the state of the checkbox just before the click will be set on all the checkboxes that get swept
-    sweep_state : Checkbox_Sweep_Mode_State;
-
     camera : Camera;
     console : Console;
     entities : [..]*Entity;
@@ -129,7 +145,22 @@ App :: struct {
 
 // @Incomplete Deduplicate file watcher directories on linux
 
+deinit :: (directory : app.Directory) {
+    free(directory.path);
+}
+
+deinit :: (pending : app.Pending_Directory) {
+    deinit(pending.directory);
+    for pending.loadable_files {
+        free(it.fully_pathed_filename);
+    }
+    array_reset(*pending.loadable_files);
+}
+
 add_directory :: (directory_path : string) -> *app.Directory {
+    // post-condition
+    defer assert(app.directories.count == app.file_watcher.directories.count);
+
     result : *app.Directory;
 
     got_directory, got_directory_valid := is_directory(directory_path);
@@ -153,27 +184,22 @@ add_directory :: (directory_path : string) -> *app.Directory {
         // Update the list of watched directories so that we can reload this entity
         add_directories(*app.file_watcher, directory.path);
 
-        assert(app.directories.count == app.file_watcher.directories.count);
-
         result = *app.directories[app.directories.count - 1];
     }
 } else {
-    // @Incomplete
+    assert(false); // @Incomplete linux support
 }
     return result;
 }
 
-remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_ignore : *Entity) {
-    if entity_to_ignore.source != .FILE_ON_DISK {
-        return;
-    }
-
-    directory : string = get_directory(fully_pathed_filename);
+remove_directory :: (directory : string) {
+    // post-condition
+    defer assert(app.directories.count == app.file_watcher.directories.count);
 
     // Check if no other entities will need to watch this directory
     remove_directory := true;
     for app.entities {
-        if it != entity_to_ignore && it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory {
+        if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory {
             remove_directory = false;
         }
     }
@@ -181,6 +207,7 @@ remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_igno
     if remove_directory {
         for app.directories {
             if it.path == directory {
+                deinit(it);
                 remove it;
                 break;
             }
@@ -189,12 +216,13 @@ remove_file_watcher_directory :: (fully_pathed_filename : string, entity_to_igno
         #if OS == .WINDOWS {
         for app.file_watcher.directories {
             if it.name == directory {
+                // @FIXME do we have a memory leak here??
                 remove it;
                 break;
             }
         }
         } else {
-            // @Incomplete
+            assert(false); // @Incomplete linux support
         }
     }
 }

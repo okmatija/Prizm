@@ -49,6 +49,14 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
   - Normals/tangents with invalid components (inf/nan) have those components set to zero
   - Invalid faces are ignored in some cases, in other cases we still fail to parse and don't load the shape
   - Note: The "Invalid Point" defaults to (0,0,0) but is customizable under 'Options' in the main panel
+- Added item grouping
+  - Items loaded from files on disk are grouped in the item list according to their containing directory path name
+  - Items loaded from preset buttons are grouped together
+  - Items created by console commands are grouped together
+  - Directories dropped into Prism will create directory groups which default to auto loading/reloading any contained files
+  - If files are added to a directory that already exists give that file the auto load state
+- TODO Deduplicated vertices in the cube.obj preset shape
+- Fixed issue where files loaded from the commandline used a relative rather than absolute filename
 - Updated to compiler version beta 0.1.036
 DONE
 };

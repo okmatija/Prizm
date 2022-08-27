@@ -77,7 +77,7 @@ show_item_list_ui :: () {
                 ImGui.TableNextColumn();
                 {
                     was_visible := entity.display_info.is_visible;
-                    visibility_changed := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *app.sweep_state, app.window);
+                    visibility_changed := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
                     result.visibility_changed = visibility_changed;
                     Show_Tooltip("Visible");
 
@@ -768,7 +768,35 @@ show_directory_context_menu :: (directory : *app.Directory) {
 
         ImGui.Text(directory.path);
         ImGui.Separator();
-        ImGui.Checkbox("Auto-reload folder contents", *directory.auto_reload);
+        ImGui.Checkbox("Auto-load new files", *directory.auto_load_new_files);
+        if ImGui.Button("Toggle group selection") {
+            selected_state := false;
+            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+                selected_state = !it.is_selected;
+                break;
+            }
+
+            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+                it.is_selected = selected_state;
+            }
+        }
+        if ImGui.Button("Toggle group visibility") {
+            visible_state := false;
+            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+                visible_state = !it.display_info.is_visible;
+                break;
+            }
+
+            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+                it.display_info.is_visible = visible_state;
+            }
+        }
+        if ImGui.Button("Remove group") {
+            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+                remove it;
+            }
+            remove_directory(directory.path);
+        }
     }
 }
 
@@ -1212,6 +1240,86 @@ show_help_ui :: () {
 
     // @Incomplete add a message about where the keymap is for editing
 }
+
+
+show_pending_directories_ui :: () {
+    if app.pending_directories.count == 0 {
+        return;
+    }
+
+    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},
+    cond=.ImGuiCond_Appearing);
+    ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
+                                       make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
+
+    // @Incomplete Could have a policy to just load everything rather than ask?
+
+    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags = flags);
+    defer ImGui.End();
+
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
+
+    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
+
+    ImGui.Text(tprint("Select files to load in %", dir.path));
+    ImGui.Separator();
+
+    ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=ImGui.TableFlags.NoBordersInBody);
+    for *loadable_file : dir.loadable_files {
+        using loadable_file;
+
+        ImGui.TableNextColumn();
+        checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+
+        ImGui.TableNextColumn();
+        ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
+
+        size, unit := readable_memory_size_decimal(size_in_bytes);
+        ImGui.TableNextColumn();
+        ImGui.Text(tprint("% %", size, unit));
+
+        ImGui.TableNextColumn();
+        if loadable_file.is_loaded { // nocommit Set the is_loaded state
+            ImGui.Text("Already loaded");
+        }
+    }
+    ImGui.EndTable();
+
+    if dir.unloadable_file_count {
+        ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
+    } 
+    
+    if ImGui.Button(imgui_label("Done", xx *dir)) {
+        for file : dir.loadable_files {
+            if !file.is_selected {
+                continue;
+            }
+
+            if file.is_loaded {
+                entity := find_entity_from_fully_pathed_filename(file.fully_pathed_filename, -1);
+                assert(entity != null);
+                reload_entity(entity);
+            } else {
+                // Note we use .IGNORE rather than app.settings.duplicate_file_behaviour here, the user can get the latter behaviour by dragging in files individually
+                entity := load_one_file(file.fully_pathed_filename, .IGNORE);
+                if entity {
+                    add_entity(entity, .IGNORE); 
+                    entity.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
+                }
+            }
+        }
+
+        if app.settings.fit_to_screen_on_file_drop_event {
+            fit_scene_on_screen();
+        }
+
+        deinit(dir);
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+}
+
+
 
 show_imgui_demo_window :: () {
     if app.show_imgui_demo_window {
@@ -1674,3 +1782,8 @@ entity_source_tooltip :: (entity : Entity) {
         case .UNKNOWN;        // Do nothing
     }
 }
+
+pending_directories_sweep_state : Checkbox_Sweep_Mode_State;
+
+// Checkbox sweep mode is enabled while LMB is held down if it was clicked on a sweepable checkbox, the mouse will be constrained to move only up and down and the inverse of the state of the checkbox just before the click will be set on all the checkboxes that get swept
+item_list_sweep_state : Checkbox_Sweep_Mode_State;

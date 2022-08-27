@@ -215,24 +215,28 @@ clear :: (base : *Entity) {
 remove_entity_by_index :: (entity_to_remove_index : int) {
     if entity_to_remove_index >= 0 && entity_to_remove_index < app.entities.count {
         entity_to_remove : *Entity = app.entities[entity_to_remove_index];
+        directory_to_remove := "";
         if entity_to_remove.source == .FILE_ON_DISK {
-            remove_file_watcher_directory(entity_to_remove.fully_pathed_filename, entity_to_remove);
+            directory_to_remove = get_directory(entity_to_remove.fully_pathed_filename);
         }
         deinit(entity_to_remove);
         free(entity_to_remove);
         array_ordered_remove_by_index(*app.entities, entity_to_remove_index);
+        remove_directory(directory_to_remove);
     }
 }
 
 // @FIXME This should be an ordered remove!
 remove_entities_if_selected :: () {
     for app.entities if it.is_selected {
+        directory_to_remove := "";
         if it.source == .FILE_ON_DISK {
-            remove_file_watcher_directory(it.fully_pathed_filename, it);
+            directory_to_remove = get_directory(it.fully_pathed_filename);
         }
         deinit(it);
         free(it);
         remove it; // @FIXME this screws up the order of items in the list
+        remove_directory(directory_to_remove);
     }
 }
 
@@ -505,8 +509,10 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
     }
 }
 
-// If generation_index >= 0 then find the entity with matching name and generation_index
-// Otherwise find the entity with matching name and maximum generation_index 
+// @FIXME Revisit this find_entity function now that we've added a bunch of fields to the Entity type
+
+// Find the entity with matching name
+// If generation_index >= 0 then find the entity with the given generation_index, otherwise find the one with maximum generation_index
 // Return null, -1 if no matching entity is found
 find_entity :: (name : string, generation_index : int) -> *Entity, int {
 
@@ -525,6 +531,35 @@ find_entity :: (name : string, generation_index : int) -> *Entity, int {
         max_generation_index : int = -1;
         for app.entities {
             if it.name == name && it.generation_index > max_generation_index {
+                max_generation_index = it.generation_index;
+                found = it;
+                found_index = it_index;
+            }
+        }
+    }
+
+    return found, found_index;
+}
+
+// Find the FILE_ON_DISK entity with matching fully_pathed_filename
+// If generation_index >= 0 then find the entity with the given generation_index, otherwise find the one with maximum generation_index
+// Return null, -1 if no matching entity is found
+find_entity_from_fully_pathed_filename :: (fully_pathed_filename : string, generation_index : int) -> *Entity, int {
+    found : *Entity;
+    found_index : int = -1;
+
+    if generation_index >= 0 {
+        for app.entities if it.source == .FILE_ON_DISK {
+            if it.fully_pathed_filename == fully_pathed_filename && it.generation_index == generation_index {
+                found = it;
+                found_index = it_index;
+                break;
+            }
+        }
+    } else {
+        max_generation_index : int = -1;
+        for app.entities if it.source == .FILE_ON_DISK {
+            if it.fully_pathed_filename == fully_pathed_filename && it.generation_index > max_generation_index {
                 max_generation_index = it.generation_index;
                 found = it;
                 found_index = it_index;

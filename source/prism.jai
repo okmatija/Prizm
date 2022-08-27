@@ -105,12 +105,32 @@ main :: () {
     init_known_issues();
 
     file_change_callback :: (watcher: *File_Watcher, change: *File_Change) {
-        for app.entities {
-            if it.source == .FILE_ON_DISK && it.auto_reload && it.fully_pathed_filename == change.full_path {
-                reload_entity(it);
+        // print("Change for path %: %", change.full_path, change.events);
+
+        found_entity : *Entity;
+        for entity : app.entities {
+            if entity.source == .FILE_ON_DISK && entity.fully_pathed_filename == change.full_path {
+                found_entity = entity;
+                break entity; // There can only be one relevant entity for each file change
             }
         }
-        // print("Change for path %: %", change.full_path, change.events);
+
+        if found_entity {
+            if found_entity.auto_reload {
+                reload_entity(found_entity);
+            }
+        } else {
+            found_dir : *app.Directory;
+            for *dir : app.directories {
+                if dir.path == get_directory(change.full_path) {
+                    found_dir = dir;
+                }
+            }
+            if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {
+                entity := load_one_file(change.full_path, .IGNORE);
+                add_entity(entity, .IGNORE);
+            }
+        }
     }
 
     // Setup file watcher
@@ -175,6 +195,7 @@ main :: () {
             show_help_ui();
             show_imgui_demo_window();
             console_draw();
+            show_pending_directories_ui();
 
             // inspect("Debug", *app.camera, true);
         }
@@ -320,14 +341,9 @@ handle_events :: () {
                 if !got_directory_valid {
                     log_warning("Expected a filename or directory, got '%'", dropped);
                 } else if got_directory {
-                    directory : *app.Directory = add_directory(dropped);
-                    directory.auto_reload = true; // When a folder is dropped it defaults to auto reloading
+                    handle_directory(dropped);
                 } else {
-                    entity := load_one_file(dropped, app.settings.duplicate_file_behaviour);
-                    add_entity(entity, app.settings.duplicate_file_behaviour); 
-                    if app.settings.fit_to_screen_on_file_drop_event {
-                        fit_scene_on_screen();
-                    }
+                    handle_filename(dropped);
                 }
             }
         }
@@ -361,6 +377,54 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 }
 
 #scope_file
+
+handle_filename :: (fully_pathed_filename : string) {
+    entity := load_one_file(fully_pathed_filename, app.settings.duplicate_file_behaviour);
+    add_entity(entity, app.settings.duplicate_file_behaviour); 
+    if app.settings.fit_to_screen_on_file_drop_event {
+        fit_scene_on_screen();
+    }
+}
+
+handle_directory :: (path : string) {
+    found_dir : *app.Directory;
+    for *dir : app.directories if dir.path == path {
+        found_dir = dir;
+        break;
+    }
+
+    pending : app.Pending_Directory;
+
+    if found_dir { // Directory already exists
+        pending.directory = <<found_dir; // Copy state from found_dir, we'll overwrite the path though
+    } else { // New directory
+        pending.auto_load_new_files = true; // When a folder is given it defaults to auto reloading
+    }
+
+    files := file_list(path, recursive=false, follow_symlinks=false);
+    defer array_free(files);
+    not_loadable_count := 0;
+    for _file, file_index : files {
+        extension, found_extension := path_extension(_file);
+        if supported_format(_file) {
+            using pending_file : app.Pending_Directory.Pending_File;
+            fully_pathed_filename = copy_string(_file);
+            modtime, size_in_bytes = file_modtime_and_size(_file);
+            array_add(*pending.loadable_files, pending_file);
+        } else {
+            not_loadable_count += 1;
+        }
+    }
+
+    pending.path = copy_string(path);
+
+    if pending.loadable_files.count == 0 {
+        log("Did not find loadable files in directory %", path);
+        deinit(pending);
+    } else {
+        array_add(*app.pending_directories, pending);
+    }
+}
 
 // Get the platform specific window handle from SDL
 get_window_type :: (window : *SDL_Window) -> Window_Type {
