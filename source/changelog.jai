@@ -2,6 +2,8 @@
 
 Directories support (0.2.4)
 -------------------
+Test it, I have seen crashes when I add or remove directories
+Make sure starting watching a directory works well
 nocommit Fix flat shading not working on all backfaces when backface mode is set to .FIXED??
 nocommit Fix selection color not working across directories
 nocommit Fix sizing of help window and directory loading window. Look up the child window thing

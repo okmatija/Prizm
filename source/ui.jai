@@ -345,7 +345,7 @@ show_item_list_ui :: () {
 
 show_add_item_ui :: () {
     ImGui.Button("Add   ");
-    Show_Tooltip("Click for preset shapes, or\nDrag and Drop files, or\nRestart with file arguments");
+    Show_Tooltip("LMB to access preset shape menu, or\nDrag and Drop files/directories, or\nRestart with file/directory arguments");
 
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
@@ -1248,6 +1248,16 @@ show_pending_directories_ui :: () {
         return;
     }
 
+    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
+
+    if dir.loadable_files.count == 0 {
+        // Just watch the directory
+        new_directory : *app.Directory = add_directory(dir.path);
+        new_directory.auto_load_new_files = dir.auto_load_new_files;
+        new_directory.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+        return;
+    }
+
     ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},
     cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
@@ -1260,8 +1270,6 @@ show_pending_directories_ui :: () {
     defer ImGui.End();
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
-
-    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
 
     ImGui.Text(tprint("Select files to load in %", dir.path));
     ImGui.Separator();
@@ -1277,8 +1285,12 @@ show_pending_directories_ui :: () {
         ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
 
         size, unit := readable_memory_size_decimal(size_in_bytes);
+        size_with_unit : string;
+        if      size < 10  size_with_unit = tprint("  % %", size, unit);
+        else if size < 100 size_with_unit = tprint( " % %", size, unit);
+        else               size_with_unit = tprint(  "% %", size, unit);
         ImGui.TableNextColumn();
-        ImGui.Text(tprint("% %", size, unit));
+        ImGui.Text(size_with_unit);
 
         ImGui.TableNextColumn();
         if loadable_file.is_loaded { // nocommit Set the is_loaded state
@@ -1292,6 +1304,11 @@ show_pending_directories_ui :: () {
     } 
     
     if ImGui.Button(imgui_label("Done", xx *dir)) {
+
+        new_directory : *app.Directory = add_directory(dir.path);
+        new_directory.auto_load_new_files = dir.auto_load_new_files;
+        new_directory.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+
         for file : dir.loadable_files {
             if !file.is_selected {
                 continue;

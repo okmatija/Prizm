@@ -258,8 +258,9 @@ Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
-    fit_to_screen_on_visibility_change := false;
-    fit_to_screen_on_file_drop_event   := true;
+    fit_to_screen_on_visibility_change :=  false;
+    fit_to_screen_on_file_drop_event :=    true;
+    fit_to_screen_on_file_watcher_event := true;
 
     camera_controls_keep_up_when_setting_look_along := false;
 

@@ -16,14 +16,14 @@ filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> s
 // @TODO :PluginFileFormats Make adding a format automatically extend this function 
 supported_format :: (filename_with_extension : string) -> bool {
     extension, found_extension := path_extension(filename_with_extension);
-    if found_extension && (extension == "obj" || extension == "wkt") {
+    if found_extension && (ends_with_nocase(extension, "obj") || ends_with_nocase(extension, "wkt")) {
         return true;
     }
     return false;
 }
 
 readable_memory_size_decimal :: (size_in_bytes : s64) -> (readable_size : s64, unit_string : string) {
-    size := size_in_bytes; if size < 1000 return size, "B";
+    size := size_in_bytes; if size < 1000 return size, " B"; // Byte, the extra space is for alignment
     size /= 1000;          if size < 1000 return size, "kB";
     size /= 1000;          if size < 1000 return size, "MB";
     size /= 1000;          if size < 1000 return size, "GB";

@@ -118,6 +118,10 @@ main :: () {
         if found_entity {
             if found_entity.auto_reload {
                 reload_entity(found_entity);
+
+                if app.settings.fit_to_screen_on_file_watcher_event {
+                    fit_scene_on_screen();
+                }
             }
         } else {
             found_dir : *app.Directory;
@@ -129,6 +133,10 @@ main :: () {
             if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {
                 entity := load_one_file(change.full_path, .IGNORE);
                 add_entity(entity, .IGNORE);
+
+                if app.settings.fit_to_screen_on_file_watcher_event {
+                    fit_scene_on_screen();
+                }
             }
         }
     }
@@ -404,32 +412,30 @@ handle_directory :: (path : string) {
     if found_dir { // Directory already exists
         pending.directory = <<found_dir; // Copy state from found_dir, we'll overwrite the path though
     } else { // New directory
-        pending.auto_load_new_files = true; // When a folder is given it defaults to auto reloading
+        // When a folder is given it defaults to auto reloading
+        pending.auto_load_new_files = true;
+        pending.set_auto_reload_on_newly_loaded_files = true;
     }
+    pending.path = copy_string(path);
 
     files := file_list(path, recursive=false, follow_symlinks=false);
     defer array_free(files);
     not_loadable_count := 0;
-    for _file, file_index : files {
-        extension, found_extension := path_extension(_file);
-        if supported_format(_file) {
+    for file : files {
+        if supported_format(file) {
             using pending_file : app.Pending_Directory.Pending_File;
-            fully_pathed_filename = copy_string(_file);
-            modtime, size_in_bytes = file_modtime_and_size(_file);
+            fully_pathed_filename = copy_string(file);
+            modtime, size_in_bytes = file_modtime_and_size(file);
+            is_loaded = find_entity_from_fully_pathed_filename(file, -1) != null;
+            is_selected = !is_loaded;
             array_add(*pending.loadable_files, pending_file);
         } else {
             not_loadable_count += 1;
         }
     }
 
-    pending.path = copy_string(path);
-
-    if pending.loadable_files.count == 0 {
-        log("Did not find loadable files in directory %", path);
-        deinit(pending);
-    } else {
-        array_add(*app.pending_directories, pending);
-    }
+    // We add the pending directory even if there are no loadable files currently in it because we want to support a use-case where the user makes prism watch a directory and then starts loading files
+    array_add(*app.pending_directories, pending);
 }
 
 // Get the platform specific window handle from SDL
