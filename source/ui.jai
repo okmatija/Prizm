@@ -1262,11 +1262,11 @@ show_pending_directories_ui :: () {
     cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
                                        make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
 
-    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags = flags);
+    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags=window_flags);
     defer ImGui.End();
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
@@ -1274,7 +1274,44 @@ show_pending_directories_ui :: () {
     ImGui.Text(tprint("Select files to load in %", dir.path));
     ImGui.Separator();
 
-    ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=ImGui.TableFlags.NoBordersInBody);
+    table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg | .Sortable;
+    ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags);
+
+    ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
+    ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
+    ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
+    ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthStretch, 0);
+    ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
+    ImGui.TableHeadersRow();
+
+    // Sort our data if sort specs have been changed!
+    sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
+    if sort_specs && sort_specs.SpecsDirty {
+        if sort_specs.SpecsCount > 0 {
+            specs : []ImGui.TableColumnSortSpecs;
+            specs.data = sort_specs.Specs;
+            specs.count = sort_specs.SpecsCount;
+            for spec : specs { // @CompilerBug Should using work on a for loop?
+                // @Cleanup Use a enum id here, ImGui has support for it
+                direction := spec.SortDirection_;
+                if spec.SortDirection_ == .Ascending {
+                    if spec.ColumnIndex == {
+                        case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                        case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
+                        case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                    }
+                } else {
+                    if spec.ColumnIndex == {
+                        case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                        case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
+                        case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                    }
+                }
+            }
+        }
+        sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
+    }
+
     for *loadable_file : dir.loadable_files {
         using loadable_file;
 
