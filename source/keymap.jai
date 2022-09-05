@@ -870,8 +870,12 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $PROC : ()->*Entity) -
     result := load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
 
     // Update the source to be a preset
+    assert(result.source == .FILE_ON_DISK); // because we loaded a file
+    free(result.fully_pathed_filename);
+    free(result.fully_pathed_name);
+
     result.source = .PRESET_SHAPE;
-    free(result.fully_pathed_filename); // Must do this before we overwrite the union memory on the next line!
+    result.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, NAME));
     result.preset_proc = PROC;
     reset_entity_primary_color(result);
 

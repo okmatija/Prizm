@@ -401,6 +401,10 @@ handle_filename :: (fully_pathed_filename : string, matching_name_behaviour : Du
 }
 
 handle_directory :: (path : string) {
+    for *dir : app.pending_directories if dir.path == path {
+        return; // We're already handling this directory, we can reach this code path if the user drops the same directory twice before the first one is handled
+    }
+
     found_dir : *app.Directory;
     for *dir : app.directories if dir.path == path {
         found_dir = dir;
@@ -426,7 +430,7 @@ handle_directory :: (path : string) {
             using pending_file : app.Pending_Directory.Pending_File;
             fully_pathed_filename = copy_string(file);
             modtime, size_in_bytes = file_modtime_and_size(file);
-            is_loaded = find_entity_from_fully_pathed_filename(file, -1) != null;
+            is_loaded = find_entity(file, -1) != null;
             is_selected = !is_loaded;
             array_add(*pending.loadable_files, pending_file);
         } else {

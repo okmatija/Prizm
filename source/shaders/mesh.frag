@@ -18,20 +18,19 @@ struct Clip_Sphere {
     bool is_active;
 };
 
-uniform float wave; // time varying value in range [-1,1]
-uniform Camera camera;
-
 const int Display_Mode_NORMALS = 0;
 const int Display_Mode_SOLID_COLOR = 1;
 const int Display_Mode_BLINN_PHONG = 2;
-uniform int display_mode = Display_Mode_NORMALS;
-
 const int Backface_Mode_NONE = 0;
 const int Backface_Mode_CULL = 1;
 const int Backface_Mode_FIXED = 2;
 const int Backface_Mode_DARKEN = 3;
 const int Backface_Mode_SCREENTONE_1 = 4;
 const int Backface_Mode_SCREENTONE_2 = 5;
+
+uniform float wave; // time varying value in range [-1,1]
+uniform Camera camera;
+uniform int display_mode = Display_Mode_NORMALS;
 uniform int backface_mode = Backface_Mode_FIXED;
 
 uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
@@ -127,7 +126,7 @@ vec3 darken(in vec3 color, float darken_factor)
 void main() {
 
     if (!gl_FrontFacing) {
-        if (backface_mode == 1) {
+        if (backface_mode == Backface_Mode_CULL) {
             // Cull backfaces early out
             discard;
         }
@@ -173,10 +172,29 @@ void main() {
 
         case Display_Mode_NORMALS: {
 
-            vec3 N = get_normal();
-            fill_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
-            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
-                fill_color = backface_color;
+            if (!gl_FrontFacing && backface_mode == Backface_Mode_FIXED) {
+                // @Volatile @CopyPasta from BLINN_PHONG
+                vec3 N = get_normal();
+                vec3 V = normalize(camera.look_direction);
+                vec3 L = normalize(-camera.look_direction);
+                vec3 light_color = vec3(1);
+                float light_power = 1.;
+
+                if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
+                    fill_color = backface_color;
+                }
+                diffuse_color = fill_color.xyz;
+                vec4 color_linear = vec4(0, 0, 0, 1);
+                color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power);
+                vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
+
+                fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
+            } else {
+                vec3 N = get_normal();
+                fill_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
+                if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
+                    fill_color = backface_color;
+                }
             }
 
         } break;
@@ -192,6 +210,7 @@ void main() {
 
         case Display_Mode_BLINN_PHONG: {
 
+            // @Volatile @CopyPasta from NORMALS
             vec3 N = get_normal();
             vec3 V = normalize(camera.look_direction);
             vec3 L = normalize(-camera.look_direction);

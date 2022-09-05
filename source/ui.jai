@@ -257,7 +257,9 @@ show_item_list_ui :: () {
                     case .PRESET_SHAPE;
                         if !show_preset_list continue;
 
-                        if ImGui.TreeNodeEx(imgui_label("Preset shapes", xx source_value), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+                        do_tree : bool = ImGui.TreeNodeEx(imgui_label(PRESET_SHAPE_FOLDER, xx source_value), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+                        show_folder_context_menu(PRESET_SHAPE_FOLDER);
+                        if  do_tree {
                             defer ImGui.TreePop();
 
                             indent2 := ImGui.GetTreeNodeToLabelSpacing();
@@ -279,11 +281,11 @@ show_item_list_ui :: () {
                         if app.directories.count == 0 continue;
 
                         for *directory : app.directories {
-                            // Using this boolean allows us to have BeginPopupContextItem (within show_directory_context_menu) use the TreeNodeEx imgui id
-                            // nocommit Make this C:/.../folder etc
-                            do_tree := ImGui.TreeNodeEx(imgui_label(directory.path, *directory), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-                            show_directory_context_menu(directory);
 
+                            // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
+                            // @Incomplete Abbreviate this name e.g., C:/.../folder etc
+                            do_tree : bool = ImGui.TreeNodeEx(imgui_label(directory.path, *directory), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+                            show_folder_context_menu(directory.path, *directory.auto_load_new_files);
                             if do_tree {
                                 defer ImGui.TreePop();
 
@@ -307,7 +309,9 @@ show_item_list_ui :: () {
                     case .COMMAND_OUTPUT;
                         if !show_command_output_list continue;
 
-                        if ImGui.TreeNodeEx(imgui_label("Command output", xx source_value), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+                        do_tree : bool = ImGui.TreeNodeEx(imgui_label(COMMAND_OUTPUT_FOLDER, xx source_value), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+                        show_folder_context_menu(COMMAND_OUTPUT_FOLDER);
+                        if do_tree {
                             defer ImGui.TreePop();
 
                             indent2 := ImGui.GetTreeNodeToLabelSpacing();
@@ -755,7 +759,7 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
     }
 }
 
-show_directory_context_menu :: (directory : *app.Directory) {
+show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
     window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
@@ -764,43 +768,45 @@ show_directory_context_menu :: (directory : *app.Directory) {
     // Set popup border color to match the selection/RMB target item color
     original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
-    if ImGui.BeginPopupContextItem(imgui_label("Directory Options", directory)) {
+    if ImGui.BeginPopupContextItem(imgui_label("Folder Options", xx *path)) {
         defer ImGui.EndPopup();
 
         // Undo the previous thing so internals don't have this color
         ScopedPopupBorderTheme(original_border_color, original_border_size);
 
-        ImGui.Text(directory.path);
+        ImGui.Text(path);
         ImGui.Separator();
-        ImGui.Checkbox("Auto-load new files", *directory.auto_load_new_files);
-        if ImGui.Button("Toggle group selection") {
+        if auto_load_new_files {
+            ImGui.Checkbox("Auto-load new files", auto_load_new_files);
+        }
+        if ImGui.Button("Toggle folder selection") {
             selected_state := false;
-            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+            for app.entities if get_directory(it.fully_pathed_name) == path {
                 selected_state = !it.is_selected;
                 break;
             }
 
-            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+            for app.entities if get_directory(it.fully_pathed_name) == path {
                 it.is_selected = selected_state;
             }
         }
-        if ImGui.Button("Toggle group visibility") {
+        if ImGui.Button("Toggle folder visibility") {
             visible_state := false;
-            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+            for app.entities if get_directory(it.fully_pathed_name) == path {
                 visible_state = !it.display_info.is_visible;
                 break;
             }
 
-            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+            for app.entities if get_directory(it.fully_pathed_name) == path {
                 it.display_info.is_visible = visible_state;
             }
         }
-        // nocommit This should not reorder the directories
-        if ImGui.Button("Remove group") {
-            for app.entities if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory.path {
+        // @FIXME nocommit This should not reorder the directories
+        if ImGui.Button("Remove folder") {
+            for app.entities if get_directory(it.fully_pathed_name) == path {
                 remove it;
             }
-            remove_directory(directory.path);
+            remove_directory(path);
         }
     }
 }
@@ -1257,6 +1263,7 @@ show_pending_directories_ui :: () {
         new_directory : *app.Directory = add_directory(dir.path);
         new_directory.auto_load_new_files = dir.auto_load_new_files;
         new_directory.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
         return;
     }
 
@@ -1272,7 +1279,11 @@ show_pending_directories_ui :: () {
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    ImGui.Text(tprint("Select files to load in %", dir.path));
+    ImGui.Text("Select files to load in:");
+    ImGui.SameLine();
+    ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
+    ImGui.Text(dir.path);
+    ImGui.PopStyleColor();
     ImGui.Separator();
 
     table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg | .Sortable;
@@ -1350,7 +1361,7 @@ show_pending_directories_ui :: () {
         ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
     } 
     
-    if ImGui.Button(imgui_label("Done", xx *dir)) {
+    if ImGui.Button(imgui_label("Accept", xx *dir)) {
 
         new_directory : *app.Directory = add_directory(dir.path);
         new_directory.auto_load_new_files = dir.auto_load_new_files;
@@ -1362,7 +1373,7 @@ show_pending_directories_ui :: () {
             }
 
             if file.is_loaded {
-                entity := find_entity_from_fully_pathed_filename(file.fully_pathed_filename, -1);
+                entity := find_entity(file.fully_pathed_filename, -1);
                 assert(entity != null);
                 reload_entity(entity);
             } else {
@@ -1381,6 +1392,27 @@ show_pending_directories_ui :: () {
 
         deinit(dir);
         app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+    Show_Tooltip("Load all selected/checked files");
+
+    ImGui.SameLine();
+
+    if ImGui.Button(imgui_label("Ignore", xx *dir)) {
+        deinit(dir);
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+    Show_Tooltip("Do not load any files");
+
+    ImGui.SameLine();
+
+    if app.pending_directories.count > 1 {
+        if ImGui.Button(imgui_label("Ignore All", xx *dir)) {
+            for *dir : app.pending_directories {
+                deinit(dir);
+            }
+            array_reset(*app.pending_directories);
+        }
+        Show_Tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
     }
 }
 

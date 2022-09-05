@@ -79,13 +79,22 @@ Entity :: struct {
 
     name : string;
 
+    // This should be used to find entities
+    // If source == .FILE_ON_DISK   this is fully_pathed_filename
+    // If source == .PRESET_SHAPE   this is PRESET_SHAPE_FOLDER
+    // If source == .COMMAND_OUTPUT this is COMMAND_OUTPUT_FOLDER
+    fully_pathed_name : string;
+
     // if source == .FILE_ON_DISK these are filled using file_modtime_and_size
     // otherwise these are the current_time_consensus and the mesh vertex count
     creation_time : Apollo_Time;
     creation_size : s64;
 
-    generation_index : int; // entities with the same 'name' will increment this
+    generation_index : int; // entities with the same 'fully_pathed_name' will increment this
 }
+
+PRESET_SHAPE_FOLDER :: "Preset shapes";
+COMMAND_OUTPUT_FOLDER :: "Command outputs";
 
 Polyline_Soup2_Entity :: struct {
     #as using base : Entity;
@@ -308,10 +317,10 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
     found_index : int = -1;
     if matching_name_behaviour == .APPEND {
         // Finds the entity with maximum generation index
-        found, found_index = find_entity(entity.name, -1);
+        found, found_index = find_entity(entity.fully_pathed_name, -1);
     } else {
         // Finds the entity with matching generation index
-        found, found_index = find_entity(entity.name, entity.generation_index);
+        found, found_index = find_entity(entity.fully_pathed_name, entity.generation_index);
     }
 
     if found {
@@ -382,18 +391,16 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4 {
 }
 
 reset_entity_primary_color :: (entity : *Entity) {
-    color := entity_primary_color(entity);
-    if entity.source == .FILE_ON_DISK {
-        <<color = color_from_path(entity.fully_pathed_filename);
-    } else {
-        <<color = color_from_string(entity.name);
+    color : *Vector4 = entity_primary_color(entity);
+    if color {
+        <<color = color_from_path(entity.fully_pathed_name);
     }
 }
 
-// Assumes that fully_pathed_filename is canonically formatted (see canonically_formatted_path_string)
+// Assumes that fully_pathed_name is canonically formatted (see canonically_formatted_path_string)
 // Returns a string pointing into the argument
-get_entity_name_from_fully_pathed_filename :: (fully_pathed_filename : string) -> string {
-    name := fully_pathed_filename;
+get_entity_name_from_fully_pathed_name :: (fully_pathed_name : string) -> string {
+    name := fully_pathed_name;
 
     path := parse_path(name);
     if path.words.count {
@@ -460,14 +467,19 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
 
     entity.name = copy_string(name);
     if #complete entity.source == {
-        case .COMMAND_OUTPUT; #through;
+        case .COMMAND_OUTPUT;
+
+            entity.fully_pathed_name = copy_string(tprint("%/%", COMMAND_OUTPUT_FOLDER, name));
+        
         case .PRESET_SHAPE;
 
+            entity.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, name));
             entity.creation_time = current_time_consensus();
             entity.creation_size = mesh.positions.count;
 
         case .FILE_ON_DISK;
 
+            entity.fully_pathed_name = copy_string(entity.fully_pathed_filename);
             modtime, size, ok := file_modtime_and_size(entity.fully_pathed_filename);
             if ok {
                 entity.creation_time = modtime;
@@ -514,55 +526,30 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
 // Find the entity with matching name
 // If generation_index >= 0 then find the entity with the given generation_index, otherwise find the one with maximum generation_index
 // Return null, -1 if no matching entity is found
-find_entity :: (name : string, generation_index : int) -> *Entity, int {
+find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, int {
 
     found : *Entity;
     found_index : int = -1;
 
     if generation_index >= 0 {
         for app.entities {
-            if it.name == name && it.generation_index == generation_index {
-                found = it;
-                found_index = it_index;
-                break;
+            if it.generation_index == generation_index {
+                if it.fully_pathed_name == fully_pathed_name {
+                    found = it;
+                    found_index = it_index;
+                    break;
+                }
             }
         }
     } else {
         max_generation_index : int = -1;
         for app.entities {
-            if it.name == name && it.generation_index > max_generation_index {
-                max_generation_index = it.generation_index;
-                found = it;
-                found_index = it_index;
-            }
-        }
-    }
-
-    return found, found_index;
-}
-
-// Find the FILE_ON_DISK entity with matching fully_pathed_filename
-// If generation_index >= 0 then find the entity with the given generation_index, otherwise find the one with maximum generation_index
-// Return null, -1 if no matching entity is found
-find_entity_from_fully_pathed_filename :: (fully_pathed_filename : string, generation_index : int) -> *Entity, int {
-    found : *Entity;
-    found_index : int = -1;
-
-    if generation_index >= 0 {
-        for app.entities if it.source == .FILE_ON_DISK {
-            if it.fully_pathed_filename == fully_pathed_filename && it.generation_index == generation_index {
-                found = it;
-                found_index = it_index;
-                break;
-            }
-        }
-    } else {
-        max_generation_index : int = -1;
-        for app.entities if it.source == .FILE_ON_DISK {
-            if it.fully_pathed_filename == fully_pathed_filename && it.generation_index > max_generation_index {
-                max_generation_index = it.generation_index;
-                found = it;
-                found_index = it_index;
+            if it.generation_index > max_generation_index {
+                if it.fully_pathed_name == fully_pathed_name {
+                    max_generation_index = it.generation_index;
+                    found = it;
+                    found_index = it_index;
+                }
             }
         }
     }
@@ -846,11 +833,11 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
         return null;
     }
 
-    name := get_entity_name_from_fully_pathed_filename(filename);
+    name := get_entity_name_from_fully_pathed_name(filename);
 
     // Check if we can early exit and avoid reading the file from disk
     {
-        found, found_index := find_entity(name, -1);
+        found, found_index := find_entity(filename, -1);
         if found && matching_name_behaviour == .IGNORE {
             log_warning("Skipped file: '%' (already loaded)\n", name);
             return null;
@@ -877,7 +864,7 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
 
     // Check if we can early exit and avoid parsing the contents
     {
-        found, found_index := find_entity(name, -1);
+        found, found_index := find_entity(filename, -1);
         if found && matching_name_behaviour == .IGNORE {
             log_warning("Skipped file: '%' (already loaded)\n", name);
             return null;

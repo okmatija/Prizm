@@ -2,14 +2,7 @@
 
 Directories support (0.2.4)
 -------------------
-Test it, I have seen crashes when I add or remove directories
-Make sure starting watching a directory works well
-nocommit Fix flat shading not working on all backfaces when backface mode is set to .FIXED??
 nocommit Fix selection color not working across directories
-nocommit Fix sizing of help window and directory loading window. Look up the child window thing
-nocommit Highlight background of folder name when doing RMB menu
-nocommit RMB on preset group and command output group
-nocommit make the table in the folder UI nicer (sorting, )
 
 OBJ support (0.3.0)
 -----------
@@ -32,6 +25,11 @@ Misc
 Rename the Stats section to an Information section and put it as the first item, maybe have hovering it write that info in the bottom of the screen
 Add a crosshair at the origin
 nocommit Make the changelog more readable when its very long
+
+Deferred
+--------
+nocommit search "  <<" and figure out what to do
+nocommit Highlight background of folder name when doing RMB menu
 
 */
 
@@ -56,7 +54,8 @@ PRISM_VERSION_0_2_5 :: App.Version.{"0.2.5", "WIP", #string DONE
   - Items created by console commands are grouped together
   - Directories dropped into Prism will create folders which default to auto loading/reloading any contained files
   - If files are added to a directory that already exists give that file the auto load state
-DONE;
+DONE
+};
 
 PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
 - Improved item reloading behaviour:
@@ -78,6 +77,7 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
   - Invalid faces are ignored in some cases, in other cases we still fail to parse and don't load the shape
   - Note: The "Invalid Point" defaults to (0,0,0) but is customizable under 'Options' in the main panel
 - Fixed issue where files loaded from the commandline used a relative rather than absolute filename
+- Fixed issue where backfaces were not always rendered properly when the render mode was set to .NORMALS
 - Updated to compiler version beta 0.1.036
 DONE
 };

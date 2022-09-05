@@ -27,7 +27,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
             polyline_aabb := to_polyline_soup(it.aabb);
             for polyline : polyline_aabb.polylines {
                 shape_polyline := array_add(*shape.polylines);
-                <<shape_polyline = polyline;
+                <<shape_polyline = polyline; // @FIXME null check
             }
         }
 

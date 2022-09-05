@@ -16,6 +16,9 @@ App :: struct {
     directories : [..]Directory;
     file_watcher : File_Watcher;
 
+    // When the user adds directories (via drag-drop or via the commandline on startup) show UI asking the user what should be done with the files in those directories
+    pending_directories : [..]Pending_Directory;
+
     Pending_Directory :: struct {
         using directory : Directory;
         unloadable_file_count : int;
@@ -32,8 +35,6 @@ App :: struct {
         loadable_files : [..]Pending_File;
     }
 
-    // When the user adds directories (via drag-drop or via the commandline on startup) show UI asking the user what should be done with the files in those directories
-    pending_directories : [..]Pending_Directory;
 
     INITIAL_WINDOW_WIDTH  : s32 : 1440;
     INITIAL_WINDOW_HEIGHT : s32 : 900;
