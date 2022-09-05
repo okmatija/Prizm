@@ -389,6 +389,10 @@ show_options :: () {
         }
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         Show_Tooltip("Used to handle invalid .obj files. Missing points\nwill be given this position. Invalid (inf/nan)\ncomponents get the corresponding component value");
+
+        // :UserConfig add a button to overwrite the user settings file with new defaults here?
+        inspect("Advanced", *app.settings);
+        clamp_user_settings();
     }
 }
 
@@ -1077,7 +1081,9 @@ show_help_ui :: () {
     cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
                                        make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
+    flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
+    // flags |= .NoMove;
+    // flags |= .NoNav;
     // flags |= .AlwaysHorizontalScrollbar; // Use this when the changelog can be unwrapped
 
     // Set window border color to match the selection/RMB target item color
@@ -1179,10 +1185,6 @@ show_help_ui :: () {
         }
     }
 
-    // :UserConfig add a button to overwrite the user settings file with new defaults here?
-    inspect("Settings", *app.settings);
-    clamp_user_settings();
-
     if ImGui.TreeNodeEx("Changelog") {
         defer ImGui.TreePop();
 
@@ -1258,11 +1260,10 @@ show_pending_directories_ui :: () {
         return;
     }
 
-    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},
-    cond=.ImGuiCond_Appearing);
-    ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
-                                       make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize | .NoMove /*| .NoNav*/;
+    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
+    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
 
@@ -1275,6 +1276,8 @@ show_pending_directories_ui :: () {
     ImGui.Separator();
 
     table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg | .Sortable;
+    // OUTER_SIZE :: #run make_ImVec2(0, 4 * FONT_SIZE);
+    // ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags, outer_size=*OUTER_SIZE);
     ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags);
 
     ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
@@ -1312,26 +1315,33 @@ show_pending_directories_ui :: () {
         sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
     }
 
-    for *loadable_file : dir.loadable_files {
-        using loadable_file;
+    clipper : ImGui.ListClipper;
+    ImGui.ListClipper.Begin(*clipper, xx dir.loadable_files.count);
+    while ImGui.ListClipper.Step(*clipper) {
+        // for *loadable_file : dir.loadable_files {
+        for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
+            using loadable_file := *dir.loadable_files[row_n];
 
-        ImGui.TableNextColumn();
-        checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+            ImGui.TableNextColumn();
+            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
 
-        ImGui.TableNextColumn();
-        ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
+            ImGui.TableNextColumn();
+            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
 
-        size, unit := readable_memory_size_decimal(size_in_bytes);
-        size_with_unit : string;
-        if      size < 10  size_with_unit = tprint("  % %", size, unit);
-        else if size < 100 size_with_unit = tprint( " % %", size, unit);
-        else               size_with_unit = tprint(  "% %", size, unit);
-        ImGui.TableNextColumn();
-        ImGui.Text(size_with_unit);
+            size, unit := readable_memory_size_decimal(size_in_bytes);
+            size_with_unit : string;
+            if      size < 10  size_with_unit = tprint("  % %", size, unit);
+            else if size < 100 size_with_unit = tprint( " % %", size, unit);
+            else               size_with_unit = tprint(  "% %", size, unit);
+            ImGui.TableNextColumn();
+            ImGui.Text(size_with_unit);
 
-        ImGui.TableNextColumn();
-        if loadable_file.is_loaded { // nocommit Set the is_loaded state
-            ImGui.Text("Already loaded");
+            ImGui.TableNextColumn();
+            if loadable_file.is_loaded {
+                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+                ImGui.Text("Already loaded");
+                ImGui.PopStyleColor();
+            }
         }
     }
     ImGui.EndTable();

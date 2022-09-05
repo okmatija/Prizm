@@ -24,9 +24,13 @@ Don't crash when loading an invalid obj file e.g., delete vertices in the cube b
 TODO Make mesh.normals.count == mesh.indices.count so we can support a separate normal at each face vertex, currently the code uses per-vertex normals which is very restrictive
 Asynchronously load files
 Enable visualization of tangent vectors
+List of cases that should just work:
+- junk on the end of a vertex/face definition, should just skip the vertex and attached face
 
 Misc
 ----
+Rename the Stats section to an Information section and put it as the first item, maybe have hovering it write that info in the bottom of the screen
+Add a crosshair at the origin
 nocommit Make the changelog more readable when its very long
 
 */
@@ -40,6 +44,20 @@ nocommit Make the changelog more readable when its very long
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
+PRISM_VERSION_0_2_5 :: App.Version.{"0.2.5", "WIP", #string DONE
+- Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behaviour changes:
+  - Changed the timestamp associated with items loaded from disk to be the file mod time. Previously this was the time the file was loaded into Prism.
+  - Changed reload item button so its disabled if the file mod time and file size are unchanged from when the file was first loaded. The old behaviour where reloads can be triggered with no constraints by unchecking the 'Disable reload if file unchange' box in under Settings. Press h for help
+  - Added an asterisk to the end of item names for items read from disk if the file has been modified or has changed size since it was loaded
+  - Added a checkbox to enable auto-reloading when the file of an item read from disk is modified
+- Added item folders
+  - Items loaded from files on disk are grouped in the item list according to their containing directory path name
+  - Items loaded from preset buttons are grouped together
+  - Items created by console commands are grouped together
+  - Directories dropped into Prism will create folders which default to auto loading/reloading any contained files
+  - If files are added to a directory that already exists give that file the auto load state
+DONE;
+
 PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
 - Improved item reloading behaviour:
   - Items which are preset shapes are 'reloaded' by calling their creation functions again
@@ -52,11 +70,6 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
 - Changed sort_by_name command to make it case insensitive
 - Removed select_remove_selected_items since this is easily accomplished by making a selection and pressing the delete key
 - Preset buttons now act consistently with the global duplicate file behaviour setting (located under the 'Settings' in the help menu)
-- Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behaviour changes:
-  - Changed the timestamp associated with items loaded from disk to be the file mod time. Previously this was the time the file was loaded into Prism.
-  - Changed reload item button so its disabled if the file mod time and file size are unchanged from when the file was first loaded. The old behaviour where reloads can be triggered with no constraints by unchecking the 'Disable reload if file unchange' box in under Settings. Press h for help
-  - Added an asterisk to the end of item names for items read from disk if the file has been modified or has changed size since it was loaded
-  - Added a checkbox to enable auto-reloading when the file of an item read from disk is modified
 - Changed the behaviour of .obj loading so it logs warnings and tries to display broken geometry rather failing to load the shape
   - Missing normals (occuring when a face uses an index which exceeds the number of normals in the file) are set to zero
   - Missing vertices (occuring when a face uses an index which exceeds the number of vertices in the file) are positioned at an "Invalid Point" position
@@ -64,13 +77,6 @@ PRISM_VERSION_0_2_4 :: App.Version.{"0.2.4", "WIP", #string DONE
   - Normals/tangents with invalid components (inf/nan) have those components set to zero
   - Invalid faces are ignored in some cases, in other cases we still fail to parse and don't load the shape
   - Note: The "Invalid Point" defaults to (0,0,0) but is customizable under 'Options' in the main panel
-- Added item grouping
-  - Items loaded from files on disk are grouped in the item list according to their containing directory path name
-  - Items loaded from preset buttons are grouped together
-  - Items created by console commands are grouped together
-  - Directories dropped into Prism will create directory groups which default to auto loading/reloading any contained files
-  - If files are added to a directory that already exists give that file the auto load state
-- TODO Deduplicated vertices in the cube.obj preset shape
 - Fixed issue where files loaded from the commandline used a relative rather than absolute filename
 - Updated to compiler version beta 0.1.036
 DONE
