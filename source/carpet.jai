@@ -101,10 +101,19 @@ maybe_trim_leading_dot_forwardslash :: (_s : string) -> string {
     return s;
 }
 
+maybe_trim_trailing_forwardslash :: (_s : string) -> string {
+    s := _s;
+    if s.count > 1 && s.data[s.count-1] == #char "/" {
+        s.count -= 1;
+    }
+    return s;
+}
+
 canonically_formatted_path_string :: (_path : string) -> string {
     path := get_absolute_path(_path);
     path_overwrite_separators(path, #char "/");
     path = maybe_trim_leading_dot_forwardslash(path);
+    path = maybe_trim_trailing_forwardslash(path);
     return path;
 }
 

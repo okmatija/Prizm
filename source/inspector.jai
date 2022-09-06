@@ -56,7 +56,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
                     inspect(temp_c_string(member.name), data + member.offset_in_bytes, member.type);
                 }
             }
-            Show_Tooltip("These are auto-generated and currently a bit messy");
+            Show_Tooltip("Auto-generated and messy right now");
 
         case .ARRAY;
 

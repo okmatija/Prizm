@@ -247,6 +247,7 @@ main :: () {
 }
 
 
+// @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {
 
     args := get_command_line_arguments();

@@ -1,7 +1,19 @@
 // http://paulbourke.net/dataformats/obj/
 
+/* @Incomplete
+
+Tests covering:
+- Floats should parse properly
+- Files with junk on the end of a vertex/face definition should load and ignore relevant elements (the corrupted vertex/attached faces)
+- ...
+
+*/
+
+ISSUE_005 :: "The .obj loader interprets face directives 'i//j' and 'i/j/k' as 'i//i' and 'i/i/i' e.g., 'f 4//1 5//2 6//3' is loaded as if it were 'f 4//4 5//5 6//6'. Will fix next version."; @KnownIssue
+ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix next version."; @KnownIssue
+ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix next version."; @KnownIssue
+
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
-// @Incomplete Tests
 // @Incomplete Parameter to enable objs with segments to not get converted to polylines?
 
 // @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
@@ -149,7 +161,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
         } else if eat_possible_identifier(*parser, "f") {
 
-            face := parse_face(*parser);
+            face : Obj_Face = parse_face(*parser);
             if face.index_count == 3 || face.index_count == 4 {
                 // @Incomplete Do something with the texture and normal indices
                 array_add(*mesh.indices, face.indices[0]);

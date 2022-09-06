@@ -120,7 +120,6 @@ App :: struct {
     settings : User_Settings;
 
     closing_application := false; // Set this to true to quit the application on the next frame
-    show_imgui_demo_window := false;
 
     // Vertices with inf/nan components are replaced with the corresponding coordinate of invalid_point
     // Indices that reference missing vertices will reference a new point positioned at invalid_point
@@ -277,6 +276,8 @@ User_Settings :: struct {
 
     show_header_annotation_tooltips := true;
     disable_reload_if_file_unchanged := true; // This can be annoying but otoh saves pointlessly loading unchanged files
+
+    show_imgui_demo_window := false;
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {

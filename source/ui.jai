@@ -388,7 +388,6 @@ show_options :: () {
         ImGui.Checkbox("Disable reload when file unchanged", *app.settings.disable_reload_if_file_unchanged);
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-        ImGui.Checkbox("Show ImGui Demo", *app.show_imgui_demo_window);
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
             if ImGui.Button("Reset OS Window Size") {
                 SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
@@ -849,6 +848,8 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
             ImGui.Separator();
 
+            display_information(entity);
+
             normals_ui :=  entity.type == .MESH || entity.type == .POINT_CLOUD || entity.type == .POLYLINE_SOUP3;
             lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
             faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES) || entity.type == .POLYGON_SOUP;
@@ -859,8 +860,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             if set.color_reset {
                 reset_entity_primary_color(entity);
             }
-
-            display_stats(entity);
 
             display_transform(entity);
 
@@ -1422,8 +1421,8 @@ show_pending_directories_ui :: () {
 
 
 show_imgui_demo_window :: () {
-    if app.show_imgui_demo_window {
-        ImGui.ShowDemoWindow(*app.show_imgui_demo_window);
+    if app.settings.show_imgui_demo_window {
+        ImGui.ShowDemoWindow(*app.settings.show_imgui_demo_window);
     }
 }
 
@@ -1625,8 +1624,8 @@ display_info_ui :: (
     return set;
 }
 
-display_stats :: (entity : *Entity) {
-    if ImGui.TreeNodeEx("Stats", .SpanAvailWidth) {
+display_information :: (entity : *Entity) {
+    if ImGui.TreeNodeEx("Information", .SpanAvailWidth) {
         defer ImGui.TreePop();
         ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
         defer ImGui.PopStyleColor();
