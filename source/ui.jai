@@ -138,28 +138,22 @@ show_item_list_ui :: () {
                         // selectable_hovered_color :: ImGui.Col.Header;
                         // selectable_hovered_held_color :: ImGui.Col.Header;
 
-                        get_context_menu_target_item :: () -> int {
-                            for app.entities {
-                                // @Volatile Search usages before changing label here
-                                if ImGui.IsPopupOpen(imgui_label("##context_menu", xx it_index)) {
-                                    return it_index;
-                                }
-                            }
-                            return -1;
-                        }
-
                         // Indicate that the popup will be opened for this item if its hovered with RMB down
                         if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
                         defer if io_mouse_right_down() ImGui.PopStyleColor();
 
-                        popup_item := get_context_menu_target_item();
-                        if popup_item == -1 {
+                        if ImGui.IsPopupOpen(imgui_label("##context_menu", xx entity_index)) {
+                            context_menu_popup_item = entity_index;
+                            context_menu_popup_item_should_reset = false;
+                        }
+
+                        if context_menu_popup_item == -1 {
                             // Use the default Selectable widget
                             if ImGui.Selectable(to_c_string(text), *entity.is_selected) {
                                 if !io().KeyCtrl entity.is_selected = !entity.is_selected;
                             }
                         } else { // Need to fiddle with some colors to indicate what the popup is editing
-                            if app.entities[popup_item].is_selected {
+                            if app.entities[context_menu_popup_item].is_selected {
                                 // Use the default Selectable widget, but customize the selected color
                                 ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
                                 ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
@@ -169,7 +163,7 @@ show_item_list_ui :: () {
                                 ImGui.PopStyleColor();
                                 ImGui.PopStyleColor();
                             } else {
-                                if popup_item == entity_index {
+                                if context_menu_popup_item == entity_index {
                                     // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
                                     if selectable_with_bg_color(join(text, tprint("##%", entity)), *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
                                         if !io().KeyCtrl entity.is_selected = !entity.is_selected;
@@ -236,7 +230,6 @@ show_item_list_ui :: () {
                 entity.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
 
                 show_item_context_menu(entity, entity_index);
-
                 return result;
             } // end show_item_entry()
 
@@ -249,6 +242,8 @@ show_item_list_ui :: () {
             entity_to_remove := -1;
             any_visibility_changed : bool;
             show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
+
+            context_menu_popup_item_should_reset = true;
                         
             info_enum : Type_Info_Enum = type_info(Entity_Source);
             assert(info_enum.enum_type_flags & .FLAGS == 0);
@@ -333,6 +328,11 @@ show_item_list_ui :: () {
                 }
             }
 
+            // We use the context_menu_popup_item to determine the color of the selectable widgets in the loop above, this means we cant reset it to -1 at the start of the loop because e.g., if all items are selected but we make a popup on a later one we will render the earlier ones in the wrong color. We need to know the result from the previous frame but we also need to reset it to -1 when there are no popups showing, which we do here
+            if context_menu_popup_item_should_reset {
+                context_menu_popup_item = -1;
+            }
+
             if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
                 remove_entity_by_index(entity_to_remove);
             }
@@ -345,6 +345,9 @@ show_item_list_ui :: () {
         }
     }
 }
+
+context_menu_popup_item : int = -1;
+context_menu_popup_item_should_reset : bool = true;
 
 
 show_add_item_ui :: () {
@@ -468,7 +471,7 @@ show_selection_ui :: () {
             // Set popup border color to match the selection/RMB target item color
             original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
-            if ImGui.BeginPopupContextItem(imgui_label("##context_menu", it)) {
+            if ImGui.BeginPopupContextItem(imgui_label("##selection_context_menu", it)) {
                 defer ImGui.EndPopup();
 
                 // Undo the previous thing so internals don't have this color

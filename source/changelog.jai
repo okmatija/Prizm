@@ -1,22 +1,14 @@
 /*
 
-Directories support (0.2.4)
--------------------
-nocommit Fix selection color not working across directories
-
 OBJ support (0.3.0)
 -----------
->>> Improve the obj loading, make it work when indices are negative, and make the vertices store normals and tangents too
 Fix the missing annotations when reading file: E:\Dropbox\Prism\shapes-novc\Debug_Points_-1.000_+0.000_+0.000.obj
 Fix annotations on polyline soup entities
-Make -1 reference the last item in the item list, so you can run commands without knowing the entity index, this can be used make commands put into obj file comments work, particularly color related ones
 Just handle comments on the p directive, concat them with the comment on the vertex..?
 Check that floats with + starting them are parsed
-Is there a more robust string to float method?
 Don't crash when loading an invalid obj file e.g., delete vertices in the cube but keep the faces
 TODO Make mesh.normals.count == mesh.indices.count so we can support a separate normal at each face vertex, currently the code uses per-vertex normals which is very restrictive
 Asynchronously load files
-Enable visualization of tangent vectors
 List of cases that should just work:
 - junk on the end of a vertex/face definition, should just skip the vertex and attached face
 
@@ -28,6 +20,9 @@ nocommit Make the changelog more readable when its very long
 
 Deferred
 --------
+Implement overlays for visualization of tangent vectors
+Is there a more robust string to float method?
+Make -1 reference the last item in the item list, so you can run commands without knowing the entity index, this can be used make commands put into obj file comments work, particularly color related ones
 nocommit search "  <<" and figure out what to do
 nocommit Highlight background of folder name when doing RMB menu
 
