@@ -70,6 +70,7 @@ PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "6 September 2022", #string DONE
 
 - Misc UI improvements
 
+  - Added ability to change the global font scale using the slider in the Options menu, this is basic and can become blocky, it'll be reworked at some point
   - Added a feature where Shift LMB on the item name will center the camera on the item and have the item fill the screen while positioning near/far planes so the rest of the scene is visible
   - Changed the timestamp associated with items loaded from disk to be the file mod time. Previously this was the time the file was loaded into Prism.
 

@@ -395,6 +395,7 @@ show_options :: () {
         }
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         Show_Tooltip("Used to handle invalid .obj files. Missing points\nwill be given this position. Invalid (inf/nan)\ncomponents get the corresponding component value");
+        ImGui.DragFloat("Global font scale", *io().FontGlobalScale, .001, format="%.3f");
 
         // :UserConfig add a button to overwrite the user settings file with new defaults here?
         inspect("Advanced", *app.settings);
