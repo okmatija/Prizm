@@ -1736,9 +1736,13 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
         if entity.annotations.count {
 
-            if ImGui.BeginTable("##Annotations_Table", 4) {
+            clipper : ImGui.ListClipper;
+            ImGui.ListClipper.Begin(*clipper, xx entity.annotations.count);
+            table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg;
+            if ImGui.BeginTable("##Annotations_Table", 4, table_flags) {
                 defer ImGui.EndTable();
-                for *annotation : entity.annotations {
+                while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
+                    annotation := *entity.annotations[row_n];
                     ImGui.TableNextRow();
 
                     ImGui.TableNextColumn();
