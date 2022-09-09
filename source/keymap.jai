@@ -326,6 +326,33 @@ CYCLE_ELEMENT_LABEL_ACTION_SET :: Action_Set.{
     key=#char "i",
 };
 
+cycle_annotation_progress_proc :: (target : Target_Items) -> Fraction {
+    app_info_copy := app.selection_display_info;
+    return cycle_annotation_theme(target, *app_info_copy.annotation_theme);
+}
+
+CYCLE_ANNOTATION_ACTION_SET :: Action_Set.{
+    target_action=.[
+        .{
+            target=.VISIBLE,
+            proc=()=>{cycle_annotation(.VISIBLE);},
+            progress_proc=()=>cycle_annotation_progress_proc(.VISIBLE),
+        },
+        .{
+            target=.SELECTED,
+            proc=()=>{cycle_annotation(.SELECTED);},
+            progress_proc=()=>cycle_annotation_progress_proc(.SELECTED),
+        },
+        .{
+            target=.ALL_ITEMS,
+            proc=()=>{cycle_annotation(.ALL_ITEMS);},
+            progress_proc=()=>cycle_annotation_progress_proc(.ALL_ITEMS),
+        },
+    ],
+    desc="Cycle annotations for",
+    key=#char "k",
+};
+
 cycle_opacity_progress_proc :: (target : Target_Items) -> Fraction {
     app_info_copy := app.selection_display_info;
     return cycle_opacity_progress_proc(*app_info_copy);
@@ -469,6 +496,7 @@ init_keymap :: () {
     add_key(*app.keymap_actions, CYCLE_POINT_SIZE_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
+    add_key(*app.keymap_actions, CYCLE_ANNOTATION_ACTION_SET);
     add_key(*app.keymap_actions, CLEAR_LABELS_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_BACKFACE_MODE_ACTION_SET);
     add_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
@@ -601,6 +629,7 @@ clear_all_labels :: (target : Target_Items) {
         it.display_info.vertex_label_style.show_position = false;
         it.display_info.element_label_theme.show_index = false;
         it.display_info.element_label_theme.show_position = false;
+        it.display_info.annotation_theme.visible = false;
     }
 
     // Also clear the display info used to set action button state
@@ -609,7 +638,44 @@ clear_all_labels :: (target : Target_Items) {
     app_info.vertex_label_style.show_position = false;
     app_info.element_label_theme.show_index = false;
     app_info.element_label_theme.show_position = false;
+    app_info.annotation_theme.visible = false;
 }
+
+// nocommit simplify this?? just make it a toggle
+cycle_annotation_theme :: (target : Target_Items, theme : *Annotation_Theme) -> Fraction {
+
+    result : Fraction;
+    result.denom = 1;
+
+    State :: enum {
+        OFF :: 0b00;
+        ON ::  0b01;
+    }
+
+    // Get State from theme
+    state : State = xx theme.visible;
+
+    // Cycle State (always add/remove one bit of text)
+    if #complete state == {
+        case .OFF; result.numer = 0; state = .ON;
+        case .ON;  result.numer = 1; state = .OFF;
+    }
+
+    // Set theme from State
+    theme.visible = xx state & 0b01;
+    return result;
+}
+
+cycle_annotation :: (target : Target_Items) {
+    theme := *app.selection_display_info.annotation_theme;
+
+    cycle_annotation_theme(target, theme);
+
+    for app.entities if Is_Target(it) {
+        it.display_info.annotation_theme.visible = theme.visible;
+    }
+}
+
 
 cycle_label_theme :: (target : Target_Items, theme : *Label_Theme) -> Fraction {
 

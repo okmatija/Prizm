@@ -698,6 +698,8 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET);
 
+        Action_Button("Tgl Annotation", CYCLE_ANNOTATION_ACTION_SET);
+
         Action_Button("Tgl Clipping  ", TOGGLE_CLIPPING_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Tgl Normals   ", TOGGLE_NORMALS_ACTION_SET);
@@ -731,6 +733,11 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
         if set.element_label_theme_update.label_color       element_label_theme.label_color       = other.element_label_theme.label_color;
         if set.element_label_theme_update.show_backfacing   element_label_theme.show_backfacing   = other.element_label_theme.show_backfacing;
         if set.element_label_theme_update.visible_radius_px element_label_theme.visible_radius_px = other.element_label_theme.visible_radius_px;
+
+        if set.annotation_theme_update.visible           annotation_theme.visible           = other.annotation_theme.visible;
+        if set.annotation_theme_update.visible_radius_px annotation_theme.visible_radius_px = other.annotation_theme.visible_radius_px;
+        if set.annotation_theme_update.label_scale       annotation_theme.label_scale       = other.annotation_theme.label_scale;
+        if set.annotation_theme_update.label_color       annotation_theme.label_color       = other.annotation_theme.label_color;
 
         if set.is_visible           is_visible           = other.is_visible;
         if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
@@ -850,6 +857,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             ImGui.Separator();
 
             display_information(entity);
+            display_transform(entity);
 
             normals_ui :=  entity.type == .MESH || entity.type == .POINT_CLOUD || entity.type == .POLYLINE_SOUP3;
             lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
@@ -861,8 +869,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
             if set.color_reset {
                 reset_entity_primary_color(entity);
             }
-
-            display_transform(entity);
 
             display_annotations(entity, entity_index);
         } else {
@@ -1143,7 +1149,7 @@ show_help_ui :: () {
         Show_Binding("LMB", "(on a filename) Focus an item");
         Show_Binding("Ctrl LMB", "(on a filename) Select an item");
         Show_Binding("Shift LMB", "(on a filename) Focus an item and zoom in");
-        Show_Binding("RMB", "(on a filename) Open context menu which modifies only clicked item");
+        Show_Binding("RMB", "(on a filename) Open context menu which modifies only the clicked item");
         Show_Binding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
         Show_Binding("RMB", "(on a color) Cycle shading styles");
         Show_Binding("MMB", "(on a color) Reset color from the filename");
@@ -1440,6 +1446,13 @@ Label_Theme_Update :: struct {
     show_backfacing : bool;
 }
 
+Annotation_Theme_Update :: struct {
+    visible : bool;
+    visible_radius_px : bool;
+    label_scale : bool;
+    label_color : bool;
+}
+
 // @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
 Display_Info_Update :: struct {
 
@@ -1450,6 +1463,7 @@ Display_Info_Update :: struct {
     points_size : bool;
     vertex_label_style_update : Label_Theme_Update;
     element_label_theme_update : Label_Theme_Update;
+    annotation_theme_update : Annotation_Theme_Update;
 
     normals_visible : bool;
     normals_color : [4]bool;
@@ -1599,7 +1613,7 @@ display_info_ui :: (
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
             set.backface_mode = combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-            Show_Tooltip("Backface Mode");
+            Show_Tooltip("Backface Render Mode");
             ImGui.PopItemWidth();
             ImGui.SameLine();
             set.flat_shading = ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
@@ -1620,6 +1634,25 @@ display_info_ui :: (
     if ImGui.TreeNodeEx("Element Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
         show_label_theme_ui(*set.element_label_theme_update, *display_info.element_label_theme);
+    }
+
+    if ImGui.TreeNodeEx("Annotation Labels", .SpanAvailWidth) {
+        defer ImGui.TreePop();
+
+        theme :  *Annotation_Theme = *display_info.annotation_theme;
+        update : *Annotation_Theme_Update = *set.annotation_theme_update;
+
+        update.visible = ImGui.Checkbox("Visible", *theme.visible);
+
+        // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
+        update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+        update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
+
+        // Visible radius
+        radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+        radius_px := cast(float) theme.visible_radius_px;
+        update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+        theme.visible_radius_px = cast(int) radius_px;
     }
 
     return set;
@@ -1659,6 +1692,7 @@ display_information :: (entity : *Entity) {
                 if #complete mesh.mesh.geometry_format == {
                     case .UNKNOWN; #through;
                     case .POINTS;
+                        // @Cleanup: This never happens, its handled in .POINT_
                         ImGui.Text("Mesh #points = %", mesh.mesh.positions.count);
                     case .LINES;
                         ImGui.Text("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2);
@@ -1686,6 +1720,7 @@ display_transform :: (entity : *Entity) {
     }
 }
 
+// nocommit Use a clipper here!!
 display_annotations :: (entity : *Entity, entity_index : int) {
 
     header := "Annotations (none)";

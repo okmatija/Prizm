@@ -30,6 +30,36 @@ debug_toggle_fps :: () {
     app.show_fps = !app.show_fps;
 } @RegisterCommand
 
+// Clear annotations and then fake ones to the item with the given id
+debug_fake_annotations :: (id : int) {
+    // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    item := app.entities[id];
+    array_reset_keeping_memory(*item.annotations); // nocommit @Leak!
+
+    for item.mesh.positions {
+        annotation : Annotation;
+        annotation.kind = .VERTEX;
+        annotation.text = sprint("v %", it_index);
+        annotation.id = it_index;
+        array_add(*item.annotations, annotation);
+    }
+
+    for :TrianglesIterator item.mesh {
+        annotation : Annotation;
+        annotation.kind = .TRIANGLE;
+        annotation.text = sprint("f %, rand %", it_index, random_get_zero_to_one());
+        annotation.id = it_index;
+        array_add(*item.annotations, annotation);
+    }
+
+    log("# Cleared annotations and added fake ones");
+
+} @RegisterCommand
+
 // Show the history of console commands
 console_history :: () {
     console_log_clear();

@@ -1,7 +1,7 @@
 // @Cleanup Maybe this should be a debug command only
 
 // Adds items to visualize the spatial index of the given item
-// `jumbo_item`    if true only one item is added is the distance between adjacent grid points in each world axes direction
+// `jumbo_item`    if true all AABBs are visualized as a single polyline soup
 debug_spatial_index :: (id : int, jumbo_item : int = 0) {
     if !check_geometry_index(id) {
         return;
@@ -185,6 +185,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         }
     } // end else of if jumbo_item
 } @RegisterCommand
+
 
 debug_delete_spatial_index :: (id : int) {
     if !check_geometry_index(id) {

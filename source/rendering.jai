@@ -5,7 +5,7 @@ Label_Theme :: struct {
     show_position := false;
     show_index := false;
 
-    visible_radius_px : int = 200;
+    visible_radius_px : int = 50;
     show_backfacing : bool = true;
 
     // world_space : bool = false; // @Incomplete
@@ -14,6 +14,13 @@ Label_Theme :: struct {
     format_float.trailing_width = 8;
     format_float.zero_removal = .NO;
 
+    label_scale := .3;
+    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+}
+
+Annotation_Theme :: struct {
+    visible := false;
+    visible_radius_px : int = 50;
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
@@ -109,7 +116,7 @@ Display_Info :: struct {
     points_size : s32 = 0;
     vertex_label_style : Label_Theme;
     element_label_theme : Label_Theme;
-
+    annotation_theme : Annotation_Theme;
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
@@ -484,7 +491,7 @@ get_text_screen_position :: (point : Vector3, projection_from_model : Matrix4) -
     return result.xy;
 }
 
-on_screen_in_disk :: (text_position_px : Vector2, theme : Label_Theme) -> bool {
+on_screen_in_disk :: (text_position_px : Vector2, visible_radius_px : int) -> bool {
     if io().MousePos == make_ImVec2(-FLOAT32_MAX,-FLOAT32_MAX) {
         return false;
     }
@@ -497,7 +504,7 @@ on_screen_in_disk :: (text_position_px : Vector2, theme : Label_Theme) -> bool {
     }
 
     mouse_position_px := make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y);
-    if distance(mouse_position_px, text_position_px) > xx theme.visible_radius_px {
+    if distance(mouse_position_px, text_position_px) > xx visible_radius_px {
         return false;
     }
 
@@ -577,12 +584,15 @@ render_entities :: () {
     render_entity_text :: (entity : *Entity) {
         Simp.ScopeContext();
 
+        // nocommit, why not using here?
         point_theme := entity.display_info.vertex_label_style;
         element_theme := entity.display_info.element_label_theme;
+        annotation_theme := entity.display_info.annotation_theme;
         if point_theme.show_position   == false &&
            point_theme.show_index      == false &&
            element_theme.show_position == false &&
-           element_theme.show_index    == false {
+           element_theme.show_index    == false &&
+           annotation_theme.visible    == false {
             return;
         }
 
@@ -597,6 +607,7 @@ render_entities :: () {
         // Caches for glyph quads
         point_label_quads :   [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
         element_label_quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
+        annotation_quads :    [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
 
         projection_from_model := make_projection_from_world(app.camera) * entity.mesh.world_from_model;
 
@@ -613,9 +624,9 @@ render_entities :: () {
                     if is_clipped(entity.display_info, point_world) continue;
 
                     text_position_px := get_text_screen_position(make_vector3(it, 0), projection_from_model);
-                    if on_screen_in_disk(text_position_px, point_theme) {
+                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                         text := get_point_text(it, it_index, point_theme);
-                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
@@ -625,9 +636,9 @@ render_entities :: () {
                     if is_clipped(entity.display_info, centroid_world) continue;
 
                     text_position_px := get_text_screen_position(centroid, projection_from_model);
-                    if on_screen_in_disk(text_position_px, element_theme) {
+                    if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
                         text := get_point_text(centroid, it_index, element_theme);
-                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
 
@@ -635,14 +646,32 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
 
+                for entity.annotations {
+                    if it.kind == .VERTEX {
+                        pos : Vector3 = soup.mesh.positions[it.id];
+                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        if is_clipped(entity.display_info, point_world) {
+                            continue;
+                        }
+
+                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                        }
+                    } else if it.kind == .LINE {
+
+                        // nocommit @Incomplete
+                    }
+                }
+
                 for :Point_Iterator soup.shape {
                     point_world := transform_point(entity.mesh.world_from_model, it);
                     if is_clipped(entity.display_info, point_world) continue;
 
                     text_position_px := get_text_screen_position(it, projection_from_model);
-                    if on_screen_in_disk(text_position_px, point_theme) {
+                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                         text := get_point_text(it, it_index, point_theme);
-                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
@@ -652,9 +681,9 @@ render_entities :: () {
                     if is_clipped(entity.display_info, centroid_world) continue;
 
                     text_position_px := get_text_screen_position(centroid, projection_from_model);
-                    if on_screen_in_disk(text_position_px, element_theme) {
+                    if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
                         text := get_point_text(centroid, it_index, element_theme);
-                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
 
@@ -671,9 +700,9 @@ render_entities :: () {
                         if is_clipped(entity.display_info, point_world) continue;
 
                         text_position_px := get_text_screen_position(make_vector3(it, 0), projection_from_model);
-                        if on_screen_in_disk(text_position_px, point_theme) {
+                        if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                             text := get_point_text(it, it_index, point_theme);
-                            cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
+                            cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                         }
                     }
 
@@ -682,9 +711,9 @@ render_entities :: () {
                         if is_clipped(entity.display_info, point_world) continue;
 
                         text_position_px := get_text_screen_position(make_vector3(it, 0), projection_from_model);
-                        if on_screen_in_disk(text_position_px, point_theme) {
+                        if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                             text := get_point_text(it, it_index, point_theme);
-                            cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
+                            cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                         }
                     }
                 }
@@ -693,6 +722,21 @@ render_entities :: () {
 
                 cloud := cast(*Point_Cloud_Entity) entity;
                 count := cloud.mesh.positions.count;
+
+                for entity.annotations {
+                    if it.kind == .VERTEX {
+                        pos : Vector3 = cloud.mesh.positions[it.id];
+                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        if is_clipped(entity.display_info, point_world) {
+                            continue;
+                        }
+
+                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                        }
+                    }
+                }
 
                 for cloud.mesh.positions {
                     if point_theme.show_backfacing == false {
@@ -707,9 +751,9 @@ render_entities :: () {
                     }
 
                     text_position_px := get_text_screen_position(it, projection_from_model);
-                    if on_screen_in_disk(text_position_px, point_theme) {
+                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                         text := get_point_text(it, it_index, point_theme);
-                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
@@ -718,6 +762,39 @@ render_entities :: () {
                 mesh := cast(*Mesh_Entity) entity;
                 count := mesh.mesh.positions.count;
 
+                // @Speed this should use the spatial index??
+                for entity.annotations {
+                    if it.kind == {
+                        case .VERTEX;
+
+                            pos : Vector3 = mesh.mesh.positions[it.id];
+                            point_world := transform_point(entity.mesh.world_from_model, pos);
+                            if is_clipped(entity.display_info, point_world) {
+                                continue;
+                            }
+
+                            text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                            if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                                cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                            }
+
+                        case .TRIANGLE;
+
+                            triangle : Triangle3 = inline get_triangle(mesh.mesh, it.id);
+                            centroid := (triangle.a + triangle.b + triangle.c) / 3;
+                            centroid_world := transform_point(entity.mesh.world_from_model, centroid);
+                            if is_clipped(entity.display_info, centroid_world) {
+                                continue;
+                            }
+
+                            text_position_px := get_text_screen_position(centroid, projection_from_model);
+                            if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
+                                cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                            }
+                    }
+                }
+
+                // @Speed this should use the spatial index??
                 for mesh.mesh.positions {
                     if point_theme.show_backfacing == false {
                         if mesh.mesh.normals.count && dot_product(mesh.mesh.normals[it_index], current_look_direction()) > 0 {
@@ -731,9 +808,9 @@ render_entities :: () {
                     }
 
                     text_position_px : Vector2 = get_text_screen_position(it, projection_from_model);
-                    if on_screen_in_disk(text_position_px, point_theme) {
+                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                         text := get_point_text(it, it_index, point_theme);
-                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
@@ -749,15 +826,17 @@ render_entities :: () {
                     if is_clipped(entity.display_info, centroid_world) continue;
 
                     text_position_px := get_text_screen_position(centroid, projection_from_model);
-                    if on_screen_in_disk(text_position_px, element_theme) {
+                    if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
                         text := get_point_text(centroid, triangle_index, element_theme);
-                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
 
                 if mesh.spatial == null {
                     // log_error("Use brute force");
-                    for :TrianglesIterator mesh.mesh ProcessTriangle(it, it_index);
+                    for :TrianglesIterator mesh.mesh {
+                        ProcessTriangle(it, it_index);
+                    }
                 } else {
                     // log_error("Use spatial index");
 
@@ -767,12 +846,15 @@ render_entities :: () {
                     // @Incomplete Support perspective projection
                     distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
 
-                    Visit_Primitives_Near_Ray(mesh.spatial, ray_model, distance, #code ProcessTriangle(primitive, primitive_id));
+                    Visit_Primitives_Near_Ray(mesh.spatial, ray_model, distance,
+                        #code ProcessTriangle(primitive, primitive_id)
+                    );
                 }
         }
 
-        draw_cached_text_quads(point_label_quads, point_theme);
-        draw_cached_text_quads(element_label_quads, element_theme);
+        draw_cached_text_quads(point_label_quads, point_theme.label_color);
+        draw_cached_text_quads(element_label_quads, element_theme.label_color);
+        draw_cached_text_quads(annotation_quads, annotation_theme.label_color);
     }
 
     is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }
@@ -871,14 +953,14 @@ render_background :: () {
 #scope_file
 
 // Generate and cache quad data before its lost on the next call to prepare_text
-cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Vector2, theme : Label_Theme) {
+cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Vector2, scale : float) {
     Simp.prepare_text(app.simp_font, text);
-    Simp.generate_quads_for_prepared_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, 0, theme.label_scale);
+    Simp.generate_quads_for_prepared_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, 0, scale);
     for app.simp_font.current_quads array_add(cache, it);
 }
 
-draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, theme : Label_Theme) {
+draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
     cached_font : Simp.Dynamic_Font = <<app.simp_font;
     cached_font.current_quads = quads;
-    Simp.draw_generated_quads(*cached_font, theme.label_color);
+    Simp.draw_generated_quads(*cached_font, color);
 }

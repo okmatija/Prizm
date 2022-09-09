@@ -34,6 +34,18 @@ nocommit load files before directories so that already loaded happens first
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
+
+PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc1", "WIP", #string DONE
+- Improved annotation support
+
+  - Added in-viewport annotation visualization which can be toggled using the new keybinding `k`, or via a new button in the Actions menu
+  - Annotations on vertices/faces/edges are visualized in the same way as labels ie positioned at the vertex, or face/edge centroids
+  - Changed keybinding `x` so that it also clears the labels associated with annotations
+
+- Reduced the default radius for labeling in a disk around the cursor from 200 to 50 pixels
+DONE
+};
+
 PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "6 September 2022", #string DONE
 - Improved item reloading behaviour
 
@@ -272,6 +284,7 @@ DONE
 };
 
 init_changelog :: () {
+    array_add(*app.changelog, PRISM_VERSION_0_3_1);
     array_add(*app.changelog, PRISM_VERSION_0_3_0);
     array_add(*app.changelog, PRISM_VERSION_0_2_2);
     array_add(*app.changelog, PRISM_VERSION_0_2_1);
