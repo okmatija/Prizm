@@ -430,8 +430,9 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
     sphere : Sphere;
 
     if #complete entity.type == {
-        case .MESH; #through;
-        case .POINT_CLOUD;
+        case .SEGMENT_SOUP3; #through;
+        case .POINT_CLOUD;   #through;
+        case .MESH;
 
             vid_max := entity.mesh.positions.count - 1;
             if vertex_index < 0 || vertex_index > vid_max {
@@ -627,14 +628,10 @@ item_perturb_positions :: (id : int, radius : float = .001) {
                 Perturb3(point);
             }
             entity.mesh = to_Mesh(entity.shape);
-        case .POINT_CLOUD;
-            entity := cast(*Point_Cloud_Entity)base;
-            for * point : entity.mesh.positions {
-                Perturb3(point);
-            }
+        case .SEGMENT_SOUP3; #through;
+        case .POINT_CLOUD;   #through;
         case .MESH;
-            entity := cast(*Mesh_Entity)base;
-            for * point : entity.mesh.positions {
+            for * point : base.mesh.positions {
                 Perturb3(point);
             }
         case .UNKNOWN;

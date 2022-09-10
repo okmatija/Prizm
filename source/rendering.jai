@@ -544,6 +544,14 @@ render_entities :: () {
                 render_normals(*soup.mesh, ri, di);
                 render_aabb(*soup.mesh, ri, di);
 
+            case .SEGMENT_SOUP3;
+
+                soup := cast(*Segment_Soup3_Entity) entity;
+                render_mesh_points(*soup.mesh, ri, di);
+                render_mesh_lines(*soup.mesh, ri, di);
+                render_normals(*soup.mesh, ri, di);
+                render_aabb(*soup.mesh, ri, di);
+
             case .POLYGON_SOUP;
 
                 soup := cast(*Polygon_Soup_Entity) entity;
@@ -677,6 +685,60 @@ render_entities :: () {
 
                 for :SegmentIterator soup.shape {
                     centroid := (<<it.from_point + <<it.to_point) / 2;
+                    centroid_world := transform_point(entity.mesh.world_from_model, centroid);
+                    if is_clipped(entity.display_info, centroid_world) continue;
+
+                    text_position_px := get_text_screen_position(centroid, projection_from_model);
+                    if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
+                        text := get_point_text(centroid, it_index, element_theme);
+                        cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
+                    }
+                }
+
+            case .SEGMENT_SOUP3;
+
+                soup := cast(*Segment_Soup3_Entity) entity;
+
+                for entity.annotations {
+                    if it.kind == .VERTEX {
+                        pos : Vector3 = soup.mesh.positions[it.id];
+                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        if is_clipped(entity.display_info, point_world) {
+                            continue;
+                        }
+
+                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                        }
+                    } else if it.kind == .LINE {
+                        segment : Segment3 = get_segment3(soup.mesh, it.id);
+                        pos := (segment.start + segment.end) / 2;
+                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        if is_clipped(entity.display_info, point_world) {
+                            continue;
+                        }
+
+                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                        }
+                    }
+                }
+
+                for soup.shape.positions {
+                    point_world := transform_point(entity.mesh.world_from_model, it);
+                    if is_clipped(entity.display_info, point_world) continue;
+
+                    text_position_px := get_text_screen_position(it, projection_from_model);
+                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
+                        text := get_point_text(it, it_index, point_theme);
+                        cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
+                    }
+                }
+
+                for :Segment_Iterator soup.mesh {
+                    centroid := (it.start + it.end) / 2;
                     centroid_world := transform_point(entity.mesh.world_from_model, centroid);
                     if is_clipped(entity.display_info, centroid_world) continue;
 

@@ -1675,6 +1675,11 @@ display_information :: (entity : *Entity) {
                 using soup := cast(*Polyline_Soup3_Entity)entity;
                 ImGui.Text("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
 
+            case .SEGMENT_SOUP3;
+
+                using soup := cast(*Segment_Soup3_Entity)entity;
+                ImGui.Text("SegmentSoup3 #points, #polylines = %, %", soup.mesh.positions.count, soup.mesh.indices.count / 2);
+
             case .POLYGON_SOUP;
 
                 using soup := cast(*Polygon_Soup_Entity)entity;

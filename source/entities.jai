@@ -1,10 +1,11 @@
 Entity_Type :: enum {
     // GENERAL_OBJ; // See what the snake example does
-    MESH;
+    MESH; // nocommit rename this to TRIANGLE_MESH, and the corresponding Mesh_Entity to Triangle_Mesh_Entity
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
     POLYGON_SOUP;
-    POINT_CLOUD;
+    POINT_CLOUD;   // isa Mesh
+    SEGMENT_SOUP3; // isa Mesh
     UNKNOWN;
 }
 
@@ -58,6 +59,7 @@ Entity :: struct {
     // - Bounding shapes in render_info
     mesh : Mesh;
 
+    // @Incomplete Perhaps there should be a pool for the annotation strings?
     // Interpretation depends on Entity_Type (I think)
     annotations : [..]Annotation;
 
@@ -126,6 +128,18 @@ Polygon_Soup_Entity :: struct {
     spatial : *AABB_Tree(Shape);
 }
 
+Segment_Soup3_Entity :: struct {
+    #as using base : Entity;
+    type = .SEGMENT_SOUP3;
+    display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
+
+    Shape :: Segment_Soup3;
+    spatial : *AABB_Tree(Shape);
+
+#place mesh;
+    shape : Shape = ---; // Alias for consistency
+}
+
 Point_Cloud_Entity :: struct {
     #as using base : Entity;
     type = .POINT_CLOUD;
@@ -138,6 +152,7 @@ Point_Cloud_Entity :: struct {
     shape : Shape = ---; // Alias for consistency
 }
 
+// mesh.geometry_format will be .TRIANGLES for a Mesh_Entity
 Mesh_Entity :: struct {
     #as using base : Entity;
     type = .MESH;
@@ -181,6 +196,7 @@ update_entity_transform :: (entity : *Entity, shift : Vector3) {
 }
 
 clear :: (base : *Entity) {
+    // nocommit @Cleanup Pull out all the clear mesh calls
     if #complete base.type == {
         case .UNKNOWN;
             // do nothing
@@ -201,6 +217,11 @@ clear :: (base : *Entity) {
             entity := cast(*Polyline_Soup3_Entity)base;
             clear(*entity.mesh);
             clear(*entity.shape);
+
+        case .SEGMENT_SOUP3;
+
+            entity := cast(*Segment_Soup3_Entity)base;
+            clear(*entity.mesh);
 
         case .POLYGON_SOUP;
 
@@ -262,6 +283,8 @@ deinit :: (base : *Entity) {
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
+            for entity.annotations free(it.text);
+            array_reset(*entity.annotations);
 
         case .POLYLINE_SOUP3;
 
@@ -269,6 +292,8 @@ deinit :: (base : *Entity) {
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
+            for entity.annotations free(it.text);
+            array_reset(*entity.annotations);
 
         case .POLYGON_SOUP;
 
@@ -276,12 +301,24 @@ deinit :: (base : *Entity) {
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
+            for entity.annotations free(it.text);
+            array_reset(*entity.annotations);
 
         case .POINT_CLOUD;
 
             entity := cast(*Point_Cloud_Entity)base;
             deinit(*entity.mesh);
             deinit(entity.spatial);
+            for entity.annotations free(it.text);
+            array_reset(*entity.annotations);
+
+        case .SEGMENT_SOUP3;
+
+            entity := cast(*Segment_Soup3_Entity)base;
+            deinit(*entity.mesh);
+            deinit(entity.spatial);
+            for entity.annotations free(it.text);
+            array_reset(*entity.annotations);
 
         case .MESH;
 
@@ -376,6 +413,7 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4 {
     if #complete type == {
         case .POLYLINE_SOUP2; return *display_info.wireframe_color;
         case .POLYLINE_SOUP3; return *display_info.wireframe_color;
+        case .SEGMENT_SOUP3;  return *display_info.wireframe_color;
         case .POLYGON_SOUP;   return *display_info.surface_color;
         case .POINT_CLOUD;    return *display_info.points_color;
         case .UNKNOWN;        #through;

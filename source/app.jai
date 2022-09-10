@@ -335,6 +335,7 @@ ImGui :: #import "ImGui";
 #load "polyline.jai";
 #load "polygon.jai";
 #load "point_cloud.jai";
+#load "segment_soup.jai";
 #load "edge.jai";
 #load "mesh.jai";
 #load "aabb_tree.jai";

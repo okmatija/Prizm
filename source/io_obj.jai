@@ -296,6 +296,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             for mesh.positions if it.z != 0 dim = 3;
 
             if dim == 2 {
+
+            #if false {
+                // nocommit @Incomplete make Segment_Soup2
+            } else { // nocommit Only call this if convert_to_polyline_soup function
+
                 result = New(Polyline_Soup2_Entity);
                 e := cast(*Polyline_Soup2_Entity)result;
                 e.shape, ok = to_Polyline_Soup2(mesh);
@@ -322,8 +327,19 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                         result.annotations = annotations;
                     }
                 }
+            }
 
             } else if dim == 3 {
+
+            #if true {
+                result = New(Segment_Soup3_Entity);
+                e := cast(*Segment_Soup3_Entity)result;
+                e.mesh = mesh;
+                // e.spatial = New(AABB_Tree(e.Shape)); // nocommit @Incomplete
+                // init(e.spatial, *e.shape); // nocommit @Incomplete
+                result.annotations = annotations;
+
+            } else { // nocommit Only call this if convert_to_polyline_soup function
                 result = New(Polyline_Soup3_Entity);
                 e := cast(*Polyline_Soup3_Entity)result;
                 e.shape, ok = to_Polyline_Soup3(mesh);
@@ -350,6 +366,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                         result.annotations = annotations;
                     }
                 }
+            }
 
             }
 

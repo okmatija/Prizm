@@ -38,6 +38,18 @@ TrianglesIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expan
     }
 }
 
+Segment_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+    #assert(flags == 0); // No options are supported
+    assert(mesh.geometry_format == .LINES);
+    assert(mesh.indices.count % 2 == 0);
+
+    for i : 0..(mesh.indices.count/2)-1 {
+        `it_index := i;
+        `it : Segment3 = inline get_segment3(mesh, i);
+        #insert (remove=#assert(false)) body;
+    }
+}
+
 // // @Incomplete see parshapes for a sample implementation
 // weld :: (mesh : Mesh) -> Mesh { }
 // unweld :: (mesh : Mesh) -> Mesh { }
@@ -47,6 +59,28 @@ Geometry_Format :: enum {
     POINTS;
     LINES;
     TRIANGLES;
+}
+
+
+// @Cleanup _vertex_tuple is a weird postfix...
+
+
+get_segment3_vertex_tuple :: (mesh : Mesh, segment_index : int, $checked := false) -> Tuple2(u32) {
+    #if checked assert(mesh.geometry_format == .LINES);
+
+    i0 := mesh.indices[2 * xx segment_index + 0];
+    i1 := mesh.indices[2 * xx segment_index + 1];
+    return inline make_Tuple2(i0, i1);
+}
+
+
+get_segment3 :: (mesh : Mesh, segment_index : int, $checked := false) -> Segment3 {
+    tuple := inline get_segment3_vertex_tuple(mesh, segment_index, checked);
+
+    result : Segment3 = ---;
+    result.start = mesh.positions[tuple.component[0]]; 
+    result.end   = mesh.positions[tuple.component[1]]; 
+    return result;
 }
 
 get_triangle_vertex_tuple :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Tuple3(u32) {
@@ -59,7 +93,7 @@ get_triangle_vertex_tuple :: (using mesh : Mesh, triangle_index : int, $checked 
 }
 
 // Return the triangle in model space
-get_triangle :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Triangle3 {
+get_triangle :: (mesh : Mesh, triangle_index : int, $checked := false) -> Triangle3 {
     tuple := inline get_triangle_vertex_tuple(mesh, triangle_index, checked);
 
     result : Triangle3 = ---;
