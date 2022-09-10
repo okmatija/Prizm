@@ -44,6 +44,7 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
   - Fixed performance when scrolling though long lists of annotations in the item context menu, and made the table look nicer
 
 - Reduced the default radius for labeling in a disk around the cursor from 200 to 50 pixels
+- Fixed performance when scrolling though long lists of messages in the console log
 DONE
 };
 

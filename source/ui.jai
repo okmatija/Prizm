@@ -1337,31 +1337,29 @@ show_pending_directories_ui :: () {
 
     clipper : ImGui.ListClipper;
     ImGui.ListClipper.Begin(*clipper, xx dir.loadable_files.count);
-    while ImGui.ListClipper.Step(*clipper) {
-        // for *loadable_file : dir.loadable_files {
-        for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
-            using loadable_file := *dir.loadable_files[row_n];
+    // for *loadable_file : dir.loadable_files {
+    while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
+        using loadable_file := *dir.loadable_files[row_n];
 
-            ImGui.TableNextColumn();
-            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+        ImGui.TableNextColumn();
+        checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
 
-            ImGui.TableNextColumn();
-            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
+        ImGui.TableNextColumn();
+        ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
 
-            size, unit := readable_memory_size_decimal(size_in_bytes);
-            size_with_unit : string;
-            if      size < 10  size_with_unit = tprint("  % %", size, unit);
-            else if size < 100 size_with_unit = tprint( " % %", size, unit);
-            else               size_with_unit = tprint(  "% %", size, unit);
-            ImGui.TableNextColumn();
-            ImGui.Text(size_with_unit);
+        size, unit := readable_memory_size_decimal(size_in_bytes);
+        size_with_unit : string;
+        if      size < 10  size_with_unit = tprint("  % %", size, unit);
+        else if size < 100 size_with_unit = tprint( " % %", size, unit);
+        else               size_with_unit = tprint(  "% %", size, unit);
+        ImGui.TableNextColumn();
+        ImGui.Text(size_with_unit);
 
-            ImGui.TableNextColumn();
-            if loadable_file.is_loaded {
-                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-                ImGui.Text("Already loaded");
-                ImGui.PopStyleColor();
-            }
+        ImGui.TableNextColumn();
+        if loadable_file.is_loaded {
+            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+            ImGui.Text("Already loaded");
+            ImGui.PopStyleColor();
         }
     }
     ImGui.EndTable();

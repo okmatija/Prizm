@@ -297,7 +297,12 @@ console_draw :: () {
 
         ImGui.BeginChild("ScrollingRegion", border=false, flags=scrolling_region_flags);
         ImGui.PushStyleVar(.ItemSpacing, ImGui.ImVec2.{4,1}); // Tighten spacing
-        for item : app.console.log {
+
+        clipper : ImGui.ListClipper;
+        ImGui.ListClipper.Begin(*clipper, xx app.console.log.count);
+        // for item : app.console.log {
+        while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
+            item := app.console.log[row_n];
             assert(item.count != 0);
             col := ifx app.console.log_mode == .INTERACTIVE then CONSOLE_INFO_INTERACTIVE else CONSOLE_INFO_TRANSPARENT;
             if begins_with(item, "#") {
