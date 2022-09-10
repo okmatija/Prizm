@@ -41,7 +41,9 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
   - Added in-viewport annotation visualization which can be toggled using the new keybinding `k`, or via a new button in the Actions menu
   - Annotations on vertices/faces/edges are visualized in the same way as labels ie positioned at the vertex, or face/edge centroids
   - Changed keybinding `x` so that it also clears the labels associated with annotations
-  - Fixed performance when scrolling though long lists of annotations in the item context menu, and made the table look nicer
+  - Improved the table view in the `Annotations` section of the item context menu
+    - Made the and made the table look nicer and enabled various useful ImGui table options. Press `RMB` on the table header to see them
+    - Fixed performance when scrolling though long lists of annotations
 
 - Reduced the default radius for labeling in a disk around the cursor from 200 to 50 pixels
 - Fixed performance when scrolling though long lists of messages in the console log

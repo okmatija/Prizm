@@ -1293,76 +1293,75 @@ show_pending_directories_ui :: () {
     ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
     ImGui.Text(dir.path);
     ImGui.PopStyleColor();
-    ImGui.Separator();
 
-    table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg | .Sortable;
-    // OUTER_SIZE :: #run make_ImVec2(0, 4 * FONT_SIZE);
-    // ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags, outer_size=*OUTER_SIZE);
-    ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags);
+    // table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg | .Sortable;
+    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .BordersOuter | .BordersV | .Resizable | .Reorderable | .Hideable | .Sortable;
 
-    ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
-    ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
-    ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
-    ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthStretch, 0);
-    ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
-    ImGui.TableHeadersRow();
+    if ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags, outer_size=make_ImVec2(0, 400)) {
+        defer ImGui.EndTable();
 
-    // Sort our data if sort specs have been changed!
-    sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
-    if sort_specs && sort_specs.SpecsDirty {
-        if sort_specs.SpecsCount > 0 {
-            specs : []ImGui.TableColumnSortSpecs;
-            specs.data = sort_specs.Specs;
-            specs.count = sort_specs.SpecsCount;
-            for spec : specs { // @CompilerBug Should using work on a for loop?
-                // @Cleanup Use a enum id here, ImGui has support for it
-                direction := spec.SortDirection_;
-                if spec.SortDirection_ == .Ascending {
-                    if spec.ColumnIndex == {
-                        case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
-                        case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
-                        case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
-                    }
-                } else {
-                    if spec.ColumnIndex == {
-                        case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
-                        case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
-                        case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+        ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
+        ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
+        ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
+        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthStretch, 0);
+        ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
+        ImGui.TableHeadersRow();
+
+        // Sort our data if sort specs have been changed!
+        sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
+        if sort_specs && sort_specs.SpecsDirty {
+            if sort_specs.SpecsCount > 0 {
+                specs : []ImGui.TableColumnSortSpecs;
+                specs.data = sort_specs.Specs;
+                specs.count = sort_specs.SpecsCount;
+                for spec : specs { // @CompilerBug Should using work on a for loop?
+                    // @Cleanup Use a enum id here, ImGui has support for it
+                    direction := spec.SortDirection_;
+                    if spec.SortDirection_ == .Ascending {
+                        if spec.ColumnIndex == {
+                            case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                            case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
+                            case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                        }
+                    } else {
+                        if spec.ColumnIndex == {
+                            case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                            case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
+                            case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                        }
                     }
                 }
             }
+            sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
         }
-        sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
-    }
 
-    clipper : ImGui.ListClipper;
-    ImGui.ListClipper.Begin(*clipper, xx dir.loadable_files.count);
-    // for *loadable_file : dir.loadable_files {
-    while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
-        using loadable_file := *dir.loadable_files[row_n];
+        clipper : ImGui.ListClipper;
+        ImGui.ListClipper.Begin(*clipper, xx dir.loadable_files.count);
+        while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
+            using loadable_file := *dir.loadable_files[row_n];
 
-        ImGui.TableNextColumn();
-        checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+            ImGui.TableNextColumn();
+            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
 
-        ImGui.TableNextColumn();
-        ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
+            ImGui.TableNextColumn();
+            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
 
-        size, unit := readable_memory_size_decimal(size_in_bytes);
-        size_with_unit : string;
-        if      size < 10  size_with_unit = tprint("  % %", size, unit);
-        else if size < 100 size_with_unit = tprint( " % %", size, unit);
-        else               size_with_unit = tprint(  "% %", size, unit);
-        ImGui.TableNextColumn();
-        ImGui.Text(size_with_unit);
+            size, unit := readable_memory_size_decimal(size_in_bytes);
+            size_with_unit : string;
+            if      size < 10  size_with_unit = tprint("  % %", size, unit);
+            else if size < 100 size_with_unit = tprint( " % %", size, unit);
+            else               size_with_unit = tprint(  "% %", size, unit);
+            ImGui.TableNextColumn();
+            ImGui.Text(size_with_unit);
 
-        ImGui.TableNextColumn();
-        if loadable_file.is_loaded {
-            ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-            ImGui.Text("Already loaded");
-            ImGui.PopStyleColor();
+            ImGui.TableNextColumn();
+            if loadable_file.is_loaded {
+                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+                ImGui.Text("Already loaded");
+                ImGui.PopStyleColor();
+            }
         }
     }
-    ImGui.EndTable();
 
     if dir.unloadable_file_count {
         ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
@@ -1741,9 +1740,18 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
             clipper : ImGui.ListClipper;
             ImGui.ListClipper.Begin(*clipper, xx entity.annotations.count);
-            table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg;
-            if ImGui.BeginTable("##Annotations_Table", 4, table_flags) {
+            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .BordersOuter | .BordersV | .Resizable | .Reorderable | .Hideable;
+
+            if ImGui.BeginTable("##Annotations_Table", 4, flags=table_flags, outer_size=make_ImVec2(0, 400)) {
                 defer ImGui.EndTable();
+
+                ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
+                ImGui.TableSetupColumn("Target",     ImGui.TableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
+                ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
+                ImGui.TableHeadersRow();
+
                 while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
                     annotation := *entity.annotations[row_n];
                     ImGui.TableNextRow();
