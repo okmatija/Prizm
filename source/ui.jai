@@ -385,7 +385,7 @@ show_options :: () {
         if app.background_style == .SOLID_COLOR {
             ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
         }
-        ImGui.Checkbox("Disable reload when file unchanged", *app.settings.disable_reload_if_file_unchanged);
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
@@ -839,10 +839,10 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         if !entity.is_selected {
             if entity.name.count {
 
-                enable_reload := enable_reload_button(entity);
-                if !enable_reload ImGui.BeginDisabled();
                 if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
-                if !enable_reload ImGui.EndDisabled();
+                if is_changed_on_disk(entity) == false {
+                    Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
+                }
 
                 ImGui.SameLine();
                 ImGui.Checkbox(imgui_label("", entity), *entity.auto_reload);
@@ -878,10 +878,10 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 for :Selected entity : app.entities {
                     if entity.name.count {
 
-                        enable_reload := enable_reload_button(entity);
-                        if !enable_reload ImGui.BeginDisabled();
                         if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
-                        if !enable_reload ImGui.EndDisabled();
+                        if is_changed_on_disk(entity) == false {
+                            Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
+                        }
 
                         ImGui.SameLine();
                         ImGui.Checkbox(imgui_label("", entity), *entity.auto_reload);

@@ -912,13 +912,6 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
     return load_one_file_from_memory(filename, contents, name);
 }
 
-enable_reload_button :: (entity : Entity) -> bool {
-    if app.settings.disable_reload_if_file_unchanged {
-        return is_changed_on_disk(entity);
-    }
-    return true;
-}
-
 
 // @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
@@ -926,7 +919,14 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
     if #complete entity.source == {
         case .FILE_ON_DISK;
 
-            if enable_reload_button(entity) {
+            enable_reload_shortcut :: (entity : Entity) -> bool {
+                if app.settings.disable_reload_key_if_file_unchanged {
+                    return is_changed_on_disk(entity);
+                }
+                return true;
+            }
+
+            if enable_reload_shortcut(entity) {
                 log("Reloading file '%'... ", entity.fully_pathed_filename);
                 new_entity := load_one_file(entity.fully_pathed_filename, .OVERWRITE);
                 if new_entity {

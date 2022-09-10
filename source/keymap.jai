@@ -55,8 +55,11 @@ Special_Key_Code :: enum u32 #specified {
     F12     :: 22; // unused
 }
 
-to_string :: (key_code : u32, modifier_flags : Modifier_Flags) -> string {
+to_string :: (key_code : u32, modifier_flags : Modifier_Flags = .{}) -> string {
+    push_allocator(temp);
+
     builder : String_Builder;
+    init_string_builder(*builder);
     defer free_buffers(*builder);
     if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl ");
     if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt ");
@@ -90,7 +93,7 @@ to_string :: (key_code : u32, modifier_flags : Modifier_Flags) -> string {
         case .F12;    print_to_builder(*builder, "F12");
     }
 
-    return builder_to_string(*builder); // @Leak pass temp??
+    return builder_to_string(*builder);
 }
 
 Keymap :: struct {

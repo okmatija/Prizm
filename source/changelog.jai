@@ -47,6 +47,7 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
 
 - Reduced the default radius for labeling in a disk around the cursor from 200 to 50 pixels
 - Fixed performance when scrolling though long lists of messages in the console log
+- Fixed annoying UI where item reload buttons were disabled when the item was unchanged on disk, now only the F5 shortcut is disabled in that case. A tooltip is displayed warning the user that they will be reloading an unchanged item
 DONE
 };
 

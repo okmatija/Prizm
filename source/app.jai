@@ -275,7 +275,7 @@ User_Settings :: struct {
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
 
     show_header_annotation_tooltips := true;
-    disable_reload_if_file_unchanged := true; // This can be annoying but otoh saves pointlessly loading unchanged files
+    disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
 }

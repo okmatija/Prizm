@@ -207,7 +207,7 @@ log_warning :: (format_string: string, args: .. Any, loc := #caller_location, fl
 io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
 
-imgui_label :: (label : string, ptr : *void) -> *u8 {
+imgui_label :: (label : string, ptr : *void = null) -> *u8 {
     push_allocator(temp);
     return to_c_string(join(label, tprint("##%", ptr)));
 }
