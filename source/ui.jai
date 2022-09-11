@@ -1294,7 +1294,6 @@ show_pending_directories_ui :: () {
     ImGui.Text(dir.path);
     ImGui.PopStyleColor();
 
-    // table_flags := ImGui.TableFlags.NoBordersInBody | .RowBg | .Sortable;
     table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .BordersOuter | .BordersV | .Resizable | .Reorderable | .Hideable | .Sortable;
 
     if ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags, outer_size=make_ImVec2(0, 400)) {
@@ -1335,10 +1334,8 @@ show_pending_directories_ui :: () {
             sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
         }
 
-        clipper : ImGui.ListClipper;
-        ImGui.ListClipper.Begin(*clipper, xx dir.loadable_files.count);
-        while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
-            using loadable_file := *dir.loadable_files[row_n];
+        for * :ListClipperIterator loadable_file : dir.loadable_files {
+            using loadable_file;
 
             ImGui.TableNextColumn();
             checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
@@ -1738,8 +1735,6 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
         if entity.annotations.count {
 
-            clipper : ImGui.ListClipper;
-            ImGui.ListClipper.Begin(*clipper, xx entity.annotations.count);
             table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .BordersOuter | .BordersV | .Resizable | .Reorderable | .Hideable;
 
             if ImGui.BeginTable("##Annotations_Table", 4, flags=table_flags, outer_size=make_ImVec2(0, 400)) {
@@ -1752,8 +1747,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
                 ImGui.TableHeadersRow();
 
-                while ImGui.ListClipper.Step(*clipper) for row_n : clipper.DisplayStart..clipper.DisplayEnd-1 {
-                    annotation := *entity.annotations[row_n];
+                for * :ListClipperIterator annotation : entity.annotations {
                     ImGui.TableNextRow();
 
                     ImGui.TableNextColumn();

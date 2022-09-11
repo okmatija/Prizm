@@ -403,6 +403,26 @@ Show_Tooltip_Binding :: (bindings_with_descriptions : ..Binding_With_Description
     }
 }
 
+ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand {
+    BY_POINTER :: cast(bool)(flags & .POINTER);
+
+    clipper : ImGui.ListClipper;
+    ImGui.ListClipper.Begin(*clipper, xx array.count);
+    while outer := ImGui.ListClipper.Step(*clipper) {
+        for row : clipper.DisplayStart..clipper.DisplayEnd-1 {
+            `it_index := row;
+
+            #if flags & .POINTER {
+            `it : *T = *(<<array)[row];
+            } else {
+            `it : T = (<<array)[row];
+            }
+
+            #insert body;
+        }
+    }
+}
+
 
 make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
     v: ImGui.ImVec2 = ---;
