@@ -156,7 +156,10 @@ build :: () {
                                     // print("%", message.fully_pathed_filename);
                                     // print("Found issue '%' (%)\n", literal._string, decl.name);
                                 } else {
-                                    compiler_report("@KnownIssue note only allowed on constant string declarations");
+                                    filename : string = decl.location.enclosing_load.fully_pathed_filename;
+                                    line_no : s64 = decl.location.l0;
+                                    char_no : s64 = decl.location.c0; 
+                                    compiler_report(filename, line_no, char_no, "@KnownIssue note only allowed on constant string declarations");
                                 }
                             }
                         }
