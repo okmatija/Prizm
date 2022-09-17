@@ -6,21 +6,22 @@ App :: struct {
     window : *SDL_Window = null;
     simp_font: *Simp.Dynamic_Font;
 
-    Directory :: struct {
+    Folder :: struct {
         path : string; // owned
         auto_load_new_files := false;
         set_auto_reload_on_newly_loaded_files := false;
+        last_frame_item_list_height_px : float; // How high the scrolling region showing the items in this folder would need to be to show all items
     }
 
     // When we source and entity from a file we update the directories in these members
-    directories : [..]Directory;
+    directories : [..]Folder; // named folder not directory since we use it to group items not on disk too, and its a nicer word
     file_watcher : File_Watcher;
 
     // When the user adds directories (via drag-drop or via the commandline on startup) show UI asking the user what should be done with the files in those directories
     pending_directories : [..]Pending_Directory;
 
     Pending_Directory :: struct {
-        using directory : Directory;
+        using directory : Folder;
         unloadable_file_count : int;
 
         Pending_File :: struct {
@@ -145,7 +146,7 @@ App :: struct {
 
 // @Incomplete Deduplicate file watcher directories on linux
 
-deinit :: (directory : app.Directory) {
+deinit :: (directory : app.Folder) {
     free(directory.path);
 }
 
@@ -157,32 +158,37 @@ deinit :: (pending : app.Pending_Directory) {
     array_reset(*pending.loadable_files);
 }
 
-add_directory :: (directory_path : string) -> *app.Directory {
-    // post-condition
-    defer assert(app.directories.count == app.file_watcher.directories.count);
+add_directory :: (directory_path : string) -> *app.Folder {
+    // post-condition (+2 for Entity_Source.PRESET_SHAPE and .COMMAND_OUTPUT)
+    // defer assert(app.directories.count == app.file_watcher.directories.count + 2);
 
-    result : *app.Directory;
+    result : *app.Folder;
 
     got_directory, got_directory_valid := is_directory(directory_path);
     if !got_directory_valid || !got_directory {
         log_warning("Expected a directory, but got something else ('%')", directory_path);
         return result;
     }
-    directory : app.Directory;
-    directory.path = copy_string(directory_path);
+
+    folder : app.Folder;
+    folder.path = copy_string(directory_path);
 
 #if OS == .WINDOWS {
     for * app.directories {
-        if it.path == directory.path {
+        if it.path == folder.path {
             result = it;
             break;
         }
     }
     if !result {
-        array_add(*app.directories, directory);
+        array_add(*app.directories, folder);
 
-        // Update the list of watched directories so that we can reload this entity
-        add_directories(*app.file_watcher, directory.path);
+        path := parse_path(directory_path);
+        fully_exists, how_much_exists := how_much_of_path_exists_on_the_local_filesystem(path);
+        if fully_exists {
+            // Update the list of watched directories so that we can reload this entity
+            add_directories(*app.file_watcher, folder.path);
+        }
 
         result = *app.directories[app.directories.count - 1];
     }
@@ -192,15 +198,24 @@ add_directory :: (directory_path : string) -> *app.Directory {
     return result;
 }
 
+folder_exists_on_disk :: (directory : string) -> bool {
+    if directory == PRESET_SHAPE_FOLDER || directory == COMMAND_OUTPUT_FOLDER {
+        return false;
+    }
+    return true;
+}
+
 remove_directory :: (directory : string) {
-    // post-condition
-    defer assert(app.directories.count == app.file_watcher.directories.count);
+    if !folder_exists_on_disk(directory) {
+        return; // Do not allow these directories to be removed
+    }
 
     // Check if no other entities will need to watch this directory
     remove_directory := true;
     for app.entities {
         if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory {
             remove_directory = false;
+            break;
         }
     }
 
@@ -258,6 +273,9 @@ Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
+    item_list_max_size_before_scroll_px := 300.;
+    annotation_list_max_size_before_scroll_px := 400.;
+
     fit_to_screen_on_visibility_change :=  false;
     fit_to_screen_on_file_drop_event :=    true;
     fit_to_screen_on_file_watcher_event := true;
@@ -294,12 +312,11 @@ Duplicate_File_Behaviour :: enum u8 #specified {
 
 clamp_user_settings :: ()
 {
-    // app.settings.camera_zoom_dragging_ratio               = clamp(app.settings.camera_zoom_dragging_ratio,
-    //                                                               .3, .99);
-    app.settings.camera_zoom_scrolling_ratio              = clamp(app.settings.camera_zoom_scrolling_ratio,
-                                                                  .3, .99);
-    app.settings.camera_zoom_min_screen_filling_length_mm = clamp(app.settings.camera_zoom_min_screen_filling_length_mm,
-                                                                  .00001, app.camera.scene_bounding_sphere.radius / 2);
+    using app.settings;
+    // camera_zoom_dragging_ratio = clamp(camera_zoom_dragging_ratio, .3, .99);
+    camera_zoom_scrolling_ratio = clamp(camera_zoom_scrolling_ratio, .3, .99);
+    camera_zoom_min_screen_filling_length_mm = clamp(camera_zoom_min_screen_filling_length_mm, .00001, app.camera.scene_bounding_sphere.radius / 2);
+    item_list_max_size_before_scroll_px = clamp(item_list_max_size_before_scroll_px, 100., 800.);
 }
 
 #import "Basic";

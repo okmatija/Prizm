@@ -83,8 +83,8 @@ Entity :: struct {
 
     // This should be used to find entities
     // If source == .FILE_ON_DISK   this is fully_pathed_filename
-    // If source == .PRESET_SHAPE   this is PRESET_SHAPE_FOLDER
-    // If source == .COMMAND_OUTPUT this is COMMAND_OUTPUT_FOLDER
+    // If source == .PRESET_SHAPE   this is PRESET_SHAPE_FOLDER/name
+    // If source == .COMMAND_OUTPUT this is COMMAND_OUTPUT_FOLDER/name
     fully_pathed_name : string;
 
     // if source == .FILE_ON_DISK these are filled using file_modtime_and_size

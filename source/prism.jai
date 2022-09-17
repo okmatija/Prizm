@@ -124,7 +124,7 @@ main :: () {
                 }
             }
         } else {
-            found_dir : *app.Directory;
+            found_dir : *app.Folder;
             for *dir : app.directories {
                 if dir.path == get_directory(change.full_path) {
                     found_dir = dir;
@@ -149,6 +149,10 @@ main :: () {
         exit(1);
     }
     defer deinit(app.file_watcher);
+
+    // Init these after the file watcher
+    array_add(*app.directories, .{path=PRESET_SHAPE_FOLDER});
+    array_add(*app.directories, .{path=COMMAND_OUTPUT_FOLDER});
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
@@ -406,7 +410,7 @@ handle_directory :: (path : string) {
         return; // We're already handling this directory, we can reach this code path if the user drops the same directory twice before the first one is handled
     }
 
-    found_dir : *app.Directory;
+    found_dir : *app.Folder;
     for *dir : app.directories if dir.path == path {
         found_dir = dir;
         break;

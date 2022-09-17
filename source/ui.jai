@@ -26,6 +26,7 @@ show_main_panel :: () {
     show_options();
 }
 
+
 show_item_list_ui :: () {
 
     if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
@@ -33,303 +34,80 @@ show_item_list_ui :: () {
 
         indent := ImGui.GetTreeNodeToLabelSpacing();
 
-        // if app.entities.count == 0 {
-        //     ImGui.Text("(none)");
-        //     Show_Tooltip("Drag and drop files or pass them\nas command-line arguments");
-        // }
-
         {
-            Item_Entry_Update :: struct {
-                visibility_changed := false;
-                entity_to_remove := -1;
-            }
-
-            show_item_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool) -> Item_Entry_Update {
-                result : Item_Entry_Update;
-
-                // Remove button
-                ImGui.TableNextColumn();
-                if ImGui.Button(imgui_label("Remove", entity)) {
-                    result.entity_to_remove = entity_index;
-                }
-
-                // Color selection
-                ImGui.TableNextColumn();
-                {
-                    if entity.display_info.display_mode == .NORMALS {
-                        ImGui.TextDisabled("NR.");
-                    } else {
-                        color := entity_primary_color(entity);
-                        if color {
-                            ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
-                        }
-                    }
-                    if ImGui.IsItemClicked(.Right) {
-                        cycle_display_mode(*entity.display_info.display_mode);
-                    } else if ImGui.IsItemClicked(.Middle) {
-                        if entity.display_info.display_mode != .NORMALS {
-                            reset_entity_primary_color(entity);
-                        }
-                    }
-                }
-
-                // Toggle visibility checkbox
-                ImGui.TableNextColumn();
-                {
-                    was_visible := entity.display_info.is_visible;
-                    visibility_changed := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
-                    result.visibility_changed = visibility_changed;
-                    Show_Tooltip("Visible");
-
-                    if !was_visible && entity.display_info.is_visible {
-                        // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
-                        if !entity.display_info.surface_visible && !entity.display_info.wireframe_visible && !entity.display_info.points_visible {
-                            entity.display_info.surface_visible = true;
-                        }
-                    }
-                }
-
-                // Toggle clipping checkbox?
-
-                // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
-                if show_entity_index {
-                    ImGui.TableNextColumn();
-                    if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-                        ImGui.Text("#%", entity_index);
-                        Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
-                    } else {
-                        ImGui.TextDisabled("#%", entity_index);
-                        Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
-                    }
-                }
-
-                // Write filename
-                ImGui.TableNextColumn();
-                // ImGui.SetNextItemWidth(-FLOAT32_MIN);
-                if entity.name.count {
-                    FADE_TIME_SECS :: 1.;
-
-                    delta_time_s := to_float64_seconds(current_time_consensus() - entity.creation_time);
-                    base_color := ifx is_empty(entity) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
-                    color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
-                    if delta_time_s < FADE_TIME_SECS {
-                        alpha := clamp(delta_time_s / FADE_TIME_SECS, 0., 1.);
-                        color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
-                        color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
-                    }
-
-                    ImGui.PushStyleColor(xx ImGui.Col.Text, color);
-                    defer ImGui.PopStyleColor();
-                    {
-                        push_allocator(temp); // to free the join'd string
-
-                        text : string;
-                        desc := entity_description(entity, with_creation_time=false);
-                        if is_changed_on_disk(entity) {
-                            text = join(desc, tprint("*##%", entity));
-                        } else {
-                            text = join(desc, tprint("##%", entity));
-                        }
-
-                        // @Cleanup Add these aliases to make the following code easier to understand
-                        // Note that the ImGui.Selectable widget has this line to set the colors:
-                        //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-                        // selectable_selected_color :: ImGui.Col.Header;
-                        // selectable_hovered_color :: ImGui.Col.Header;
-                        // selectable_hovered_held_color :: ImGui.Col.Header;
-
-                        // Indicate that the popup will be opened for this item if its hovered with RMB down
-                        if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                        defer if io_mouse_right_down() ImGui.PopStyleColor();
-
-                        if ImGui.IsPopupOpen(imgui_label("##context_menu", xx entity_index)) {
-                            context_menu_popup_item = entity_index;
-                            context_menu_popup_item_should_reset = false;
-                        }
-
-                        if context_menu_popup_item == -1 {
-                            // Use the default Selectable widget
-                            if ImGui.Selectable(to_c_string(text), *entity.is_selected) {
-                                if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                            }
-                        } else { // Need to fiddle with some colors to indicate what the popup is editing
-                            if app.entities[context_menu_popup_item].is_selected {
-                                // Use the default Selectable widget, but customize the selected color
-                                ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                                ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                                if ImGui.Selectable(to_c_string(join(text, tprint("##%", entity))), *entity.is_selected) {
-                                    if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                                }
-                                ImGui.PopStyleColor();
-                                ImGui.PopStyleColor();
-                            } else {
-                                if context_menu_popup_item == entity_index {
-                                    // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
-                                    if selectable_with_bg_color(join(text, tprint("##%", entity)), *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
-                                        if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                                    }
-                                } else {
-                                    // Use the default Selectable widget
-                                    if ImGui.Selectable(to_c_string(join(text, tprint("##%", entity))), *entity.is_selected) {
-                                        if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    ImGui.Selectable("---", *entity.is_selected);
-                }
-
-                // No tooltip for this behaviour since we reserve the tooltip for annotations
-                if ImGui.IsItemClicked() {
-                    if is_empty(entity) == false {
-                        if io().KeyCtrl {
-                            // Do nothing, this selects the item
-                        } else if io().KeyShift {
-                            // This is similar but a bit different to the behaviour when sweeping visibility checkboxes but its fine, I think that that code should not know about entities..?
-                            fit_on_screen_filled(entity);
-                        } else {
-                            // Fit all visible items on the screen
-                            fit_on_screen(entity);
-                        }
-                    }
-                }
-                was_hovered := entity.is_hovered;
-                entity.is_hovered = ImGui.IsItemHovered();
-                if ImGui.IsItemHovered() {
-                    entity.display_info.flash_wave_dt += io().DeltaTime;
-                } else if was_hovered {
-                    entity.display_info.flash_wave_dt = 0;
-                }
-
-                header_annotation : *Annotation = find_header_annotation(entity);
-                if app.settings.show_header_annotation_tooltips && header_annotation {
-                    Show_Tooltip(header_annotation.text);
-                }
-
-                /*
-                compiler_report("Enable when we have tooltip delays");
-                if (entity.is_hovered) {
-                    ImGui.BeginTooltip();
-                    ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
-                    ImGui.TableNextRow(); ImGui.TableNextColumn();
-                    ImGui.TextColored(KEYBINDING_COLOR, "RMB");
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Open context menu for the current %", ifx entity.is_selected then "item selection" else "item");
-                    ImGui.TableNextRow(); ImGui.TableNextColumn();
-                    ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Toggle selected state of the hovered item");
-                    ImGui.EndTable();
-                    ImGui.EndTooltip();
-                }
-                */
-
-                // @Cleanup This is a horrible way to do this...
-                entity.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
-
-                show_item_context_menu(entity, entity_index);
-                return result;
-            } // end show_item_entry()
-
-            show_preset_list, show_command_output_list : bool;
-            for app.entities { 
-                if it.source == .PRESET_SHAPE   show_preset_list =         true;
-                if it.source == .COMMAND_OUTPUT show_command_output_list = true;
-            }
-
             entity_to_remove := -1;
             any_visibility_changed : bool;
             show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
 
-            context_menu_popup_item_should_reset = true;
-                        
-            info_enum : Type_Info_Enum = type_info(Entity_Source);
-            assert(info_enum.enum_type_flags & .FLAGS == 0);
-            for source_value : info_enum.values {
-                if #complete cast(Entity_Source)source_value == {
-                    case .PRESET_SHAPE;
-                        if !show_preset_list continue;
+            context_menu_popup_item_variable_should_reset = true;
 
-                        do_tree : bool = ImGui.TreeNodeEx(imgui_label(PRESET_SHAPE_FOLDER, xx source_value), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-                        show_folder_context_menu(PRESET_SHAPE_FOLDER);
-                        if  do_tree {
-                            defer ImGui.TreePop();
+            for *folder : app.directories {
 
-                            indent2 := ImGui.GetTreeNodeToLabelSpacing();
-                            ImGui.Unindent(indent2 - indent);
-                            defer ImGui.Indent(indent2 - indent);
+                Local_Entity :: struct {
+                    entity : *Entity;
+                    global_index : int;
+                }
 
-                            ImGui.BeginTable(imgui_label("Item List Table", xx source_value), xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
-                            for entity, entity_index : app.entities {
-                                if entity.source != xx source_value continue;
+                // The list clipper works on lots of evenly spaced items, which means we need to group entities by folder before we use it
+                entities_in_folder : [..]Local_Entity;
+                entities_in_folder.allocator = temp;
+                for entity, entity_index : app.entities {
+                    if get_directory(entity.fully_pathed_name) == folder.path {
+                        local_entity : Local_Entity;
+                        local_entity.entity = entity;
+                        local_entity.global_index = entity_index;
+                        array_add(*entities_in_folder, local_entity);
+                    }
+                }
 
-                                update := show_item_entry(entity, entity_index, show_entity_index);
-                                if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
-                                if update.visibility_changed    any_visibility_changed = true;
-                            }
-                            ImGui.EndTable();
+                if entities_in_folder.count == 0 && !folder_exists_on_disk(folder.path) {
+                    continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prism and then have files dumped there be autoloaded)
+                }
+
+                // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
+                // @Incomplete Abbreviate this name e.g., C:/.../folder etc
+                do_tree : bool = ImGui.TreeNodeEx(imgui_label(folder.path, *folder), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+                show_folder_context_menu(folder.path, *folder.auto_load_new_files);
+                if do_tree {
+                    defer ImGui.TreePop();
+
+                    indent2 := ImGui.GetTreeNodeToLabelSpacing();
+                    ImGui.Unindent(indent2 - indent);
+                    defer ImGui.Indent(indent2 - indent);
+
+                    if entities_in_folder.count {
+                        table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY;
+                        outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
+
+                        show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
+                        if !show_scrollbar {
+                            table_flags &= ~.ScrollY;
+                            outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
                         }
 
-                    case .FILE_ON_DISK;
-                        if app.directories.count == 0 continue;
+                        // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
+                        ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size);
 
-                        for *directory : app.directories {
+                        // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
 
-                            // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
-                            // @Incomplete Abbreviate this name e.g., C:/.../folder etc
-                            do_tree : bool = ImGui.TreeNodeEx(imgui_label(directory.path, *directory), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-                            show_folder_context_menu(directory.path, *directory.auto_load_new_files);
-                            if do_tree {
-                                defer ImGui.TreePop();
-
-                                indent2 := ImGui.GetTreeNodeToLabelSpacing();
-                                ImGui.Unindent(indent2 - indent);
-                                defer ImGui.Indent(indent2 - indent);
-
-                                ImGui.BeginTable(imgui_label("Item List Table", xx source_value), xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
-                                for entity, entity_index : app.entities {
-                                    if entity.source != xx source_value continue;
-                                    if get_directory(entity.fully_pathed_filename) != directory.path continue;
-
-                                    update := show_item_entry(entity, entity_index, show_entity_index);
-                                    if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
-                                    if update.visibility_changed    any_visibility_changed = true;
-                                }
-                                ImGui.EndTable();
-                            }
+                        folder.last_frame_item_list_height_px = 0.;
+                        for :ListClipperIterator local_entity : entities_in_folder {
+                            folder.last_frame_item_list_height_px = clipper.ItemsHeight;
+                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
+                            if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
+                            if update.visibility_changed    any_visibility_changed = true;
                         }
+                        folder.last_frame_item_list_height_px *= entities_in_folder.count;
 
-                    case .COMMAND_OUTPUT;
-                        if !show_command_output_list continue;
-
-                        do_tree : bool = ImGui.TreeNodeEx(imgui_label(COMMAND_OUTPUT_FOLDER, xx source_value), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-                        show_folder_context_menu(COMMAND_OUTPUT_FOLDER);
-                        if do_tree {
-                            defer ImGui.TreePop();
-
-                            indent2 := ImGui.GetTreeNodeToLabelSpacing();
-                            ImGui.Unindent(indent2 - indent);
-                            defer ImGui.Indent(indent2 - indent);
-
-                            ImGui.BeginTable(imgui_label("Item List Table", xx source_value), xx (ifx show_entity_index then 5 else 4), flags=ImGui.TableFlags.NoBordersInBody);
-                            for entity, entity_index : app.entities {
-                                if entity.source != xx source_value continue;
-
-                                update := show_item_entry(entity, entity_index, show_entity_index);
-                                if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
-                                if update.visibility_changed    any_visibility_changed = true;
-                            }
-                            ImGui.EndTable();
-                        }
-
-                    case .UNKNOWN;
+                        ImGui.EndTable();
+                    } else {
+                        ImGui.TextDisabled("(none)");
+                    }
                 }
             }
 
             // We use the context_menu_popup_item to determine the color of the selectable widgets in the loop above, this means we cant reset it to -1 at the start of the loop because e.g., if all items are selected but we make a popup on a later one we will render the earlier ones in the wrong color. We need to know the result from the previous frame but we also need to reset it to -1 when there are no popups showing, which we do here
-            if context_menu_popup_item_should_reset {
+            if context_menu_popup_item_variable_should_reset {
                 context_menu_popup_item = -1;
             }
 
@@ -346,8 +124,209 @@ show_item_list_ui :: () {
     }
 }
 
+Item_Entry_Update :: struct {
+    visibility_changed := false;
+    entity_to_remove := -1;
+}
+
+show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
+    result : Item_Entry_Update;
+
+    // Remove button
+    ImGui.TableNextColumn();
+    if ImGui.Button(imgui_label("Remove", entity)) {
+        result.entity_to_remove = entity_index;
+    }
+
+    // Color selection
+    ImGui.TableNextColumn();
+    {
+        if entity.display_info.display_mode == .NORMALS {
+            ImGui.TextDisabled("NR.");
+        } else {
+            color := entity_primary_color(entity);
+            if color {
+                ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
+            }
+        }
+        if ImGui.IsItemClicked(.Right) {
+            cycle_display_mode(*entity.display_info.display_mode);
+        } else if ImGui.IsItemClicked(.Middle) {
+            if entity.display_info.display_mode != .NORMALS {
+                reset_entity_primary_color(entity);
+            }
+        }
+    }
+
+    // Toggle visibility checkbox
+    ImGui.TableNextColumn();
+    {
+        was_visible := entity.display_info.is_visible;
+        visibility_changed := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
+        result.visibility_changed = visibility_changed;
+        Show_Tooltip("Visible");
+
+        if !was_visible && entity.display_info.is_visible {
+            // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
+            if !entity.display_info.surface_visible && !entity.display_info.wireframe_visible && !entity.display_info.points_visible {
+                entity.display_info.surface_visible = true;
+            }
+        }
+    }
+
+    // Toggle clipping checkbox?
+
+    // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
+    if show_entity_index {
+        ImGui.TableNextColumn();
+        if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
+            ImGui.Text("#%", entity_index);
+            Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
+        } else {
+            ImGui.TextDisabled("#%", entity_index);
+            Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
+        }
+    }
+
+    // Write filename
+    ImGui.TableNextColumn();
+    // ImGui.SetNextItemWidth(-FLOAT32_MIN);
+    if entity.name.count {
+        FADE_TIME_SECS :: 1.;
+
+        delta_time_s := to_float64_seconds(current_time_consensus() - entity.creation_time);
+        base_color := ifx is_empty(entity) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
+        color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
+        if delta_time_s < FADE_TIME_SECS {
+            alpha := clamp(delta_time_s / FADE_TIME_SECS, 0., 1.);
+            color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
+            color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
+        }
+
+        ImGui.PushStyleColor(xx ImGui.Col.Text, color);
+        defer ImGui.PopStyleColor();
+        {
+            push_allocator(temp); // to free the join'd string
+
+            text : string;
+            desc := entity_description(entity, with_creation_time=false);
+            if is_changed_on_disk(entity) {
+                text = join(desc, tprint("*##%", entity));
+            } else {
+                text = join(desc, tprint("##%", entity));
+            }
+
+            // @Cleanup Add these aliases to make the following code easier to understand
+            // Note that the ImGui.Selectable widget has this line to set the colors:
+            //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+            // selectable_selected_color :: ImGui.Col.Header;
+            // selectable_hovered_color :: ImGui.Col.Header;
+            // selectable_hovered_held_color :: ImGui.Col.Header;
+
+            // Indicate that the popup will be opened for this item if its hovered with RMB down
+            if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+            defer if io_mouse_right_down() ImGui.PopStyleColor();
+
+            if ImGui.IsPopupOpen(imgui_label("##context_menu", xx entity_index)) {
+                context_menu_popup_item = entity_index;
+                context_menu_popup_item_variable_should_reset = false;
+            }
+
+            if context_menu_popup_item == -1 {
+                // Use the default Selectable widget
+                if ImGui.Selectable(to_c_string(text), *entity.is_selected) {
+                    if !io().KeyCtrl entity.is_selected = !entity.is_selected;
+                }
+            } else { // Need to fiddle with some colors to indicate what the popup is editing
+                if app.entities[context_menu_popup_item].is_selected {
+                    // Use the default Selectable widget, but customize the selected color
+                    ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                    if ImGui.Selectable(to_c_string(join(text, tprint("##%", entity))), *entity.is_selected) {
+                        if !io().KeyCtrl entity.is_selected = !entity.is_selected;
+                    }
+                    ImGui.PopStyleColor();
+                    ImGui.PopStyleColor();
+                } else {
+                    if context_menu_popup_item == entity_index {
+                        // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
+                        if selectable_with_bg_color(join(text, tprint("##%", entity)), *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
+                            if !io().KeyCtrl entity.is_selected = !entity.is_selected;
+                        }
+                    } else {
+                        // Use the default Selectable widget
+                        if ImGui.Selectable(to_c_string(join(text, tprint("##%", entity))), *entity.is_selected) {
+                            if !io().KeyCtrl entity.is_selected = !entity.is_selected;
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        ImGui.Selectable("---", *entity.is_selected);
+    }
+
+    // No tooltip for this behaviour since we reserve the tooltip for annotations
+    if ImGui.IsItemClicked() {
+        if is_empty(entity) == false {
+            if io().KeyCtrl {
+                // Do nothing, this selects the item
+            } else if io().KeyShift {
+                // This is similar but a bit different to the behaviour when sweeping visibility checkboxes but its fine, I think that that code should not know about entities..?
+                fit_on_screen_filled(entity);
+            } else {
+                // Fit all visible items on the screen
+                fit_on_screen(entity);
+            }
+        }
+    }
+    was_hovered := entity.is_hovered;
+    entity.is_hovered = ImGui.IsItemHovered();
+    if ImGui.IsItemHovered() {
+        entity.display_info.flash_wave_dt += io().DeltaTime;
+    } else if was_hovered {
+        entity.display_info.flash_wave_dt = 0;
+    }
+
+    header_annotation : *Annotation = find_header_annotation(entity);
+    if app.settings.show_header_annotation_tooltips && header_annotation {
+        Show_Tooltip(header_annotation.text);
+    }
+
+    /*
+    compiler_report("Enable when we have tooltip delays");
+    if (entity.is_hovered) {
+        ImGui.BeginTooltip();
+        ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
+        ImGui.TableNextRow(); ImGui.TableNextColumn();
+        ImGui.TextColored(KEYBINDING_COLOR, "RMB");
+        ImGui.TableNextColumn();
+        ImGui.Text("Open context menu for the current %", ifx entity.is_selected then "item selection" else "item");
+        ImGui.TableNextRow(); ImGui.TableNextColumn();
+        ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
+        ImGui.TableNextColumn();
+        ImGui.Text("Toggle selected state of the hovered item");
+        ImGui.EndTable();
+        ImGui.EndTooltip();
+    }
+    */
+
+    // @Cleanup This is a horrible way to do this...
+    entity.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
+
+    show_item_context_menu(entity, entity_index);
+
+    // @Hack Write empty padding column so filename is not truncated
+    ImGui.TableNextColumn();
+    if hack_pad_last_column_to_fix_truncation{
+        ImGui.Text("  ");
+    }
+
+    return result;
+} // end show_item_list_entry()
+
 context_menu_popup_item : int = -1;
-context_menu_popup_item_should_reset : bool = true;
+context_menu_popup_item_variable_should_reset : bool = true;
 
 
 show_add_item_ui :: () {
@@ -356,7 +335,7 @@ show_add_item_ui :: () {
 
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
@@ -431,11 +410,7 @@ show_selection_ui :: () {
             {
                 ImGui.TableNextColumn();
                 visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.display_info.is_visible);
-                TOOLTIP :: #run
-                    join("Toggle visibility of selected vertices\n",
-                         "FIXME: Unfortunately this checkbox must\n",
-                         "be enabled for sphere clipping to work.");
-                Show_Tooltip(TOOLTIP);
+                Show_Tooltip("Toggle visibility of selected vertices");
                 // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
             }
 
@@ -465,7 +440,7 @@ show_selection_ui :: () {
 
             current_pos := ImGui.GetWindowPos();
             current_size := ImGui.GetWindowSize();
-            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
             ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
             
             // Set popup border color to match the selection/RMB target item color
@@ -772,7 +747,7 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
@@ -786,7 +761,7 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
 
         ImGui.Text(path);
         ImGui.Separator();
-        if auto_load_new_files {
+        if (path != PRESET_SHAPE_FOLDER && path != COMMAND_OUTPUT_FOLDER) && auto_load_new_files {
             ImGui.Checkbox("Auto-load new files", auto_load_new_files);
         }
         if ImGui.Button("Toggle folder selection") {
@@ -800,6 +775,8 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
                 it.is_selected = selected_state;
             }
         }
+
+        // nocommit: Remove when selection checkbox on selected item affects all in selection
         if ImGui.Button("Toggle folder visibility") {
             visible_state := false;
             for app.entities if get_directory(it.fully_pathed_name) == path {
@@ -1269,9 +1246,9 @@ show_pending_directories_ui :: () {
 
     if dir.loadable_files.count == 0 {
         // Just watch the directory
-        new_directory : *app.Directory = add_directory(dir.path);
-        new_directory.auto_load_new_files = dir.auto_load_new_files;
-        new_directory.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+        new_folder : *app.Folder = add_directory(dir.path);
+        new_folder.auto_load_new_files = dir.auto_load_new_files;
+        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
         app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
         return;
     }
@@ -1294,15 +1271,19 @@ show_pending_directories_ui :: () {
     ImGui.Text(dir.path);
     ImGui.PopStyleColor();
 
-    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .BordersOuter | .BordersV | .Resizable | .Reorderable | .Hideable | .Sortable;
+    table_flags := ImGui.TableFlags.RowBg | .RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
+     | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
+     | .ScrollY; // Without this option the outer_size argument is ignored
 
-    if ImGui.BeginTable(imgui_label("##loadable_file_table", xx *dir), 4, flags=table_flags, outer_size=make_ImVec2(0, 400)) {
+    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
+    outer_size := make_ImVec2(0, 400);
+    if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
         defer ImGui.EndTable();
 
         ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
         ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
         ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
-        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthStretch, 0);
+        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthFixed, 60);
         ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
         ImGui.TableHeadersRow();
 
@@ -1351,12 +1332,18 @@ show_pending_directories_ui :: () {
             ImGui.TableNextColumn();
             ImGui.Text(size_with_unit);
 
+            message : string;
             ImGui.TableNextColumn();
             if loadable_file.is_loaded {
                 ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-                ImGui.Text("Already loaded");
+                message = "Already loaded";
+                ImGui.Text(message);
                 ImGui.PopStyleColor();
+            } else {
+                message = "(none)";
+                ImGui.TextDisabled(message);
             }
+            Show_Tooltip(message);
         }
     }
 
@@ -1366,9 +1353,9 @@ show_pending_directories_ui :: () {
     
     if ImGui.Button(imgui_label("Accept", xx *dir)) {
 
-        new_directory : *app.Directory = add_directory(dir.path);
-        new_directory.auto_load_new_files = dir.auto_load_new_files;
-        new_directory.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+        new_folder : *app.Folder = add_directory(dir.path);
+        new_folder.auto_load_new_files = dir.auto_load_new_files;
+        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
 
         for file : dir.loadable_files {
             if !file.is_selected {
@@ -1719,7 +1706,6 @@ display_transform :: (entity : *Entity) {
     }
 }
 
-// nocommit Use a clipper here!!
 display_annotations :: (entity : *Entity, entity_index : int) {
 
     header := "Annotations (none)";
@@ -1735,12 +1721,12 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
         if entity.annotations.count {
 
-            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .BordersOuter | .BordersV | .Resizable | .Reorderable | .Hideable;
-
-            if ImGui.BeginTable("##Annotations_Table", 4, flags=table_flags, outer_size=make_ImVec2(0, 400)) {
+            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable;
+            outer_size := make_ImVec2(0, 400);
+            if ImGui.BeginTable("##Annotations_Table", 4, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
-                ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
+                ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Target",     ImGui.TableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
@@ -1754,7 +1740,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     if annotation.kind == .BLOCK {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
-                        if ImGui.Button(imgui_label("Focus", annotation)) {
+                        if ImGui.Button(imgui_label("Focus", annotation)) { // nocommit Make this work for Segment_Soup3!
                             if annotation.kind == {
                                 case .TRIANGLE;
                                     item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
@@ -1931,3 +1917,6 @@ pending_directories_sweep_state : Checkbox_Sweep_Mode_State;
 
 // Checkbox sweep mode is enabled while LMB is held down if it was clicked on a sweepable checkbox, the mouse will be constrained to move only up and down and the inverse of the state of the checkbox just before the click will be set on all the checkboxes that get swept
 item_list_sweep_state : Checkbox_Sweep_Mode_State;
+
+#scope_export // @CompilerBug without this scope_export the line below errors!
+ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue

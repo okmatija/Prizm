@@ -270,6 +270,7 @@ Checkbox_Sweep_Mode_State :: struct {
 }
 
 // Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
+// @Volatile Note that if you issue a checkbox with this function and its clipped/not visible in the UI (e.g., submitting to a scrolling region _without_ using a list clipper) you will still be able to edit its state since we do this based on the mouse position
 // @Incomplete Add flags for what sweep behaviours are acceptable e.g., control down variations are weird in some cases
 checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : *Checkbox_Sweep_Mode_State, window : *SDL_Window) -> bool {
 
@@ -406,7 +407,7 @@ Show_Tooltip_Binding :: (bindings_with_descriptions : ..Binding_With_Description
 ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
 
-    clipper : ImGui.ListClipper;
+    `clipper : ImGui.ListClipper; // Exposed so that you can access ItemsHeight, which is useful to size scrolling regions
     ImGui.ListClipper.Begin(*clipper, xx array.count);
     while outer := ImGui.ListClipper.Step(*clipper) {
         for row : clipper.DisplayStart..clipper.DisplayEnd-1 {
