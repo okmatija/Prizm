@@ -1722,7 +1722,13 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         if entity.annotations.count {
 
             table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable;
-            outer_size := make_ImVec2(0, 400);
+            outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+
+            if last_frame_annotation_list_height_px < outer_size.y {
+                table_flags &= ~.ScrollY;
+                outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
+            }
+
             if ImGui.BeginTable("##Annotations_Table", 4, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
@@ -1733,7 +1739,10 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
                 ImGui.TableHeadersRow();
 
+                last_frame_annotation_list_height_px = 0.;
                 for * :ListClipperIterator annotation : entity.annotations {
+                    last_frame_annotation_list_height_px = clipper.ItemsHeight;
+
                     ImGui.TableNextRow();
 
                     ImGui.TableNextColumn();
@@ -1766,11 +1775,14 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     ImGui.TableNextColumn();
                     ImGui.Text(annotation.text);
                 }
+                last_frame_annotation_list_height_px *= entity.annotations.count;
             }
 
         }
     }
 }
+
+last_frame_annotation_list_height_px : float;
 
 show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {
 

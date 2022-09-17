@@ -316,7 +316,9 @@ clamp_user_settings :: ()
     // camera_zoom_dragging_ratio = clamp(camera_zoom_dragging_ratio, .3, .99);
     camera_zoom_scrolling_ratio = clamp(camera_zoom_scrolling_ratio, .3, .99);
     camera_zoom_min_screen_filling_length_mm = clamp(camera_zoom_min_screen_filling_length_mm, .00001, app.camera.scene_bounding_sphere.radius / 2);
-    item_list_max_size_before_scroll_px = clamp(item_list_max_size_before_scroll_px, 100., 800.);
+
+    item_list_max_size_before_scroll_px = clamp(item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+    annotation_list_max_size_before_scroll_px = clamp(annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
 }
 
 #import "Basic";
