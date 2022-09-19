@@ -287,6 +287,15 @@ as_polyline_soup :: (entity : *Entity) -> *Polyline_Soup2_Entity, *Polyline_Soup
     return null, null;
 }
 
+as_segment_soup :: (entity : *Entity) -> *Segment_Soup3_Entity {
+    if entity.type == {
+        case .SEGMENT_SOUP3;
+            soup3 := cast(*Segment_Soup3_Entity) entity;
+            return soup3;
+    }
+    return null;
+}
+
 // Update the camera to focus on the given segment. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the segment centroid.
 //
@@ -305,39 +314,51 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
 
     entity := app.entities[id];
 
-    soup2, soup3 := as_polyline_soup(entity);
-    if !soup2 && !soup3 {
-        log_error("Expected POLYLINE type item, got %.", entity.type);
-        return;
-    }
+    polyline_soup2, polyline_soup3 := as_polyline_soup(entity);
+    segment_soup3 := as_segment_soup(entity);
 
     sphere : Sphere;
 
-    if soup2 {
+    if polyline_soup2 {
 
-        sid_max := segment_count(soup2.shape) - 1;
+        sid_max := segment_count(polyline_soup2.shape) - 1;
         if segment_index < 0 || segment_index > sid_max {
             log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
             return;
         }
 
-        found, segment := get_segment(soup2.shape, segment_index);
+        found, segment := get_segment(polyline_soup2.shape, segment_index);
         center2 : Vector2 = (<<segment.from_point + <<segment.to_point) / 2;
         sphere.center = make_vector3(center2, 0);
         sphere.radius = 2 * distance(segment.from_point, segment.to_point);
 
-    } else if soup3 {
+    } else if polyline_soup3 {
 
-        sid_max := segment_count(soup3.shape) - 1;
+        sid_max := segment_count(polyline_soup3.shape) - 1;
         if segment_index < 0 || segment_index > sid_max {
             log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
             return;
         }
 
-        found, segment := get_segment(soup3.shape, segment_index);
+        found, segment := get_segment(polyline_soup3.shape, segment_index);
         sphere.center = (<<segment.from_point + <<segment.to_point) / 2;
         sphere.radius = 2 * distance(segment.from_point, segment.to_point);
 
+    } else if segment_soup3 {
+
+        sid_max := element_count(segment_soup3.shape) - 1;
+        if segment_index < 0 || segment_index > sid_max {
+            log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
+            return;
+        }
+
+        segment := get_segment3(segment_soup3.shape, segment_index);
+        sphere.center = (segment.start + segment.end) / 2;
+        sphere.radius = 2 * distance(segment.start, segment.end);
+
+    } else {
+        log_error("Expected segment or polyline soup type item, got %.", entity.type);
+        return;
     }
 
     if clip_radius > 0 {

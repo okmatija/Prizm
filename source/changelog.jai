@@ -101,6 +101,10 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
   - Changed face labeling action from cycling face index and centroid to just toggling the face index.  Centroid coordinates can be set via item/selection context menu (RMB on an item/selection)
   - Changed all labeling actions to have a smaller default radius when labeling in a disk around the cursor (now its 50 pixels, previously it was 200 pixels)
 
+- Changes to .obj file loading:
+  - Files containing only `l` directives and 3D vertices (.z == 0) are loaded as a segment soup. Previously they were being silently converted to a polyline soup (array of arrays of points). The geometry obviously is not changed, but the index numbering is changed.
+  - Segment soups support annotations, support for annotated polyline soups is still incomplete
+
 - Improved handling of long item lists but adding a scrollbar when displaying all items would exceed a threshold, this can be customized in `Options > Advanced > Item List Max Size Before Scroll`
 - Fixed performance when scrolling though long lists of messages in the console log
 - Fixed annoying UI where item reload buttons were disabled when the item was unchanged on disk, now only the F5 shortcut is disabled in that case. A tooltip is displayed warning the user that they will be reloading an unchanged item

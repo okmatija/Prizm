@@ -1773,7 +1773,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     if annotation.kind == .BLOCK {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
-                        if ImGui.Button(imgui_label("Focus", annotation)) { // nocommit Make this work for Segment_Soup3!
+                        if ImGui.Button(imgui_label("Focus", annotation)) {
                             if annotation.kind == {
                                 case .TRIANGLE;
                                     item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
