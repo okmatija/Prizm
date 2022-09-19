@@ -61,6 +61,7 @@ Action_Set :: struct {
     // nocommit Item list will now actually be an item list
 
     last_interaction_time : Apollo_Time;
+    hovered_duration_secs : float; // @Cleanup When switching to ImGui 1.88 which natively supports timed tooltips
 }
 
 get_action_description :: (action_set : Action_Set, action_target : Target_Items) -> string {

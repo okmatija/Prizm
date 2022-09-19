@@ -523,7 +523,8 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
     return prev_color, prev_size;
 }
 
-Action_Button :: (label : string, action_set : *Action_Set) #expand {
+Action_Button :: (_label : string, action_set : *Action_Set) #expand {
+    label := copy_string(_label, temp);
     mod := current_modifier_flags(); 
     found, target := modifier_to_target(mod);
 
@@ -557,29 +558,42 @@ Action_Button :: (label : string, action_set : *Action_Set) #expand {
             }
         }
 
-        progress := action.progress_proc();
 
-        delta_time_s := to_float64_seconds(current_time_consensus() - action_set.last_interaction_time);
-        fade :: FADE_TIME_SECS / 3;
-        if delta_time_s < fade {
-            using button_color;
-
-            // alpha fades with time
-            alpha := clamp(delta_time_s / fade, 0., 1.);
-            w = lerp(base_color.w, 0., xx alpha);
-
-            // hue cycles with progress @Cleanup I think this code is slightly incorrect but its not noticabl
-            hsva := color_convert_RGB_to_HSV(x, y, z, w);
-            hue := cast(u16)(hsva.x * 255);
-            hue = (hue + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
-            button_color = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
-        } else {
-            button_color.w = 0.;
-        }
-
-        do_style := !action_set.regular_button && progress.denom != 0;
+        do_style := !action_set.regular_button ; // && progress.denom != 0;
 
         if do_style {
+            progress := action.progress_proc();
+
+            delta_time_s := to_float64_seconds(current_time_consensus() - action_set.last_interaction_time);
+            fade :: FADE_TIME_SECS / 2;
+            if delta_time_s < fade {
+                using button_color;
+
+                // alpha fades with time
+                alpha := clamp(delta_time_s / fade, 0., 1.);
+                w = lerp(base_color.w, 0., xx alpha);
+
+                // hue cycles with progress @Cleanup I think this code is slightly incorrect but its not noticabl
+                hsva := color_convert_RGB_to_HSV(x, y, z, w);
+                hue := cast(u16)(hsva.x * 255);
+                hue = (hue + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
+                button_color = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
+
+                // Show the text "Default" when we're back to the default setting
+                if progress.numer == 0 {
+                    default := "Default";
+                    for 0..label.count-1 {
+                        if it < default.count {
+                            label.data[it] = default[it];
+                        } else {
+                            label.data[it] = #char " ";
+                        }
+                    }
+                }
+            } else {
+                button_color.w = 0.;
+            }
+
             ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive,  button_color);
             ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
@@ -589,9 +603,14 @@ Action_Button :: (label : string, action_set : *Action_Set) #expand {
         if ImGui.Button(imgui_label(label, *action_set)) {
             action_set.last_interaction_time = current_time_consensus();
             action.proc(xx *action_set.last_interaction_time);
+            // action_set.hovered_duration_secs = 0.; // so we can click it without looking at the tooltip
         }
 
-        if ImGui.
+        if ImGui.IsItemHovered() {
+            action_set.hovered_duration_secs += io().DeltaTime;
+        } else {
+            action_set.hovered_duration_secs = 0.;
+        }
 
         if do_style {
             ImGui.PopStyleColor();
@@ -600,7 +619,7 @@ Action_Button :: (label : string, action_set : *Action_Set) #expand {
             ImGui.PopStyleColor();
         }
 
-        {
+        if action_set.hovered_duration_secs > 0.5 {
             push_allocator(temp);
 
             #if false {
@@ -661,7 +680,8 @@ show_item_list_actions_ui :: () {
 
         console_top_y := app.current_window_height * .6;
         ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
-        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always);
+        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
+        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
         window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
         if true {
