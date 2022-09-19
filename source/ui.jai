@@ -365,7 +365,7 @@ show_options :: () {
         if app.background_style == .SOLID_COLOR {
             ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
         }
-        // ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged); // nocommit
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
@@ -667,10 +667,6 @@ show_item_list_actions_ui :: () {
         return;
     }
 
-    // nocommit, Add RMB menu with finer options?
-    // nocommit fix the tooltips
-    // nocommit make Ctrl LMB on folders select the items in the folder
-
     // @CompilerBug how to specify types with multiple return values
     target_exists, target_items := modifier_to_target(current_modifier_flags());
 
@@ -700,6 +696,10 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Opacity", *CYCLE_OPACITY_ACTION_SET);
         ImGui.SameLine();
+        Action_Button("Clipping", *TOGGLE_CLIPPING_ACTION_SET);
+        ImGui.SameLine();
+        Action_Button("Normals", *TOGGLE_NORMALS_ACTION_SET);
+        ImGui.SameLine();
         Action_Button("Line Width", *CYCLE_LINE_WIDTH_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Point Size", *CYCLE_POINT_SIZE_ACTION_SET);
@@ -709,10 +709,6 @@ show_item_list_actions_ui :: () {
         Action_Button("Vertex Labels", *CYCLE_VERTEX_LABEL_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Annotations", *CYCLE_ANNOTATION_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Clipping", *TOGGLE_CLIPPING_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Normals", *TOGGLE_NORMALS_ACTION_SET);
     }
 }
 
@@ -806,7 +802,6 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
             }
         }
 
-        // nocommit: Remove when selection checkbox on selected item affects all in selection
         if ImGui.Button("Toggle folder visibility") {
             visible_state := false;
             for app.entities if get_directory(it.fully_pathed_name) == path {
@@ -818,7 +813,6 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
                 it.display_info.is_visible = visible_state;
             }
         }
-        // @FIXME nocommit This should not reorder the directories
         if ImGui.Button("Remove folder") {
             for app.entities if get_directory(it.fully_pathed_name) == path {
                 remove it;

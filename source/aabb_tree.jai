@@ -201,7 +201,7 @@ Visit_Primitives_Brute_Force :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE
 
 // Note: the ray is expected to be in the model space of the mesh, since the tree is constructed from the model space mesh
 Visit_Primitives_Near_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
-    if tree.nodes.count == 0 {
+    if tree.nodes.count == 0 || !is_finite(distance) {
         return;
     }
 

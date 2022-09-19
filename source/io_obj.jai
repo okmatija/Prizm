@@ -335,8 +335,8 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 result = New(Segment_Soup3_Entity);
                 e := cast(*Segment_Soup3_Entity)result;
                 e.mesh = mesh;
-                // e.spatial = New(AABB_Tree(e.Shape)); // nocommit @Incomplete
-                // init(e.spatial, *e.shape); // nocommit @Incomplete
+                // e.spatial = New(AABB_Tree(e.Shape)); // @Incomplete @Speed
+                // init(e.spatial, *e.shape); // @Incomplete @Speed
                 result.annotations = annotations;
 
             } else { // nocommit Only call this if convert_to_polyline_soup function

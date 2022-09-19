@@ -55,11 +55,6 @@ Action_Set :: struct {
     regular_button := false; // If true a simple ImGui.Button, otherwise a button which cycles/toggles state and changes color accordingly
     override_WantCaptureKeyboard := false;
     
-    // nocommit Move options into the help menu, to minimize number of drop downs all over the place, have it default open
-    // nocommit Move selections under item list (does not yet have a item number, do a refacttoring for that)
-    // nocommit Remove the Actions submenu
-    // nocommit Item list will now actually be an item list
-
     last_interaction_time : Apollo_Time;
     hovered_duration_secs : float; // @Cleanup When switching to ImGui 1.88 which natively supports timed tooltips
 }
@@ -435,7 +430,7 @@ cycle_vertex_label_progress_proc :: (target : Target_Items) -> Fraction {
     return cycle_vertex_label_theme(target, *app_info_copy.vertex_label_style);
 }
 
-// nocommit decapitalize non-constant action sets
+// @Cleanup decapitalize non-constant action sets
 
 CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
     target_action=.[
@@ -548,7 +543,6 @@ CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
 //
 
 
-// nocommit simplify this?? just make it a toggle
 cycle_annotation_theme :: (theme : *Annotation_Theme) -> Fraction {
 
     result : Fraction;
@@ -613,7 +607,7 @@ CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
             progress_proc=cycle_annotation_progress_proc,
         },
     ],
-    desc="Cycle annotations for",
+    desc="Toggle annotations for",
     key=#char "k",
 };
 

@@ -164,6 +164,10 @@ main :: () {
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
 
+    // // Using those as a base value to create width/height that are factor of the size of our font
+    // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+    // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
+
     // Set up Simp
     {
         window_type := get_window_type(app.window);
@@ -238,6 +242,7 @@ main :: () {
 
         reset_temporary_storage();
         app.debug_frame = false;
+        // sleep_milliseconds(200);
     }
 
     // Cleanup
@@ -254,6 +259,7 @@ main :: () {
 // @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {
 
+    // @CompilerBug for .\Prism.exe 'C:\Users\MatijaKecman\Desktop\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {

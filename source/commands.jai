@@ -38,7 +38,7 @@ debug_fake_annotations :: (id : int) {
     }
 
     item := app.entities[id];
-    array_reset_keeping_memory(*item.annotations); // nocommit @Leak!
+    array_reset_keeping_memory(*item.annotations); // @Leak!
 
     for item.mesh.positions {
         annotation : Annotation;

@@ -1,5 +1,28 @@
 /*
 
+Fix that folder tooltips combine all shut folders together
+
+Use #! comments to run commands, one of which should be to convert meshes to polyline soups
+
+Reduce the default label radius to be smaller but maybe it should be zero and just show one element as you suggested.
+Implement visiblity checking in label rendering
+, for a single face only; face index labels on, for multiple faces near the cursor; face index labels off
+Replace centroid positions with a console command item_compute_face_centroids
+Implement face selection (annotate the face with a string of the source entity/face)
+[User Guide] Clarify what is meant by RMB on a name
+Fix overlapping vertices
+color widget that sets the point color should also change the label color (I could darken it a little bit relative to what is used for the point). I can keep the label color widget in the menu, in case you want to override just the label color
+Remove the debug_ prefixed functions from release builds
+
+
+
+Make a shortcut to prism and pass it default args which point to the local debug directory
+Add a tooltip to the folders and make it work properly, do the same for the Advanced options thing. Perhaps make a function to implement this fancy version, and add the auto-opening thing there too
+Add block header annotation with command name so it appears in tooltip. Or pass optional string for the label
+Button to add annotated vertex to a selection
+[User Guide] Add example use cases eg the one with very very close together verts
+
+
 OBJ support (0.3.0)
 -----------
 Fix the missing annotations when reading file: E:\Dropbox\Prism\shapes-novc\Debug_Points_-1.000_+0.000_+0.000.obj
@@ -10,7 +33,11 @@ Misc
 ----
 Rename the Stats section to an Information section and put it as the first item, maybe have hovering it write that info in the bottom of the screen
 Add a crosshair at the origin
-nocommit Make the changelog more readable when its very long
+statically link SDL2, why does that not work??
+maybe make MMB do undo everywhere, so it's like the unreal undo buttons
+Make the grid command on the near plane create the grid though the cursor position
+Move the item list to the right, and move camera controls to the left? and then have icon buttons for actions on the left as well, or have ` cycle between the console input and action buttons along the bottom, or nothing
+Selections should be in another folder under items, and you can add a new one via the Add button
 
 Deferred
 --------
@@ -18,10 +45,29 @@ Asynchronously load files
 Implement overlays for visualization of tangent vectors
 Is there a more robust string to float method?
 Make -1 reference the last item in the item list, so you can run commands without knowing the entity index, this can be used make commands put into obj file comments work, particularly color related ones
-nocommit search "  <<" and figure out what to do
-nocommit Highlight background of folder name when doing RMB menu
-nocommit load files before directories so that already loaded happens first
+Remove the selection checkbox from the folder context menu, and just make Ctrl LMB on folders select the items. This gives users a way to delete all items but keep the folder, pressing the remove folder button removes items and the folder
+Make the remove folder button not reorder the folders
+search "  <<" and figure out what to do
+Make the changelog more readable when its very long
+Highlight background of folder name when doing RMB menu
+load files before directories so that already loaded happens first
+Move options into the help menu, to minimize number of drop downs all over the place, have it default open
+Move selections under item list (does not yet have a item number, do a refacttoring for that)
+Item list will now actually be an item list
+Add RMB menu with finer options for action buttons?
 
+
+UI
+--
+Add +/- key binds to increase/decrease the UI font size and with modifiers to change the label size
+Make F1 the help menu, change preset buttons to 1 and 2 and add some more presets?
+Make the Changelog more readable
+Implement the thing to auto fold the UI tree headers
+
+Move console scroll bottom to options
+Make interactive mode a checkbox next to the console input box
+
+Color theme with transparent backgrounds is pretty cool, problems with tooltips and popups being kinda hard to read though
 
 */
 
@@ -36,23 +82,25 @@ nocommit load files before directories so that already loaded happens first
 
 
 PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
-- Improved annotation support
+- Improved Annotation support:
 
-  - Added in-viewport annotation visualization which can be toggled using the new keybinding `k`, or via a new button in the Actions menu
+  - Added in-viewport Annotation visualization which can be toggled using the new keybinding `k`, or via a new button in the Actions menu
   - Annotations on vertices/faces/edges are visualized in the same way as labels ie positioned at the vertex, or face/edge centroids
-  - Changed keybinding `x` so that it also clears the labels associated with annotations
+  - Changed keybinding `x` so that it also clears the labels associated with Annotations
   - Improved the table view in the `Annotations` section of the item context menu
     - Made the and made the table look nicer and enabled various useful ImGui table options. Press `RMB` on the table header to see them
-    - Fixed performance when scrolling though long lists of annotations
+    - Fixed performance when scrolling though long lists of Annotations
 
-- Moved the buttons in the `Actions` menu to the bottom edge of the viewport and reworked them a bit:
+- Improved Action UI:
 
-  - Activating the Action by pressing the button or corresponding keyboard shortcut will perform the specified update on the target items
-  - Buttons toggle or cycle state. When a button returns to its initial/default state it flashes blue and briefly displays "Default" rather than the usual label
-  - Buttons are visible when the console is hidden (use backtick to toggle the console)
-  - Read the tooltips for information about what the actions do and how to use modifier keys to change the target items
+  - Moved the Action buttons, previously in the `Actions` menu of the Item List, to the bottom edge of the viewport
+  - Actions are activated by pressing the corresponding button/keyboard shortcut and will update the target items
+  - Action button tooltips explain the action update effect and how the modifier keys change which items are targetted
+  - Actions toggle or cycle state. When an action returns to its initial/default state the button flashes blue and briefly displays "Default" rather than the usual label
+  - Moved the Focus/Reload actions into the Item List next to the Add button
+  - Changed face labeling action from cycling face index and centroid to just toggling the face index.  Centroid coordinates can be set via item/selection context menu (RMB on an item/selection)
+  - Changed all labeling actions to have a smaller default radius when labeling in a disk around the cursor (now its 50 pixels, previously it was 200 pixels)
 
-- Reduced the default radius for labeling in a disk around the cursor from 200 to 50 pixels
 - Improved handling of long item lists but adding a scrollbar when displaying all items would exceed a threshold, this can be customized in `Options > Advanced > Item List Max Size Before Scroll`
 - Fixed performance when scrolling though long lists of messages in the console log
 - Fixed annoying UI where item reload buttons were disabled when the item was unchanged on disk, now only the F5 shortcut is disabled in that case. A tooltip is displayed warning the user that they will be reloading an unchanged item

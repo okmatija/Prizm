@@ -1,6 +1,6 @@
 Entity_Type :: enum {
     // GENERAL_OBJ; // See what the snake example does
-    MESH; // nocommit rename this to TRIANGLE_MESH, and the corresponding Mesh_Entity to Triangle_Mesh_Entity
+    MESH; // @Cleanup rename this to TRIANGLE_MESH, and the corresponding Mesh_Entity to Triangle_Mesh_Entity
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
     POLYGON_SOUP;
@@ -196,7 +196,7 @@ update_entity_transform :: (entity : *Entity, shift : Vector3) {
 }
 
 clear :: (base : *Entity) {
-    // nocommit @Cleanup Pull out all the clear mesh calls
+    // @Cleanup Pull out all the clear mesh calls
     if #complete base.type == {
         case .UNKNOWN;
             // do nothing
@@ -378,7 +378,7 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
 
                 deinit(found);
 
-                // nocommit replace with code to set the dirty flag
+                // @Cleanup Replace with code to set the dirty flag
                 maybe_update_render_info(*entity.render_info, *entity.mesh);
 
                 app.entities[found_index] = entity;
@@ -508,6 +508,8 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
         case .COMMAND_OUTPUT;
 
             entity.fully_pathed_name = copy_string(tprint("%/%", COMMAND_OUTPUT_FOLDER, name));
+            entity.creation_time = current_time_consensus();
+            entity.creation_size = mesh.positions.count;
         
         case .PRESET_SHAPE;
 

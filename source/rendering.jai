@@ -19,6 +19,10 @@ Label_Theme :: struct {
 }
 
 Annotation_Theme :: struct {
+    // // @Incomplete Implement this
+    // show_point_annotation := false;
+    // show_centroid_annotation := false;
+
     visible := false;
     visible_radius_px : int = 50;
     label_scale := .3;
@@ -592,7 +596,7 @@ render_entities :: () {
     render_entity_text :: (entity : *Entity) {
         Simp.ScopeContext();
 
-        // nocommit, why not using here?
+        // @Cleanup We could just do using entity.display_info here
         point_theme := entity.display_info.vertex_label_style;
         element_theme := entity.display_info.element_label_theme;
         annotation_theme := entity.display_info.annotation_theme;
