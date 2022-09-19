@@ -242,15 +242,6 @@ remove_directory :: (directory : string) {
     }
 }
 
-// Specfied since we use the values as an index into an array
-Target_Items :: enum int #specified {
-    // @Volatile Don't change ordering, it will desync the descriptions etc in the keymap
-    ALL_ITEMS :: 0;
-    VISIBLE ::   1;
-    SELECTED ::  2;
-}
-TARGET_ITEMS_COUNT :: #run get_enum_count(Target_Items);
-
 
 current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;
@@ -376,6 +367,7 @@ ImGui :: #import "ImGui";
 #load "ui.jai";
 #load "shapes.jai";
 #load "keymap.jai";
+#load "target_items.jai";
 #load "inspector.jai";
 #load "lexer.jai";
 #load "parser.jai";

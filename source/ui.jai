@@ -32,6 +32,12 @@ show_item_list_ui :: () {
     if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
         defer ImGui.TreePop();
 
+        Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
+        ImGui.SameLine();
+        Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
+        ImGui.SameLine();
+        show_add_item_ui();
+
         indent := ImGui.GetTreeNodeToLabelSpacing();
 
         {
@@ -118,8 +124,6 @@ show_item_list_ui :: () {
             if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
                 fit_scene_on_screen();
             }
-
-            show_add_item_ui();
         }
     }
 }
@@ -192,15 +196,12 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     ImGui.TableNextColumn();
     // ImGui.SetNextItemWidth(-FLOAT32_MIN);
     if entity.name.count {
-        FADE_TIME_SECS :: 1.;
-
         delta_time_s := to_float64_seconds(current_time_consensus() - entity.creation_time);
         base_color := ifx is_empty(entity) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
         color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
         if delta_time_s < FADE_TIME_SECS {
             alpha := clamp(delta_time_s / FADE_TIME_SECS, 0., 1.);
-            color4 := lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
-            color = make_ImVec4(color4.x, color4.y, color4.z, color4.w);
+            color = lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
         }
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, color);
@@ -330,7 +331,7 @@ context_menu_popup_item_variable_should_reset : bool = true;
 
 
 show_add_item_ui :: () {
-    ImGui.Button("Add   ");
+    ImGui.Button(" Add ");
     Show_Tooltip("LMB to access preset shape menu, or\nDrag and Drop files/directories, or\nRestart with file/directory arguments");
 
     current_pos := ImGui.GetWindowPos();
@@ -364,7 +365,7 @@ show_options :: () {
         if app.background_style == .SOLID_COLOR {
             ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
         }
-        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
+        // ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged); // nocommit
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
         if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
@@ -522,167 +523,176 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
     return prev_color, prev_size;
 }
 
-show_item_list_actions_ui :: () {
+Action_Button :: (label : string, action_set : *Action_Set) #expand {
+    mod := current_modifier_flags(); 
+    found, target := modifier_to_target(mod);
 
-    // This boolean is useful so we can have the tooltip below appear when the tree is open AND closed
-    do_tree : bool = ImGui.TreeNodeEx("Actions", .SpanAvailWidth);
-
-    if ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Right) {
-        display_action_buttons = !display_action_buttons;
+    has_target := false;
+    if found {
+        if #complete target == {
+            case .ALL_ITEMS;
+                has_target = app.entities.count != 0;
+            case .VISIBLE;
+                for :Visible app.entities {
+                    has_target = true;
+                    break;
+                }
+            case .SELECTED;
+                for :Selected app.entities {
+                    has_target = true;
+                    break;
+                }
+        }
     }
 
-    {
-        bindings : [..]Binding_With_Description;
-        bindings.allocator = temp;
-        array_add(*bindings, make_Binding_With_Description(to_string(0, ALL_ITEMS_MOD), "When held, target all items"));
-        array_add(*bindings, make_Binding_With_Description(to_string(0, SELECTED_MOD),  "When held, target selected items"));
-        array_add(*bindings, make_Binding_With_Description("RMB",  "Toggle between Button UI/Settings UI"));
-        // Show_Tooltip_Binding(..bindings, header_text="Change Action targets with modifier keys");
-        Show_Tooltip_Binding(..bindings);
-    }
+    base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
+    button_color := base_color;
 
-    target_exists, target_items : /*bool, Target_Items*/ = modifier_to_target(current_modifier_flags()); // @CompilerBug, how to specify types with multiple return values
-
-    action_target_text :: (target_items : Target_Items) {
-        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-        defer ImGui.PopStyleColor();
-        if app.entities.count {
-            if #complete target_items == {
-                case .ALL_ITEMS;
-                    count := app.entities.count;
-                    ImGui.Text("Target all items (%)", count);
-                case .VISIBLE;
-                    count := 0; for :Visible app.entities count += 1;
-                    ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
-                case .SELECTED;
-                    count := 0; for :Selected app.entities count += 1;
-                    ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
+    if has_target {
+        action : Action;
+        for action_set.target_action {
+            if it.target == target {
+                action = it;
+                break;
             }
+        }
+
+        progress := action.progress_proc();
+
+        delta_time_s := to_float64_seconds(current_time_consensus() - action_set.last_interaction_time);
+        fade :: FADE_TIME_SECS / 3;
+        if delta_time_s < fade {
+            using button_color;
+
+            // alpha fades with time
+            alpha := clamp(delta_time_s / fade, 0., 1.);
+            w = lerp(base_color.w, 0., xx alpha);
+
+            // hue cycles with progress @Cleanup I think this code is slightly incorrect but its not noticabl
+            hsva := color_convert_RGB_to_HSV(x, y, z, w);
+            hue := cast(u16)(hsva.x * 255);
+            hue = (hue + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
+            button_color = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
         } else {
-            ImGui.Text("No items to target");
+            button_color.w = 0.;
         }
-    }
 
-    if do_tree && display_action_buttons == false {
-        defer ImGui.TreePop();
+        do_style := !action_set.regular_button && progress.denom != 0;
 
-        action_target_text(target_items);
+        if do_style {
+            ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive,  button_color);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
+            ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
+        }
 
-        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
-        // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
+        if ImGui.Button(imgui_label(label, *action_set)) {
+            action_set.last_interaction_time = current_time_consensus();
+            action.proc(xx *action_set.last_interaction_time);
+        }
 
-        // Hide the clipping ui since its confusing in this context
-        unused_aabb : AxisBox3;
-        set := display_info_ui(*app.selection_display_info, unused_aabb, clipping_ui=false);
-        if target_exists apply_display_info_update(set, target_items);
-    }
+        if ImGui.
 
-    if do_tree && display_action_buttons == true {
-        defer ImGui.TreePop();
+        if do_style {
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+        }
 
-        action_target_text(target_items);
+        {
+            push_allocator(temp);
 
-        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
-        // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
-
-        // combo_box("##Target", *app.target_items, type_info(type_of(app.target_items)));
-
-        Action_Button :: (label : string, action_set : Action_Set, disabled_tooltip := "") #expand {
-            mod := current_modifier_flags(); 
-            found, target := modifier_to_target(mod);
-
-            has_target := false;
-            if found {
-                if #complete target == {
-                    case .ALL_ITEMS;
-                        has_target = app.entities.count != 0;
-                    case .VISIBLE;
-                        for :Visible app.entities {
-                            has_target = true;
-                            break;
-                        }
-                    case .SELECTED;
-                        for :Selected app.entities {
-                            has_target = true;
-                            break;
-                        }
-                }
-            }
-
-            base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
-
-            if has_target {
-                action : Action;
-                for action_set.target_action {
-                    if it.target == target {
-                        action = it;
-                        break;
-                    }
-                }
-
-                progress := action.progress_proc();
-                button_color := darken(base_color, cast(float)progress.numer / progress.denom);
-
-                pop_style := false;
-                if progress.denom != 0 {
-                    ImGui.PushStyleColor(xx ImGui.Col.Button, button_color);
-                    ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, button_color);
-                    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
-                    pop_style = true;
-                } else {
-                    assert(action_set.regular_button);
-                }
-                if ImGui.Button(imgui_label(label, *action_set)) {
-                    action.proc();
-                }
-                if pop_style {
-                    ImGui.PopStyleColor();
-                    ImGui.PopStyleColor();
-                    ImGui.PopStyleColor();
-                }
-
-                {
-                    push_allocator(temp);
-                    desc := get_action_description(action_set, action.target);
-                    Show_Tooltip_Binding(desc, to_string(action_set.key, mod));
-                }
-
+            #if false {
+                // Just show one of the bindings
+                desc := get_action_description(action_set, action.target);
+                Show_Tooltip_Binding(desc, to_string(action_set.key, mod));
             } else {
-                if !action_set.regular_button {
-                    ImGui.PushStyleColor(xx ImGui.Col.Button, darken(base_color, 0.));
-                }
-                ImGui.BeginDisabled();
-                ImGui.Button(imgui_label(label, *action_set));
-                ImGui.EndDisabled();
-                if !action_set.regular_button {
-                    ImGui.PopStyleColor();
-                }
-                if disabled_tooltip Show_Tooltip(disabled_tooltip);
+                // Show all the bindings
+                bindings : [..]Binding_With_Description;
+                bindings.allocator = temp;
+                array_add(*bindings, make_Binding_With_Description( to_string(action_set.key, VISIBLE_MOD),   get_action_description(action_set, .VISIBLE)));
+                array_add(*bindings, make_Binding_With_Description( to_string(action_set.key, SELECTED_MOD),  get_action_description(action_set, .SELECTED)));
+                array_add(*bindings, make_Binding_With_Description( to_string(action_set.key, ALL_ITEMS_MOD), get_action_description(action_set, .ALL_ITEMS)));
+                Show_Tooltip_Binding(..bindings);
             }
         }
 
-        Action_Button("Cyc BFace Mode", CYCLE_BACKFACE_MODE_ACTION_SET);
+    } else {
+        if !action_set.regular_button {
+            button_color.w = 0;
+            ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive,  button_color);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
+            ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
+        }
+        ImGui.BeginDisabled();
+
+        if ImGui.Button(imgui_label(label, *action_set)) {
+            // Do nothing, this is a disabled button, only here for rendering
+        }
+
+        if !action_set.regular_button {
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor();
+        }
+        ImGui.EndDisabled();
+    }
+}
+
+
+show_item_list_actions_ui :: () {
+    if app.console.visible {
+        return;
+    }
+
+    // nocommit, Add RMB menu with finer options?
+    // nocommit fix the tooltips
+    // nocommit make Ctrl LMB on folders select the items in the folder
+
+    // @CompilerBug how to specify types with multiple return values
+    target_exists, target_items := modifier_to_target(current_modifier_flags());
+
+    // Try actions buttons on the bottom by the console
+    {
+        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+
+        console_top_y := app.current_window_height * .6;
+        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
+        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always);
+
+        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
+        if true {
+            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
+            // window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
+            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
+            window_flags |= .NoBackground;          // Makes the console log transparent
+        }
+
+        ImGui.Begin("target_items_ribbon", flags=window_flags);
+        defer ImGui.End();
+
+        // show_action_target_text(target_items);
+        // ImGui.SameLine();
+        Action_Button("Backface", *CYCLE_BACKFACE_MODE_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Cyc Opacity   ", CYCLE_OPACITY_ACTION_SET);
-
-        Action_Button("Cyc Line Width", CYCLE_LINE_WIDTH_ACTION_SET);
+        Action_Button("Opacity", *CYCLE_OPACITY_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Cyc Vert Size ", CYCLE_POINT_SIZE_ACTION_SET);
-
-        Action_Button("Cyc Elem Label", CYCLE_ELEMENT_LABEL_ACTION_SET);
+        Action_Button("Line Width", *CYCLE_LINE_WIDTH_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Cyc Vert Label", CYCLE_VERTEX_LABEL_ACTION_SET);
-
-        Action_Button("Tgl Annotation", CYCLE_ANNOTATION_ACTION_SET);
-
-        Action_Button("Tgl Clipping  ", TOGGLE_CLIPPING_ACTION_SET);
+        Action_Button("Point Size", *CYCLE_POINT_SIZE_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Tgl Normals   ", TOGGLE_NORMALS_ACTION_SET);
-
-        Action_Button("Focus Items   ", FOCUS_ITEMS_ACTION_SET);
+        Action_Button("Face Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Reload Items  ", RELOAD_ITEMS_ACTION_SET);
-
+        Action_Button("Vertex Labels", *CYCLE_VERTEX_LABEL_ACTION_SET);
+        ImGui.SameLine();
+        Action_Button("Annotations", *CYCLE_ANNOTATION_ACTION_SET);
+        ImGui.SameLine();
+        Action_Button("Clipping", *TOGGLE_CLIPPING_ACTION_SET);
+        ImGui.SameLine();
+        Action_Button("Normals", *TOGGLE_NORMALS_ACTION_SET);
     }
 }
 
@@ -1929,6 +1939,8 @@ pending_directories_sweep_state : Checkbox_Sweep_Mode_State;
 
 // Checkbox sweep mode is enabled while LMB is held down if it was clicked on a sweepable checkbox, the mouse will be constrained to move only up and down and the inverse of the state of the checkbox just before the click will be set on all the checkboxes that get swept
 item_list_sweep_state : Checkbox_Sweep_Mode_State;
+
+FADE_TIME_SECS :: 1.;
 
 #scope_export // @CompilerBug without this scope_export the line below errors!
 ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue

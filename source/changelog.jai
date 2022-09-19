@@ -45,6 +45,13 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
     - Made the and made the table look nicer and enabled various useful ImGui table options. Press `RMB` on the table header to see them
     - Fixed performance when scrolling though long lists of annotations
 
+- Moved the buttons in the `Actions` menu to the bottom edge of the viewport and reworked them a bit:
+
+  - Activating the Action by pressing the button or corresponding keyboard shortcut will perform the specified update on the target items
+  - Buttons toggle or cycle state. When a button flashes blue it has returned to the initial/default state
+  - Buttons are visible when the console is hidden (use backtick to toggle the console)
+  - Read the tooltips for information about what the actions do and how to use modifier keys to change the target items
+
 - Reduced the default radius for labeling in a disk around the cursor from 200 to 50 pixels
 - Improved handling of long item lists but adding a scrollbar when displaying all items would exceed a threshold, this can be customized in `Options > Advanced > Item List Max Size Before Scroll`
 - Fixed performance when scrolling though long lists of messages in the console log

@@ -298,7 +298,8 @@ handle_events :: () {
                 if io().WantCaptureKeyboard && !mapping.override_WantCaptureKeyboard {
                     return;
                 }
-                keymap.procs[mapping.proc_info_index].proc();
+                info := *keymap.procs[mapping.proc_info_index];
+                info.proc(info.data);
                 return;
             }
         }
