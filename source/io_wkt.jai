@@ -1,3 +1,5 @@
+// @Incomplete Support annotations?
+
 load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
     if !data {

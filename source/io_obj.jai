@@ -42,7 +42,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     defer {
         if parser.failed {
             deinit(*mesh);
-            for annotations free(it.text);
+            for annotations deinit(it);
             array_reset(*annotations);
         }
     }
@@ -79,7 +79,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 annotation : Annotation;
 
                 annotation.kind = .VERTEX;
-                annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                set_annotation_value(*annotation, tok.string_value);
                 annotation.id = mesh.positions.count - 1;
                 array_add(*annotations, annotation);
 
@@ -152,7 +152,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 annotation : Annotation;
 
                 annotation.kind = .LINE;
-                annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                set_annotation_value(*annotation, tok.string_value);
                 annotation.id = mesh.indices.count / 2 - 1;
                 array_add(*annotations, annotation);
 
@@ -184,7 +184,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                     annotation : Annotation;
 
                     annotation.kind = .TRIANGLE;
-                    annotation.text = copy_string(trim(tok.string_value, BYTES_TO_TRIM));
+                    set_annotation_value(*annotation, tok.string_value);
                     annotation.id = mesh.indices.count / 3 - 1;
                     array_add(*annotations, annotation);
 
@@ -223,7 +223,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 tok = peek_token(*parser);
             }
 
-            annotation.text = join(..block, "\n");
+            set_annotation_value(*annotation, join(..block, "\n"));
             array_add(*annotations, annotation);
         } else {
 
@@ -531,4 +531,23 @@ parse_face :: (p : *Parser) -> Obj_Face {
         }
     }
     return face;
+}
+
+
+set_annotation_value :: (annotation : *Annotation, _string_value : string) {
+    string_value := _string_value;
+    if string_value.count == 0 return;
+
+    i := 0;
+    while string_value.data[i] == #char "#" {
+        string_value.data += 1;
+        string_value.count -= 1;
+    }
+
+    value, success, remainder := string_to_float64(string_value);
+    if success {
+        set(*annotation.value, cast(float)value);
+    } else {
+        set(*annotation.value, copy_string(trim(string_value, BYTES_TO_TRIM)));
+    }
 }

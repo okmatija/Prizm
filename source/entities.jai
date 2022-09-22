@@ -24,13 +24,14 @@ Annotation :: struct {
         TRIANGLE;
         BLOCK; // e.g., a header at the top of an .obj file
     }
-
     kind : Kind;
-    text : string; // owned
- 
+
     // if kind == .BLOCK then 1-based line number starting block comment
     // if kind != .BLOCK then 0-based index for vertex/line/triangle
     id : int;
+
+    // strings are owned
+    value : Tagged_Union(string, float);
 }
 
 find_header_annotation :: (entity : *Entity) -> *Annotation {
@@ -270,6 +271,35 @@ remove_entities_if_selected :: () {
     }
 }
 
+// In temporary storage... @Cleanup, this should use the contextual allocator
+to_string :: (annotation : Annotation) -> string {
+    if annotation.value.tag == {
+        case string;
+            pointer := cast(*string) annotation.value.bytes.data;
+            return tprint("%", <<pointer); // necessary??
+        case float;
+            pointer := cast(*float) annotation.value.bytes.data;
+            return tprint("%", <<pointer);
+    }
+    vt := annotation.value.value_types;
+    printv(vt);
+    printv(annotation);
+    assert(false); // unreachable
+    return "";
+}
+
+deinit :: (annotation : Annotation) {
+    if annotation.value.tag == {
+        case string;
+            pointer := cast(*string) annotation.value.bytes.data;
+            free(<<pointer);
+        case float;
+            // do nothing
+        case;
+            assert(false); // unreachable
+    }
+}
+
 deinit :: (base : *Entity) {
     if !base return;
 
@@ -283,8 +313,6 @@ deinit :: (base : *Entity) {
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
-            for entity.annotations free(it.text);
-            array_reset(*entity.annotations);
 
         case .POLYLINE_SOUP3;
 
@@ -292,8 +320,6 @@ deinit :: (base : *Entity) {
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
-            for entity.annotations free(it.text);
-            array_reset(*entity.annotations);
 
         case .POLYGON_SOUP;
 
@@ -301,33 +327,28 @@ deinit :: (base : *Entity) {
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
-            for entity.annotations free(it.text);
-            array_reset(*entity.annotations);
 
         case .POINT_CLOUD;
 
             entity := cast(*Point_Cloud_Entity)base;
             deinit(*entity.mesh);
             deinit(entity.spatial);
-            for entity.annotations free(it.text);
-            array_reset(*entity.annotations);
 
         case .SEGMENT_SOUP3;
 
             entity := cast(*Segment_Soup3_Entity)base;
             deinit(*entity.mesh);
             deinit(entity.spatial);
-            for entity.annotations free(it.text);
-            array_reset(*entity.annotations);
 
         case .MESH;
 
             entity := cast(*Mesh_Entity)base;
             deinit(*entity.mesh);
             deinit(entity.spatial);
-            for entity.annotations free(it.text);
-            array_reset(*entity.annotations);
     }
+
+    for base.annotations deinit(it);
+    array_reset(*base.annotations);
 
     if #complete base.source == {
         case .FILE_ON_DISK;   free(base.fully_pathed_filename);

@@ -7,14 +7,14 @@ v 6 0 7 # point 6
 v 0 8 9 # point 7
 v 1 1 1 # point 8
 
-l 1 2 # segment 1
-l 2 3 # segment 2
-l 3 4 # segment 3
-l 4 5 # segment 4
-l 5 6 # segment 5
-l 6 7 # segment 6
-l 7 8 # segment 7
+l 1 2 # 1.1
+l 2 3 # 2.1
+l 3 4 # 3.1
+l 4 5 # 4.1
+l 5 6 # 5.1
+l 6 7 # 6.1
+l 7 8 # 7.1
 
 v 10 10 1 # point 9
 v 14 6 7  # point 10
-l 9 10 # segment 8
+l 9 10 # 8.1

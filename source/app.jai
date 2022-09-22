@@ -330,6 +330,7 @@ Simp :: #import "Simp_beta_0_1_016";
 #import "Debug";
 #import "Hash";
 #import "Hash_Table";
+#import "Tagged_Union"(DEBUG=true);
 #import "freetype255";
 #import "System";
 ImGui :: #import "ImGui";

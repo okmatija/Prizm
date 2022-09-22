@@ -43,7 +43,7 @@ debug_fake_annotations :: (id : int) {
     for item.mesh.positions {
         annotation : Annotation;
         annotation.kind = .VERTEX;
-        annotation.text = sprint("v %", it_index);
+        set(*annotation.value, cast(float)it_index);
         annotation.id = it_index;
         array_add(*item.annotations, annotation);
     }
@@ -51,7 +51,7 @@ debug_fake_annotations :: (id : int) {
     for :TrianglesIterator item.mesh {
         annotation : Annotation;
         annotation.kind = .TRIANGLE;
-        annotation.text = sprint("f %, rand %", it_index, random_get_zero_to_one());
+        set(*annotation.value, sprint("f %, rand %", it_index, random_get_zero_to_one()));
         annotation.id = it_index;
         array_add(*item.annotations, annotation);
     }
@@ -501,6 +501,20 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
     apply_focus(clip_radius, sphere, entity);
 
 } @RegisterCommand
+
+// // Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `id`
+// item_make_centroid_point_cloud :: (id : int) {
+//     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+//     if !check_geometry_index(id) {
+//         return;
+//     }
+
+//     if app.entities[id].type != .MESH {
+//         log_error("Expected MESH type item, got %.", app.entities[id].type);
+//         return;
+//     }
+
+// } @RegisterCommand
 
 // Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `id`
 item_find_open_edges :: (id : int) {

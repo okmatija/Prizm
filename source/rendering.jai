@@ -629,6 +629,7 @@ render_entities :: () {
             case .UNKNOWN;
             case .POLYLINE_SOUP2;
 
+                // @Incomplete Annotations
                 soup := cast(*Polyline_Soup2_Entity) entity;
 
                 for :Point_Iterator soup.shape {
@@ -668,7 +669,8 @@ render_entities :: () {
 
                         text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                            text : string = to_string(it);
+                            cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                         }
                     } else if it.kind == .LINE {
 
@@ -704,6 +706,7 @@ render_entities :: () {
                 soup := cast(*Segment_Soup3_Entity) entity;
 
                 for entity.annotations {
+                    text : string = to_string(it);
                     if it.kind == .VERTEX {
                         pos : Vector3 = soup.mesh.positions[it.id];
                         point_world := transform_point(entity.mesh.world_from_model, pos);
@@ -713,7 +716,7 @@ render_entities :: () {
 
                         text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                            cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                         }
                     } else if it.kind == .LINE {
                         segment : Segment3 = get_segment3(soup.mesh, it.id);
@@ -725,7 +728,7 @@ render_entities :: () {
 
                         text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                            cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                         }
                     }
                 }
@@ -755,6 +758,7 @@ render_entities :: () {
 
             case .POLYGON_SOUP;
 
+                // @Incomplete annotations
                 // @Incomplete segment labels
                 // @Refactor use iterators and label segments
                 soup := cast(*Polygon_Soup_Entity) entity;
@@ -799,7 +803,8 @@ render_entities :: () {
 
                         text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                            cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                            text := to_string(it);
+                            cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                         }
                     }
                 }
@@ -841,7 +846,8 @@ render_entities :: () {
 
                             text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
                             if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                                cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                                text := to_string(it);
+                                cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                             }
 
                         case .TRIANGLE;
@@ -855,7 +861,8 @@ render_entities :: () {
 
                             text_position_px := get_text_screen_position(centroid, projection_from_model);
                             if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
-                                cache_text_quads(*annotation_quads, it.text, text_position_px, annotation_theme.label_scale);
+                                text := to_string(it);
+                                cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                             }
                     }
                 }

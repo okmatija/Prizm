@@ -291,7 +291,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
     header_annotation : *Annotation = find_header_annotation(entity);
     if app.settings.show_header_annotation_tooltips && header_annotation {
-        Show_Tooltip(header_annotation.text);
+        Show_Tooltip(to_string(header_annotation));
     }
 
     /*
@@ -1753,12 +1753,14 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
             }
 
-            if ImGui.BeginTable("##Annotations_Table", 4, flags=table_flags, outer_size=outer_size) {
+            column_count : s32 = 5;
+            if ImGui.BeginTable("##Annotations_Table", column_count, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
                 ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Target",     ImGui.TableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
                 ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
                 ImGui.TableHeadersRow();
@@ -1797,7 +1799,10 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     ImGui.Text(tprint("%", annotation.id));
 
                     ImGui.TableNextColumn();
-                    ImGui.Text(annotation.text);
+                    ImGui.Text(tprint("%", annotation.value.tag));
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text(to_string(annotation));
                 }
                 last_frame_annotation_list_height_px *= entity.annotations.count;
             }
