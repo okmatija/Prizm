@@ -342,6 +342,7 @@ ImGui :: #import "ImGui";
 #import "Windows_Utf8";
 }
 
+#load "annotations.jai";
 #load "axis_box.jai";
 #load "polyline.jai";
 #load "polygon.jai";

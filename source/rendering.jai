@@ -674,7 +674,7 @@ render_entities :: () {
                         }
                     } else if it.kind == .LINE {
 
-                        // nocommit @Incomplete
+                        // @Incomplete
                     }
                 }
 

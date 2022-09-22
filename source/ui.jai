@@ -1188,7 +1188,7 @@ show_help_ui :: () {
         }
     }
 
-    if ImGui.TreeNodeEx("Key bindings for Actions", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Key bindings to update item sets", .DefaultOpen) {
         defer ImGui.TreePop();
         ImGui.Columns(2);
         defer ImGui.Columns(1);
@@ -1745,7 +1745,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
         if entity.annotations.count {
 
-            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable;
+            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable | .Sortable;
             outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
 
             if last_frame_annotation_list_height_px < outer_size.y {
@@ -1757,13 +1757,39 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             if ImGui.BeginTable("##Annotations_Table", column_count, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
-                ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Target",     ImGui.TableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed | .NoSort);
+                ImGui.TableSetupColumn("Target",     ImGui.TableColumnFlags.WidthFixed | .NoSort);
+                ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
+                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .NoSort);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
                 ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
                 ImGui.TableHeadersRow();
+
+                // Sort our data if sort specs have been changed!
+                sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
+                if sort_specs && sort_specs.SpecsDirty {
+                    if sort_specs.SpecsCount > 0 {
+                        specs : []ImGui.TableColumnSortSpecs;
+                        specs.data = sort_specs.Specs;
+                        specs.count = sort_specs.SpecsCount;
+                        for spec : specs { // @CompilerBug Should using work on a for loop?
+                            // @Cleanup Use a enum id here, ImGui has support for it
+                            direction := spec.SortDirection_;
+                            if spec.SortDirection_ == .Ascending {
+                                if spec.ColumnIndex == {
+                                    case 2; quick_sort(entity.annotations, (a,b) => (compare_annotation_ids(a,b)));
+                                    case 4; quick_sort(entity.annotations, (a,b) => (compare_annotation_values(a, b)));
+                                }
+                            } else {
+                                if spec.ColumnIndex == {
+                                    case 2; quick_sort(entity.annotations, (a,b) => (-compare_annotation_ids(a,b)));
+                                    case 4; quick_sort(entity.annotations, (a,b) => (-compare_annotation_values(a, b)));
+                                }
+                            }
+                        }
+                    }
+                    sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
+                }
 
                 last_frame_annotation_list_height_px = 0.;
                 for * :ListClipperIterator annotation : entity.annotations {

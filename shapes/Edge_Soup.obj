@@ -1,20 +1,20 @@
-v 0 0 0 # point 1
-v 1 0 0 # point 2
-v 0 2 0 # point 3
-v 3 4 0 # point 4
-v 0 0 5 # point 5
-v 6 0 7 # point 6
-v 0 8 9 # point 7
-v 1 1 1 # point 8
+v 0 0 0   # ccc
+v 1 0 0   # aaa
+v 0 2 0   # zzz
+v 3 4 0   # hhh
+v 0 0 5   # bbb
+v 6 0 7   # rrr
+v 0 8 9   # qqq
+v 1 1 1   # bbb
 
-l 1 2 # 1.1
-l 2 3 # 2.1
-l 3 4 # 3.1
-l 4 5 # 4.1
-l 5 6 # 5.1
-l 6 7 # 6.1
-l 7 8 # 7.1
+l 1 2           # 8.0
+l 2 3           # 3.0
+l 3 4           # 6.0
+l 4 5           # 7.0
+l 5 6           # 1.0
+l 6 7           # 2.0
+l 7 8           # 5.0
 
-v 10 10 1 # point 9
-v 14 6 7  # point 10
-l 9 10 # 8.1
+v 10 10 1 # sss
+v 14 6 7  # ggg
+l 9 10          # 4.0

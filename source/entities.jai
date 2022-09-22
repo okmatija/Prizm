@@ -17,23 +17,6 @@ Entity_Source :: enum {
     UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded
 }
 
-Annotation :: struct {
-    Kind :: enum {
-        VERTEX;
-        LINE;
-        TRIANGLE;
-        BLOCK; // e.g., a header at the top of an .obj file
-    }
-    kind : Kind;
-
-    // if kind == .BLOCK then 1-based line number starting block comment
-    // if kind != .BLOCK then 0-based index for vertex/line/triangle
-    id : int;
-
-    // strings are owned
-    value : Tagged_Union(string, float);
-}
-
 find_header_annotation :: (entity : *Entity) -> *Annotation {
     for *annotation : entity.annotations {
         if annotation.kind == .BLOCK && annotation.id == 1 {
@@ -271,34 +254,6 @@ remove_entities_if_selected :: () {
     }
 }
 
-// In temporary storage... @Cleanup, this should use the contextual allocator
-to_string :: (annotation : Annotation) -> string {
-    if annotation.value.tag == {
-        case string;
-            pointer := cast(*string) annotation.value.bytes.data;
-            return tprint("%", <<pointer); // necessary??
-        case float;
-            pointer := cast(*float) annotation.value.bytes.data;
-            return tprint("%", <<pointer);
-    }
-    vt := annotation.value.value_types;
-    printv(vt);
-    printv(annotation);
-    assert(false); // unreachable
-    return "";
-}
-
-deinit :: (annotation : Annotation) {
-    if annotation.value.tag == {
-        case string;
-            pointer := cast(*string) annotation.value.bytes.data;
-            free(<<pointer);
-        case float;
-            // do nothing
-        case;
-            assert(false); // unreachable
-    }
-}
 
 deinit :: (base : *Entity) {
     if !base return;
