@@ -41,6 +41,7 @@ Selections should be in another folder under items, and you can add a new one vi
 
 Deferred
 --------
+There is a template display info that the actions modify and then apply to the targets. But the clipping action does not use it. And its maybe a confusing design anyway
 Asynchronously load files
 Implement overlays for visualization of tangent vectors
 Is there a more robust string to float method?
@@ -81,31 +82,34 @@ Color theme with transparent backgrounds is pretty cool, problems with tooltips 
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
 
-PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1-rc2", "WIP", #string DONE
+PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
+- Replaced the buttons previously in the "Actions" menu of the Item List with "Update" buttons along the bottom edge of the viewport. Update buttons work in the same way as the action buttons did but this was never properly explained, so here is how things work: Each item has its own settings struct storing geometry/text rendering info (point size, line width, clipping shape etc), there is also a stand-alone "template" setting struct which is used to implement the update buttons. When an update button is pressed two things happen: first, the corresponding member in the template is changed and second, the change is copied over to the settings struct of each targetted item. Note this template setting struct is also used to implement the selection context menu which appears when you RMB on a selected item in the item list (use Ctrl LMB to select an item in the Item List)
+
+  - Update buttons toggle or cycle state of the targetted items (see the tooltips) and are triggered by pressing the corresponding button/keyboard shortcut
+  - When an update returns to its initial/default setting the button flashes blue and briefly displays "Default" rather than the usual label
+  - Changed face labeling update from cycling face index and centroid to just toggling the face index.  Centroid coordinates can still be set via item/selection context menu (RMB on an item or selection)
+  - Changed all labeling actions to have a smaller default radius when labeling in a disk around the cursor (now its 50 pixels, previously it was 200 pixels)
+  - Added new "Focus"/"Reload" buttons into the Item List next to the "Add" button, these act like update buttons in that modifier keys control which item set (visible, selected or all) are targetted
+
 - Improved Annotation support:
 
-  - Added in-viewport Annotation visualization which can be toggled using the new keybinding `k`, or via a new button in the Actions menu
+  - Added in-viewport Annotation visualization which can be toggled using the new keybinding `k`, or via the new "Annotations" update button
   - Annotations on vertices/faces/edges are visualized in the same way as labels ie positioned at the vertex, or face/edge centroids
-  - Changed keybinding `x` so that it also clears the labels associated with Annotations
-  - Improved the table view in the `Annotations` section of the item context menu
-    - Made the and made the table look nicer and enabled various useful ImGui table options. Press `RMB` on the table header to see them
-    - Fixed performance when scrolling though long lists of Annotations
-
-- Improved Action UI:
-
-  - Moved the Action buttons, previously in the `Actions` menu of the Item List, to the bottom edge of the viewport
-  - Actions are activated by pressing the corresponding button/keyboard shortcut and will update the target items
-  - Action button tooltips explain the action update effect and how the modifier keys change which items are targetted
-  - Actions toggle or cycle state. When an action returns to its initial/default state the button flashes blue and briefly displays "Default" rather than the usual label
-  - Moved the Focus/Reload actions into the Item List next to the Add button
-  - Changed face labeling action from cycling face index and centroid to just toggling the face index.  Centroid coordinates can be set via item/selection context menu (RMB on an item/selection)
-  - Changed all labeling actions to have a smaller default radius when labeling in a disk around the cursor (now its 50 pixels, previously it was 200 pixels)
+  - Changed keybinding `x` so that it also clears the labels associated with annotations
+  - Improved the table view in the "Annotations" section of the item context menu:
+    - Made the table look nicer and enabled various useful ImGui table options. Press RMB on the table header to see them
+    - Made the "Annotation" and "Index" columns sortable (LMB on the column header performs the sort)
+    - Fixed performance when scrolling though long lists of annotations
+  - Added an initial version of typed annotations:
+    - If the string following a # successfully parses as a float it will be stored as a float annotation, otherwise it will be stored as a string annotation
+    - Type information is currently only used to implement sorting of the "Annotation" column
+    - See `shapes/Edge_Soup.obj` for an example
 
 - Changes to .obj file loading:
-  - Files containing only `l` directives and 3D vertices (.z == 0) are loaded as a segment soup. Previously they were being silently converted to a polyline soup (array of arrays of points). The geometry obviously is not changed, but the index numbering is changed.
-  - Segment soups support annotations, support for annotated polyline soups is still incomplete
+  - Files containing only `l` directives and 3D vertices (.z == 0) are loaded as a segment soup. Previously they were being silently converted to a polyline soup (array of arrays of points) which was annoying/unexpected because the edge numbering changes. In a later version this conversion will be implemented via a console command
+  - Segment soups support annotations (polyline soups currently do not)
 
-- Improved handling of long item lists but adding a scrollbar when displaying all items would exceed a threshold, this can be customized in `Options > Advanced > Item List Max Size Before Scroll`
+- Improved handling of long item lists by adding a scrolling region when displaying all items would exceed a threshold. This threshold can be customized in "Options > Advanced > Item List Max Size Before Scroll"
 - Fixed performance when scrolling though long lists of messages in the console log
 - Fixed annoying UI where item reload buttons were disabled when the item was unchanged on disk, now only the F5 shortcut is disabled in that case. A tooltip is displayed warning the user that they will be reloading an unchanged item
 DONE
