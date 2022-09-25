@@ -247,7 +247,6 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $PROC : ()->*Entity) -
 
     // Update the source to be a preset
     assert(result.source == .FILE_ON_DISK); // because we loaded a file
-    free(result.fully_pathed_filename);
     free(result.fully_pathed_name);
 
     result.source = .PRESET_SHAPE;

@@ -189,9 +189,8 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
     }
 
     entity.source = .FILE_ON_DISK;
-    entity.fully_pathed_filename = copy_string(filename);
     color := color_from_path(filename);
-    init_entity_base_parameters(entity, name, color, entity.mesh);
+    init_entity_base_parameters(entity, filename, color, entity.mesh);
 
     if parser.failed || (entity && entity.type == .UNKNOWN) {
         deinit(entity);

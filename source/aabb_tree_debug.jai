@@ -39,7 +39,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
         entity.shape = shape;
         entity.mesh = to_Mesh(entity.shape);
-        name := tprint("%_debug_spatial", mesh_entity.name);
+        name := tprint("%_debug_spatial", entity_name(mesh_entity));
         color := color_from_string(name);
         init_entity_base_parameters(entity, name, color, entity.mesh);
 
@@ -155,7 +155,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         }
         visitor_data : Visitor_Data;
         visitor_data.entity_at_depth = *entity_at_depth;
-        visitor_data.name = mesh_entity.name;
+        visitor_data.name = entity_name(mesh_entity);
         visitor_data.tree = spatial;
 
         visitor : spatial.Node_Visitor;

@@ -81,6 +81,10 @@ Color theme with transparent backgrounds is pretty cool, problems with tooltips 
 // TODO Make tooltips over item color square show the shortcuts
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
+PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
+TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
+DONE
+};
 
 PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
 - Replaced the buttons previously in the "Actions" menu of the Item List with "Update" buttons along the bottom edge of the viewport. Update buttons work in the same way as the action buttons did but this was never properly explained, so here is how things work: Each item has its own settings struct storing geometry/text rendering info (point size, line width, clipping shape etc), there is also a stand-alone "template" setting struct which is used to implement the update buttons. When an update button is pressed two things happen: first, the corresponding member in the template is changed and second, the change is copied over to the settings struct of each targetted item. Note this template setting struct is also used to implement the selection context menu which appears when you RMB on a selected item in the item list (use Ctrl LMB to select an item in the Item List)
@@ -353,6 +357,7 @@ DONE
 };
 
 init_changelog :: () {
+    array_add(*app.changelog, PRISM_VERSION_0_3_2);
     array_add(*app.changelog, PRISM_VERSION_0_3_1);
     array_add(*app.changelog, PRISM_VERSION_0_3_0);
     array_add(*app.changelog, PRISM_VERSION_0_2_2);

@@ -199,7 +199,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
 }
 
 folder_exists_on_disk :: (directory : string) -> bool {
-    if directory == PRESET_SHAPE_FOLDER || directory == COMMAND_OUTPUT_FOLDER {
+    if directory == PRESET_SHAPE_FOLDER || directory == COMMAND_OUTPUT_FOLDER { // nocommit SOURCE_CODE_FOLDER
         return false;
     }
     return true;
@@ -213,7 +213,7 @@ remove_directory :: (directory : string) {
     // Check if no other entities will need to watch this directory
     remove_directory := true;
     for app.entities {
-        if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_filename) == directory {
+        if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_name) == directory {
             remove_directory = false;
             break;
         }

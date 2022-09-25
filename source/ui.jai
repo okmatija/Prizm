@@ -195,7 +195,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     // Write filename
     ImGui.TableNextColumn();
     // ImGui.SetNextItemWidth(-FLOAT32_MIN);
-    if entity.name.count {
+    if entity_name(entity).count {
         delta_time_s := to_float64_seconds(current_time_consensus() - entity.creation_time);
         base_color := ifx is_empty(entity) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
         color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
@@ -838,7 +838,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         ScopedPopupBorderTheme(original_border_color, original_border_size);
 
         if !entity.is_selected {
-            if entity.name.count {
+            if entity_name(entity).count {
 
                 if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
                 if is_changed_on_disk(entity) == false {
@@ -877,7 +877,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 defer ImGui.TreePop();
 
                 for :Selected entity : app.entities {
-                    if entity.name.count {
+                    if entity_name(entity).count {
 
                         if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
                         if is_changed_on_disk(entity) == false {
@@ -1973,7 +1973,7 @@ imgui_text_for_aabb :: (aabb : AxisBox3) {
 
 entity_source_tooltip :: (entity : Entity) {
     if #complete entity.source == {
-        case .FILE_ON_DISK;   Show_Tooltip(tprint("File:    %\nCreated: %", entity.fully_pathed_filename, filetime_to_readable_date(entity.creation_time)));
+        case .FILE_ON_DISK;   Show_Tooltip(tprint("File:    %\nCreated: %", entity.fully_pathed_name, filetime_to_readable_date(entity.creation_time)));
         case .COMMAND_OUTPUT; Show_Tooltip(tprint("Command: %\nCreated: %", entity.console_command, filetime_to_readable_date(entity.creation_time)));
         case .PRESET_SHAPE;   Show_Tooltip(tprint("Preset shape\nCreated: %", filetime_to_readable_date(entity.creation_time)));
         case .UNKNOWN;        // Do nothing

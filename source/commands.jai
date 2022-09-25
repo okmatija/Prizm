@@ -127,9 +127,9 @@ select_if_match :: (pattern : string) {
         text : string;
         if it.source == {
             case .FILE_ON_DISK;
-                text = it.fully_pathed_filename; // So we can select all items in a sub-folder with wildcards
+                text = it.fully_pathed_name; // So we can select all items in a sub-folder with wildcards
             case;
-                text = it.name;
+                text = entity_name(it);
         }
         if wildcard_match(text, pattern) {
             it.is_selected = true;
@@ -150,11 +150,11 @@ select_toggle_selected_items :: () {
 // Sorts items in alphabetical order
 sort_by_name :: (reversed : int = 0) {
     compare_alphabetical :: (a : *Entity, b : *Entity) -> s64 {
-        return compare_nocase(a.name, b.name);
+        return compare_nocase(entity_name(a), entity_name(b));
     }
 
     compare_reverse_alphabetical :: (a : *Entity, b : *Entity) -> s64 {
-        return compare_nocase(b.name, a.name);
+        return compare_nocase(entity_name(b), entity_name(a));
     }
 
     if   reversed quick_sort(app.entities, compare_reverse_alphabetical);
@@ -167,7 +167,7 @@ sort_by_time :: (ascending : int = 1) {
         // @Cleanup This is a pretty weird way to do this...
         at := filetime_to_readable_date(a.creation_time);
         bt := filetime_to_readable_date(b.creation_time);
-        if at == bt return compare_nocase(b.name, a.name);
+        if at == bt return compare_nocase(entity_name(b), entity_name(a));
         return compare_nocase(bt, at);
     }
 
@@ -175,7 +175,7 @@ sort_by_time :: (ascending : int = 1) {
         // @Cleanup This is a pretty weird way to do this...
         at := filetime_to_readable_date(a.creation_time);
         bt := filetime_to_readable_date(b.creation_time);
-        if at == bt return compare_nocase(a.name, b.name);
+        if at == bt return compare_nocase(entity_name(a), entity_name(b));
         return compare_nocase(at, bt);
     }
 
@@ -187,14 +187,14 @@ sort_by_time :: (ascending : int = 1) {
 sort_by_size :: (ascending : int = 1) {
     compare_ascending :: (a : *Entity, b : *Entity) -> s64 {
         if a.mesh.positions.count == b.mesh.positions.count {
-            return compare_nocase(a.name, b.name);
+            return compare_nocase(entity_name(a), entity_name(b));
         }
         return compare_floats(xx a.mesh.positions.count, xx b.mesh.positions.count);
     }
 
     compare_descending :: (a : *Entity, b : *Entity) -> s64 {
         if a.mesh.positions.count == b.mesh.positions.count {
-            return compare_nocase(b.name, a.name);
+            return compare_nocase(entity_name(b), entity_name(a));
         }
         return compare_floats(xx b.mesh.positions.count, xx a.mesh.positions.count);
     }
@@ -574,7 +574,7 @@ item_find_open_edges :: (id : int) {
     }
 
     // Collect the segment soup @Incomplete weld/stitch polyline segments together
-    segment_soup : Polyline_Soup3;
+    segment_soup : Polyline_Soup3; // nocommit Make this a segment soup
     for origin, edge : edge_to_origin {
         segment := array_add(*segment_soup.polylines);
         array_add(*segment.points, mesh.positions[edge.x]);
@@ -589,16 +589,12 @@ item_find_open_edges :: (id : int) {
     new_entity.shape = segment_soup;
     new_entity.mesh = to_Mesh(new_entity.shape);
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-    name : string;
-    {
-        push_allocator(temp);
-        name = join(app.entities[id].name, "_open_edges");
-    }
+    name := tprint("%_open_edges", entity_name(app.entities[id]));
     color := color_from_string(name);
     init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
     new_entity.display_info.wireframe_width = 3;
 
-    // Set generation_index before adding to overwrite the correct entity
+    // Set generation_index before adding to overwrite the correct entity // nocommit fishy
     new_entity.generation_index = app.entities[id].generation_index;
     add_entity(new_entity, .OVERWRITE);
 

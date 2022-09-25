@@ -298,73 +298,61 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             if dim == 2 {
 
             #if false {
+
                 // nocommit @Incomplete make Segment_Soup2
+
             } else { // nocommit Only call this if convert_to_polyline_soup function
 
                 result = New(Polyline_Soup2_Entity);
                 e := cast(*Polyline_Soup2_Entity)result;
-                e.shape, ok = to_Polyline_Soup2(mesh);
+                e.shape, ok = to_Polyline_Soup2(mesh); // nocommit This conversion should always succeed (have a separate convertible_to_Polyline_Soup2 function)
                 if !ok {
                     deinit(*e.shape);
                     return null;
                 }
-                e.spatial = New(AABB_Tree(e.Shape));
-                init(e.spatial, *e.shape);
+                result.mesh = mesh;
+                set_entity_source_from_file(result, filename);
+                set_entity_display_info(result, mesh.geometry_format);
+                init_entity_spatial_index(cast(*Polyline_Soup2_Entity)result);
 
-                // FIXME Fixup annotation id numbering to sync with polyline soup conversion
                 if annotations.count {
-                    needs_fixup := false;
-                    for polyline : e.shape.polylines {
-                        if polyline.points.count && (polyline.points[0] == polyline.points[polyline.points.count - 1]) {
-                            needs_fixup = true;
-                            break;
-                        }
-                    }
-
-                    if needs_fixup {
-                        log_error("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
-                    } else {
-                        result.annotations = annotations;
-                    }
+                    // FIXME Fixup annotation id numbering to sync with polyline soup conversion
+                    log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
+                    for annotations deinit(it);
+                    array_reset(*annotations);
                 }
             }
 
             } else if dim == 3 {
 
             #if true {
+
                 result = New(Segment_Soup3_Entity);
-                e := cast(*Segment_Soup3_Entity)result;
-                e.mesh = mesh;
-                // e.spatial = New(AABB_Tree(e.Shape)); // @Incomplete @Speed
-                // init(e.spatial, *e.shape); // @Incomplete @Speed
+                result.mesh = mesh;
                 result.annotations = annotations;
+                set_entity_source_from_file(result, filename);
+                set_entity_display_info(result, mesh.geometry_format);
+                // init_entity_spatial_index(cast(*Segment_Soup3_Entity)result); // @Incomplete
 
             } else { // nocommit Only call this if convert_to_polyline_soup function
+
                 result = New(Polyline_Soup3_Entity);
+                result.mesh = mesh;
                 e := cast(*Polyline_Soup3_Entity)result;
                 e.shape, ok = to_Polyline_Soup3(mesh);
                 if !ok {
                     deinit(*e.shape);
                     return null;
                 }
-                e.spatial = New(AABB_Tree(e.Shape));
-                init(e.spatial, *e.shape);
+                set_entity_source_from_file(result, filename);
+                set_entity_display_info(result, mesh.geometry_format);
+                init_entity_spatial_index(cast(*Polyline_Soup3_Entity)result);
 
                 // FIXME Fixup annotation id numbering to sync with polyline soup conversion
                 if annotations.count {
-                    needs_fixup := false;
-                    for polyline : e.shape.polylines {
-                        if polyline.points.count && (polyline.points[0] == polyline.points[polyline.points.count - 1]) {
-                            needs_fixup = true;
-                            break;
-                        }
-                    }
-
-                    if needs_fixup {
-                        log_error("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
-                    } else {
-                        result.annotations = annotations;
-                    }
+                    log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
+                    for annotations deinit(it);
+                    array_reset(*annotations);
                 }
             }
 
@@ -373,30 +361,25 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         case .POINTS;
 
             result = New(Point_Cloud_Entity);
-            e := cast(*Point_Cloud_Entity)result;
-            e.mesh = mesh;
-            e.spatial = New(AABB_Tree(e.Shape));
-            init(e.spatial, *e.shape);
+            result.mesh = mesh;
             result.annotations = annotations;
+            set_entity_source_from_file(result, filename);
+            set_entity_display_info(result, mesh.geometry_format);
+            init_entity_spatial_index(cast(*Point_Cloud_Entity)result);
 
         case .TRIANGLES;
 
             result = New(Mesh_Entity);
-            e := cast(*Mesh_Entity)result;
-            e.mesh = mesh;
-            e.spatial = New(AABB_Tree(e.Shape));
-            init(e.spatial, *e.shape);
+            result.mesh = mesh;
             result.annotations = annotations;
+            set_entity_source_from_file(result, filename);
+            set_entity_display_info(result, mesh.geometry_format);
+            init_entity_spatial_index(cast(*Mesh_Entity)result);
 
         case .UNKNOWN;
 
             assert(false, "Should have handled UNKNOWN geometry format by now\n");
     }
-
-    result.source = .FILE_ON_DISK;
-    result.fully_pathed_filename = copy_string(filename);
-    color := color_from_path(filename);
-    init_entity_base_parameters(result, name, color, mesh);
 
     return result;
 }

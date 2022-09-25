@@ -14,7 +14,8 @@ Entity_Source :: enum {
     FILE_ON_DISK;
     PRESET_SHAPE;
     COMMAND_OUTPUT;
-    UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded
+    // SELECTION; // Possible, but I don't think we actually want lots of selection entities, better to just have simple mesh entity for each of point, segments and triangle selection
+    UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded // nocommit This should be the first entry!!
 }
 
 find_header_annotation :: (entity : *Entity) -> *Annotation {
@@ -41,7 +42,7 @@ Entity :: struct {
     // Note the transform stored in this mesh also applies to:
     // - Shape geometry in the specialized types
     // - Bounding shapes in render_info
-    mesh : Mesh;
+    mesh : Mesh; // :EntityInitializers Note that sometimes its convenient to start with the mesh and compute the shape in the Entity sub-types, and other timee vice-verse!
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
     // Interpretation depends on Entity_Type (I think)
@@ -51,9 +52,6 @@ Entity :: struct {
     // user_data : *void; // Registered commands may want to attach data here
 
     using source_info : union {
-        // The fully pathed filename pointing to file on disk that created the entity
-        fully_pathed_filename : string;
-
         // The console command the user executed to generate the entity
         console_command : string;
 
@@ -62,8 +60,6 @@ Entity :: struct {
     }
 
     auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
-
-    name : string;
 
     // This should be used to find entities
     // If source == .FILE_ON_DISK   this is fully_pathed_filename
@@ -76,11 +72,14 @@ Entity :: struct {
     creation_time : Apollo_Time;
     creation_size : s64;
 
-    generation_index : int; // entities with the same 'fully_pathed_name' will increment this
+    // This gets set when we add the entity to app.entities, and makes sense only in that context (I think)
+    generation_index : int; // nocommit delete this incorrect comment: entities with the same 'fully_pathed_name' will increment this
 }
 
 PRESET_SHAPE_FOLDER :: "Preset shapes";
 COMMAND_OUTPUT_FOLDER :: "Command outputs";
+
+// :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
 
 Polyline_Soup2_Entity :: struct {
     #as using base : Entity;
@@ -127,6 +126,8 @@ Segment_Soup3_Entity :: struct {
 Point_Cloud_Entity :: struct {
     #as using base : Entity;
     type = .POINT_CLOUD;
+
+    // nocommit Probably we want to remove these base initializers
     display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
     mesh.geometry_format = .POINTS;
 
@@ -229,28 +230,20 @@ clear :: (base : *Entity) {
 remove_entity_by_index :: (entity_to_remove_index : int) {
     if entity_to_remove_index >= 0 && entity_to_remove_index < app.entities.count {
         entity_to_remove : *Entity = app.entities[entity_to_remove_index];
-        directory_to_remove := "";
-        if entity_to_remove.source == .FILE_ON_DISK {
-            directory_to_remove = get_directory(entity_to_remove.fully_pathed_filename);
-        }
+        remove_directory(get_directory(entity_to_remove.fully_pathed_name));
         deinit(entity_to_remove);
         free(entity_to_remove);
         array_ordered_remove_by_index(*app.entities, entity_to_remove_index);
-        remove_directory(directory_to_remove);
     }
 }
 
 // @FIXME This should be an ordered remove!
 remove_entities_if_selected :: () {
     for app.entities if it.is_selected {
-        directory_to_remove := "";
-        if it.source == .FILE_ON_DISK {
-            directory_to_remove = get_directory(it.fully_pathed_filename);
-        }
+        remove_directory(get_directory(it.fully_pathed_name));
         deinit(it);
         free(it);
         remove it; // @FIXME this screws up the order of items in the list
-        remove_directory(directory_to_remove);
     }
 }
 
@@ -306,13 +299,11 @@ deinit :: (base : *Entity) {
     array_reset(*base.annotations);
 
     if #complete base.source == {
-        case .FILE_ON_DISK;   free(base.fully_pathed_filename);
+        case .UNKNOWN;        // Do nothing
+        case .FILE_ON_DISK;   // Do nothing
         case .COMMAND_OUTPUT; free(base.console_command);
         case .PRESET_SHAPE;   // Do nothing
-        case .UNKNOWN;        // Do nothing
     }
-
-    free(base.name);
 
     // Remove data from gpu memory as well
     if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
@@ -376,7 +367,7 @@ is_empty :: (entity : Entity) -> bool {
 is_changed_on_disk :: (using entity : Entity) -> bool {
     changed := false;
     if source == .FILE_ON_DISK {
-        modtime, size, ok := file_modtime_and_size(fully_pathed_filename);
+        modtime, size, ok := file_modtime_and_size(fully_pathed_name);
         if modtime > creation_time || size != creation_size {
             changed = true;
         }
@@ -413,7 +404,7 @@ reset_entity_primary_color :: (entity : *Entity) {
 
 // Assumes that fully_pathed_name is canonically formatted (see canonically_formatted_path_string)
 // Returns a string pointing into the argument
-get_entity_name_from_fully_pathed_name :: (fully_pathed_name : string) -> string {
+entity_name :: (fully_pathed_name : string) -> string {
     name := fully_pathed_name;
 
     path := parse_path(name);
@@ -422,6 +413,11 @@ get_entity_name_from_fully_pathed_name :: (fully_pathed_name : string) -> string
     }
 
     return name;
+}
+
+// Returns a string pointing into entity.fully_pathed_name
+entity_name :: (entity : Entity) -> string {
+    return entity_name(entity.fully_pathed_name);
 }
 
 entity_description :: (using entity : Entity, with_creation_time : bool) -> string {
@@ -438,7 +434,7 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
         time_separator = " @ ";
     }
 
-    return tprint("%1%2%3%4", name, index_text, time_separator, time_text);
+    return tprint("%1%2%3%4", entity_name(entity), index_text, time_separator, time_text);
 }
 
 color_from_path :: (path : string) -> Vector4 {
@@ -479,7 +475,6 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
     // Make sure we set the source type before calling this function
     if entity.source == .UNKNOWN return;
 
-    entity.name = copy_string(name);
     if #complete entity.source == {
         case .COMMAND_OUTPUT;
 
@@ -495,8 +490,8 @@ init_entity_base_parameters :: (entity : *Entity, name : string, primary_color :
 
         case .FILE_ON_DISK;
 
-            entity.fully_pathed_name = copy_string(entity.fully_pathed_filename);
-            modtime, size, ok := file_modtime_and_size(entity.fully_pathed_filename);
+            entity.fully_pathed_name = copy_string(name);
+            modtime, size, ok := file_modtime_and_size(entity.fully_pathed_name);
             if ok {
                 entity.creation_time = modtime;
                 entity.creation_size = size;
@@ -849,7 +844,7 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
         return null;
     }
 
-    name := get_entity_name_from_fully_pathed_name(filename);
+    name := entity_name(filename);
 
     // Check if we can early exit and avoid reading the file from disk
     {
@@ -905,13 +900,14 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
             }
 
             if enable_reload_shortcut(entity) {
-                log("Reloading file '%'... ", entity.fully_pathed_filename);
-                new_entity := load_one_file(entity.fully_pathed_filename, .OVERWRITE);
+                log("Reloading file '%'... ", entity.fully_pathed_name);
+                new_entity := load_one_file(entity.fully_pathed_name, .OVERWRITE);
                 if new_entity {
                     // Set generation_index before adding to overwrite the correct entity
                     new_entity.generation_index = entity.generation_index;
-                    add_entity(new_entity, .OVERWRITE);
+                    add_entity(new_entity, .OVERWRITE); // This will internally overwrite entity
                 } else {
+                    // If the entity didn't exist or couldn't be loaded clear the entity
                     clear(entity);
                 }
                 return true;
@@ -919,7 +915,7 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
 
         case .PRESET_SHAPE;
 
-            log("Reloading preset shape '%'... ", entity.name);
+            log("Reloading preset shape '%'... ", entity_name(entity));
             new_entity := entity.preset_proc();
             assert(new_entity != null);
 
@@ -938,13 +934,85 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
 
         case .UNKNOWN;
 
-            log("Skipped reloading item '%' as it has source type %. Only items with source type % can be reloaded (for now.. @Incomplete)", entity.fully_pathed_filename, entity.source, Entity_Source.FILE_ON_DISK);
             return false;
     }
 
     return false;
 }
 
+set_entity_source_from_file :: (entity : *Entity, fully_pathed_filename : string, loc := #caller_location) {
+    entity.fully_pathed_name = copy_string(fully_pathed_filename);
+
+    entity.source = .FILE_ON_DISK;
+    modtime, size, ok := file_modtime_and_size(fully_pathed_filename);
+    if ok {
+        entity.creation_time = modtime;
+        entity.creation_size = size;
+    } else {
+        name := entity_name(fully_pathed_filename);
+        log_error("Function % failed for entity '%' when called in %. Called from %", #procedure_name(file_modtime_and_size), name, #procedure_name(), loc);
+    }
+}
+
+set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc : #type ()->*Entity, point_count : s64) {
+    entity.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, name));
+
+    entity.source = .PRESET_SHAPE;
+    entity.creation_time = current_time_consensus();
+    entity.creation_size = point_count;
+    entity.preset_proc = preset_proc;
+}
+
+set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
+    entity.fully_pathed_name = copy_string(tprint("%/%", COMMAND_OUTPUT_FOLDER, name));
+
+    entity.source = .COMMAND_OUTPUT;
+    entity.creation_time = current_time_consensus();
+    entity.creation_size = point_count;
+    entity.console_command = copy_string(console_command);
+}
+
+// set_entity_source_from_code :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
+//     entity.fully_pathed_name = copy_string(tprint("%/%", SOURCE_CODE_FOLDER, name));
+//
+//     entity.source = .SOURCE_CODE;
+//     entity.creation_time = current_time_consensus();
+//     entity.creation_size = point_count;
+// }
+
+// Preconditions: entity.fully_pathed_name has been set
+set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format) {
+
+    primary_color := color_from_path(entity.fully_pathed_name);
+    if #complete geometry_format == {
+        case .UNKNOWN;
+
+            log_error("Unexpected % geometry format", geometry_format);
+
+        case .POINTS;
+
+            entity.display_info.surface_visible = true; // nocommit What the heck??
+            entity.display_info.points_visible = true;
+            entity.display_info.points_size = 2;
+            entity.display_info.points_color = primary_color;
+
+        case .LINES;
+
+            entity.display_info.wireframe_visible = true;
+            entity.display_info.wireframe_width = 1;
+            entity.display_info.wireframe_color = primary_color;
+
+        case .TRIANGLES;
+
+            entity.display_info.surface_visible = true;
+            entity.display_info.surface_color = primary_color;
+    }
+}
+
+init_entity_spatial_index :: (entity : *$T/Entity) {
+    entity.spatial = New(AABB_Tree(T.Shape));
+    init(entity.spatial, *entity.shape);
+}
 #scope_file
 
 load_one_file_from_memory :: (filename : string, contents : string, name : string) -> *Entity {

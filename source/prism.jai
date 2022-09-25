@@ -109,7 +109,7 @@ main :: () {
 
         found_entity : *Entity;
         for entity : app.entities {
-            if entity.source == .FILE_ON_DISK && entity.fully_pathed_filename == change.full_path {
+            if entity.source == .FILE_ON_DISK && entity.fully_pathed_name == change.full_path {
                 found_entity = entity;
                 break entity; // There can only be one relevant entity for each file change
             }
