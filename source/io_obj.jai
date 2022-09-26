@@ -338,14 +338,15 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
                 result = New(Polyline_Soup3_Entity);
                 result.mesh = mesh;
+                set_entity_source_from_file(result, filename);
+                set_entity_display_info(result, mesh.geometry_format);
+
                 e := cast(*Polyline_Soup3_Entity)result;
                 e.shape, ok = to_Polyline_Soup3(mesh);
                 if !ok {
                     deinit(*e.shape);
                     return null;
                 }
-                set_entity_source_from_file(result, filename);
-                set_entity_display_info(result, mesh.geometry_format);
                 init_entity_spatial_index(cast(*Polyline_Soup3_Entity)result);
 
                 // FIXME Fixup annotation id numbering to sync with polyline soup conversion

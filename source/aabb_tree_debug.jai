@@ -31,17 +31,15 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
             }
         }
 
-        entity := New(Polyline_Soup3_Entity);
-        assert(entity != null);
+        mesh := to_Mesh(shape);
 
-        entity.source = .COMMAND_OUTPUT;
         assert(app.console.history.count > 0);
-        entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
+
+        entity := New(Polyline_Soup3_Entity);
+        entity.mesh = mesh;
         entity.shape = shape;
-        entity.mesh = to_Mesh(entity.shape);
-        name := tprint("%_debug_spatial", entity_name(mesh_entity));
-        color := color_from_string(name);
-        init_entity_base_parameters(entity, name, color, entity.mesh);
+        set_entity_source_from_command(entity, tprint("%_debug_spatial_aabbs", entity_name(mesh_entity)), app.console.history[app.console.history.count - 1], mesh.positions.count);
+        set_entity_display_info(entity, mesh.geometry_format);
 
         add_entity(entity, .OVERWRITE);
 
@@ -61,16 +59,13 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                 found := table_find_pointer(entity_at_depth, depth);
 
                 if found == null {
-                    entity := New(Mesh_Entity);
-                    assert(entity != null);
 
-                    entity.source = .COMMAND_OUTPUT;
                     assert(app.console.history.count > 0);
-                    entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
+
+                    entity := New(Mesh_Entity);
                     entity.mesh = to_edge_Mesh(node.aabb);
-                    entity_name := tprint("%_debug_spatial_%", data.name, depth);
-                    color := color_from_string(entity_name);
-                    init_entity_base_parameters(entity, entity_name, color, entity.mesh); // @Incomplete pad depth integer?
+                    set_entity_source_from_command(entity,  tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count);  // @Incomplete pad depth integer?
+                    set_entity_display_info(entity, entity.mesh.geometry_format);
 
                     {
                         using primitives : Mesh;
@@ -120,16 +115,12 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                 found := table_find_pointer(entity_at_depth, depth);
 
                 if found == null {
-                    entity := New(Mesh_Entity);
-                    assert(entity != null);
-
-                    entity.source = .COMMAND_OUTPUT;
                     assert(app.console.history.count > 0);
-                    entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
+
+                    entity := New(Mesh_Entity);
                     entity.mesh = to_edge_Mesh(node.aabb);
-                    entity_name := tprint("%_debug_spatial_%", data.name, depth);
-                    color := color_from_string(entity_name);
-                    init_entity_base_parameters(entity, entity_name, color, entity.mesh); // @Incomplete pad depth integer?
+                    set_entity_source_from_command(entity, tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count); // @Incomplete pad depth integer?
+                    set_entity_display_info(entity, entity.mesh.geometry_format);
 
                     table_add(entity_at_depth, depth, entity);
                 } else {

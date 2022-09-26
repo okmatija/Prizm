@@ -31,6 +31,7 @@ Just handle comments on the p directive, concat them with the comment on the ver
 
 Misc
 ----
+FIX AABBS THEY SEEM BUGGY, LOOK AT THE WIDGET ONE FOR EXAMPLE, maybe the problem is the debug functions though
 Rename the Stats section to an Information section and put it as the first item, maybe have hovering it write that info in the bottom of the screen
 Add a crosshair at the origin
 statically link SDL2, why does that not work??
@@ -38,6 +39,15 @@ maybe make MMB do undo everywhere, so it's like the unreal undo buttons
 Make the grid command on the near plane create the grid though the cursor position
 Move the item list to the right, and move camera controls to the left? and then have icon buttons for actions on the left as well, or have ` cycle between the console input and action buttons along the bottom, or nothing
 Selections should be in another folder under items, and you can add a new one via the Add button
+
+Docs
+----
+Make an idioms section e.g., where we say we only support a single type of element per item, and that you should just make more than one item
+
+Commands
+--------
+Make the grid commands place their origin at the cursor position
+Add a refresh callback/hook to the commands so that the grids can refresh when the camera moves?
 
 Deferred
 --------
@@ -57,13 +67,18 @@ Move selections under item list (does not yet have a item number, do a refacttor
 Item list will now actually be an item list
 Add RMB menu with finer options for action buttons?
 
+Rendering
+---
+When making things not visible, blur them into the background
 
 UI
 --
+IMPROVE SELECTION OF ITEMS: IMPLEMENT CONTROL CLICK ON FOLDER NAMES AND VISIBILILITY TOGGLING ON SELECTION, AND MMB ON COLOR TO RESET COLORS
 Add +/- key binds to increase/decrease the UI font size and with modifiers to change the label size
 Make F1 the help menu, change preset buttons to 1 and 2 and add some more presets?
 Make the Changelog more readable
 Implement the thing to auto fold the UI tree headers
+Add enable buttons for the different annotation types [Point][Edge][Triangle][Block], with no space between the buttons
 
 Move console scroll bottom to options
 Make interactive mode a checkbox next to the console input box

@@ -580,18 +580,18 @@ item_find_open_edges :: (id : int) {
         array_add(*segment.points, mesh.positions[edge.x]);
         array_add(*segment.points, mesh.positions[edge.y]);
     }
+    new_mesh : Mesh = to_Mesh(segment_soup);
+
+    assert(app.console.history.count > 0);
 
     // Add a new item
     new_entity := New(Polyline_Soup3_Entity);
-    new_entity.source = .COMMAND_OUTPUT;
-    assert(app.console.history.count > 0);
-    new_entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
+    new_entity.mesh = new_mesh;
+    set_entity_source_from_command(new_entity, tprint("%_open_edges", entity_name(app.entities[id])), app.console.history[app.console.history.count - 1], mesh.positions.count);
+    set_entity_display_info(new_entity, new_mesh.geometry_format);
     new_entity.shape = segment_soup;
-    new_entity.mesh = to_Mesh(new_entity.shape);
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
-    name := tprint("%_open_edges", entity_name(app.entities[id]));
-    color := color_from_string(name);
-    init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
+
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // nocommit fishy, why do we do this
     new_entity.display_info.wireframe_width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // nocommit fishy
@@ -817,15 +817,18 @@ make_Grid_on_plane :: (_spacing : float, _Nx : u32, _Ny : u32, frame : Frame, or
 
 make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : Vector4) {
 
-    new_entity := New(Polyline_Soup3_Entity);
-
-    new_entity.source = .COMMAND_OUTPUT;
     assert(app.console.history.count > 0);
-    new_entity.console_command = copy_string(app.console.history[app.console.history.count - 1]);
-    new_entity.shape = to_Polyline_Soup3(grid, extents);
-    new_entity.mesh = to_Mesh(new_entity.shape);
-    init_entity_base_parameters(new_entity, name, color, new_entity.mesh);
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh);
+
+    shape : Polyline_Soup3 = to_Polyline_Soup3(grid, extents); 
+    mesh : Mesh = to_Mesh(shape);
+
+    new_entity := New(Polyline_Soup3_Entity);
+    new_entity.mesh = mesh;
+    set_entity_source_from_command(new_entity, name, app.console.history[app.console.history.count - 1], new_entity.mesh.positions.count);
+    set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+    new_entity.shape = shape;
+
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // nocommit fishy, why?
 
     // Set generation_index before adding to overwrite the correct entity
     new_entity.generation_index = 0;

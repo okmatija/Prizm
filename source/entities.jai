@@ -469,69 +469,6 @@ color_from_string :: (str : string) -> Vector4 {
     return make_vector4(r, g, b, 1.);
 }
 
-init_entity_base_parameters :: (entity : *Entity, name : string, primary_color : Vector4, mesh : Mesh, loc := #caller_location) {
-    if !entity return;
-
-    // Make sure we set the source type before calling this function
-    if entity.source == .UNKNOWN return;
-
-    if #complete entity.source == {
-        case .COMMAND_OUTPUT;
-
-            entity.fully_pathed_name = copy_string(tprint("%/%", COMMAND_OUTPUT_FOLDER, name));
-            entity.creation_time = current_time_consensus();
-            entity.creation_size = mesh.positions.count;
-        
-        case .PRESET_SHAPE;
-
-            entity.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, name));
-            entity.creation_time = current_time_consensus();
-            entity.creation_size = mesh.positions.count;
-
-        case .FILE_ON_DISK;
-
-            entity.fully_pathed_name = copy_string(name);
-            modtime, size, ok := file_modtime_and_size(entity.fully_pathed_name);
-            if ok {
-                entity.creation_time = modtime;
-                entity.creation_size = size;
-            } else {
-                log_error("Function % failed for entity '%' when called in %. Called from %", #procedure_name(file_modtime_and_size), name, #procedure_name(), loc);
-            }
-
-        case .UNKNOWN;
-
-            log_error("Unexpected % source type for entity '%' in %. Called from %", entity.source, name, #procedure_name(), loc);
-    }
-
-    if #complete mesh.geometry_format == {
-        case .LINES;
-
-            entity.mesh = mesh;
-            entity.display_info.wireframe_visible = true;
-            entity.display_info.wireframe_width = 1;
-            entity.display_info.wireframe_color = primary_color;
-
-        case .TRIANGLES;
-
-            entity.mesh = mesh;
-            entity.display_info.surface_visible = true;
-            entity.display_info.surface_color = primary_color;
-
-        case .POINTS;
-
-            entity.mesh = mesh;
-            entity.display_info.surface_visible = true;
-            entity.display_info.points_visible = true;
-            entity.display_info.points_size = 2;
-            entity.display_info.points_color = primary_color;
-
-        case .UNKNOWN;
-
-            log_warning("Unexpected % geometry format for item '%' in %. Called from %", mesh.geometry_format, name, #procedure_name(), loc);
-    }
-}
-
 // @FIXME Revisit this find_entity function now that we've added a bunch of fields to the Entity type
 
 // Find the entity with matching name
@@ -941,6 +878,7 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
 }
 
 set_entity_source_from_file :: (entity : *Entity, fully_pathed_filename : string, loc := #caller_location) {
+    assert(entity != null);
     entity.fully_pathed_name = copy_string(fully_pathed_filename);
 
     entity.source = .FILE_ON_DISK;
@@ -955,6 +893,7 @@ set_entity_source_from_file :: (entity : *Entity, fully_pathed_filename : string
 }
 
 set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc : #type ()->*Entity, point_count : s64) {
+    assert(entity != null);
     entity.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, name));
 
     entity.source = .PRESET_SHAPE;
@@ -964,6 +903,7 @@ set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc :
 }
 
 set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
+    assert(entity != null);
     entity.fully_pathed_name = copy_string(tprint("%/%", COMMAND_OUTPUT_FOLDER, name));
 
     entity.source = .COMMAND_OUTPUT;
@@ -973,6 +913,7 @@ set_entity_source_from_command :: (entity : *Entity, name : string, console_comm
 }
 
 // set_entity_source_from_code :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
+//     assert(entity != null);
 //     entity.fully_pathed_name = copy_string(tprint("%/%", SOURCE_CODE_FOLDER, name));
 //
 //     entity.source = .SOURCE_CODE;
@@ -982,6 +923,7 @@ set_entity_source_from_command :: (entity : *Entity, name : string, console_comm
 
 // Preconditions: entity.fully_pathed_name has been set
 set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format) {
+    assert(entity != null);
 
     primary_color := color_from_path(entity.fully_pathed_name);
     if #complete geometry_format == {
@@ -1009,7 +951,9 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
     }
 }
 
+// nocommit Maybe this should also take the shape and set that (will set the mesh twice if T == Mesh_Entity, but that's fine)
 init_entity_spatial_index :: (entity : *$T/Entity) {
+    assert(entity != null);
     entity.spatial = New(AABB_Tree(T.Shape));
     init(entity.spatial, *entity.shape);
 }
