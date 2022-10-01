@@ -98,6 +98,7 @@ Color theme with transparent backgrounds is pretty cool, problems with tooltips 
 
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
 TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
+- Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
 DONE
 };
 

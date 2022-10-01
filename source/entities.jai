@@ -376,23 +376,23 @@ is_changed_on_disk :: (using entity : Entity) -> bool {
 }
 
 
-entity_primary_color :: (using entity : *Entity) -> *Vector4 {
+entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
     if #complete type == {
-        case .POLYLINE_SOUP2; return *display_info.wireframe_color;
-        case .POLYLINE_SOUP3; return *display_info.wireframe_color;
-        case .SEGMENT_SOUP3;  return *display_info.wireframe_color;
-        case .POLYGON_SOUP;   return *display_info.surface_color;
-        case .POINT_CLOUD;    return *display_info.points_color;
-        case .UNKNOWN;        #through;
+        case .UNKNOWN; #through;
         case .MESH;
             if #complete mesh.geometry_format == {
-                case .POINTS;    return *display_info.points_color;
-                case .LINES;     return *display_info.wireframe_color;
                 case .UNKNOWN;   #through;
-                case .TRIANGLES; return *display_info.surface_color;
+                case .POINTS;    return *display_info.points_color,    *display_info.points_visible;
+                case .LINES;     return *display_info.wireframe_color, *display_info.wireframe_visible;
+                case .TRIANGLES; return *display_info.surface_color,   *display_info.surface_visible;
             }
+        case .POLYLINE_SOUP2; return *display_info.wireframe_color, *display_info.wireframe_visible;
+        case .POLYLINE_SOUP3; return *display_info.wireframe_color, *display_info.wireframe_visible;
+        case .SEGMENT_SOUP3;  return *display_info.wireframe_color, *display_info.wireframe_visible;
+        case .POLYGON_SOUP;   return *display_info.surface_color,   *display_info.surface_visible;
+        case .POINT_CLOUD;    return *display_info.points_color,    *display_info.points_visible;
     }
-    return null;
+    return null, null;
 }
 
 reset_entity_primary_color :: (entity : *Entity) {

@@ -172,9 +172,8 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
         if !was_visible && entity.display_info.is_visible {
             // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
-            if !entity.display_info.surface_visible && !entity.display_info.wireframe_visible && !entity.display_info.points_visible {
-                entity.display_info.surface_visible = true;
-            }
+            color, element_visibility := entity_primary_color(entity);
+            <<element_visibility = true;
         }
     }
 
