@@ -97,8 +97,21 @@ Color theme with transparent backgrounds is pretty cool, problems with tooltips 
 // TODO Implement multiple selection objects and make them imgui selectable widgets that behave like the item list ones
 
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
+- Improvements to item selection mechanics:
+
+  - Added ability to select all items loaded in Prism using Ctrl LMB on the "Items" header
+  - Added ability to select all items in a folder by using Ctrl LMB on the folder name
+  - Added ability to change the color of selected items by editing the color widget of a selected item
+  - Added ability to reset the color and display mode of selected items by pressing MMB on a selected item
+  - Added ability to cycle the display mode of selected items by pressing RMB on a selected item
+  - Added ability to change visibility of a selected item by changing the visibility of a selected item with a mouse click.
+  - Note changing visibility by sweeping the mouse over a selected item's checkbox will not propogate the visibility change to other selected items, this is intended
+  - Note the "Remove" button is the only widget in the item list that doesn't affect the whole selection when triggered on a selected item. To remove the whole selection press delete, or use the button in the item selection context menu
+  - Note the current plan is that having MMB reset values is an idiom which will be applied in other situations in future versions
+  - Removed the 'Toggle folder selection' and 'Toggle folder visibility' buttons in the folder context menu since these operations can be accomplished using the above selection methods and the delete key (or item selection context menu)
+
+TODO Update the help menu
 TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
-- Added a feature where changing visibility of a selected item in the item list will change visibility on all items in the selection. Note this only happens if the change occurred with a mouse click, changing visibility by sweeping the mouse over a selected items checkbox will not propogate the visibility change to other selected items
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
 DONE
 };
@@ -108,7 +121,7 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
 
   - Update buttons toggle or cycle state of the targetted items (see the tooltips) and are triggered by pressing the corresponding button/keyboard shortcut
   - When an update returns to its initial/default setting the button flashes blue and briefly displays "Default" rather than the usual label
-  - Changed face labeling update from cycling face index and centroid to just toggling the face index.  Centroid coordinates can still be set via item/selection context menu (RMB on an item or selection)
+  - Changed face labeling update from cycling face index and centroid to just toggling the face index.  Centroid coordinates can still be set via item/selection context menu (RMB on an item/selection)
   - Changed all labeling actions to have a smaller default radius when labeling in a disk around the cursor (now its 50 pixels, previously it was 200 pixels)
   - Added new "Focus"/"Reload" buttons into the Item List next to the "Add" button, these act like update buttons in that modifier keys control which item set (visible, selected or all) are targetted
 

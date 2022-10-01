@@ -1,5 +1,7 @@
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 
+// @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
+
 // @Refactor This function is too long (especially the top level for loop). Break it up.
 show_main_panel :: () {
 
@@ -29,8 +31,21 @@ show_main_panel :: () {
 
 show_item_list_ui :: () {
 
-    if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    do_tree_items := ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+
+    if do_tree_items {
         defer ImGui.TreePop();
+
+        // Use Ctrl LMB to select all items
+        if do_tree_items && ImGui.IsItemClicked() && io().KeyCtrl {
+            state := false;
+            if app.entities.count {
+                state = app.entities[0].is_selected;
+            }
+            for app.entities {
+                it.is_selected = !state;
+            }
+        }
 
         Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
         ImGui.SameLine();
@@ -75,6 +90,17 @@ show_item_list_ui :: () {
                 if do_tree {
                     defer ImGui.TreePop();
 
+                    // Use Ctrl LMB to select all items in the folder
+                    if ImGui.IsItemClicked() && io().KeyCtrl {
+                        state := false;
+                        if entities_in_folder.count {
+                            state = entities_in_folder[0].entity.is_selected;
+                        }
+                        for entities_in_folder {
+                            it.entity.is_selected = !state;
+                        }
+                    }
+
                     indent2 := ImGui.GetTreeNodeToLabelSpacing();
                     ImGui.Unindent(indent2 - indent);
                     defer ImGui.Indent(indent2 - indent);
@@ -110,6 +136,35 @@ show_item_list_ui :: () {
                 }
             }
 
+            // This block implements the feature where if you toggle visibility, editing colors and cycling/resetting display modes on a selected item it changes it on all selected items
+            // This is similar to how editing the context menu of an item selection changes the corresponding field in all selected items
+            {
+                if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
+                    source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
+                    for app.entities if it.is_selected {
+                        <<entity_primary_color(it) = <<entity_primary_color(source);
+                    }
+                }
+                if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
+                    source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
+                    for app.entities if it.is_selected {
+                        it.display_info.display_mode = source.display_info.display_mode;
+                    }
+                }
+                if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
+                    for app.entities if it.is_selected {
+                        it.display_info.display_mode = Display_Info.{}.display_mode;
+                        reset_entity_primary_color(it);
+                    }
+                }
+                if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
+                    source : *Entity =app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click];
+                    for app.entities if it.is_selected {
+                        it.display_info.is_visible = source.display_info.is_visible;
+                    }
+                }
+            }
+
             if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
                 remove_entity_by_index(entity_to_remove);
             }
@@ -138,20 +193,32 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     // Color selection
     ImGui.TableNextColumn();
     {
+        color_changed := false; // Edited by widget
+        color_reset :=   false; // Reset with MMB
+        mode_cycled :=   false; // Cycled with RMB
+
         if entity.display_info.display_mode == .NORMALS {
-            ImGui.TextDisabled("NR.");
+            ImGui.TextDisabled("NR."); // @Design Replace this with a image with a normal gradient
         } else {
             color := entity_primary_color(entity);
             if color {
-                ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
+                color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
             }
+        }
+        if ImGui.IsItemClicked(.Middle) {
+            entity.display_info.display_mode = Display_Info.{}.display_mode; // Reset to default
+            reset_entity_primary_color(entity);
+            color_reset = true;
         }
         if ImGui.IsItemClicked(.Right) {
             cycle_display_mode(*entity.display_info.display_mode);
-        } else if ImGui.IsItemClicked(.Middle) {
-            if entity.display_info.display_mode != .NORMALS {
-                reset_entity_primary_color(entity);
-            }
+            mode_cycled = true;
+        }
+
+        if entity.is_selected {
+            if color_changed g_next_frame_state.index_of_selected_item_where_color_was_changed = entity_index;
+            if color_reset   g_next_frame_state.index_of_selected_item_where_color_was_reset =   entity_index;
+            if mode_cycled   g_next_frame_state.index_of_selected_item_where_mode_was_cycled =    entity_index;
         }
     }
 
@@ -160,9 +227,6 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     {
         was_visible := entity.display_info.is_visible;
         visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
-        if entity.is_selected && changed_by_click {
-            g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
-        }
         result.visibility_changed = visibility_changed;
         Show_Tooltip("Visible");
 
@@ -173,9 +237,8 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
             <<element_visibility = true;
         }
 
-        // This implements the feature where if you toggle visibility on a selected item it changes it on all selected items, similar to how editing the context menu of an item selection changes the corresponding field in all selected items
-        if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 && entity.is_selected {
-            entity.display_info.is_visible = app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click].display_info.is_visible;
+        if entity.is_selected {
+            if changed_by_click g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
         }
     }
 
@@ -292,7 +355,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
     // @Hack Write empty padding column so filename is not truncated
     ImGui.TableNextColumn();
-    if hack_pad_last_column_to_fix_truncation{
+    if hack_pad_last_column_to_fix_truncation {
         ImGui.Text("  ");
     }
 
@@ -761,6 +824,9 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
         if (path != PRESET_SHAPE_FOLDER && path != COMMAND_OUTPUT_FOLDER) && auto_load_new_files {
             ImGui.Checkbox("Auto-load new files", auto_load_new_files);
         }
+
+        // These are disabled since the user can Ctrl LMB on folder names to select all the items and then press delete to remove them, or click on visibility to toggle visibility
+        /*
         if ImGui.Button("Toggle folder selection") {
             selected_state := false;
             for app.entities if get_directory(it.fully_pathed_name) == path {
@@ -784,6 +850,8 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
                 it.display_info.is_visible = visible_state;
             }
         }
+        */
+
         if ImGui.Button("Remove folder") {
             for app.entities if get_directory(it.fully_pathed_name) == path {
                 remove it;
@@ -1968,7 +2036,10 @@ ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible
 // This stuct stores stuff we need to remember to use in the next render frame
 ImGui_Frame_State :: struct {
     index_of_context_menu_popup_item : int = -1; // This is used to update the background color of item names which are being edited by the context menu popup
-    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to.. nocommit
+    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to implement show/hiding a selection using a selected checkbox
+    index_of_selected_item_where_color_was_changed : int = -1;
+    index_of_selected_item_where_color_was_reset : int = -1;
+    index_of_selected_item_where_mode_was_cycled : int = -1;
 }
 
 // State relevant to the currently rendering frame
