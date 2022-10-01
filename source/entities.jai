@@ -10,12 +10,12 @@ Entity_Type :: enum {
 }
 
 // Used for entity reloading, order is important here becaues reload_items uses it for sorting
-Entity_Source :: enum {
-    FILE_ON_DISK;
-    PRESET_SHAPE;
-    COMMAND_OUTPUT;
+Entity_Source :: enum #specified {
+    UNKNOWN :: 0;
+    FILE_ON_DISK :: 1;
+    PRESET_SHAPE :: 2;
+    COMMAND_OUTPUT :: 3;
     // SELECTION; // Possible, but I don't think we actually want lots of selection entities, better to just have simple mesh entity for each of point, segments and triangle selection
-    UNKNOWN; // Use this if you don't want anything to happen when an entity is reloaded // nocommit This should be the first entry!!
 }
 
 find_header_annotation :: (entity : *Entity) -> *Annotation {
