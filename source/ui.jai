@@ -40,10 +40,6 @@ show_item_list_ui :: () {
 
         indent := ImGui.GetTreeNodeToLabelSpacing();
 
-        // Cache the state we need this frame and reset it for the next frame
-        current_context_menu_popup_item := g_next_frame_state.context_menu_popup_item;
-        g_next_frame_state.context_menu_popup_item = -1;
-
         { // @Cleanup Remove this scope?
             entity_to_remove := -1;
             any_visibility_changed : bool;
@@ -101,7 +97,7 @@ show_item_list_ui :: () {
                         folder.last_frame_item_list_height_px = 0.;
                         for :ListClipperIterator local_entity : entities_in_folder {
                             folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar, current_context_menu_popup_item);
+                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
                             if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
                             if update.visibility_changed    any_visibility_changed = true;
                         }
@@ -130,7 +126,7 @@ Item_Entry_Update :: struct {
     entity_to_remove := -1;
 }
 
-show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool, hack_pad_last_column_to_fix_truncation : bool, current_context_menu_popup_item : int) -> Item_Entry_Update {
+show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
     // Remove button
@@ -163,7 +159,10 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     ImGui.TableNextColumn();
     {
         was_visible := entity.display_info.is_visible;
-        visibility_changed := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
+        visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
+        if entity.is_selected && changed_by_click {
+            g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
+        }
         result.visibility_changed = visibility_changed;
         Show_Tooltip("Visible");
 
@@ -174,7 +173,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
             <<element_visibility = true;
         }
 
-        if current_context_menu_popup_item == -1 { // No context menu popup
+        // This implements the feature where if you toggle visibility on a selected item it changes it on all selected items, similar to how editing the context menu of an item selection changes the corresponding field in all selected items
+        if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 && entity.is_selected {
+            entity.display_info.is_visible = app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click].display_info.is_visible;
         }
     }
 
@@ -206,13 +207,13 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
         defer if io_mouse_right_down() ImGui.PopStyleColor();
 
-        if current_context_menu_popup_item == -1 { // No context menu popup
+        if g_this_frame_state.index_of_context_menu_popup_item == -1 { // No context menu popup
             // Use the default Selectable widget
             if ImGui.Selectable(label, *entity.is_selected) {
                 if !io().KeyCtrl entity.is_selected = !entity.is_selected;
             }
         } else { // Have context menu popup: set colors to indicate what the popup will be editing
-            if app.entities[current_context_menu_popup_item].is_selected {
+            if app.entities[g_this_frame_state.index_of_context_menu_popup_item].is_selected {
                 // Use the default Selectable widget, but customize the selected color
                 ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
                 ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
@@ -222,7 +223,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
             } else {
-                if current_context_menu_popup_item == entity_index {
+                if g_this_frame_state.index_of_context_menu_popup_item == entity_index {
                     // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
                     if selectable_with_bg_color(text, *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
                         if !io().KeyCtrl entity.is_selected = !entity.is_selected;
@@ -804,7 +805,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
     if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
         defer ImGui.EndPopup();
 
-        g_next_frame_state.context_menu_popup_item = entity_index;
+        g_next_frame_state.index_of_context_menu_popup_item = entity_index;
 
         // Undo the previous thing so internals don't have this color
         ScopedPopupBorderTheme(original_border_color, original_border_size);
@@ -1959,12 +1960,21 @@ item_list_sweep_state : Checkbox_Sweep_Mode_State;
 
 FADE_TIME_SECS :: 1.;
 
-// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
-// This stuct stores stuff we need to remember to use in the next render frame
-Next_Frame_State :: struct {
-    context_menu_popup_item : int = -1; // This is used to update the background color of item names which are being edited by the context menu popup
-}
-g_next_frame_state : Next_Frame_State;
 
 #scope_export // @CompilerBug without this scope_export the line below errors!
 ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
+
+// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
+// This stuct stores stuff we need to remember to use in the next render frame
+ImGui_Frame_State :: struct {
+    index_of_context_menu_popup_item : int = -1; // This is used to update the background color of item names which are being edited by the context menu popup
+    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to.. nocommit
+}
+
+// State relevant to the currently rendering frame
+g_this_frame_state : ImGui_Frame_State;
+
+// State relevant to the next rendering frame
+// This will be reset at the start of the currently rendering frame
+// Set fields whenever convenient in the currently rendering frame
+g_next_frame_state : ImGui_Frame_State;

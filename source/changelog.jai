@@ -98,6 +98,7 @@ Color theme with transparent backgrounds is pretty cool, problems with tooltips 
 
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
 TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
+- Added a feature where changing visibility of a selected item in the item list will change visibility on all items in the selection. Note this only happens if the change occurred with a mouse click, changing visibility by sweeping the mouse over a selected items checkbox will not propogate the visibility change to other selected items
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
 DONE
 };

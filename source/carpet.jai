@@ -271,15 +271,17 @@ Checkbox_Sweep_Mode_State :: struct {
 // Toggle visibility if the checkbox was pressed or if we swept over it with the LMB down
 // @Volatile Note that if you issue a checkbox with this function and its clipped/not visible in the UI (e.g., submitting to a scrolling region _without_ using a list clipper) you will still be able to edit its state since we do this based on the mouse position
 // @Incomplete Add flags for what sweep behaviours are acceptable e.g., control down variations are weird in some cases
-checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : *Checkbox_Sweep_Mode_State, window : *SDL_Window) -> bool {
+checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : *Checkbox_Sweep_Mode_State, window : *SDL_Window) -> changed : bool, changed_by_click : bool {
 
     old_state := <<state;
     if ImGui.Checkbox(label, *old_state) { // @Hack Why do we need to pass old_state? To mimic a PressedOnClick checkbox? Explain this better/reimplement it
         // Get here when the LMB is released after going down while hovering the checkbox
         // So we don't get stuck in a state where this mode is on we don't reach the toggle off in IsMouseReleased branch. @Cleanup
         sweep_state.sweep_active = false;
-        return true;
+        return true, true;
     }
+
+    changed_by_click := false;
 
     // ImGui Rects position min in upper left and max in lower right
     checkbox_upper_left := make_Vector2(ImGui.GetItemRectMin());
@@ -291,6 +293,7 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
         sweep_state.state_to_set = <<state;
         sweep_state.mouse_min_x = xx checkbox_upper_left.x;
         sweep_state.mouse_max_x = xx checkbox_lower_right.x;
+        changed_by_click = true;
     }
 
     // Exit checkbox sweep mode on lmb release
@@ -328,8 +331,10 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
             // When control/shift are pressed make the focus the y-hovered item, hiding others that are swept through
             if !prev_frame_hovered && curr_frame_hovered {
                 <<state = true;
+                changed_by_click = false;
             } else if prev_frame_hovered && !curr_frame_hovered {
                 <<state = false;
+                changed_by_click = false;
             }
             if io().KeyShift {
                 fit_scene_on_screen(); // Also update the camera when shift is pressed
@@ -340,11 +345,16 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
             swept_up   := mouse_prev.y > checkbox_upper_left.y  && mouse_curr.y < checkbox_lower_right.y;
             if swept_up || swept_down {
                 <<state = !sweep_state.state_to_set;
+                changed_by_click = false;
             }
         }
     }
 
-    return old_state != <<state;
+    if old_state != <<state {
+        return true, changed_by_click;
+    }
+
+    return false, false;
 }
 
 //  @Cleanup Rename Show_Tooltip* since these dont need to be macros
