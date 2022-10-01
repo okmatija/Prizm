@@ -208,8 +208,7 @@ io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
 
 imgui_label :: (label : string, ptr : *void = null) -> *u8 {
-    push_allocator(temp);
-    return to_c_string(join(label, tprint("##%", ptr)));
+    return temp_c_string(tprint("%##%", label, ptr));
 }
 
 // Combo box to select display mode enum value

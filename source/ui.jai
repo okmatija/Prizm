@@ -45,7 +45,7 @@ show_item_list_ui :: () {
             any_visibility_changed : bool;
             show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
 
-            context_menu_popup_item_variable_should_reset = true;
+            g_context_menu_popup_item_variable_should_reset = true;
 
             for *folder : app.directories {
 
@@ -113,8 +113,8 @@ show_item_list_ui :: () {
             }
 
             // We use the context_menu_popup_item to determine the color of the selectable widgets in the loop above, this means we cant reset it to -1 at the start of the loop because e.g., if all items are selected but we make a popup on a later one we will render the earlier ones in the wrong color. We need to know the result from the previous frame but we also need to reset it to -1 when there are no popups showing, which we do here
-            if context_menu_popup_item_variable_should_reset {
-                context_menu_popup_item = -1;
+            if g_context_menu_popup_item_variable_should_reset {
+                g_context_menu_popup_item = -1;
             }
 
             if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
@@ -196,75 +196,52 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     ImGui.TableNextColumn();
     // ImGui.SetNextItemWidth(-FLOAT32_MIN);
     if entity_name(entity).count {
-        delta_time_s := to_float64_seconds(current_time_consensus() - entity.creation_time);
-        base_color := ifx is_empty(entity) then Vector4.{.5, .5, .5, 1} else Vector4.{1, 1, 1, 1};
-        color := make_ImVec4(base_color.x, base_color.x, base_color.z, base_color.w);
-        if delta_time_s < FADE_TIME_SECS {
-            alpha := clamp(delta_time_s / FADE_TIME_SECS, 0., 1.);
-            color = lerp(Vector4.{0, 1, 0, 1}, base_color, xx alpha);
+        text : string = tprint("%1%2", entity_description(entity, with_creation_time=false), ifx is_changed_on_disk(entity) then "*" else "");
+        label : *u8 =   imgui_label(text, entity);
+
+        // Note that the ImGui.Selectable widget has this line to set the colors:
+        //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+
+        // Indicate that the popup will be opened for this item if its hovered with RMB down
+        if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+        defer if io_mouse_right_down() ImGui.PopStyleColor();
+
+        if ImGui.IsPopupOpen(imgui_label("##context_menu", xx entity_index)) {
+            g_context_menu_popup_item = entity_index;
+            g_context_menu_popup_item_variable_should_reset = false;
         }
 
-        ImGui.PushStyleColor(xx ImGui.Col.Text, color);
-        defer ImGui.PopStyleColor();
-        {
-            push_allocator(temp); // to free the join'd string
-
-            text : string;
-            desc := entity_description(entity, with_creation_time=false);
-            if is_changed_on_disk(entity) {
-                text = join(desc, tprint("*##%", entity));
-            } else {
-                text = join(desc, tprint("##%", entity));
+        if g_context_menu_popup_item == -1 { // No popup
+            // Use the default Selectable widget
+            if ImGui.Selectable(label, *entity.is_selected) {
+                if !io().KeyCtrl entity.is_selected = !entity.is_selected;
             }
-
-            // @Cleanup Add these aliases to make the following code easier to understand
-            // Note that the ImGui.Selectable widget has this line to set the colors:
-            //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-            // selectable_selected_color :: ImGui.Col.Header;
-            // selectable_hovered_color :: ImGui.Col.Header;
-            // selectable_hovered_held_color :: ImGui.Col.Header;
-
-            // Indicate that the popup will be opened for this item if its hovered with RMB down
-            if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-            defer if io_mouse_right_down() ImGui.PopStyleColor();
-
-            if ImGui.IsPopupOpen(imgui_label("##context_menu", xx entity_index)) {
-                context_menu_popup_item = entity_index;
-                context_menu_popup_item_variable_should_reset = false;
-            }
-
-            if context_menu_popup_item == -1 {
-                // Use the default Selectable widget
-                if ImGui.Selectable(to_c_string(text), *entity.is_selected) {
+        } else { // Have popup: set colors to indicate what the popup will be editing
+            if app.entities[g_context_menu_popup_item].is_selected {
+                // Use the default Selectable widget, but customize the selected color
+                ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
+                if ImGui.Selectable(label, *entity.is_selected) {
                     if !io().KeyCtrl entity.is_selected = !entity.is_selected;
                 }
-            } else { // Need to fiddle with some colors to indicate what the popup is editing
-                if app.entities[context_menu_popup_item].is_selected {
-                    // Use the default Selectable widget, but customize the selected color
-                    ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                    if ImGui.Selectable(to_c_string(join(text, tprint("##%", entity))), *entity.is_selected) {
+                ImGui.PopStyleColor();
+                ImGui.PopStyleColor();
+            } else {
+                if g_context_menu_popup_item == entity_index {
+                    // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
+                    if selectable_with_bg_color(text, *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
                         if !io().KeyCtrl entity.is_selected = !entity.is_selected;
                     }
-                    ImGui.PopStyleColor();
-                    ImGui.PopStyleColor();
                 } else {
-                    if context_menu_popup_item == entity_index {
-                        // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
-                        if selectable_with_bg_color(join(text, tprint("##%", entity)), *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
-                            if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                        }
-                    } else {
-                        // Use the default Selectable widget
-                        if ImGui.Selectable(to_c_string(join(text, tprint("##%", entity))), *entity.is_selected) {
-                            if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                        }
+                    // Use the default Selectable widget
+                    if ImGui.Selectable(label, *entity.is_selected) {
+                        if !io().KeyCtrl entity.is_selected = !entity.is_selected;
                     }
                 }
             }
         }
     } else {
-        ImGui.Selectable("---", *entity.is_selected);
+        ImGui.Selectable("---", *entity.is_selected); // This should never happen
     }
 
     // No tooltip for this behaviour since we reserve the tooltip for annotations
@@ -326,8 +303,8 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     return result;
 } // end show_item_list_entry()
 
-context_menu_popup_item : int = -1;
-context_menu_popup_item_variable_should_reset : bool = true;
+g_context_menu_popup_item : int = -1;
+g_context_menu_popup_item_variable_should_reset : bool = true;
 
 
 show_add_item_ui :: () {
