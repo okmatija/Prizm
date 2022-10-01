@@ -40,12 +40,14 @@ show_item_list_ui :: () {
 
         indent := ImGui.GetTreeNodeToLabelSpacing();
 
-        {
+        // Cache the state we need this frame and reset it for the next frame
+        current_context_menu_popup_item := g_next_frame_state.context_menu_popup_item;
+        g_next_frame_state.context_menu_popup_item = -1;
+
+        { // @Cleanup Remove this scope?
             entity_to_remove := -1;
             any_visibility_changed : bool;
             show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
-
-            g_context_menu_popup_item_variable_should_reset = true;
 
             for *folder : app.directories {
 
@@ -99,7 +101,7 @@ show_item_list_ui :: () {
                         folder.last_frame_item_list_height_px = 0.;
                         for :ListClipperIterator local_entity : entities_in_folder {
                             folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
+                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar, current_context_menu_popup_item);
                             if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
                             if update.visibility_changed    any_visibility_changed = true;
                         }
@@ -110,11 +112,6 @@ show_item_list_ui :: () {
                         ImGui.TextDisabled("(none)");
                     }
                 }
-            }
-
-            // We use the context_menu_popup_item to determine the color of the selectable widgets in the loop above, this means we cant reset it to -1 at the start of the loop because e.g., if all items are selected but we make a popup on a later one we will render the earlier ones in the wrong color. We need to know the result from the previous frame but we also need to reset it to -1 when there are no popups showing, which we do here
-            if g_context_menu_popup_item_variable_should_reset {
-                g_context_menu_popup_item = -1;
             }
 
             if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
@@ -133,7 +130,7 @@ Item_Entry_Update :: struct {
     entity_to_remove := -1;
 }
 
-show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
+show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool, hack_pad_last_column_to_fix_truncation : bool, current_context_menu_popup_item : int) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
     // Remove button
@@ -171,9 +168,13 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         Show_Tooltip("Visible");
 
         if !was_visible && entity.display_info.is_visible {
+            // @Think We should probably have some kind of function list/hook/delegate feature so we can add code to be executed when visibility changes etc
             // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
             color, element_visibility := entity_primary_color(entity);
             <<element_visibility = true;
+        }
+
+        if current_context_menu_popup_item == -1 { // No context menu popup
         }
     }
 
@@ -205,18 +206,13 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
         defer if io_mouse_right_down() ImGui.PopStyleColor();
 
-        if ImGui.IsPopupOpen(imgui_label("##context_menu", xx entity_index)) {
-            g_context_menu_popup_item = entity_index;
-            g_context_menu_popup_item_variable_should_reset = false;
-        }
-
-        if g_context_menu_popup_item == -1 { // No popup
+        if current_context_menu_popup_item == -1 { // No context menu popup
             // Use the default Selectable widget
             if ImGui.Selectable(label, *entity.is_selected) {
                 if !io().KeyCtrl entity.is_selected = !entity.is_selected;
             }
-        } else { // Have popup: set colors to indicate what the popup will be editing
-            if app.entities[g_context_menu_popup_item].is_selected {
+        } else { // Have context menu popup: set colors to indicate what the popup will be editing
+            if app.entities[current_context_menu_popup_item].is_selected {
                 // Use the default Selectable widget, but customize the selected color
                 ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
                 ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
@@ -226,7 +222,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
             } else {
-                if g_context_menu_popup_item == entity_index {
+                if current_context_menu_popup_item == entity_index {
                     // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
                     if selectable_with_bg_color(text, *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
                         if !io().KeyCtrl entity.is_selected = !entity.is_selected;
@@ -302,8 +298,6 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     return result;
 } // end show_item_list_entry()
 
-g_context_menu_popup_item : int = -1;
-g_context_menu_popup_item_variable_should_reset : bool = true;
 
 
 show_add_item_ui :: () {
@@ -809,6 +803,8 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
     if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
         defer ImGui.EndPopup();
+
+        g_next_frame_state.context_menu_popup_item = entity_index;
 
         // Undo the previous thing so internals don't have this color
         ScopedPopupBorderTheme(original_border_color, original_border_size);
@@ -1962,6 +1958,13 @@ pending_directories_sweep_state : Checkbox_Sweep_Mode_State;
 item_list_sweep_state : Checkbox_Sweep_Mode_State;
 
 FADE_TIME_SECS :: 1.;
+
+// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
+// This stuct stores stuff we need to remember to use in the next render frame
+Next_Frame_State :: struct {
+    context_menu_popup_item : int = -1; // This is used to update the background color of item names which are being edited by the context menu popup
+}
+g_next_frame_state : Next_Frame_State;
 
 #scope_export // @CompilerBug without this scope_export the line below errors!
 ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
