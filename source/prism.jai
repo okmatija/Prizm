@@ -239,6 +239,10 @@ main :: () {
         // @Cleanup the feature to render the nearest vertex description at the cursor breaks if we move this function around relative to the other ones above
         do_selection_mode();
 
+        #if false {
+        do_demo_mode();
+        }
+
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
 

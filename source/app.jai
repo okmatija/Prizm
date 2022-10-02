@@ -377,6 +377,7 @@ ImGui :: #import "ImGui";
 #load "commands.jai";
 #load "changelog.jai";
 #load "colors.jai";
+#load "demo_mode.jai";
 
 #load "kernel/distance.jai";
 #load "kernel/intersect.jai";

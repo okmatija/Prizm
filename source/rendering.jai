@@ -1023,7 +1023,6 @@ render_background :: () {
     }
 }
 
-#scope_file
 
 // Generate and cache quad data before its lost on the next call to prepare_text
 cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Vector2, scale : float) {
