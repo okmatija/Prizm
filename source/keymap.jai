@@ -236,6 +236,7 @@ my_debug_function :: () {
                   tprint("You can edit the implementation at %:%\n\n", #file, #line)));
 
     app.debug_frame = true;
+    app.debug_mode = !app.debug_mode;
     // Write your debug code here
 }
 

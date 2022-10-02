@@ -117,6 +117,7 @@ Improvements to preset shapes:
 
 TODO Update the help menu
 TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
+- Removed the limit on degree of zoom by changing the default value of `Options > Advanced > camera_zoom_min_screen_filling_length_mm` from 0.0001 to 0.0
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
 DONE
 };

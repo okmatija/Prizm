@@ -140,7 +140,8 @@ App :: struct {
     }
     known_issues : [..]Known_Issue;
 
-    debug_frame := false;
+    debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
+    debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
 }
 
@@ -276,7 +277,7 @@ User_Settings :: struct {
     camera_zoom_scrolling_ratio          := .8;
     // camera_zoom_dragging_follows_cursor  := false;
     // camera_zoom_dragging_ratio           := .8;
-    camera_zoom_min_screen_filling_length_mm := .0001; // .1um
+    camera_zoom_min_screen_filling_length_mm := 0.; // .0001; // .1um
     camera_zoom_max_screen_filling_length_factor := 4.; // multiplies a visible scene bounding sphere radius
     camera_zoom_max_limited_by_scene_bounding_sphere := false;
 
@@ -306,7 +307,7 @@ clamp_user_settings :: ()
     using app.settings;
     // camera_zoom_dragging_ratio = clamp(camera_zoom_dragging_ratio, .3, .99);
     camera_zoom_scrolling_ratio = clamp(camera_zoom_scrolling_ratio, .3, .99);
-    camera_zoom_min_screen_filling_length_mm = clamp(camera_zoom_min_screen_filling_length_mm, .00001, app.camera.scene_bounding_sphere.radius / 2);
+    camera_zoom_min_screen_filling_length_mm = clamp(camera_zoom_min_screen_filling_length_mm, .0, app.camera.scene_bounding_sphere.radius / 2);
 
     item_list_max_size_before_scroll_px = clamp(item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
     annotation_list_max_size_before_scroll_px = clamp(annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
