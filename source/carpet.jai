@@ -125,6 +125,10 @@ get_ident_name :: (code : Code) -> string {
 }
 
 printv :: (a : Code, loc := #caller_location) #expand {
+    // format_float := *context.print_style.default_format_float;
+    // format_float.mode = .SCIENTIFIC;
+    // format_float.width = 10;
+
 #if true {
     print("%:% % = %\n", loc.fully_pathed_filename, loc.line_number, #run get_ident_name(a), #insert a);
 } else {
@@ -552,4 +556,18 @@ note_exit :: (proc: $T) {
     }
 }
 
+}
+
+type_to_string :: (type: Type) -> string {
+    push_allocator(temp);
+
+    // This cast to *Type_Info requires runtime_storageless_type_info to be disabled,
+    // or for us to be running at compile-time. We know for sure in this case that we are
+    // calling this routine at compile-time, but in runtime use, this kind of cast
+    // presumes that Type_Info has been exported for all runtime types.
+    builder: String_Builder;
+    print_type_to_builder(*builder, cast(*Type_Info)(type));
+    type_string := builder_to_string(*builder);
+
+    return type_string;
 }

@@ -1,3 +1,8 @@
+# Goals
+
+- When you implement a feature adding a comment explaining the user-facing motivation for it next to the implementation is useful, so that we are not tempted to remove an obscure looking feature because we forgot why it was useful
+- Prism supports annotations by making comments in .obj files semantically significant, this should be the only way we extend other formats, it would be annoying for users if we encourage them to write data to the file that would make it not loadable in other viewers
+
 # Coding style
 
 Non-dogmatic, mostly do what you want but sticking to the following conventions would be appreciated
@@ -7,6 +12,10 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - Naming convention: function_names, Structs_And_Types, MacroNames, COMPILE_TIME_CONSTANTS (including enum names)
 - Consider using a g_ prefix for global variables
 - Consider using a t_ prefix for variables in temporary storage e.g., functions returning strings in temporary storage, or maybe _t postfix for functions returning results in temporary storage
+- Consider a naming convention init_Type_Name makes it easier to find the function?
+- Consider a naming convention new_Type_Name for functions which internally call New(Type_Name) and init_Type_Name
+- Consider a naming convention make_Type_Name for functions which return a copy of a struct?
+
 
 # Release process
 

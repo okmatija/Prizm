@@ -153,6 +153,7 @@ main :: () {
     // Init these after the file watcher
     array_add(*app.directories, .{path=PRESET_SHAPE_FOLDER});
     array_add(*app.directories, .{path=COMMAND_OUTPUT_FOLDER});
+    // nocommit Add the CODE_OUTPUT_FOLDER here... at some point, though we'll probably want custom folders
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();

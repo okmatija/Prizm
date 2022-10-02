@@ -33,6 +33,8 @@ Entity :: struct {
     type : Entity_Type = .UNKNOWN;
     source : Entity_Source = .UNKNOWN;
 
+    // source : Tagged_Union();
+
     is_selected := false;
     is_hovered := false;
 
@@ -153,6 +155,22 @@ Mesh_Entity :: struct {
 #place mesh;
     shape : Shape = ---; // Alias for consistency
 }
+
+/*
+
+// Annotate these with the entity and source index
+// When we have arrays in annotations, also add the original annotation
+point_selection : Mesh_Entity;
+segment_selection : Mesh_Entity;
+triangle_selection : Mesh_Entity;
+
+How do I add annotations to the points/segments/triangles
+Selection_Entity :: struct {
+    points : Mesh;
+    segments : Mesh;
+    triangles : Mesh;
+}
+*/
 
 update_entity_transform :: (entity : *Entity, shift : Vector3) {
     {
@@ -957,6 +975,177 @@ init_entity_spatial_index :: (entity : *$T/Entity) {
     entity.spatial = New(AABB_Tree(T.Shape));
     init(entity.spatial, *entity.shape);
 }
+
+// Plan:
+// - Single pixel radius means just select the item under the cursor, unless we miss and then just use the closest thing
+// - Init the base struct, move the source stuff into an Entity_Source type? and init that separately?
+
+
+/*
+
+Ex:
+
+init :: (using base : *Entity, set_source : $T/Entity_Source, geometry_format : Geometry_Format) {
+    assert(base != null); // Make sure New succeeded, or we're on the stack
+
+    set(*source, set_source);
+
+    base_source := cast(*Entity_Source)source.bytes.data;
+    fully_pathed_filename := tprint("%/%", base_source.path, base.name);
+    primary_color := color_from_path(fully_pathed_filename);
+
+    //if #complete set_source.kind == {
+    //    case .UNKNOWN;
+    //        assert(false); // Should I crash or not?
+    //    case .FILE_ON_DISK;
+    //        fully_pathed_filename = tprint("%/%", set_source.path, base.name);
+    //    case .PRESET_SHAPE;
+    //        fully_pathed_filename = tprint("%/%", PRESET_SHAPE_FOLDER, base.name);
+    //    case .COMMAND_OUTPUT;
+    //        fully_pathed_filename = tprint("%/%", COMMAND_OUTPUT_FOLDER, base.name);
+    //    case .SOURCE_CODE;
+    //        fully_pathed_filename = tprint("%/%", SOURCE_CODE_FOLDER, base.name);
+    //}
+
+    if #complete geometry_format == {
+        case .UNKNOWN;
+
+            log_warning("Unexpected % geometry format for item '%' in %. Called from %", mesh.geometry_format, name, #procedure_name(), loc);
+
+        case .POINTS;
+
+            display_info.surface_visible = true; // nocommit huh??
+            display_info.points_visible = true;
+            display_info.points_size = 2;
+            display_info.points_color = primary_color;
+
+        case .LINES;
+
+            display_info.wireframe_visible = true;
+            display_info.wireframe_width = 1;
+            display_info.wireframe_color = primary_color;
+
+        case .TRIANGLES;
+
+            display_info.surface_visible = true;
+            display_info.surface_color = primary_color;
+    }
+}
+
+set_entity_source_from_preset :: (base : *Entity, name : string, preset_proc : #type ()->*Entity);
+set_entity_source_from_command :: (base : *Entity, name : string, console_command : string);
+//set_entity_source_from_code :: (base : *Entity, entity_name : string, ...);
+set_entity_display_info(base : *Entity, geometry_format : Geometry_Format);
+init_entity_spatial_index :: (entity : *Mesh_Entity);
+
+init :: (using source : *Entity_Source_File, fully_pathed_filename : string, loc := #caller_location) {
+    path = copy_string(get_directory(fully_pathed_filename));
+    modtime, size, ok := file_modtime_and_size(fully_pathed_filename);
+    if ok {
+        creation_time = modtime;
+        creation_size = size;
+    } else {
+        creation_time = current_time_consensus();
+        creation_size = 0;
+        log_error("Function % failed for entity '%' when called in %. Called from %", #procedure_name(file_modtime_and_size), name, #procedure_name(), loc);
+    }
+}
+
+init :: (using source : *Entity_Source_Command, console_command : string) {
+    path = copy_string(console_command);
+}
+
+Entity_Source :: struct {
+    Source :: enum {...}
+    kind : Source = .UNKNOWN; // TODO make this the first entry!
+    creation_time : Apollo_Time;
+    creation_size : s64; // Size of the entity, format depends on the subtype
+    path : string; // Format depends on the subtype
+}
+
+Entity_Source_File :: struct {
+    using #as base : Entity_Source;
+    kind = .FILE_ON_DISK;
+
+    // set path to directory on disk and creation time to mod time
+
+    // Reloading reads this file
+    auto_reload : bool;
+}
+
+Entity_Source_Preset :: struct {
+    using #as base : Entity_Source;
+    kind = .PRESET_SHAPE;
+
+    // hardcode path and set creation time to current time
+
+    // Reloading runs this procedure
+    preset_proc : #type ()->*Entity;
+}
+
+Entity_Source_Command :: struct {
+    using #as base : Entity_Source;
+    kind = .CONSOLE_COMMAND;
+
+    // hardcode path and set creation time to current time
+
+    // Reloading runs this command
+    console_command : string;
+    // generation_index : int; // maybe
+}
+
+Entity_Source_Code :: struct {
+    using #as base : Entity_Source;
+    kind = .SOURCE_CODE;
+
+    // source code location?
+
+    // set path to source code + line number? set creation time to current time
+
+    // Reloading could run this procedure with the given data (closure)
+    proc : #type (data : *void)->*Entity;
+    data : *void;
+    // generation_index : int; // maybe
+}
+
+init :: (base : *Entity, mesh : Mesh, source : $T/Entity_Source) {
+    // stuff in init_entity_base_parameters (which needs the mesh)
+    // stuff to init the user selection display_info (which needs the source)
+}
+
+// @Cleanup Add a modify to check T
+new_debug_mesh_entity :: (mesh : Mesh) {
+    type : Entity_Type = .UNKNOWN;
+    source : Entity_Source = .UNKNOWN;
+    is_selected := false;
+    is_hovered := false;
+    render_info : Render_Info;
+    display_info : Display_Info;
+    mesh : Mesh;
+    annotations : [..]Annotation;
+
+    using source_info : union {
+        // The fully pathed filename pointing to file on disk that created the entity
+        fully_pathed_filename : string;
+
+        // The console command the user executed to generate the entity
+        console_command : string;
+
+        // The function that was called to generate the entity
+        preset_proc : #type () -> *Entity;
+    }
+
+    auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
+
+    name : string;
+    fully_pathed_name : string;
+    creation_time : Apollo_Time;
+    creation_size : s64;
+    generation_index : int; // entities with the same 'fully_pathed_name' will increment this
+}
+
+*/
+
 #scope_file
 
 load_one_file_from_memory :: (filename : string, contents : string, name : string) -> *Entity {
