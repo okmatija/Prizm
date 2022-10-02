@@ -385,9 +385,11 @@ show_add_item_ui :: () {
         ImGui.Text("Preset shapes");
         ImGui.Separator();
 
-        if ImGui.Button("Cube   ") { add_preset_cube(); ImGui.CloseCurrentPopup(); }
+        if ImGui.Button("Cube   ") { add_preset_cube(); }
+        Show_Tooltip("Hold Alt to fix position");
         ImGui.SameLine();
-        if ImGui.Button("Widget ") { add_preset_widget(); ImGui.CloseCurrentPopup(); }
+        if ImGui.Button("Widget ") { add_preset_widget(); }
+        Show_Tooltip("Hold Alt to fix position");
     }
 }
 

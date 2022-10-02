@@ -119,8 +119,8 @@ init_keymap :: () {
     add_key(*app.keymap, (unused)=>{toggle_current_selection_if_visible();}, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, (unused)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, (unused)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
-    add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add preset shape - cube", xx Special_Key_Code.F1);
-    add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add preset shape - widget", xx Special_Key_Code.F2);
+    add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add preset shape - cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add preset shape - widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
@@ -239,40 +239,54 @@ my_debug_function :: () {
     // Write your debug code here
 }
 
-preset_shape_proc :: ($NAME : string, $FILENAME : string, $PROC : ()->*Entity) -> *Entity {
+Preset_Counter :: struct {
+    count : int;
+}
+g_preset_name_to_counter : Table(string, Preset_Counter);
+
+preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool) -> *Entity {
     CONTENTS, OK :: #run read_entire_file(FILENAME);
     #assert(OK); // If this fails then FILENAME is probably invalid
 
-    result := load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
+
+    result : *Entity = load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
 
     // Update the source to be a preset
     assert(result.source == .FILE_ON_DISK); // because we loaded a file
     free(result.fully_pathed_name);
 
     result.source = .PRESET_SHAPE;
-    result.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, NAME));
-    result.preset_proc = PROC;
+    counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, NAME);
+    result.fully_pathed_name = copy_string(tprint("%/% %", PRESET_SHAPE_FOLDER, NAME, counter.count));
+    counter.count += 1;
     reset_entity_primary_color(result);
+
+    // If we're not holding control then we apply a random tranformation in 10x the preset bounding box
+    if RANDOMIZE() {
+        bbox : AxisBox3 = bounding_box(result.mesh);
+        center, extent := get_centered_form(bbox);
+        shift : Vector3;
+        shift.x = random_get_within_range(0, 10 * extent.x);
+        shift.y = random_get_within_range(0, 10 * extent.y);
+        shift.z = random_get_within_range(0, 10 * extent.z);
+        update_entity_transform(result, shift);
+    }
 
     return result;
 }
 
-preset_cube_proc :: () -> *Entity {
-    return preset_shape_proc("preset cube", "shapes/cube.obj", preset_cube_proc);
-}
-
-preset_widget_proc :: () -> *Entity {
-    return preset_shape_proc("preset widget", "shapes/widget.obj", preset_widget_proc);
-}
-
 add_preset_cube :: () {
-    entity := preset_cube_proc();
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="preset cube", FILENAME="shapes/cube.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    entity : *Entity = preset_proc();
     add_entity(entity, app.settings.duplicate_file_behaviour);
+    entity.preset_proc = preset_proc;
     fit_scene_on_screen();
 }
 
 add_preset_widget :: () {
-    entity := preset_widget_proc();
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="preset widget", FILENAME="shapes/widget.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    entity : *Entity = preset_proc();
     add_entity(entity, app.settings.duplicate_file_behaviour);
+    entity.preset_proc = preset_proc;
     fit_scene_on_screen();
 }

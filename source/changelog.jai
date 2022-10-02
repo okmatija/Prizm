@@ -110,6 +110,11 @@ PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
   - Note the current plan is that having MMB reset values is an idiom which will be applied in other situations in future versions
   - Removed the 'Toggle folder selection' and 'Toggle folder visibility' buttons in the folder context menu since these operations can be accomplished using the above selection methods and the delete key (or item selection context menu)
 
+Improvements to preset shapes:
+
+  - Multiple instances of the same preset are generated with different names and hence colors. By default a random shifting transform is also applied, the position can be fixed by holding Alt when you press the preset button/hotkey
+  - TODO Added a new "Skinny Triangle" preset which will be used in the User Guide to explain things
+
 TODO Update the help menu
 TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
