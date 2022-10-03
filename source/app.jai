@@ -199,7 +199,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
 }
 
 folder_exists_on_disk :: (directory : string) -> bool {
-    if directory == PRESET_SHAPE_FOLDER || directory == COMMAND_OUTPUT_FOLDER { // nocommit SOURCE_CODE_FOLDER
+    if directory == PRESET_SHAPE_FOLDER || directory == COMMAND_OUTPUT_FOLDER || directory == SELECTION_FOLDER {
         return false;
     }
     return true;

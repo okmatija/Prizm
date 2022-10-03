@@ -17,37 +17,53 @@ show_main_panel :: () {
 
     ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    if (ImGui.BeginTabBar("##ItemsTab", flags=ImGui.TabBarFlags.None)) {
+    if ImGui.BeginTabBar("##ItemsTab", flags=ImGui.TabBarFlags.None) {
+        defer ImGui.EndTabBar();
 
-        if (ImGui.BeginTabItem("Items")) {
+        if ImGui.BeginTabItem("Items") {
+            defer ImGui.EndTabItem();
+
             // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+            show_toolbar_ui();
+            if app.entities.count ImGui.Separator();
             show_item_list_ui();
-            show_selection_ui();
-            ImGui.EndTabItem();
         }
 
-        if (ImGui.BeginTabItem("Options")) {
+        if ImGui.BeginTabItem("Options") {
+            defer ImGui.EndTabItem();
+
             show_options();
-            ImGui.EndTabItem();
         }
 
-        if (ImGui.BeginTabItem("Help")) {
+        if ImGui.BeginTabItem("Help") {
+            defer ImGui.EndTabItem();
+
             show_help_ui();
-            ImGui.EndTabItem();
         }
+    }
+}
 
-        ImGui.EndTabBar();
+show_toolbar_ui :: () {
+    indent := ImGui.GetTreeNodeToLabelSpacing();
+
+    if ImGui.TreeNodeEx("Toolbar", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        ImGui.Unindent(indent2 - indent);
+        defer ImGui.Indent(indent2 - indent);
+
+        Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
+        ImGui.SameLine();
+        Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
+        ImGui.SameLine();
+        show_add_item_ui();
+        show_selection_ui();
     }
 }
 
 
 show_item_list_ui :: () {
-
-    Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
-    ImGui.SameLine();
-    Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
-    ImGui.SameLine();
-    show_add_item_ui();
 
     indent := ImGui.GetTreeNodeToLabelSpacing();
 
@@ -414,24 +430,45 @@ show_options :: () {
 
 }
 
+// nocommit Remove one level of indent here
 show_selection_ui :: () {
-    if ImGui.TreeNodeEx("Selections", ImGui.TreeNodeFlags.SpanAvailWidth) {
-        defer ImGui.TreePop();
-
         // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
 
         // Selection Mode UI
         if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
             defer ImGui.EndTable();
 
-            it := *app.user_selection;
+            it := *app.user_selection; // nocommit @Cleanup remove this
 
             ImGui.TableNextRow();
 
             // Remove button
             ImGui.TableNextColumn();
-            if ImGui.Button(imgui_label("Clear ", it)) {
-                deinit(it);
+            {
+                disable_cache_button := is_empty(app.user_selection);
+                if disable_cache_button       ImGui.BeginDisabled();
+                defer if disable_cache_button ImGui.EndDisabled();
+
+                if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
+                    if !is_empty(app.user_selection) {
+                        new_entity : *Entity = New(Point_Cloud_Entity);
+
+                        merge(new_entity.mesh, app.user_selection.mesh);
+                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
+                        set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
+                        set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+                        counter.count += 1;
+
+                        add_entity(new_entity, app.settings.duplicate_file_behaviour);
+
+                        deinit(*app.user_selection);
+
+                        log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
+                    } else {
+                        log("Point Selection caching omitted: Point Selection is empty");
+                    }
+                }
+                Show_Tooltip("Adds a new item based on this selection\nand resets the Point Selection");
             }
 
             // Color selection
@@ -443,13 +480,13 @@ show_selection_ui :: () {
             // Toggle visibility checkbox
             {
                 ImGui.TableNextColumn();
-                visibility_changed := ImGui.Checkbox(imgui_label("##Visible", it), *it.display_info.is_visible);
-                Show_Tooltip("Toggle visibility of selected vertices");
+                visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
+                Show_Tooltip("If enabled Ctrl LMB selects points");
                 // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
             }
 
             ImGui.TableNextColumn();
-            ImGui.Text("Points");
+            ImGui.Text("Point Selection");
             if it.display_info.is_visible {
                 bindings : [..]Binding_With_Description;
                 bindings.allocator = temp;
@@ -495,21 +532,6 @@ show_selection_ui :: () {
 
                 vertex_label_style := *it.display_info.vertex_label_style;
 
-                if ImGui.Button("Cache Selection") {
-                    if !is_empty(app.user_selection) {
-                        new_entity : *Entity = New(Point_Cloud_Entity);
-
-                        merge(new_entity.mesh, app.user_selection.mesh);
-                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Points");
-                        set_entity_source_from_preset(new_entity, tprint("% %", "Points", counter.count), null, point_count(new_entity.mesh));
-                        set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
-                        counter.count += 1;
-
-                        add_entity(new_entity, app.settings.duplicate_file_behaviour);
-                    }
-                }
-                Show_Tooltip("Adds a new item based on this selection (if not empty).\nEnables users to create multiple selections");
-
                 ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
                 ImGui.SameLine();
                 ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -541,7 +563,6 @@ show_selection_ui :: () {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
         }
-    }
 }
 
 ScopedPopupBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
@@ -828,7 +849,7 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
 
         ImGui.Text(path);
         ImGui.Separator();
-        if (path != PRESET_SHAPE_FOLDER && path != COMMAND_OUTPUT_FOLDER) && auto_load_new_files {
+        if (path != PRESET_SHAPE_FOLDER && path != COMMAND_OUTPUT_FOLDER && path != SELECTION_FOLDER) && auto_load_new_files {
             ImGui.Checkbox("Auto-load new files", auto_load_new_files);
         }
 
@@ -2027,10 +2048,11 @@ imgui_text_for_aabb :: (aabb : AxisBox3) {
 
 entity_source_tooltip :: (entity : Entity) {
     if #complete entity.source == {
+        case .UNKNOWN;        // Do nothing
         case .FILE_ON_DISK;   Show_Tooltip(tprint("File:    %\nCreated: %", entity.fully_pathed_name, filetime_to_readable_date(entity.creation_time)));
         case .COMMAND_OUTPUT; Show_Tooltip(tprint("Command: %\nCreated: %", entity.console_command, filetime_to_readable_date(entity.creation_time)));
         case .PRESET_SHAPE;   Show_Tooltip(tprint("Preset shape\nCreated: %", filetime_to_readable_date(entity.creation_time)));
-        case .UNKNOWN;        // Do nothing
+        case .SELECTION;      Show_Tooltip(tprint("% Selection\nCreated: %", to_nice_string(entity.mesh.geometry_format), filetime_to_readable_date(entity.creation_time)));
     }
 }
 

@@ -10,7 +10,7 @@ do_clip_radius_mode :: (clicked : bool = false) -> bool {
 do_selection_mode :: () {
     if app.user_selection.display_info.is_visible == false {
         if do_clip_radius_mode(true) {
-            log_error("Cannot do sphere clipping when \"Points\" selection is not visible. This is dumb, sorry, make it visible to use sphere clipping.");
+            log_error("Cannot do sphere clipping when \"Point Selection\" is disabled, enabled it under 'Items > Toolbar' in the main panel in the top left. This is dumb, sorry!");
         }
         return;
     }

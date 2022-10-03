@@ -61,6 +61,14 @@ Geometry_Format :: enum {
     TRIANGLES;
 }
 
+to_nice_string :: (format : Geometry_Format, plural := false) -> string {
+    if #complete format == {
+        case .UNKNOWN;   return "Unknown";
+        case .POINTS;    return ifx plural then "Point"     else "Points";
+        case .LINES;     return ifx plural then "Line"      else "Lines";
+        case .TRIANGLES; return ifx plural then "Triangle"  else "Triangles";
+    }
+}
 
 // @Cleanup _vertex_tuple is a weird postfix...
 

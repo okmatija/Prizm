@@ -9,13 +9,13 @@ Entity_Type :: enum {
     UNKNOWN;
 }
 
-// Used for entity reloading, order is important here becaues reload_items uses it for sorting
+// Used for entity reloading, order is important here becaues reload_items uses it for sorting @Think If the order is changed but the values stay constant what happens?
 Entity_Source :: enum #specified {
     UNKNOWN :: 0;
     FILE_ON_DISK :: 1;
-    PRESET_SHAPE :: 2;
+    SELECTION :: 2;
     COMMAND_OUTPUT :: 3;
-    // SELECTION; // Possible, but I don't think we actually want lots of selection entities, better to just have simple mesh entity for each of point, segments and triangle selection
+    PRESET_SHAPE :: 4;
 }
 
 find_header_annotation :: (entity : *Entity) -> *Annotation {
@@ -64,6 +64,7 @@ Entity :: struct {
     auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
 
     // This should be used to find entities
+    // If source == .SELECTION      this is SELECTION_FOLDER/name
     // If source == .FILE_ON_DISK   this is fully_pathed_filename
     // If source == .PRESET_SHAPE   this is PRESET_SHAPE_FOLDER/name
     // If source == .COMMAND_OUTPUT this is COMMAND_OUTPUT_FOLDER/name
@@ -78,8 +79,9 @@ Entity :: struct {
     generation_index : int; // nocommit delete this incorrect comment: entities with the same 'fully_pathed_name' will increment this
 }
 
-PRESET_SHAPE_FOLDER :: "Generated outputs";
-COMMAND_OUTPUT_FOLDER :: "Command outputs";
+SELECTION_FOLDER :: "Selections";
+PRESET_SHAPE_FOLDER :: "Preset Shapes";
+COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
 // :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
 
@@ -320,6 +322,7 @@ deinit :: (base : *Entity) {
         case .FILE_ON_DISK;   // Do nothing
         case .COMMAND_OUTPUT; free(base.console_command);
         case .PRESET_SHAPE;   // Do nothing
+        case .SELECTION;      // Do nothing
     }
 
     // Remove data from gpu memory as well
@@ -846,6 +849,11 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity) -> did_reload : bool {
     if #complete entity.source == {
+        case .UNKNOWN; #through;
+        case .SELECTION;
+
+            return false;
+
         case .FILE_ON_DISK;
 
             enable_reload_shortcut :: (entity : Entity) -> bool {
@@ -896,10 +904,6 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
             log("Re-executing console command '%'... ", entity.console_command);
             console_execute_command(entity.console_command);
             return true;
-
-        case .UNKNOWN;
-
-            return false;
     }
 
     return false;
@@ -928,6 +932,15 @@ set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc :
     entity.creation_time = current_time_consensus();
     entity.creation_size = point_count;
     entity.preset_proc = preset_proc;
+}
+
+set_entity_source_from_selection :: (entity : *Entity, name : string, point_count : s64) {
+    assert(entity != null);
+    entity.fully_pathed_name = copy_string(tprint("%/%", SELECTION_FOLDER, name));
+
+    entity.source = .SELECTION;
+    entity.creation_time = current_time_consensus();
+    entity.creation_size = point_count;
 }
 
 set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
@@ -963,7 +976,7 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
 
             entity.display_info.surface_visible = true; // nocommit What the heck??
             entity.display_info.points_visible = true;
-            entity.display_info.points_size = 2;
+            entity.display_info.points_size = 4;
             entity.display_info.points_color = primary_color;
 
         case .LINES;

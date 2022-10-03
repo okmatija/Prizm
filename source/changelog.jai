@@ -8,18 +8,25 @@
 // TODO Fix the selection text not disappearing when the current selection is not visible
 
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
-- Changes to main panel UI:
+- Changes to Main Panel UI:
 
-  - Added a new "Items" tab which shows the list of items and the Selection UI
+  - Added a new "Help" tab which shows what was previously in the help menu. Removed the help binding 'h' because help is more discoverable now
   - Added a new "Options" tab which show options that were previously in a folding tree
-  - Added a new "Help" tab which shows what was previously in the help menu
-  - Removed the help binding 'h' because help is more discoverable now
+  - Added a new "Items" tab which shows the list of items and the Selection UI
+  - Added a new "Toolbar" section under the "Items" tab which has the "Reload", "Focus" and "Add" buttons as well as an item representing a "Point Selection"
 
-- Changes to annotation UI:
+- Changes to Point Selection mechanics (selection here means picking out bits of geometry):
+
+  - Renamed the "Default" selection to "Point Selection" since this object can only select points (using Ctrl LMB)
+  - Replaced the old "Clear" with a "Cache" button adds the selection as an item in a "Selections" folder and then clears the selection. This is how users can make multiple selections
+  - Removed the old "Add" button, which wasn't implemented but won't be needed because caching selections is the way user can to create/manage multiple selections
+  - Note: Future versions will add "Triangle Selection" and "Edge Selection" UI, but this is not yet implemented
+
+- Changes to Annotation UI:
 
   - Moved annotations into a separate "Annotations" tab in the item context menu
 
-- Changes to item list selection mechanics:
+- Changes to Items list selection (selection here means picking items for bulk actions):
 
   - Added ability to select all items in a folder by using Ctrl LMB on the folder name
   - Added ability to change the color of selected items by editing the color widget of a selected item
@@ -30,13 +37,6 @@ PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
   - Note: "Remove" button is the only widget in the item list that doesn't affect the whole selection when triggered on a selected item. To remove the whole selection press delete, or use the button in the item selection context menu
   - Note: The current plan is that having MMB reset values is an idiom which will be applied in other situations in future versions
   - Removed the 'Toggle folder selection' and 'Toggle folder visibility' buttons in the folder context menu since these operations can be accomplished using the above selection methods and the delete key (or item selection context menu)
-
-- Changes to point selection mechanics ("Items" tab > "Selections" header):
-
-  - Renamed the "Default" selection to "Points" since this object can only select points (via Ctrl LMB)
-  - Added a "Cache Selection" button in the selection context menu which will add the selection as an item in the "Generated outputs" folder
-  - Removed the "Add" button, which wasn't implemented but won't be needed because caching selections is the way user can to create/manage multiple selections
-  - Note: Future versions will add "Faces" and "Edges" selection objects, but this is not yet implemented
 
 - Changes to preset shapes:
 
