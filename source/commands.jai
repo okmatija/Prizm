@@ -598,6 +598,8 @@ item_find_open_edges :: (id : int) {
     new_entity.generation_index = app.entities[id].generation_index;
     add_entity(new_entity, .OVERWRITE);
 
+    log("Added item '%'", entity_name(new_entity));
+
 } @RegisterCommand
 
 // Modify the position data of the item with the given `id` so new positions lie on spheres with

@@ -6,6 +6,7 @@ Tests covering:
 - Floats should parse properly
 - Files with junk on the end of a vertex/face definition should load and ignore relevant elements (the corrupted vertex/attached faces)
 - ...
+Don't remove leading spaces from BLOCK type annotations, so that formatting is better perserved in those comments
 
 */
 

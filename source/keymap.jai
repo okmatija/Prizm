@@ -120,6 +120,7 @@ init_keymap :: () {
     add_key(*app.keymap, (unused)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
     add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add preset shape - cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add preset shape - widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (unused)=>{add_preset_boolean();}, "Add preset shape - boolean", xx Special_Key_Code.F3);
     add_key(*app.keymap, (unused)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
@@ -288,6 +289,14 @@ add_preset_cube :: () {
 
 add_preset_widget :: () {
     preset_proc :: #bake_arguments preset_shape_proc(NAME="preset widget", FILENAME="shapes/widget.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    entity : *Entity = preset_proc();
+    add_entity(entity, app.settings.duplicate_file_behaviour);
+    entity.preset_proc = preset_proc;
+    fit_scene_on_screen();
+}
+
+add_preset_boolean :: () {
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="preset boolean", FILENAME="shapes/failed_boolean.obj", RANDOMIZE=()=>(false));
     entity : *Entity = preset_proc();
     add_entity(entity, app.settings.duplicate_file_behaviour);
     entity.preset_proc = preset_proc;

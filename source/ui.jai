@@ -401,6 +401,7 @@ show_add_item_ui :: () {
         ImGui.SameLine();
         if ImGui.Button("Widget ") { add_preset_widget(); }
         Show_Tooltip("Hold Alt to fix position");
+        if ImGui.Button("Boolean") { add_preset_boolean(); }
     }
 }
 
