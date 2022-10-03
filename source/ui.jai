@@ -17,161 +17,156 @@ show_main_panel :: () {
 
     ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+    if (ImGui.BeginTabBar("##ItemsTab", flags=ImGui.TabBarFlags.None)) {
 
-    show_item_list_ui();
+        if (ImGui.BeginTabItem("Items")) {
+            // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+            show_item_list_ui();
+            show_selection_ui();
+            ImGui.EndTabItem();
+        }
 
-    show_selection_ui();
+        if (ImGui.BeginTabItem("Options")) {
+            show_options();
+            ImGui.EndTabItem();
+        }
 
-    show_item_list_actions_ui();
+        if (ImGui.BeginTabItem("Help")) {
+            show_help_ui();
+            ImGui.EndTabItem();
+        }
 
-    show_options();
+        ImGui.EndTabBar();
+    }
 }
 
 
 show_item_list_ui :: () {
 
-    do_tree_items := ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+    Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
+    ImGui.SameLine();
+    Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
+    ImGui.SameLine();
+    show_add_item_ui();
 
-    if do_tree_items {
-        defer ImGui.TreePop();
+    indent := ImGui.GetTreeNodeToLabelSpacing();
 
-        // Use Ctrl LMB to select all items
-        if do_tree_items && ImGui.IsItemClicked() && io().KeyCtrl {
-            state := false;
-            if app.entities.count {
-                state = app.entities[0].is_selected;
+    { // @Cleanup Remove this scope?
+        entity_to_remove := -1;
+        any_visibility_changed : bool;
+        show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
+
+        for *folder : app.directories {
+
+            Local_Entity :: struct {
+                entity : *Entity;
+                global_index : int;
             }
-            for app.entities {
-                it.is_selected = !state;
+
+            // The list clipper works on lots of evenly spaced items, which means we need to group entities by folder before we use it
+            entities_in_folder : [..]Local_Entity;
+            entities_in_folder.allocator = temp;
+            for entity, entity_index : app.entities {
+                if get_directory(entity.fully_pathed_name) == folder.path {
+                    local_entity : Local_Entity;
+                    local_entity.entity = entity;
+                    local_entity.global_index = entity_index;
+                    array_add(*entities_in_folder, local_entity);
+                }
+            }
+
+            if entities_in_folder.count == 0 && !folder_exists_on_disk(folder.path) {
+                continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prism and then have files dumped there be autoloaded)
+            }
+
+            // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
+            // @Incomplete Abbreviate this name e.g., C:/.../folder etc
+            do_tree : bool = ImGui.TreeNodeEx(imgui_label(folder.path, *folder), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+            show_folder_context_menu(folder.path, *folder.auto_load_new_files);
+            if do_tree {
+                defer ImGui.TreePop();
+
+                // Use Ctrl LMB to select all items in the folder
+                if ImGui.IsItemClicked() && io().KeyCtrl {
+                    state := false;
+                    if entities_in_folder.count {
+                        state = entities_in_folder[0].entity.is_selected;
+                    }
+                    for entities_in_folder {
+                        it.entity.is_selected = !state;
+                    }
+                }
+
+                indent2 := ImGui.GetTreeNodeToLabelSpacing();
+                ImGui.Unindent(indent2 - indent);
+                defer ImGui.Indent(indent2 - indent);
+
+                if entities_in_folder.count {
+                    table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY;
+                    outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
+
+                    show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
+                    if !show_scrollbar {
+                        table_flags &= ~.ScrollY;
+                        outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
+                    }
+
+                    // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
+                    ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size);
+
+                    // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
+
+                    folder.last_frame_item_list_height_px = 0.;
+                    for :ListClipperIterator local_entity : entities_in_folder {
+                        folder.last_frame_item_list_height_px = clipper.ItemsHeight;
+                        update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
+                        if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
+                        if update.visibility_changed    any_visibility_changed = true;
+                    }
+                    folder.last_frame_item_list_height_px *= entities_in_folder.count;
+
+                    ImGui.EndTable();
+                } else {
+                    ImGui.TextDisabled("(none)");
+                }
             }
         }
 
-        Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
-        ImGui.SameLine();
-        show_add_item_ui();
-
-        indent := ImGui.GetTreeNodeToLabelSpacing();
-
-        { // @Cleanup Remove this scope?
-            entity_to_remove := -1;
-            any_visibility_changed : bool;
-            show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
-
-            for *folder : app.directories {
-
-                Local_Entity :: struct {
-                    entity : *Entity;
-                    global_index : int;
-                }
-
-                // The list clipper works on lots of evenly spaced items, which means we need to group entities by folder before we use it
-                entities_in_folder : [..]Local_Entity;
-                entities_in_folder.allocator = temp;
-                for entity, entity_index : app.entities {
-                    if get_directory(entity.fully_pathed_name) == folder.path {
-                        local_entity : Local_Entity;
-                        local_entity.entity = entity;
-                        local_entity.global_index = entity_index;
-                        array_add(*entities_in_folder, local_entity);
-                    }
-                }
-
-                if entities_in_folder.count == 0 && !folder_exists_on_disk(folder.path) {
-                    continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prism and then have files dumped there be autoloaded)
-                }
-
-                // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
-                // @Incomplete Abbreviate this name e.g., C:/.../folder etc
-                do_tree : bool = ImGui.TreeNodeEx(imgui_label(folder.path, *folder), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-                show_folder_context_menu(folder.path, *folder.auto_load_new_files);
-                if do_tree {
-                    defer ImGui.TreePop();
-
-                    // Use Ctrl LMB to select all items in the folder
-                    if ImGui.IsItemClicked() && io().KeyCtrl {
-                        state := false;
-                        if entities_in_folder.count {
-                            state = entities_in_folder[0].entity.is_selected;
-                        }
-                        for entities_in_folder {
-                            it.entity.is_selected = !state;
-                        }
-                    }
-
-                    indent2 := ImGui.GetTreeNodeToLabelSpacing();
-                    ImGui.Unindent(indent2 - indent);
-                    defer ImGui.Indent(indent2 - indent);
-
-                    if entities_in_folder.count {
-                        table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY;
-                        outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
-
-                        show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
-                        if !show_scrollbar {
-                            table_flags &= ~.ScrollY;
-                            outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
-                        }
-
-                        // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
-                        ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size);
-
-                        // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
-
-                        folder.last_frame_item_list_height_px = 0.;
-                        for :ListClipperIterator local_entity : entities_in_folder {
-                            folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
-                            if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
-                            if update.visibility_changed    any_visibility_changed = true;
-                        }
-                        folder.last_frame_item_list_height_px *= entities_in_folder.count;
-
-                        ImGui.EndTable();
-                    } else {
-                        ImGui.TextDisabled("(none)");
-                    }
+        // This block implements the feature where if you toggle visibility, editing colors and cycling/resetting display modes on a selected item it changes it on all selected items
+        // This is similar to how editing the context menu of an item selection changes the corresponding field in all selected items
+        {
+            if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
+                source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
+                for app.entities if it.is_selected {
+                    <<entity_primary_color(it) = <<entity_primary_color(source);
                 }
             }
-
-            // This block implements the feature where if you toggle visibility, editing colors and cycling/resetting display modes on a selected item it changes it on all selected items
-            // This is similar to how editing the context menu of an item selection changes the corresponding field in all selected items
-            {
-                if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
-                    source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
-                    for app.entities if it.is_selected {
-                        <<entity_primary_color(it) = <<entity_primary_color(source);
-                    }
-                }
-                if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
-                    source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
-                    for app.entities if it.is_selected {
-                        it.display_info.display_mode = source.display_info.display_mode;
-                    }
-                }
-                if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
-                    for app.entities if it.is_selected {
-                        it.display_info.display_mode = Display_Info.{}.display_mode;
-                        reset_entity_primary_color(it);
-                    }
-                }
-                if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
-                    source : *Entity =app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click];
-                    for app.entities if it.is_selected {
-                        it.display_info.is_visible = source.display_info.is_visible;
-                    }
+            if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
+                source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
+                for app.entities if it.is_selected {
+                    it.display_info.display_mode = source.display_info.display_mode;
                 }
             }
-
-            if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
-                remove_entity_by_index(entity_to_remove);
+            if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
+                for app.entities if it.is_selected {
+                    it.display_info.display_mode = Display_Info.{}.display_mode;
+                    reset_entity_primary_color(it);
+                }
             }
-
-            if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
-                fit_scene_on_screen();
+            if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
+                source : *Entity =app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click];
+                for app.entities if it.is_selected {
+                    it.display_info.is_visible = source.display_info.is_visible;
+                }
             }
+        }
+
+        if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
+            remove_entity_by_index(entity_to_remove);
+        }
+
+        if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
+            fit_scene_on_screen();
         }
     }
 }
@@ -395,28 +390,28 @@ show_add_item_ui :: () {
 
 
 show_options :: () {
-    if ImGui.TreeNodeEx("Options", ImGui.TreeNodeFlags.SpanAvailWidth) {
-        defer ImGui.TreePop();
-        combo_box("Background", *app.background_style, type_info(app.Background_Style));
-        if app.background_style == .SOLID_COLOR {
-            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
-        }
-        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
-        ImGui.Checkbox("Show World Axes", *app.triad.visible);
-        ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-        if app.current_window_width != app.INITIAL_WINDOW_WIDTH || app.current_window_height != app.INITIAL_WINDOW_HEIGHT {
-            if ImGui.Button("Reset OS Window Size") {
-                SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-            }
-        }
-        ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
-        Show_Tooltip("Used to handle invalid .obj files. Missing points\nwill be given this position. Invalid (inf/nan)\ncomponents get the corresponding component value");
-        ImGui.DragFloat("Global font scale", *io().FontGlobalScale, .001, format="%.3f");
 
-        // :UserConfig add a button to overwrite the user settings file with new defaults here?
-        inspect("Advanced", *app.settings);
-        clamp_user_settings();
+    combo_box("Background", *app.background_style, type_info(app.Background_Style));
+    if app.background_style == .SOLID_COLOR {
+        ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
     }
+    ImGui.DragFloat("Font Scale", *io().FontGlobalScale, .001, format="%.3f");
+    ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
+    Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+
+    ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
+    ImGui.Checkbox("Show World Axes", *app.triad.visible);
+    ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
+
+    disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+    if disable_window_resize_button ImGui.BeginDisabled();
+    if ImGui.Button("Reset OS Window Size") SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+    if disable_window_resize_button ImGui.EndDisabled();
+
+    // :UserConfig add a button to overwrite the user settings file with new defaults here?
+    inspect("Advanced", *app.settings);
+    clamp_user_settings();
+
 }
 
 show_selection_ui :: () {
@@ -901,8 +896,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                         entity_source_tooltip(entity);
                     }
 
-                    ImGui.Separator();
-
                     display_information(entity);
                     display_transform(entity);
 
@@ -1173,121 +1166,111 @@ show_camera_controls :: () {
 }
 
 show_help_ui :: () {
-    if !app.show_help_ui return;
+    table_flags := ImGui.TableFlags.BordersInnerV;
 
-    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5},
-    cond=.ImGuiCond_Appearing);
-    ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
-                                       make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
-    // flags |= .NoMove;
-    // flags |= .NoNav;
-    // flags |= .AlwaysHorizontalScrollbar; // Use this when the changelog can be unwrapped
+    if ImGui.TreeNodeEx("About") {
+        defer ImGui.TreePop();
 
-    // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(HELP_MENU_BORDER_COLOR, HELP_MENU_BORDER_SIZE);
+        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        ImGui.Text("Prism aims to be a convenient tool for debugging computational geometry algorithms.");
+        ImGui.Text("It supports files in .obj format and features UI elements designed to minimize the");
+        ImGui.Text("time needed to diagnose problems. Prism has been tested with large (250MB+) obj files");
+        ImGui.Text("which cause some other viewers to crash or load extremely slowly.");
+        ImGui.Text("");
+        ImGui.PopStyleColor();
 
-    ImGui.Begin("##show_help_ui", flags = flags);
-    defer ImGui.End();
-
-    ScopedWindowBorderTheme(original_border_color, original_border_size);
-
-    COLUMN_WIDTH :: 100;
-
-    Show_Binding :: (binding : string, description : string) #expand {
-        ImGui.TextColored(KEYBINDING_COLOR, binding);
-        ImGui.NextColumn();
-        ImGui.Text(description);
-        ImGui.NextColumn();
+        COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));
+        ImGui.Text(COMPILER_VERSION_INFO);
     }
 
-    if ImGui.TreeNodeEx("Key bindings in the Viewport", .DefaultOpen) {
+    // @Cleaup name it like a macro
+    ShowBinding :: (binding : string, description : string) #expand {
+        ImGui.TableNextColumn();
+        ImGui.TextColored(KEYBINDING_COLOR, binding);
+        ImGui.TableNextColumn();
+        ImGui.Text(description);
+    }
+
+    if ImGui.TreeNodeEx("Key Bindings for Viewport") {
         defer ImGui.TreePop();
-        ImGui.Columns(2);
-        defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
-        ImGui.NextColumn(); ImGui.NextColumn();
-        Show_Binding("MMB", "Pan the camera");
-        Show_Binding("Scroll", "Zoom the camera into the position under the cursor");
-        Show_Binding("Alt   Scroll", "Zoom the camera into the position under the cursor slowly");
-        Show_Binding("Shift Scroll", "Zoom the camera into the camera look position");
-        Show_Binding("RMB", "Rotate the camera");
-        Show_Binding("Alt RMB", "Rotate about selected axis in the camera control pane");
+        ImGui.BeginTable("", 2, flags=table_flags);
+        defer ImGui.EndTable();
+
+        ShowBinding("MMB", "Pan the camera");
+        ShowBinding("Scroll", "Zoom the camera into the position under the cursor");
+        ShowBinding("Alt   Scroll", "Zoom the camera into the position under the cursor slowly");
+        ShowBinding("Shift Scroll", "Zoom the camera into the camera look position");
+        ShowBinding("RMB", "Rotate the camera");
+        ShowBinding("Alt RMB", "Rotate about selected axis in the camera control pane");
     }
 
     // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
     Tree_Node_With_Tooltip :: (label : *u8, tooltip : string) -> bool #expand {
-        result := ImGui.TreeNodeEx(label, .DefaultOpen);
+        result := ImGui.TreeNodeEx(label);
         Show_Tooltip(tooltip);
         return result;
     }
 
-    if Tree_Node_With_Tooltip("Key bindings for the Item List",
-                              "The Item List is visible in the top left\nwhen at least one item has been loaded") {
+    if ImGui.TreeNodeEx("Key Bindings for Items Tab") {
         defer ImGui.TreePop();
-        ImGui.Columns(2);
-        defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
-        ImGui.NextColumn(); ImGui.NextColumn();
-        Show_Binding("LMB", "(on a filename) Focus an item");
-        Show_Binding("Ctrl LMB", "(on a filename) Select an item");
-        Show_Binding("Shift LMB", "(on a filename) Focus an item and zoom in");
-        Show_Binding("RMB", "(on a filename) Open context menu which modifies only the clicked item");
-        Show_Binding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
-        Show_Binding("RMB", "(on a color) Cycle shading styles");
-        Show_Binding("MMB", "(on a color) Reset color from the filename");
-        Show_Binding("LMB", "(sweep over visibility checkbox) Update item visibility");
-        Show_Binding("Ctrl LMB", "(sweep over visibility checkbox) Focus hovered item");
-        Show_Binding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
+        ImGui.BeginTable("", 2, flags=table_flags);
+        defer ImGui.EndTable();
+
+        ShowBinding("LMB", "(on a filename) Focus an item");
+        ShowBinding("Ctrl LMB", "(on a filename) Select an item");
+        ShowBinding("Shift LMB", "(on a filename) Focus an item and zoom in");
+        ShowBinding("RMB", "(on a filename) Open context menu which modifies only the clicked item");
+        ShowBinding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
+        ShowBinding("RMB", "(on a color) Cycle shading styles");
+        ShowBinding("MMB", "(on a color) Reset color from the filename");
+        ShowBinding("LMB", "(sweep over visibility checkbox) Update item visibility");
+        ShowBinding("Ctrl LMB", "(sweep over visibility checkbox) Focus hovered item");
+        ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
     }
 
-    if Tree_Node_With_Tooltip("Key bindings for Selection Mode",
+    if Tree_Node_With_Tooltip("Key Bindings for Selection Mode",
                               "Enable selection mode by toggling visibility\non the 'Selection' item") {
         defer ImGui.TreePop();
-        ImGui.Columns(2);
-        defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
-        ImGui.NextColumn(); ImGui.NextColumn();
-        Show_Binding("Ctrl LMB", "Add nearest unclipped vertex to 'Selection' item");
-        Show_Binding("Shift LMB", "Click-drag to set clipping sphere");
-        Show_Binding("Ctrl RMB", "Place camera orbit");
+        ImGui.BeginTable("", 2, flags=table_flags);
+        defer ImGui.EndTable();
+
+        ShowBinding("Ctrl LMB", "Add nearest unclipped vertex to 'Selection' item");
+        ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
+        ShowBinding("Ctrl RMB", "Place camera orbit");
     }
 
-    if ImGui.TreeNodeEx("General key bindings", .DefaultOpen) {
+    if ImGui.TreeNodeEx("Key Bindings for Item Set Updates") {
         defer ImGui.TreePop();
-        ImGui.Columns(2);
-        defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
-        ImGui.NextColumn();
-        ImGui.NextColumn();
+        ImGui.BeginTable("", 2, flags=table_flags);
+        defer ImGui.EndTable();
+
+        for app.keymap_actions.mappings {
+            push_allocator(temp);
+            ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
+        }
+    }
+
+    if ImGui.TreeNodeEx("Miscellaneous Key Bindings") {
+        defer ImGui.TreePop();
+        ImGui.BeginTable("", 2, flags=table_flags);
+        defer ImGui.EndTable();
+
         for app.keymap_keydown.mappings {
             push_allocator(temp);
-            Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
+            ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
         }
         for app.keymap.mappings {
             push_allocator(temp);
-            Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+            ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
         }
     }
 
-    if ImGui.TreeNodeEx("Key bindings to update item sets", .DefaultOpen) {
-        defer ImGui.TreePop();
-        ImGui.Columns(2);
-        defer ImGui.Columns(1);
-        ImGui.SetColumnWidth(-1, COLUMN_WIDTH);
-        ImGui.NextColumn();
-        ImGui.NextColumn();
-        for app.keymap_actions.mappings {
-            push_allocator(temp);
-            Show_Binding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
-        }
-    }
+    outer_size : ImGui.ImVec2;
+    outer_size.x = min(800., app.current_window_width * .75);
+    outer_size.y = 0;
 
     if ImGui.TreeNodeEx("Changelog") {
         defer ImGui.TreePop();
-
-        COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));
-        ImGui.Text(COMPILER_VERSION_INFO);
 
         if ImGui.Button("Save to CHANGELOG.md") {
             contents : string;
@@ -1304,7 +1287,7 @@ show_help_ui :: () {
         Show_Tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
 
         latest := app.changelog[0];
-        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date)), .DefaultOpen) {
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
@@ -1328,14 +1311,12 @@ show_help_ui :: () {
 
     if ImGui.TreeNodeEx("Known Issues") {
         defer ImGui.TreePop();
-        for app.known_issues {
-            ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
-            ImGui.TextWrapped(it.name);
-            // ImGui.Text(it.name);
-            ImGui.PopStyleColor();
-            ImGui.SameLine();
-            ImGui.TextWrapped(it.description);
-            // ImGui.Text(it.description);
+
+        if ImGui.BeginTable("", 2, flags=table_flags | .ScrollX, outer_size=outer_size) {
+            defer ImGui.EndTable();
+            for app.known_issues {
+                ShowBinding(it.name, it.description);
+            }
         }
     }
 
@@ -1377,7 +1358,7 @@ show_pending_directories_ui :: () {
     ImGui.Text(dir.path);
     ImGui.PopStyleColor();
 
-    table_flags := ImGui.TableFlags.RowBg | .RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
+    table_flags := ImGui.TableFlags.RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
      | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
      | .ScrollY; // Without this option the outer_size argument is ignored
 

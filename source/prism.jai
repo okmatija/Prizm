@@ -213,8 +213,8 @@ main :: () {
         if app.show_ui {
             show_main_panel();
             show_camera_controls();
-            show_help_ui();
             show_imgui_demo_window();
+            show_item_list_actions_ui();
             console_draw();
             show_pending_directories_ui();
 
@@ -353,7 +353,6 @@ handle_events :: () {
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
                     app.console.visible = false;
-                    app.show_help_ui = false;
                 }
             }
             case SDL_KEYUP; {

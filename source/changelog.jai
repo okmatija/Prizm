@@ -1,11 +1,24 @@
+// TODO Update the help menu
+// TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
+// TODO Removed "Index" column and put index into the "Target" column use p/l/f with 1-based indexing  e 0.01
+// TODO Changed "Type" entry names float32->f32, string->str. This will be useful when multiple data types per target
+// TODO Added a new presets which will be used in the User Guide to explain things. Add a block comment in the obj
+// TODO Add the scrolling region to the changelog
+
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
+- Changes to main panel UI:
+
+  - Added a new "Items" tab which shows the list of items and the Selection UI
+  - Added a new "Options" tab which show options that were previously in a folding tree
+  - Added a new "Help" tab which shows what was previously in the help menu
+  - Removed the help binding 'h' because help is more discoverable now
+
 - Changes to annotation UI:
 
   - Moved annotations into a separate "Annotations" tab in the item context menu
 
 - Changes to item selection mechanics:
 
-  - Added ability to select all items loaded in Prism using Ctrl LMB on the "Items" header
   - Added ability to select all items in a folder by using Ctrl LMB on the folder name
   - Added ability to change the color of selected items by editing the color widget of a selected item
   - Added ability to reset the color and display mode of selected items by pressing MMB on a selected item
@@ -19,10 +32,8 @@ PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
 - Changes to preset shapes:
 
   - Multiple instances of the same preset are generated with different names and hence colors. By default a random shifting transform is also applied, the position can be fixed by holding Alt when you press the preset button/hotkey
-  - TODO Added a new "Skinny Triangle" preset which will be used in the User Guide to explain things. Add a block comment in the obj
+  - Disabled reloading of preset shapes for code architecture reasons, will re-enable this functionality in a future version
 
-TODO Update the help menu
-TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
 - Removed the limit on degree of zoom by changing the default value of `Options > Advanced > camera_zoom_min_screen_filling_length_mm` from 0.0001 to 0.0
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
 DONE

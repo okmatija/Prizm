@@ -9,9 +9,9 @@ Tests covering:
 
 */
 
-ISSUE_005 :: "The .obj loader interprets face directives 'i//j' and 'i/j/k' as 'i//i' and 'i/i/i' e.g., 'f 4//1 5//2 6//3' is loaded as if it were 'f 4//4 5//5 6//6'. Will fix next version."; @KnownIssue
-ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix next version."; @KnownIssue
-ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix next version."; @KnownIssue
+ISSUE_005 :: "The .obj loader interprets face directives 'i//j' and 'i/j/k' as 'i//i' and 'i/i/i' e.g., 'f 4//1 5//2 6//3' is loaded as if it were 'f 4//4 5//5 6//6'. Will fix soon."; @KnownIssue
+ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
+ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix soon."; @KnownIssue
 
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Parameter to enable objs with segments to not get converted to polylines?

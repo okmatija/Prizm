@@ -78,7 +78,7 @@ Entity :: struct {
     generation_index : int; // nocommit delete this incorrect comment: entities with the same 'fully_pathed_name' will increment this
 }
 
-PRESET_SHAPE_FOLDER :: "Preset shapes";
+PRESET_SHAPE_FOLDER :: "Generated outputs";
 COMMAND_OUTPUT_FOLDER :: "Command outputs";
 
 // :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
@@ -870,14 +870,19 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
 
         case .PRESET_SHAPE;
 
-            log("Reloading preset shape '%'... ", entity_name(entity));
-            new_entity := entity.preset_proc();
-            assert(new_entity != null);
+            #if false {
+                log("Reloading preset shape '%'... ", entity_name(entity));
+                new_entity := entity.preset_proc();
+                assert(new_entity != null);
 
-            // Set generation_index before adding to overwrite the correct entity
-            new_entity.generation_index = entity.generation_index;
-            add_entity(new_entity, .OVERWRITE);
-            return true;
+                // Set generation_index before adding to overwrite the correct entity
+                new_entity.generation_index = entity.generation_index;
+                add_entity(new_entity, .OVERWRITE);
+                return true;
+            } else {
+                log_warning("Reloading preset shapes in not currently supported, sorry!");
+                return false;
+            }
 
         case .COMMAND_OUTPUT;
 

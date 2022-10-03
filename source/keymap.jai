@@ -111,7 +111,6 @@ init_keymap :: () {
     // TODO Add options here for behaviour customizations?
 
     add_key(*app.keymap_keydown, (unused)=>{toggle_fullscreen();}, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap_keydown, (unused)=>{toggle_show_help_ui();}, "Toggle help UI",  xx #char "h");
     add_key(*app.keymap_keydown, (unused)=>{toggle_show_ui();}, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
     add_key(*app.keymap_keydown, (unused)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
@@ -190,7 +189,6 @@ init_keymap :: () {
 call_fit_on_screen             :: () { fit_scene_on_screen(); } // @CompilerBug? why do we need this wrapper
 quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
-toggle_show_help_ui            :: () { app.show_ui, app.show_help_ui    = true, !app.show_help_ui; }
 rotate_look_direction_5_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -5); }
 rotate_look_direction_5_ccw    :: () { rotate_look_direction(camera_rotation_axis(),   5); }
 rotate_look_direction_15_cw    :: () { rotate_look_direction(camera_rotation_axis(), -15); }

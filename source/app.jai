@@ -72,7 +72,6 @@ App :: struct {
     background_vao : GLuint;
 
     show_ui := true;
-    show_help_ui := false;
     show_fps := false;
 
     triad : Axes_Triad;
