@@ -4,6 +4,8 @@
 // TODO Changed "Type" entry names float32->f32, string->str. This will be useful when multiple data types per target
 // TODO Added a new presets which will be used in the User Guide to explain things. Add a block comment in the obj
 // TODO Add the scrolling region to the changelog
+// TODO Fix alignment of the context menu when there is a scrolling region in the item list. Test it when there are multiple folders with scrolling regions too
+// TODO Fix the selection text not disappearing when the current selection is not visible
 
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
 - Changes to main panel UI:
@@ -17,17 +19,24 @@ PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
 
   - Moved annotations into a separate "Annotations" tab in the item context menu
 
-- Changes to item selection mechanics:
+- Changes to item list selection mechanics:
 
   - Added ability to select all items in a folder by using Ctrl LMB on the folder name
   - Added ability to change the color of selected items by editing the color widget of a selected item
   - Added ability to reset the color and display mode of selected items by pressing MMB on a selected item
   - Added ability to cycle the display mode of selected items by pressing RMB on a selected item
   - Added ability to change visibility of a selected item by changing the visibility of a selected item with a mouse click.
-  - Note changing visibility by sweeping the mouse over a selected item's checkbox will not propogate the visibility change to other selected items, this is intended
-  - Note the "Remove" button is the only widget in the item list that doesn't affect the whole selection when triggered on a selected item. To remove the whole selection press delete, or use the button in the item selection context menu
-  - Note the current plan is that having MMB reset values is an idiom which will be applied in other situations in future versions
+  - Note: Changing visibility by sweeping the mouse over a selected item's checkbox will not propogate the visibility change to other selected items, this is intended
+  - Note: "Remove" button is the only widget in the item list that doesn't affect the whole selection when triggered on a selected item. To remove the whole selection press delete, or use the button in the item selection context menu
+  - Note: The current plan is that having MMB reset values is an idiom which will be applied in other situations in future versions
   - Removed the 'Toggle folder selection' and 'Toggle folder visibility' buttons in the folder context menu since these operations can be accomplished using the above selection methods and the delete key (or item selection context menu)
+
+- Changes to point selection mechanics ("Items" tab > "Selections" header):
+
+  - Renamed the "Default" selection to "Points" since this object can only select points (via Ctrl LMB)
+  - Added a "Cache Selection" button in the selection context menu which will add the selection as an item in the "Generated outputs" folder
+  - Removed the "Add" button, which wasn't implemented but won't be needed because caching selections is the way user can to create/manage multiple selections
+  - Note: Future versions will add "Faces" and "Edges" selection objects, but this is not yet implemented
 
 - Changes to preset shapes:
 

@@ -103,6 +103,10 @@ get_triangle :: (mesh : Mesh, triangle_index : int, $checked := false) -> Triang
     return result;
 }
 
+point_count :: (using mesh : Mesh) -> int {
+    return mesh.positions.count;
+}
+
 element_count :: (using mesh : Mesh) -> int {
     if #complete geometry_format == {
         case .UNKNOWN;

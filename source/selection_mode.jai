@@ -4,11 +4,14 @@ do_clip_radius_mode :: (clicked : bool = false) -> bool {
     if ImGui.IsMouseClicked(.Left) assert(ImGui.IsMouseDown(.Left));
 
     button_component := ifx clicked then ImGui.IsMouseClicked(.Left) else ImGui.IsMouseDown(.Left)
-    return app.user_selection.display_info.is_visible && button_component && io().KeyShift;
+    return button_component && io().KeyShift;
 }
 
 do_selection_mode :: () {
     if app.user_selection.display_info.is_visible == false {
+        if do_clip_radius_mode(true) {
+            log_error("Cannot do sphere clipping when \"Points\" selection is not visible. This is dumb, sorry, make it visible to use sphere clipping.");
+        }
         return;
     }
 

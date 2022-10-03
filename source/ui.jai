@@ -418,6 +418,8 @@ show_selection_ui :: () {
     if ImGui.TreeNodeEx("Selections", ImGui.TreeNodeFlags.SpanAvailWidth) {
         defer ImGui.TreePop();
 
+        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+
         // Selection Mode UI
         if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
             defer ImGui.EndTable();
@@ -447,7 +449,7 @@ show_selection_ui :: () {
             }
 
             ImGui.TableNextColumn();
-            ImGui.Text("Default");
+            ImGui.Text("Points");
             if it.display_info.is_visible {
                 bindings : [..]Binding_With_Description;
                 bindings.allocator = temp;
@@ -493,6 +495,21 @@ show_selection_ui :: () {
 
                 vertex_label_style := *it.display_info.vertex_label_style;
 
+                if ImGui.Button("Cache Selection") {
+                    if !is_empty(app.user_selection) {
+                        new_entity : *Entity = New(Point_Cloud_Entity);
+
+                        merge(new_entity.mesh, app.user_selection.mesh);
+                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Points");
+                        set_entity_source_from_preset(new_entity, tprint("% %", "Points", counter.count), null, point_count(new_entity.mesh));
+                        set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+                        counter.count += 1;
+
+                        add_entity(new_entity, app.settings.duplicate_file_behaviour);
+                    }
+                }
+                Show_Tooltip("Adds a new item based on this selection (if not empty).\nEnables users to create multiple selections");
+
                 ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
                 ImGui.SameLine();
                 ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -523,13 +540,6 @@ show_selection_ui :: () {
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-
-            {
-                ScopedPopupBorderTheme(original_border_color, original_border_size);
-                if ImGui.Button(imgui_label("Add   ", it)) {
-                    log_error("Support for more than one selection is @Incomplete, sorry!");
-                }
-            }
         }
     }
 }

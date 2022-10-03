@@ -265,7 +265,6 @@ remove_entities_if_selected :: () {
     }
 }
 
-
 deinit :: (base : *Entity) {
     if !base return;
 
@@ -379,7 +378,9 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
 }
 
 is_empty :: (entity : Entity) -> bool {
-    return entity.mesh.positions.count == 0;
+    count : int = inline point_count(entity.mesh);
+    return count == 0;
+    // return inline point_count(entity.mesh) == 0; // @CompilerBug? Error: Attempted use of keyword 'inline' on a non-procedure-call.
 }
 
 is_changed_on_disk :: (using entity : Entity) -> bool {
@@ -871,16 +872,20 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
         case .PRESET_SHAPE;
 
             #if false {
-                log("Reloading preset shape '%'... ", entity_name(entity));
-                new_entity := entity.preset_proc();
-                assert(new_entity != null);
+                if entity.preset_proc() {
+                    log("Reloading preset shape '%'... ", entity_name(entity));
+                    new_entity := entity.preset_proc();
+                    assert(new_entity != null);
 
-                // Set generation_index before adding to overwrite the correct entity
-                new_entity.generation_index = entity.generation_index;
-                add_entity(new_entity, .OVERWRITE);
-                return true;
+                    // Set generation_index before adding to overwrite the correct entity
+                    new_entity.generation_index = entity.generation_index;
+                    add_entity(new_entity, .OVERWRITE);
+                    return true;
+                } else {
+                    log("Could not reload preset item '%'", entity_name(entity));
+                }
             } else {
-                log_warning("Reloading preset shapes in not currently supported, sorry!");
+                log_warning("Could not reload '%'. Preset shape reloading is not currently supported, sorry!", entity_name(entity));
                 return false;
             }
 

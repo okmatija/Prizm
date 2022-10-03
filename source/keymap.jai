@@ -254,6 +254,10 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     assert(result.source == .FILE_ON_DISK); // because we loaded a file
     free(result.fully_pathed_name);
 
+    // nocommit @Cleanup use:
+    // set_entity_source_from_preset(new_entity, tprint("% %", "Points", counter.count), null, point_count(app.user_selection));
+    // set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+
     result.source = .PRESET_SHAPE;
     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, NAME);
     result.fully_pathed_name = copy_string(tprint("%/% %", PRESET_SHAPE_FOLDER, NAME, counter.count));
