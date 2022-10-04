@@ -38,25 +38,26 @@ debug_fake_annotations :: (id : int) {
     }
 
     item := app.entities[id];
-    array_reset_keeping_memory(*item.annotations); // @Leak!
+    array_reset_keeping_memory(*item.vertex_annotations);
+    array_reset_keeping_memory(*item.face_annotations);
 
     for item.mesh.positions {
         annotation : Annotation;
         annotation.kind = .VERTEX;
-        set(*annotation.value, cast(float)it_index);
+        set(*annotation.value, sprint("vertex %", it_index));
         annotation.id = it_index;
-        array_add(*item.annotations, annotation);
+        array_add(*item.vertex_annotations, annotation);
     }
 
     for :TrianglesIterator item.mesh {
         annotation : Annotation;
         annotation.kind = .TRIANGLE;
-        set(*annotation.value, sprint("f %, rand %", it_index, random_get_zero_to_one()));
+        set(*annotation.value, random_get_zero_to_one());
         annotation.id = it_index;
-        array_add(*item.annotations, annotation);
+        array_add(*item.face_annotations, annotation);
     }
 
-    log("# Cleared annotations and added fake ones");
+    log("# Cleared vertex and face annotations and added fake ones");
 
 } @RegisterCommand
 
@@ -361,6 +362,8 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
         return;
     }
 
+    sphere.center = transform_point(entity.mesh.world_from_model, sphere.center);
+
     if clip_radius > 0 {
         sphere.radius = clip_radius;
     }
@@ -408,6 +411,9 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
     }
 
     tri := get_triangle(entity.mesh, triangle_index, true);
+    tri.a = transform_point(entity.mesh.world_from_model, tri.a);
+    tri.b = transform_point(entity.mesh.world_from_model, tri.b);
+    tri.c = transform_point(entity.mesh.world_from_model, tri.c);
 
     sphere : Sphere;
     sphere.center = (tri.a + tri.b + tri.c) / 3;
@@ -487,6 +493,8 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
             log_error("Support for % item type is @Incomplete", entity.type);
             return;
     }
+
+    sphere.center = transform_point(entity.mesh.world_from_model, sphere.center);
 
     if clip_radius <= 0 {
         sphere.radius = 1;

@@ -39,13 +39,17 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
     mesh : Mesh;
-    annotations : [..]Annotation;
-    defer {
-        if parser.failed {
-            deinit(*mesh);
-            for annotations deinit(it);
-            array_reset(*annotations);
-        }
+    annotation_entity : Entity;
+
+    // @Cleanup nocommit Use the new using,only feature here
+    block_annotations := annotation_entity.block_annotations;
+    vertex_annotations := annotation_entity.vertex_annotations;
+    face_annotations := annotation_entity.face_annotations;
+    line_annotations := annotation_entity.line_annotations;
+
+    defer if parser.failed {
+        deinit(*mesh);
+        deinit(*annotation_entity);
     }
 
     found_inf_or_nan : bool;
@@ -82,7 +86,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 annotation.kind = .VERTEX;
                 set_annotation_value(*annotation, tok.string_value);
                 annotation.id = mesh.positions.count - 1;
-                array_add(*annotations, annotation);
+                array_add(*vertex_annotations, annotation);
 
                 eat_token(*parser);
             }
@@ -155,7 +159,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 annotation.kind = .LINE;
                 set_annotation_value(*annotation, tok.string_value);
                 annotation.id = mesh.indices.count / 2 - 1;
-                array_add(*annotations, annotation);
+                array_add(*line_annotations, annotation);
 
                 eat_token(*parser);
             }
@@ -187,7 +191,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                     annotation.kind = .TRIANGLE;
                     set_annotation_value(*annotation, tok.string_value);
                     annotation.id = mesh.indices.count / 3 - 1;
-                    array_add(*annotations, annotation);
+                    array_add(*face_annotations, annotation);
 
                     eat_token(*parser);
                 }
@@ -225,7 +229,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             }
 
             set_annotation_value(*annotation, join(..block, "\n"));
-            array_add(*annotations, annotation);
+            array_add(*block_annotations, annotation);
         } else {
 
             warning(*parser, peek_token(*parser), "Unexpected '%' token will be ignored. Attempting to continue...\n", to_string(peek_token(*parser)));
@@ -278,16 +282,8 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         return null;
     }
 
-    compare_annotations :: (a : Annotation, b : Annotation) -> s64 {
-        if a.kind < b.kind return -1;
-        if a.kind > b.kind return  1;
-        if a.id < b.id return -1;
-        if a.id > b.id return  1;
-        return 0;
-    }
-
     // Sort annotations by kind then by id
-    quick_sort(annotations, (a,b)=>(compare_annotations(a, b)));
+    entity_sort_annotations(annotation_entity, (a,b)=>(compare_annotation_ids(a, b)));
 
     result : *Entity;
     if #complete mesh.geometry_format == {
@@ -316,11 +312,10 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 set_entity_display_info(result, mesh.geometry_format);
                 init_entity_spatial_index(cast(*Polyline_Soup2_Entity)result);
 
-                if annotations.count {
+                if entity_annotation_count(annotation_entity) {
                     // FIXME Fixup annotation id numbering to sync with polyline soup conversion
                     log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
-                    for annotations deinit(it);
-                    array_reset(*annotations);
+                    deinit(*annotation_entity);
                 }
             }
 
@@ -330,7 +325,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
                 result = New(Segment_Soup3_Entity);
                 result.mesh = mesh;
-                result.annotations = annotations;
+                set_entity_annotations(result, block_annotations, vertex_annotations, face_annotations, line_annotations);
                 set_entity_source_from_file(result, filename);
                 set_entity_display_info(result, mesh.geometry_format);
                 // init_entity_spatial_index(cast(*Segment_Soup3_Entity)result); // @Incomplete
@@ -353,8 +348,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 // FIXME Fixup annotation id numbering to sync with polyline soup conversion
                 if annotations.count {
                     log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
-                    for annotations deinit(it);
-                    array_reset(*annotations);
+                    deinit(*annotation_entity);
                 }
             }
 
@@ -364,7 +358,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
             result = New(Point_Cloud_Entity);
             result.mesh = mesh;
-            result.annotations = annotations;
+            set_entity_annotations(result, block_annotations, vertex_annotations, face_annotations, line_annotations);
             set_entity_source_from_file(result, filename);
             set_entity_display_info(result, mesh.geometry_format);
             init_entity_spatial_index(cast(*Point_Cloud_Entity)result);
@@ -373,7 +367,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
             result = New(Mesh_Entity);
             result.mesh = mesh;
-            result.annotations = annotations;
+            set_entity_annotations(result, block_annotations, vertex_annotations, face_annotations, line_annotations);
             set_entity_source_from_file(result, filename);
             set_entity_display_info(result, mesh.geometry_format);
             init_entity_spatial_index(cast(*Mesh_Entity)result);
@@ -530,7 +524,7 @@ set_annotation_value :: (annotation : *Annotation, _string_value : string) {
     }
 
     value, success, remainder := string_to_float64(string_value);
-    if success {
+    if success && remainder.count == 0 {
         set(*annotation.value, cast(float)value);
     } else {
         set(*annotation.value, copy_string(trim(string_value, BYTES_TO_TRIM)));

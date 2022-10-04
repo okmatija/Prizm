@@ -659,7 +659,7 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
 
-                for entity.annotations {
+                for :AnnotationIterator entity {
                     if it.kind == .VERTEX {
                         pos : Vector3 = soup.mesh.positions[it.id];
                         point_world := transform_point(entity.mesh.world_from_model, pos);
@@ -705,7 +705,7 @@ render_entities :: () {
 
                 soup := cast(*Segment_Soup3_Entity) entity;
 
-                for entity.annotations {
+                for :AnnotationIterator entity {
                     text : string = to_string(it);
                     if it.kind == .VERTEX {
                         pos : Vector3 = soup.mesh.positions[it.id];
@@ -793,7 +793,7 @@ render_entities :: () {
                 cloud := cast(*Point_Cloud_Entity) entity;
                 count := cloud.mesh.positions.count;
 
-                for entity.annotations {
+                for :AnnotationIterator entity {
                     if it.kind == .VERTEX {
                         pos : Vector3 = cloud.mesh.positions[it.id];
                         point_world := transform_point(entity.mesh.world_from_model, pos);
@@ -834,7 +834,7 @@ render_entities :: () {
                 count := mesh.mesh.positions.count;
 
                 // @Speed this should use the spatial index??
-                for entity.annotations {
+                for :AnnotationIterator entity {
                     if it.kind == {
                         case .VERTEX;
 
@@ -860,7 +860,7 @@ render_entities :: () {
                             }
 
                             text_position_px := get_text_screen_position(centroid, projection_from_model);
-                            if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
+                            if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
                                 text := to_string(it);
                                 cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                             }

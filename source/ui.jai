@@ -24,7 +24,7 @@ show_main_panel :: () {
             defer ImGui.EndTabItem();
 
             // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
-            show_toolbar_ui();
+            show_tools_ui();
             if app.entities.count ImGui.Separator();
             show_item_list_ui();
         }
@@ -43,10 +43,10 @@ show_main_panel :: () {
     }
 }
 
-show_toolbar_ui :: () {
+show_tools_ui :: () {
     indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    if ImGui.TreeNodeEx("Toolbar", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    if ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
         defer ImGui.TreePop();
 
         indent2 := ImGui.GetTreeNodeToLabelSpacing();
@@ -128,20 +128,20 @@ show_item_list_ui :: () {
                     }
 
                     // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
-                    ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size);
+                    if ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size) {
+                        defer ImGui.EndTable();
 
-                    // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
+                        // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
 
-                    folder.last_frame_item_list_height_px = 0.;
-                    for :ListClipperIterator local_entity : entities_in_folder {
-                        folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                        update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
-                        if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
-                        if update.visibility_changed    any_visibility_changed = true;
+                        folder.last_frame_item_list_height_px = 0.;
+                        for :ListClipperIterator local_entity : entities_in_folder {
+                            folder.last_frame_item_list_height_px = clipper.ItemsHeight;
+                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
+                            if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
+                            if update.visibility_changed    any_visibility_changed = true;
+                        }
+                        folder.last_frame_item_list_height_px *= entities_in_folder.count;
                     }
-                    folder.last_frame_item_list_height_px *= entities_in_folder.count;
-
-                    ImGui.EndTable();
                 } else {
                     ImGui.TextDisabled("(none)");
                 }
@@ -345,16 +345,17 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     compiler_report("Enable when we have tooltip delays");
     if (entity.is_hovered) {
         ImGui.BeginTooltip();
-        ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody);
-        ImGui.TableNextRow(); ImGui.TableNextColumn();
-        ImGui.TextColored(KEYBINDING_COLOR, "RMB");
-        ImGui.TableNextColumn();
-        ImGui.Text("Open context menu for the current %", ifx entity.is_selected then "item selection" else "item");
-        ImGui.TableNextRow(); ImGui.TableNextColumn();
-        ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
-        ImGui.TableNextColumn();
-        ImGui.Text("Toggle selected state of the hovered item");
-        ImGui.EndTable();
+        if ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody) {
+            defer ImGui.EndTable();
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "RMB");
+            ImGui.TableNextColumn();
+            ImGui.Text("Open context menu for the current %", ifx entity.is_selected then "item selection" else "item");
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
+            ImGui.TableNextColumn();
+            ImGui.Text("Toggle selected state of the hovered item");
+        }
         ImGui.EndTooltip();
     }
     */
@@ -393,15 +394,17 @@ show_add_item_ui :: () {
         // Undo the previous thing so internals don't have this color
         ScopedPopupBorderTheme(original_border_color, original_border_size);
 
-        ImGui.Text("Preset shapes");
+        ImGui.Text("Preset Shapes");
         ImGui.Separator();
 
-        if ImGui.Button("Cube   ") { add_preset_cube(); }
-        Show_Tooltip("Hold Alt to fix position");
-        ImGui.SameLine();
-        if ImGui.Button("Widget ") { add_preset_widget(); }
-        Show_Tooltip("Hold Alt to fix position");
-        if ImGui.Button("Boolean") { add_preset_boolean(); }
+        if ImGui.Button("Cube    ") { add_preset_cube(); }
+        Show_Tooltip("A basic cube. Hold Alt to fix position");
+        ImGui.SameLine(); 
+        if ImGui.Button("Widget  ") { add_preset_widget(); }
+        Show_Tooltip("A part autonomously machined by CloudNC");
+
+        if ImGui.Button("BooleanB") { add_preset_boolean_b(); }
+        Show_Tooltip("A failed cylinder/cone mesh boolean");
     }
 }
 
@@ -478,7 +481,7 @@ show_selection_ui :: () {
                 ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
             }
 
-            // Toggle visibility checkbox
+            // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
             {
                 ImGui.TableNextColumn();
                 visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
@@ -1809,17 +1812,40 @@ display_transform :: (entity : *Entity) {
 display_annotations :: (entity : *Entity, entity_index : int) {
 
     header := "Annotations (none)";
-    if entity.annotations.count {
-        header = tprint("Annotations (%)", entity.annotations.count);
+    annotation_count := entity_annotation_count(entity);
+    if annotation_count {
+        header = tprint("Annotations (%)", annotation_count);
     } else {
         ImGui.BeginDisabled();
     }
-    defer if entity.annotations.count == 0 ImGui.EndDisabled();
+    defer if annotation_count == 0 then ImGui.EndDisabled();
 
     if ImGui.TreeNodeEx(imgui_label(header, entity), .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        if entity.annotations.count {
+        DoRadioButton :: (name : string, annotations_kind : Annotation.Kind, annotations : [..]Annotation) #expand {
+            if !annotations.count ImGui.BeginDisabled();
+            ImGui.RadioButton(name, xx *`entity.annotation_info.show_kind, xx annotations_kind);
+            if !annotations.count ImGui.EndDisabled();
+        }
+
+        DoRadioButton("Vertex", .VERTEX, entity.vertex_annotations);
+        ImGui.SameLine();
+        DoRadioButton("Edge", .LINE, entity.line_annotations);
+        ImGui.SameLine();
+        DoRadioButton("Face", .TRIANGLE, entity.face_annotations);
+        ImGui.SameLine();
+        DoRadioButton("Block", .BLOCK, entity.block_annotations);
+
+        annotations : [..]Annotation;
+        if entity.annotation_info.show_kind == {
+            case .VERTEX;   annotations = entity.vertex_annotations;
+            case .LINE;     annotations = entity.line_annotations;
+            case .TRIANGLE; annotations = entity.face_annotations;
+            case .BLOCK;    annotations = entity.block_annotations;
+        }
+
+        if annotations.count {
 
             table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable | .Sortable;
             outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
@@ -1829,12 +1855,11 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
             }
 
-            column_count : s32 = 5;
+            column_count : s32 = 4;
             if ImGui.BeginTable("##Annotations_Table", column_count, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
                 ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed | .NoSort);
-                ImGui.TableSetupColumn("Target",     ImGui.TableColumnFlags.WidthFixed | .NoSort);
                 ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
                 ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .NoSort);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
@@ -1850,16 +1875,15 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                         specs.count = sort_specs.SpecsCount;
                         for spec : specs { // @CompilerBug Should using work on a for loop?
                             // @Cleanup Use a enum id here, ImGui has support for it
-                            direction := spec.SortDirection_;
                             if spec.SortDirection_ == .Ascending {
                                 if spec.ColumnIndex == {
-                                    case 2; quick_sort(entity.annotations, (a,b) => (compare_annotation_ids(a,b)));
-                                    case 4; quick_sort(entity.annotations, (a,b) => (compare_annotation_values(a, b)));
+                                    case 1; quick_sort(annotations, (a,b) => (compare_annotation_ids(a,b)));
+                                    case 3; quick_sort(annotations, (a,b) => (compare_annotation_values(a, b)));
                                 }
                             } else {
                                 if spec.ColumnIndex == {
-                                    case 2; quick_sort(entity.annotations, (a,b) => (-compare_annotation_ids(a,b)));
-                                    case 4; quick_sort(entity.annotations, (a,b) => (-compare_annotation_values(a, b)));
+                                    case 1; quick_sort(annotations, (a,b) => (-compare_annotation_ids(a,b)));
+                                    case 3; quick_sort(annotations, (a,b) => (-compare_annotation_values(a, b)));
                                 }
                             }
                         }
@@ -1868,7 +1892,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 }
 
                 last_frame_annotation_list_height_px = 0.;
-                for * :ListClipperIterator annotation : entity.annotations {
+                for * :ListClipperIterator annotation : annotations {
                     last_frame_annotation_list_height_px = clipper.ItemsHeight;
 
                     ImGui.TableNextRow();
@@ -1877,7 +1901,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     if annotation.kind == .BLOCK {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
-                        if ImGui.Button(imgui_label("Focus", annotation)) {
+                        if ImGui.Button(imgui_label("Focus", xx *annotation)) {
                             if annotation.kind == {
                                 case .TRIANGLE;
                                     item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
@@ -1895,9 +1919,6 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     }
 
                     ImGui.TableNextColumn();
-                    ImGui.Text(tprint("%", annotation.kind));
-
-                    ImGui.TableNextColumn();
                     ImGui.Text(tprint("%", annotation.id));
 
                     ImGui.TableNextColumn();
@@ -1906,7 +1927,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     ImGui.TableNextColumn();
                     ImGui.Text(to_string(annotation));
                 }
-                last_frame_annotation_list_height_px *= entity.annotations.count;
+                last_frame_annotation_list_height_px *= annotations.count; // FIXME This is wrong if string annotations have different numbers of lines
             }
 
         }

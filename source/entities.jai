@@ -19,7 +19,7 @@ Entity_Source :: enum #specified {
 }
 
 find_header_annotation :: (entity : *Entity) -> *Annotation {
-    for *annotation : entity.annotations {
+    for *annotation : entity.block_annotations {
         if annotation.kind == .BLOCK && annotation.id == 1 {
             return annotation;
         }
@@ -48,7 +48,15 @@ Entity :: struct {
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
     // Interpretation depends on Entity_Type (I think)
-    annotations : [..]Annotation;
+    block_annotations :  [..]Annotation;
+    vertex_annotations : [..]Annotation;
+    face_annotations :   [..]Annotation;
+    line_annotations :   [..]Annotation;
+    annotation_info : Annotation_Info;
+
+    Annotation_Info :: struct {
+        show_kind := Annotation.Kind.TRIANGLE; // Only ONE
+    }
 
     // @Incomplete
     // user_data : *void; // Registered commands may want to attach data here
@@ -314,8 +322,11 @@ deinit :: (base : *Entity) {
             deinit(entity.spatial);
     }
 
-    for base.annotations deinit(it);
-    array_reset(*base.annotations);
+    for :AnnotationIterator base deinit(it);
+    array_reset(*base.block_annotations);
+    array_reset(*base.vertex_annotations);
+    array_reset(*base.face_annotations);
+    array_reset(*base.line_annotations);
 
     if #complete base.source == {
         case .UNKNOWN;        // Do nothing
@@ -458,6 +469,88 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
 
     return tprint("%1%2%3%4", entity_name(entity), index_text, time_separator, time_text);
 }
+
+entity_annotation_count :: (using entity : Entity) -> int {
+    result : int = 0; 
+    result += block_annotations.count;
+    result += vertex_annotations.count;
+    result += face_annotations.count;
+    result += line_annotations.count;
+    return result;
+}
+
+entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annotation) -> s64) {
+    quick_sort(block_annotations,  compare);
+    quick_sort(vertex_annotations, compare);
+    quick_sort(face_annotations,   compare);
+    quick_sort(line_annotations,   compare);
+}
+
+set_entity_annotations :: (entity : *Entity,
+    block_annotations :  [..]Annotation,
+    vertex_annotations : [..]Annotation,
+    face_annotations :   [..]Annotation,
+    line_annotations :   [..]Annotation) {
+
+    entity.block_annotations =  block_annotations;
+    entity.vertex_annotations = vertex_annotations;
+    entity.face_annotations =   face_annotations;
+    entity.line_annotations =   line_annotations;
+
+    using entity.annotation_info;
+    max : int;
+
+    max, show_kind = block_annotations.count, .BLOCK;
+    if max < vertex_annotations.count {
+        max, show_kind = vertex_annotations.count, .VERTEX;
+    }
+    if max < line_annotations.count {
+        max, show_kind = line_annotations.count, .LINE;
+    }
+    if max < face_annotations.count {
+        max, show_kind = face_annotations.count, .TRIANGLE;
+    }
+}
+
+// @Think Do we need this is we have a default value for kinds?
+AnnotationIterator :: #bake_arguments AnnotationIteratorBase(kinds=Annotation.Kind.BLOCK|.VERTEX|.LINE|.TRIANGLE);
+
+AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flags, kinds : Annotation.Kind) #expand {
+    #assert(flags == 0); // No options are supported
+
+    `it : Annotation;
+    `it_index : int;
+
+
+    if kinds & .BLOCK {
+        for annotation, annotation_index : block_annotations {
+            it, it_index = annotation, annotation_index;
+            #insert body;
+        }
+    }
+
+    if kinds & .VERTEX {
+        for annotation, annotation_index : vertex_annotations {
+            it, it_index = annotation, annotation_index;
+            #insert body;
+        }
+    }
+
+    if kinds & .LINE {
+        for annotation, annotation_index : line_annotations {
+            it, it_index = annotation, annotation_index;
+            #insert body;
+        }
+    }
+
+    if kinds & .TRIANGLE {
+        for annotation, annotation_index : face_annotations {
+            it, it_index = annotation, annotation_index;
+            #insert body;
+        }
+    }
+}
+
 
 color_from_path :: (path : string) -> Vector4 {
     if path.count == 0 {

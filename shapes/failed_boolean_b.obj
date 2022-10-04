@@ -1,6 +1,5 @@
 #
-# This example (courtesy of Jimmy Andrews) is the result of a failed boolean between a cylinder
-# and a cone. To find the missing sliver triangle do the following:
+# This example shows a failed cylinder/cone boolean. Find the missing sliver triangle as follows:
 #
 # 1. Open the console by pressing backtick
 # 2. Run the command 'item_find_open_edges n', where n is the number preceeding "preset boolean"
@@ -10,6 +9,8 @@
 #    - Making the sliver fill the screen by using Shift LMB on the item name
 #    - Adding the sliver vertices to the "Point Selection" by using Ctrl LMB near them in the viewport
 #
+
+# Courtesy of Jimmy Andrews
 
 v 1.000000 0.000000 0.000000
 v 0.923880 0.382683 0.000000

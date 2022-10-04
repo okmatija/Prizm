@@ -1,17 +1,18 @@
 Annotation :: struct {
-    Kind :: enum {
+    // nocommit @Cleanup Remove kind because we sort this out by storing annotations in separate containers
+    Kind :: enum_flags {
         VERTEX;
         LINE;
         TRIANGLE;
         BLOCK; // e.g., a header at the top of an .obj file
     }
-    kind : Kind;
+    kind : Kind; // Should only have ONE flag set
 
     // if kind == .BLOCK then 1-based line number starting block comment
     // if kind != .BLOCK then 0-based index for vertex/line/triangle
     id : int;
 
-    // strings are owned
+    // strings are owned @Cleanup This sucks, we should use a pool for the annotations
     value : Tagged_Union(string, float);
 }
 

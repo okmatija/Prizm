@@ -1,19 +1,21 @@
+// TODO truncated strings in the BLOCK annotations list, with a tooltip showing the full thing
+// TODO Fix BS that happens when the item has a non-identity transform
 // TODO Update the help menu
-// TODO Fix bug where annotations cannot be toggled while vertex/element labels are visible
-// TODO Removed "Index" column and put index into the "Target" column use p/l/f with 1-based indexing  e 0.01
-// TODO Changed "Type" entry names float32->f32, string->str. This will be useful when multiple data types per target
-// TODO Added a new presets which will be used in the User Guide to explain things. Add a block comment in the obj
-// TODO Add the scrolling region to the changelog
 // TODO Fix alignment of the context menu when there is a scrolling region in the item list. Test it when there are multiple folders with scrolling regions too
-// TODO Fix the selection text not disappearing when the current selection is not visible
 
 PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
+- Improvements to Annotations:
+
+  - Moved annotations into a separate "Annotations" tab in the item context menu
+  - Added a radio button to populate the table with the annotations of a particular kind (vertex/line/face/block). Removed the now redundant "Target" column
+  - Fixed annotations starting with a number but continued with a string being inferred to be number type rather than string type
+
 - Changes to Main Panel UI:
 
   - Added a new "Help" tab which shows what was previously in the help menu. Removed the help binding 'h' because help is more discoverable now
   - Added a new "Options" tab which show options that were previously in a folding tree
   - Added a new "Items" tab which shows the list of items and the Selection UI
-  - Added a new "Toolbar" section under the "Items" tab which has the "Reload", "Focus" and "Add" buttons as well as an item representing a "Point Selection"
+  - Added a new "Tools" section under the "Items" tab which has the "Reload", "Focus" and "Add" buttons as well as an item representing a "Point Selection"
 
 - Changes to Point Selection mechanics (selection here means picking out bits of geometry):
 
@@ -21,10 +23,6 @@ PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
   - Replaced the old "Clear" with a "Cache" button adds the selection as an item in a "Selections" folder and then clears the selection. This is how users can make multiple selections
   - Removed the old "Add" button, which wasn't implemented but won't be needed because caching selections is the way user can to create/manage multiple selections
   - Note: Future versions will add "Triangle Selection" and "Edge Selection" UI, but this is not yet implemented
-
-- Changes to Annotation UI:
-
-  - Moved annotations into a separate "Annotations" tab in the item context menu
 
 - Changes to Items list selection (selection here means picking items for bulk actions):
 
@@ -40,11 +38,13 @@ PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
 
 - Changes to preset shapes:
 
-  - Multiple instances of the same preset are generated with different names and hence colors. By default a random shifting transform is also applied, the position can be fixed by holding Alt when you press the preset button/hotkey
+  - Multiple instances of the same preset are generated with different names and hence colors.
+  - TODO By default a random shifting transform is also applied, the position can be fixed by holding Alt when you press the preset button/hotkey
   - Disabled reloading of preset shapes for code architecture reasons, will re-enable this functionality in a future version
 
 - Removed the limit on degree of zoom by changing the default value of `Options > Advanced > camera_zoom_min_screen_filling_length_mm` from 0.0001 to 0.0
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
+- TODO Fixed `item_focus_vertex`, `item_focus_segment`, `item_focus_triangle` and `item_find_open_edges` which previously ignored world_from_model transforms
 DONE
 };
 

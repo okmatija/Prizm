@@ -4,4 +4,4 @@ the_colonel.obj is created by Sculptor and downloaded from Thingi10k (Thing ID: 
 
 letter_s.obj is created by LorenIPSVM and downloaded from Thingi10k (Thing ID: 276836)
 
-failed_boolean.obj is courtesy of Jimmy Andrewsfailed_boolean.obj is courtesy of Jimmy Andrews
+failed_boolean_b.obj is courtesy of Jimmy Andrews
