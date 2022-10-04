@@ -47,7 +47,9 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
         case .STRUCT;
 
             info_struct := cast(*Type_Info_Struct) info;
-            if ImGui.TreeNode(data, "%", to_string(name)) {
+            do_tree := ImGui.TreeNode(data, "%", to_string(name));
+            Show_Tooltip("Auto-generated and messy right now");
+            if do_tree {
                 defer ImGui.TreePop();
                 // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
                 // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
@@ -56,7 +58,6 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
                     inspect(temp_c_string(member.name), data + member.offset_in_bytes, member.type);
                 }
             }
-            Show_Tooltip("Auto-generated and messy right now");
 
         case .ARRAY;
 

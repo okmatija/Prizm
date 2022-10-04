@@ -411,22 +411,26 @@ show_add_item_ui :: () {
 
 show_options :: () {
 
-    combo_box("Background", *app.background_style, type_info(app.Background_Style));
-    if app.background_style == .SOLID_COLOR {
-        ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+    if ImGui.TreeNodeEx("Basic", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        combo_box("Background", *app.background_style, type_info(app.Background_Style));
+        if app.background_style == .SOLID_COLOR {
+            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+        }
+        ImGui.DragFloat("Font Scale", *io().FontGlobalScale, .001, format="%.3f");
+        ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
+        Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
+        ImGui.Checkbox("Show World Axes", *app.triad.visible);
+        ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
+
+        disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+        if disable_window_resize_button ImGui.BeginDisabled();
+        if ImGui.Button("Reset OS Window Size") SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+        if disable_window_resize_button ImGui.EndDisabled();
     }
-    ImGui.DragFloat("Font Scale", *io().FontGlobalScale, .001, format="%.3f");
-    ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
-    Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
-
-    ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
-    ImGui.Checkbox("Show World Axes", *app.triad.visible);
-    ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-
-    disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
-    if disable_window_resize_button ImGui.BeginDisabled();
-    if ImGui.Button("Reset OS Window Size") SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-    if disable_window_resize_button ImGui.EndDisabled();
 
     // :UserConfig add a button to overwrite the user settings file with new defaults here?
     inspect("Advanced", *app.settings);
@@ -1207,14 +1211,10 @@ show_help_ui :: () {
         defer ImGui.TreePop();
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
-        ImGui.Text("Prism aims to be a convenient tool for debugging computational geometry algorithms.");
-        ImGui.Text("It supports files in .obj format and features UI elements designed to minimize the");
-        ImGui.Text("time needed to diagnose problems. Prism has been tested with large (250MB+) obj files");
-        ImGui.Text("which cause some other viewers to crash or load extremely slowly.");
-        ImGui.Text("");
+        ImGui.Text("Prism is a tool for debugging computational geometry algorithms.");
         ImGui.PopStyleColor();
 
-        COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %", compiler_get_version_info(null));
+        COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %.", compiler_get_version_info(null));
         ImGui.Text(COMPILER_VERSION_INFO);
     }
 

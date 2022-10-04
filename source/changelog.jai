@@ -3,7 +3,7 @@
 // TODO Update the help menu
 // TODO Fix alignment of the context menu when there is a scrolling region in the item list. Test it when there are multiple folders with scrolling regions too
 
-PRISM_VERSION_0_3_2 :: App.Version.{"0.3.2-rc", "WIP", #string DONE
+PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
 - Improvements to Annotations:
 
   - Moved annotations into a separate "Annotations" tab in the item context menu
@@ -319,7 +319,7 @@ DONE
 };
 
 init_changelog :: () {
-    array_add(*app.changelog, PRISM_VERSION_0_3_2);
+    array_add(*app.changelog, PRISM_VERSION_0_4_0);
     array_add(*app.changelog, PRISM_VERSION_0_3_1);
     array_add(*app.changelog, PRISM_VERSION_0_3_0);
     array_add(*app.changelog, PRISM_VERSION_0_2_2);
