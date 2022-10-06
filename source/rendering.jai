@@ -18,6 +18,10 @@ Label_Theme :: struct {
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
+is_visible :: (theme : Label_Theme) -> bool {
+    return theme.show_position || theme.show_index;
+}
+
 Annotation_Theme :: struct {
     // // @Incomplete Implement this
     // show_point_annotation := false;
@@ -27,6 +31,10 @@ Annotation_Theme :: struct {
     visible_radius_px : int = 50;
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+}
+
+is_visible :: (theme : Annotation_Theme) -> bool {
+    return theme.visible;
 }
 
 Display_Mode :: enum #specified {
@@ -602,11 +610,7 @@ render_entities :: () {
         point_theme := entity.display_info.vertex_label_style;
         element_theme := entity.display_info.element_label_theme;
         annotation_theme := entity.display_info.annotation_theme;
-        if point_theme.show_position   == false &&
-           point_theme.show_index      == false &&
-           element_theme.show_position == false &&
-           element_theme.show_index    == false &&
-           annotation_theme.visible    == false {
+        if !is_visible(point_theme) && !is_visible(element_theme) && !is_visible(annotation_theme) {
             return;
         }
 
@@ -635,7 +639,7 @@ render_entities :: () {
                 // @Incomplete Annotations
                 soup := cast(*Polyline_Soup2_Entity) entity;
 
-                for :Point_Iterator soup.shape {
+                if is_visible(point_theme) for :Point_Iterator soup.shape {
                     point_model : Vector3 = make_vector3(it, 0);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
@@ -647,7 +651,7 @@ render_entities :: () {
                     }
                 }
 
-                for :PolylineSegmentIterator soup.shape {
+                if is_visible(element_theme) for :PolylineSegmentIterator soup.shape {
                     // nocommit Use centroid(Edge) here
                     point_model : Vector3 = make_vector3((<<it.from_point + <<it.to_point) / 2, 0);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
@@ -664,7 +668,7 @@ render_entities :: () {
 
                 soup := cast(*Polyline_Soup3_Entity) entity;
 
-                for :AnnotationIterator entity {
+                if is_visible(annotation_theme) for :AnnotationIterator entity {
                     if it.kind == .VERTEX {
                         point_model : Vector3 = soup.mesh.positions[it.id];
                         point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
@@ -683,7 +687,7 @@ render_entities :: () {
                     }
                 }
 
-                for :Point_Iterator point_model, point_index : soup.shape {
+                if is_visible(point_theme) for :Point_Iterator point_model, point_index : soup.shape {
                     point_world := transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
 
@@ -694,7 +698,7 @@ render_entities :: () {
                     }
                 }
 
-                for :PolylineSegmentIterator soup.shape {
+                if is_visible(element_theme) for :PolylineSegmentIterator soup.shape {
                     point_model : Vector3 = (<<it.from_point + <<it.to_point) / 2;
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
@@ -710,7 +714,7 @@ render_entities :: () {
 
                 soup := cast(*Segment_Soup3_Entity) entity;
 
-                for :AnnotationIterator entity {
+                if is_visible(annotation_theme) for :AnnotationIterator entity {
                     text : string = to_string(it);
                     if it.kind == .VERTEX {
                         point_world : Vector3 = mesh_point_world(soup.mesh, it.id);
@@ -737,7 +741,7 @@ render_entities :: () {
                     }
                 }
 
-                for :ModelPointIterator point_model, point_index : soup.mesh {
+                if is_visible(point_theme) for :ModelPointIterator point_model, point_index : soup.mesh {
                     point_world : Vector3 = transform_point(soup.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
 
@@ -748,7 +752,7 @@ render_entities :: () {
                     }
                 }
 
-                for :ModelSegmentIterator segment : soup.mesh {
+                if is_visible(element_theme) for :ModelSegmentIterator segment : soup.mesh {
                     point_model : Vector3 = centroid(segment);
                     point_world : Vector3 = transform_point(soup.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
@@ -768,7 +772,7 @@ render_entities :: () {
                 soup := cast(*Polygon_Soup_Entity) entity;
                 count := point_count(soup.shape);
 
-                for polygon : soup.shape.polygons {
+                if is_visible(point_theme) for polygon : soup.shape.polygons {
                     for polygon.outer_ring.points {
                         point_world := transform_point(entity.mesh.world_from_model, make_vector3(it, 0));
                         if is_clipped(entity.display_info, point_world) continue;
@@ -797,7 +801,7 @@ render_entities :: () {
                 cloud := cast(*Point_Cloud_Entity) entity;
                 count := cloud.mesh.positions.count;
 
-                for :AnnotationIterator entity {
+                if is_visible(annotation_theme) for :AnnotationIterator entity {
                     if it.kind == .VERTEX {
                         point_world : Vector3 = mesh_point_world(cloud.mesh, it.id);
                         if is_clipped(entity.display_info, point_world) {
@@ -814,7 +818,7 @@ render_entities :: () {
                 }
 
                 inverse_transpose := transpose(inverse(cloud.mesh.world_from_model));
-                for :ModelPointIterator point_model, point_index : cloud.mesh {
+                if is_visible(point_theme) for :ModelPointIterator point_model, point_index : cloud.mesh {
                     if point_theme.show_backfacing == false && cloud.mesh.normals.count {
                         world_normal : Vector3 = transform_vector(inverse_transpose, cloud.mesh.normals[point_index]);
                         if dot_product(world_normal, current_look_direction()) > 0 {
@@ -840,7 +844,7 @@ render_entities :: () {
                 count := mesh.mesh.positions.count;
 
                 // @Speed this should use the spatial index??
-                for :AnnotationIterator entity {
+                if is_visible(annotation_theme) for :AnnotationIterator entity {
                     text : string = to_string(it);
                     if it.kind == {
                         case .VERTEX;
@@ -873,7 +877,7 @@ render_entities :: () {
 
                 // @Speed this should use the spatial index??
                 inverse_transpose := transpose(inverse(mesh.mesh.world_from_model));
-                for :ModelPointIterator point_model, point_index : mesh.mesh {
+                if is_visible(point_theme) for :ModelPointIterator point_model, point_index : mesh.mesh {
                     if point_theme.show_backfacing == false && mesh.mesh.normals.count {
                         normal_world : Vector3 = transform_vector(inverse_transpose, mesh.mesh.normals[point_index]);
                         if dot_product(normal_world, current_look_direction()) > 0 {
@@ -916,7 +920,7 @@ render_entities :: () {
 
                 if mesh.spatial == null {
                     // log_error("Use brute force");
-                    for :ModelTriangleIterator mesh.mesh {
+                    if is_visible(element_theme) for :ModelTriangleIterator mesh.mesh {
                         ProcessTriangle(it, it_index);
                     }
                 } else {
@@ -928,7 +932,7 @@ render_entities :: () {
                     // @Incomplete Support perspective projection
                     distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
 
-                    Visit_Primitives_Near_Ray(mesh.spatial, ray_model, distance,
+                    if is_visible(element_theme) Visit_Primitives_Near_Ray(mesh.spatial, ray_model, distance,
                         #code ProcessTriangle(primitive, primitive_id)
                     );
                 }
@@ -1041,6 +1045,7 @@ cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_p
 }
 
 draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
+    if !quads.count return;
     cached_font : Simp.Dynamic_Font = <<app.simp_font;
     cached_font.current_quads = quads;
     Simp.draw_generated_quads(*cached_font, color);

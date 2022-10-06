@@ -1,8 +1,12 @@
+// TODO Add known issues: Include that sphere clipping does not work on point clouds. Use a FixVersion tag to note which version fixed the bug. So you can find regressions more easily
 // TODO address the nocommits added during the world_from_model audit
+// Update the compiler and report the compiler bugs, including the one with find_or_add posted on the discord
 // TODO truncated strings in the BLOCK annotations list, with a tooltip showing the full thing
-// TODO Fix BS that happens when the item has a non-identity transform
 // TODO Update the help menu
-// TODO Fix alignment of the context menu when there is a scrolling region in the item list. Test it when there are multiple folders with scrolling regions too
+// TODO When you rotate the viewport that should not affect the cursor position for labeling! Its totally annoying to lose the label because you're rotating
+// TOOD Move AABB into base and make it work on the mesh only
+// TODO think about how to handle transforms with Polylines, the mesh.world_from_model transform is relevant but gets RE how to keep the .shape synced with .mesh and also 2D vs 3D
+
 
 PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
 - Improvements to Annotations:
@@ -10,6 +14,7 @@ PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
   - Moved annotations into a separate "Annotations" tab in the item context menu
   - Added a radio button to populate the table with the annotations of a particular kind (vertex/line/face/block). Removed the now redundant "Target" column
   - Fixed annotations starting with a number but continued with a string being inferred to be number type rather than string type
+  - Fixed strange coupling between annotation labels and vertex/face labels
 
 - Changes to Main Panel UI:
 
@@ -17,12 +22,15 @@ PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
   - Added a new "Options" tab which show options that were previously in a folding tree
   - Added a new "Items" tab which shows the list of items and the Selection UI
   - Added a new "Tools" section under the "Items" tab which has the "Reload", "Focus" and "Add" buttons as well as an item representing a "Point Selection"
+  - Fixed incorrect positioning of item context menu when an item folder had a vertical scroll bar 
 
 - Changes to Point Selection mechanics (selection here means picking out bits of geometry):
 
   - Renamed the "Default" selection to "Point Selection" since this object can only select points (using Ctrl LMB)
   - Replaced the old "Clear" with a "Cache" button adds the selection as an item in a "Selections" folder and then clears the selection. This is how users can make multiple selections
   - Removed the old "Add" button, which wasn't implemented but won't be needed because caching selections is the way user can to create/manage multiple selections
+  - Changed the "Point Selection" color widget to also affect the color of the label text. The labels can be colored differently via the context menu, and still default to black
+  - Note: A minor quirk with the "Cache" button is that in order to clear an item selection you cache it and then remove the added item. I didn't think it was worth the extra UI clutter for an additional button..
   - Note: Future versions will add "Triangle Selection" and "Edge Selection" UI, but this is not yet implemented
 
 - Changes to Items list selection (selection here means picking items for bulk actions):

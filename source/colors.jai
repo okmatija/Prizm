@@ -4,6 +4,7 @@ BLUE  :: ImGui.ImVec4.{0., 0., 1., 1.};
 BLACK :: ImGui.ImVec4.{0., 0., 0., 1.};
 WHITE :: ImGui.ImVec4.{1., 1., 1., 1.};
 NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
+NICE_BLUE :: ImGui.ImVec4.{40/255., 128/255., 221/255., 1}; // nocommit Use this instead of NICE_YELLOW in light mode
 NICE_GREY :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
 
 // Junk
@@ -42,7 +43,7 @@ CONSOLE_DOCUMENTATION_INTERACTIVE ::  ImGui.ImVec4.{0.5, 0.5, 220./255, 1.};
 CONSOLE_COMMENT_INTERACTIVE :: ImGui.ImVec4.{1., .78, .58, 1.};
 CONSOLE_WARNING_INTERACTIVE :: ImGui.ImVec4.{0., 178./255, 1., 1.};
 CONSOLE_ERROR_INTERACTIVE ::   ImGui.ImVec4.{1., .4, .4, 1.};
-CONSOLE_INFO_INTERACTIVE ::    WHITE;
+CONSOLE_INFO_INTERACTIVE ::    WHITE; // nocommit Dont' do this in light mode
 
 color_u32_as_vector4 :: (color : ImGui.ImU32, alpha := 1.) -> ImGui.ImVec4 {
     result := ImGui.ColorConvertU32ToFloat4(color);

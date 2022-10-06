@@ -482,7 +482,10 @@ show_selection_ui :: () {
             // Color selection
             {
                 ImGui.TableNextColumn();
-                ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+                if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
+                    // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
+                    it.display_info.vertex_label_style.label_color = darken(it.display_info.points_color, .8);
+                }
             }
 
             // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
@@ -900,7 +903,7 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
 show_item_context_menu :: (entity : *Entity, entity_index : s64) {
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorPos().y);
+    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
