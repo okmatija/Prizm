@@ -403,6 +403,9 @@ show_add_item_ui :: () {
         if ImGui.Button("Widget  ") { add_preset_widget(); }
         Show_Tooltip("A part autonomously machined by CloudNC");
 
+        if ImGui.Button("BooleanA") { add_preset_boolean_a(); }
+        Show_Tooltip("A failed mesh boolean");
+        ImGui.SameLine();
         if ImGui.Button("BooleanB") { add_preset_boolean_b(); }
         Show_Tooltip("A failed cylinder/cone mesh boolean");
     }

@@ -121,8 +121,8 @@ init_keymap :: () {
     // @FIXME Make these presets work with the alt key like the button
     add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
-    // nocommit Make BooleanA F3!!
-    add_key(*app.keymap, (unused)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (unused)=>{add_preset_boolean_a();}, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (unused)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
@@ -291,6 +291,14 @@ add_preset_cube :: () {
 
 add_preset_widget :: () {
     preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Widget", FILENAME="shapes/widget.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    entity : *Entity = preset_proc();
+    add_entity(entity, app.settings.duplicate_file_behaviour);
+    entity.preset_proc = preset_proc;
+    fit_scene_on_screen();
+}
+
+add_preset_boolean_a :: () {
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanA", FILENAME="shapes/failed_boolean_a.obj", RANDOMIZE=()=>(!io().KeyAlt));
     entity : *Entity = preset_proc();
     add_entity(entity, app.settings.duplicate_file_behaviour);
     entity.preset_proc = preset_proc;
