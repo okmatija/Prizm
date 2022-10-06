@@ -378,7 +378,7 @@ Show_Tooltip :: (description : string) {
 Show_Tooltip_Binding :: (description : string, binding : string) #expand {
     if (ImGui.IsItemHovered()) {
         ImGui.BeginTooltip();
-        ImGui.TextColored(KEYBINDING_COLOR, binding);
+        ImGui.TextColored(app.theme.keymap_color, binding);
         ImGui.SameLine();
         ImGui.Text(description);
         ImGui.EndTooltip();
@@ -407,7 +407,7 @@ Show_Tooltip_Binding :: (bindings_with_descriptions : ..Binding_With_Description
         ImGui.BeginTable("", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
         for bindings_with_descriptions {
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, it.binding);
+            ImGui.TextColored(app.theme.keymap_color, it.binding);
             ImGui.TableNextColumn();
             ImGui.Text(it.description);
         }

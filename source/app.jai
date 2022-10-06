@@ -5,6 +5,7 @@ app : App;
 App :: struct {
     window : *SDL_Window = null;
     simp_font: *Simp.Dynamic_Font;
+    theme : Prism_Theme;
 
     Folder :: struct {
         path : string; // owned
@@ -310,6 +311,24 @@ clamp_user_settings :: ()
 
     item_list_max_size_before_scroll_px = clamp(item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
     annotation_list_max_size_before_scroll_px = clamp(annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+}
+
+set_prism_theme :: (theme : Prism_Color_Theme) {
+    if #complete theme == {
+        case .DARK;
+            ImGui.StyleColorsDark();
+            app.theme = Prism_Theme_Dark.{};
+        case .LIGHT;
+            ImGui.StyleColorsLight();
+            app.theme = Prism_Theme_Light.{};
+    }
+
+    ImGui.GetStyle().WindowRounding = 4;
+    ImGui.GetStyle().PopupRounding = 4;
+    ImGui.GetStyle().FrameRounding = 2;
+    ImGui.GetStyle().FrameBorderSize = 1;
+    ImGui.GetStyle().ChildBorderSize = 5;
+    ImGui.GetStyle().DisabledAlpha = .5;
 }
 
 #import "Basic";

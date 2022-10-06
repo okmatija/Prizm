@@ -207,22 +207,22 @@ console_draw :: () {
             ImGui.BeginTable("", 3, flags=ImGui.TableFlags.NoBordersInBody);
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "TAB");
+            ImGui.TextColored(app.theme.keymap_color, "TAB");
             ImGui.TableNextColumn();
             ImGui.Text("List commands and documentation");
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "ESC/`");
+            ImGui.TextColored(app.theme.keymap_color, "ESC/`");
             ImGui.TableNextColumn();
             ImGui.Text("Hide/Toggle console");
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "UP/DOWN");
+            ImGui.TextColored(app.theme.keymap_color, "UP/DOWN");
             ImGui.TableNextColumn();
             ImGui.Text("Navigate command history");
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "Scroll");
+            ImGui.TextColored(app.theme.keymap_color, "Scroll");
             ImGui.TableNextColumn();
             ImGui.Text("Scroll the console log");
 
@@ -301,7 +301,7 @@ console_draw :: () {
         for :ListClipperIterator item : app.console.log {
 
             assert(item.count != 0);
-            col := ifx app.console.log_mode == .INTERACTIVE then CONSOLE_INFO_INTERACTIVE else CONSOLE_INFO_TRANSPARENT;
+            col := ifx app.console.log_mode == .INTERACTIVE then app.theme.console_interactive_text_color else app.theme.console_transparent_text_color;
             if begins_with(item, "#") {
                 col = ifx app.console.log_mode == .INTERACTIVE then CONSOLE_COMMENT_INTERACTIVE else CONSOLE_COMMENT_TRANSPARENT;
             } else if begins_with(item, "|") {

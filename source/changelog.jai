@@ -52,6 +52,7 @@ PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
   - Added a random shift transform when presets are added, the transform can be set to identity by holding Alt when adding the preset via the button (not the hotkey!)
   - Disabled reloading of preset shapes for code architecture reasons, will re-enable this functionality in a future version
 
+- Added an initial version of a light color theme, you can set it under the "Options" tab
 - Removed the limit on degree of zoom by changing the default value of `Options > Advanced > camera_zoom_min_screen_filling_length_mm` from 0.0001 to 0.0
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
 - Fixed `item_focus_vertex`, `item_focus_segment`, `item_focus_triangle` and `item_find_open_edges` so they work for items with non-identity world_from_model transforms

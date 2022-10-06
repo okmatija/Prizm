@@ -183,14 +183,7 @@ main :: () {
         assert(app.simp_font != null);
     }
 
-    ImGui.StyleColorsDark();
-    // ImGui.StyleColorsLight();
-    ImGui.GetStyle().WindowRounding = 4;
-    ImGui.GetStyle().PopupRounding = 4;
-    ImGui.GetStyle().FrameRounding = 2;
-    ImGui.GetStyle().FrameBorderSize = 1;
-    ImGui.GetStyle().ChildBorderSize = 5;
-    ImGui.GetStyle().DisabledAlpha = .5;
+    set_prism_theme(.DARK);
 
     load_from_command_line();
 

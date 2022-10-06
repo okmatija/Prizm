@@ -6,7 +6,7 @@ WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 show_main_panel :: () {
 
     // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(ITEM_LIST_BORDER_COLOR, ITEM_LIST_BORDER_SIZE);
+    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
     defer ImGui.PopStyleVar();
@@ -348,11 +348,11 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         if ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody) {
             defer ImGui.EndTable();
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "RMB");
+            ImGui.TextColored(app.theme.keymap_color, "RMB");
             ImGui.TableNextColumn();
             ImGui.Text("Open context menu for the current %", ifx entity.is_selected then "item selection" else "item");
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(KEYBINDING_COLOR, "Ctrl LMB");
+            ImGui.TextColored(app.theme.keymap_color, "Ctrl LMB");
             ImGui.TableNextColumn();
             ImGui.Text("Toggle selected state of the hovered item");
         }
@@ -416,6 +416,10 @@ show_options :: () {
 
     if ImGui.TreeNodeEx("Basic", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
         defer ImGui.TreePop();
+
+        if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
+            set_prism_theme(app.theme.theme);
+        }
 
         combo_box("Background", *app.background_style, type_info(app.Background_Style));
         if app.background_style == .SOLID_COLOR {
@@ -1081,7 +1085,7 @@ show_camera_controls :: () {
     defer ImGui.PopStyleVar();
 
     // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(CAMERA_UI_BORDER_COLOR, CAMERA_UI_BORDER_SIZE);
+    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
 
     ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
     ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
@@ -1215,7 +1219,7 @@ show_help_ui :: () {
     if ImGui.TreeNodeEx("About") {
         defer ImGui.TreePop();
 
-        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         ImGui.Text("Prism is a tool for debugging computational geometry algorithms.");
         ImGui.PopStyleColor();
 
@@ -1226,7 +1230,7 @@ show_help_ui :: () {
     // @Cleaup name it like a macro
     ShowBinding :: (binding : string, description : string) #expand {
         ImGui.TableNextColumn();
-        ImGui.TextColored(KEYBINDING_COLOR, binding);
+        ImGui.TextColored(app.theme.keymap_color, binding);
         ImGui.TableNextColumn();
         ImGui.Text(description);
     }
@@ -1330,7 +1334,7 @@ show_help_ui :: () {
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
             defer ImGui.TreePop();
 
-            ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
             ImGui.TextWrapped(latest.description);
             // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
             ImGui.PopStyleColor();
@@ -1341,7 +1345,7 @@ show_help_ui :: () {
             if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
                 defer ImGui.TreePop();
 
-                ImGui.PushStyleColor(xx ImGui.Col.Text, CHANGELOG_COLOR);
+                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
                 ImGui.TextWrapped(version.description);
                 // ImGui.Text(version.description);
                 ImGui.PopStyleColor();
@@ -1462,7 +1466,7 @@ show_pending_directories_ui :: () {
             message : string;
             ImGui.TableNextColumn();
             if loadable_file.is_loaded {
-                ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
                 message = "Already loaded";
                 ImGui.Text(message);
                 ImGui.PopStyleColor();
@@ -1750,7 +1754,7 @@ display_info_ui :: (
 display_information :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Information", .SpanAvailWidth) {
         defer ImGui.TreePop();
-        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
 
         if #complete entity.type == {
@@ -1803,7 +1807,7 @@ display_information :: (entity : *Entity) {
 display_transform :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Transform", .SpanAvailWidth) {
         defer ImGui.TreePop();
-        ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_YELLOW);
+        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         ImGui.Text("This is a \"world from model\" transform");
         ImGui.PopStyleColor();
         shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
