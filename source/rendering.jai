@@ -138,11 +138,13 @@ Display_Info :: struct {
 
     aabb_visible := false; @NoSync
 
+    // World space nocommit Verify this is how its computed!
     clip_ranges : [3]Clip_Range;
     clip_ranges[0] = .{normal=.{1,0,0}};
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
     clip_sphere, clip_sphere_prev : Clip_Sphere;
+
     clip_mode := Clip_Mode.HIDDEN;
 }
 
@@ -621,9 +623,10 @@ render_entities :: () {
         element_label_quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
         annotation_quads :    [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
 
-        projection_from_model := make_projection_from_world(app.camera) * entity.mesh.world_from_model;
+        projection_from_world := make_projection_from_world(app.camera);
+        projection_from_model := projection_from_world * entity.mesh.world_from_model;
 
-        // @Incomplete Add option to render points in world coordinates?
+        // nocommit Use a macro to implement the option to render text in model/world coordinates. Model is probably mostly useful for 2D shapes? @Incomplete Add option to render points in world coordinates?
 
         if #complete entity.type == {
             case .UNKNOWN;
@@ -633,24 +636,26 @@ render_entities :: () {
                 soup := cast(*Polyline_Soup2_Entity) entity;
 
                 for :Point_Iterator soup.shape {
-                    point_world := transform_point(entity.mesh.world_from_model, make_vector3(it, 0));
+                    point_model : Vector3 = make_vector3(it, 0);
+                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
 
-                    text_position_px := get_text_screen_position(make_vector3(it, 0), projection_from_model);
+                    text_position_px := get_text_screen_position(point_world, projection_from_world);
                     if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
                         text := get_point_text(it, it_index, point_theme);
                         cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
-                for :SegmentIterator soup.shape {
-                    centroid := make_vector3((<<it.from_point + <<it.to_point) / 2, 0);
-                    centroid_world := transform_point(entity.mesh.world_from_model, centroid);
-                    if is_clipped(entity.display_info, centroid_world) continue;
+                for :PolylineSegmentIterator soup.shape {
+                    // nocommit Use centroid(Edge) here
+                    point_model : Vector3 = make_vector3((<<it.from_point + <<it.to_point) / 2, 0);
+                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                    if is_clipped(entity.display_info, point_world) continue;
 
-                    text_position_px := get_text_screen_position(centroid, projection_from_model);
+                    text_position_px : Vector2 = get_text_screen_position(point_world, projection_from_world);
                     if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
-                        text := get_point_text(centroid, it_index, element_theme);
+                        text := get_point_text(point_model, it_index, element_theme);
                         cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
@@ -661,13 +666,13 @@ render_entities :: () {
 
                 for :AnnotationIterator entity {
                     if it.kind == .VERTEX {
-                        pos : Vector3 = soup.mesh.positions[it.id];
-                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        point_model : Vector3 = soup.mesh.positions[it.id];
+                        point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                         if is_clipped(entity.display_info, point_world) {
                             continue;
                         }
 
-                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
                             text : string = to_string(it);
                             cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
@@ -678,25 +683,25 @@ render_entities :: () {
                     }
                 }
 
-                for :Point_Iterator soup.shape {
-                    point_world := transform_point(entity.mesh.world_from_model, it);
+                for :Point_Iterator point_model, point_index : soup.shape {
+                    point_world := transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
 
-                    text_position_px := get_text_screen_position(it, projection_from_model);
+                    text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
-                        text := get_point_text(it, it_index, point_theme);
+                        text : string = get_point_text(point_model, point_index, point_theme);
                         cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
-                for :SegmentIterator soup.shape {
-                    centroid := (<<it.from_point + <<it.to_point) / 2;
-                    centroid_world := transform_point(entity.mesh.world_from_model, centroid);
-                    if is_clipped(entity.display_info, centroid_world) continue;
+                for :PolylineSegmentIterator soup.shape {
+                    point_model : Vector3 = (<<it.from_point + <<it.to_point) / 2;
+                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                    if is_clipped(entity.display_info, point_world) continue;
 
-                    text_position_px := get_text_screen_position(centroid, projection_from_model);
+                    text_position_px := get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
-                        text := get_point_text(centroid, it_index, element_theme);
+                        text : string = get_point_text(point_model, it_index, element_theme);
                         cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
@@ -708,50 +713,49 @@ render_entities :: () {
                 for :AnnotationIterator entity {
                     text : string = to_string(it);
                     if it.kind == .VERTEX {
-                        pos : Vector3 = soup.mesh.positions[it.id];
-                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        point_world : Vector3 = mesh_point_world(soup.mesh, it.id);
                         if is_clipped(entity.display_info, point_world) {
                             continue;
                         }
 
-                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        point_model : Vector3 = mesh_point_model(soup.mesh, it.id);
+                        text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
                             cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                         }
                     } else if it.kind == .LINE {
-                        segment : Segment3 = get_segment3(soup.mesh, it.id);
-                        pos := (segment.start + segment.end) / 2;
-                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        point_world : Vector3 = centroid(mesh_segment3_world(soup.mesh, it.id));
                         if is_clipped(entity.display_info, point_world) {
                             continue;
                         }
 
-                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        point_model : Vector3 = centroid(mesh_segment3_model(soup.mesh, it.id));
+                        text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
                             cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                         }
                     }
                 }
 
-                for soup.shape.positions {
-                    point_world := transform_point(entity.mesh.world_from_model, it);
+                for :ModelPointIterator point_model, point_index : soup.mesh {
+                    point_world : Vector3 = transform_point(soup.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;
 
-                    text_position_px := get_text_screen_position(it, projection_from_model);
+                    text_position_px := get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
-                        text := get_point_text(it, it_index, point_theme);
+                        text := get_point_text(point_model, point_index, point_theme);
                         cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
-                for :Segment_Iterator soup.mesh {
-                    centroid := (it.start + it.end) / 2;
-                    centroid_world := transform_point(entity.mesh.world_from_model, centroid);
-                    if is_clipped(entity.display_info, centroid_world) continue;
+                for :ModelSegmentIterator segment : soup.mesh {
+                    point_model : Vector3 = centroid(segment);
+                    point_world : Vector3 = transform_point(soup.mesh.world_from_model, point_model);
+                    if is_clipped(entity.display_info, point_world) continue;
 
-                    text_position_px := get_text_screen_position(centroid, projection_from_model);
+                    text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
-                        text := get_point_text(centroid, it_index, element_theme);
+                        text : string = get_point_text(point_model, it_index, element_theme);
                         cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
@@ -795,13 +799,13 @@ render_entities :: () {
 
                 for :AnnotationIterator entity {
                     if it.kind == .VERTEX {
-                        pos : Vector3 = cloud.mesh.positions[it.id];
-                        point_world := transform_point(entity.mesh.world_from_model, pos);
+                        point_world : Vector3 = mesh_point_world(cloud.mesh, it.id);
                         if is_clipped(entity.display_info, point_world) {
                             continue;
                         }
 
-                        text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                        point_model : Vector3 = mesh_point_model(cloud.mesh, it.id);
+                        text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                         if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
                             text := to_string(it);
                             cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
@@ -809,21 +813,23 @@ render_entities :: () {
                     }
                 }
 
-                for cloud.mesh.positions {
-                    if point_theme.show_backfacing == false {
-                        if cloud.mesh.normals.count && dot_product(cloud.mesh.normals[it_index], current_look_direction()) > 0 {
+                inverse_transpose := transpose(inverse(cloud.mesh.world_from_model));
+                for :ModelPointIterator point_model, point_index : cloud.mesh {
+                    if point_theme.show_backfacing == false && cloud.mesh.normals.count {
+                        world_normal : Vector3 = transform_vector(inverse_transpose, cloud.mesh.normals[point_index]);
+                        if dot_product(world_normal, current_look_direction()) > 0 {
                             continue;
                         }
                     }
 
-                    point_world := transform_point(entity.mesh.world_from_model, it);
+                    point_world : Vector3 = mesh_point_world(entity.mesh, point_index);
                     if is_clipped(entity.display_info, point_world) {
                         continue;
                     }
 
-                    text_position_px := get_text_screen_position(it, projection_from_model);
+                    text_position_px := get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
-                        text := get_point_text(it, it_index, point_theme);
+                        text := get_point_text(point_model, point_index, point_theme);
                         cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
@@ -835,79 +841,82 @@ render_entities :: () {
 
                 // @Speed this should use the spatial index??
                 for :AnnotationIterator entity {
+                    text : string = to_string(it);
                     if it.kind == {
                         case .VERTEX;
 
-                            pos : Vector3 = mesh.mesh.positions[it.id];
-                            point_world := transform_point(entity.mesh.world_from_model, pos);
+                            point_model : Vector3 = mesh_point_model(mesh.mesh, it.id);
+                            point_world : Vector3 = mesh_point_world(mesh.mesh, it.id);
                             if is_clipped(entity.display_info, point_world) {
                                 continue;
                             }
 
-                            text_position_px : Vector2 = get_text_screen_position(pos, projection_from_model);
+                            text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                             if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                                text := to_string(it);
                                 cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                             }
 
                         case .TRIANGLE;
 
-                            triangle : Triangle3 = inline get_triangle(mesh.mesh, it.id);
-                            centroid := (triangle.a + triangle.b + triangle.c) / 3;
-                            centroid_world := transform_point(entity.mesh.world_from_model, centroid);
-                            if is_clipped(entity.display_info, centroid_world) {
+                            point_model : Vector3 = compute_centroid(mesh_triangle_model(mesh.mesh, it.id));
+                            point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                            if is_clipped(entity.display_info, point_world) {
                                 continue;
                             }
 
-                            text_position_px := get_text_screen_position(centroid, projection_from_model);
+                            text_position_px := get_text_screen_position(point_model, projection_from_model);
                             if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
-                                text := to_string(it);
                                 cache_text_quads(*annotation_quads, text, text_position_px, annotation_theme.label_scale);
                             }
                     }
                 }
 
                 // @Speed this should use the spatial index??
-                for mesh.mesh.positions {
-                    if point_theme.show_backfacing == false {
-                        if mesh.mesh.normals.count && dot_product(mesh.mesh.normals[it_index], current_look_direction()) > 0 {
+                inverse_transpose := transpose(inverse(mesh.mesh.world_from_model));
+                for :ModelPointIterator point_model, point_index : mesh.mesh {
+                    if point_theme.show_backfacing == false && mesh.mesh.normals.count {
+                        normal_world : Vector3 = transform_vector(inverse_transpose, mesh.mesh.normals[point_index]);
+                        if dot_product(normal_world, current_look_direction()) > 0 {
                             continue;
                         }
                     }
 
-                    point_world := transform_point(entity.mesh.world_from_model, it);
+                    point_world := transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) {
                         continue;
                     }
 
-                    text_position_px : Vector2 = get_text_screen_position(it, projection_from_model);
+                    text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
-                        text := get_point_text(it, it_index, point_theme);
+                        text : string = get_point_text(point_model, point_index, point_theme);
                         cache_text_quads(*point_label_quads, text, text_position_px, point_theme.label_scale);
                     }
                 }
 
-                ProcessTriangle :: (triangle : Triangle3, triangle_index : int) #expand {
+                ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
                     if element_theme.show_backfacing == false {
-                        if dot_product(compute_normal(triangle), current_look_direction()) > 0 {
+                        normal_world : Vector3 = transform_vector(`inverse_transpose, compute_normal(triangle_model));
+                        if dot_product(normal_world, current_look_direction()) > 0 {
                             continue;
                         }
                     }
 
-                    centroid := (triangle.a + triangle.b + triangle.c) / 3;
-                    centroid_world := transform_point(entity.mesh.world_from_model, centroid);
-                    if is_clipped(entity.display_info, centroid_world) continue;
+                    point_model : Vector3 = compute_centroid(triangle_model);
+                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                    if is_clipped(entity.display_info, point_world) {
+                        continue;
+                    }
 
-                    text_position_px := get_text_screen_position(centroid, projection_from_model);
+                    text_position_px : Vector2 = get_text_screen_position(point_model, projection_from_model);
                     if on_screen_in_disk(text_position_px, element_theme.visible_radius_px) {
-                        text := get_point_text(centroid, triangle_index, element_theme);
+                        text : string = get_point_text(point_model, triangle_index, element_theme);
                         cache_text_quads(*element_label_quads, text, text_position_px, element_theme.label_scale);
                     }
                 }
 
                 if mesh.spatial == null {
                     // log_error("Use brute force");
-                    for :TrianglesIterator mesh.mesh {
+                    for :ModelTriangleIterator mesh.mesh {
                         ProcessTriangle(it, it_index);
                     }
                 } else {

@@ -48,10 +48,10 @@ Entity :: struct {
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
     // Interpretation depends on Entity_Type (I think)
-    block_annotations :  [..]Annotation;
-    vertex_annotations : [..]Annotation;
-    face_annotations :   [..]Annotation;
-    line_annotations :   [..]Annotation;
+    block_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
+    vertex_annotations : [..]Annotation; // Comments attached to vertices e.g., v directives in .obj files, @Think maybe also include comments on p directives
+    face_annotations :   [..]Annotation; // Comments attached to triangles e.g., f directives in .obj files
+    line_annotations :   [..]Annotation; // Comments attached to line segments e.g., l directives in .obj files
     annotation_info : Annotation_Info;
 
     Annotation_Info :: struct {
@@ -96,7 +96,7 @@ COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 Polyline_Soup2_Entity :: struct {
     #as using base : Entity;
     type = .POLYLINE_SOUP2;
-    display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // @Cleanup put colors in app.jai
+    display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // nocommit ditto these are probably all ignored @Cleanup put colors in app.jai
 
     Shape :: Polyline_Soup2;
     shape : Shape;
@@ -635,32 +635,35 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
     // @Incomplete Add a screenspace distance filter
 
-    dist2 := FLOAT32_INFINITY;
+    min_dist2 := FLOAT32_INFINITY;
     for entity, entity_index : app.entities {
         if entity.display_info.is_visible {
             if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-                for vertex, vertex_index : entity.mesh.positions {
+                inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
+                for :WorldPointIterator point_world, point_index : entity.mesh {
 
                     front_facing_only :: false;
 
                     // Note if the vertex normals are 0 the dot product will be 0 and will _not_ trigger the continue, we
                     // want to be able to select vertices with 0 normals in all cases
-                    if front_facing_only && (entity.mesh.normals.count != 0) && dot(current_look_direction(), entity.mesh.normals[vertex_index]) > 0 {
-                        continue;
+                    if front_facing_only && entity.mesh.normals.count {
+                        normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
+                        if dot(normal_world, current_look_direction()) > 0 {
+                            continue;
+                        }
                     }
 
-                    p : Vector3 = transform_point(entity.mesh.world_from_model, vertex);
-                    c, d2, t := distance_point3_ray3(p, ray_world);
+                    unused_closest_point, dist2, unused_t := distance_point3_ray3(point_world, ray_world);
 
-                    if d2 < dist2 {
+                    if dist2 < min_dist2 {
 
-                        if is_clipped(entity.display_info, p) {
+                        if is_clipped(entity.display_info, point_world) {
                             continue;
                         }
 
-                        dist2 = d2;
-                        result.position = p;
-                        result.element_index = vertex_index;
+                        min_dist2 = dist2;
+                        result.position = point_world;
+                        result.element_index = point_index;
                         result.entity_index = entity_index;
                     }
                 }
@@ -690,51 +693,49 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     has_degenerate_triangles := false;
     t_min := FLOAT32_INFINITY;
 
-    ProcessTriangle :: (primitive : Triangle3, primitive_id : int) #expand {
-        normal_direction := compute_normal(primitive, normalize=false);
+    ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
+        normal_direction := compute_normal(triangle_model, normalize=false);
     
         if normal_direction == Vector3.{0, 0, 0} {
             `has_degenerate_triangles = true;
             continue;
         }
     
-        if `front_facing_only && dot_product(normal_direction, `ray.direction) > 0 {
+        if `front_facing_only && dot_product(normal_direction, `ray_model.direction) > 0 {
             continue;
         }
     
-        is_hit, t, point := find_intersect_primitive_ray3(primitive, `ray);
+        is_hit, t, isect_model := find_intersect_primitive_ray3(triangle_model, `ray_model);
     
         if is_hit == false || t >= `t_min {
             continue;
         }
     
-        point_world : Vector3 = transform_point(`entity.mesh.world_from_model, point);
-        if is_clipped(`entity.display_info, point_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
+        isect_world : Vector3 = transform_point(`entity.mesh.world_from_model, isect_model);
+        if is_clipped(`entity.display_info, isect_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
             continue;
         }
     
         `t_min = t;
-        `result.position = point_world;
-        `result.element_index = primitive_id;
+        `result.position = isect_world;
+        `result.element_index = triangle_id;
         `result.entity_index = `entity_index;
         `intersected_triangle = true;
     }
 
     for :Visible_Selectable_Mesh entity, entity_index : app.entities {
         mesh_entity := cast(*Mesh_Entity)entity;
-
-        // ray in model space
-        ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+        ray_model : Ray3 = transform_ray(inverse(mesh_entity.mesh.world_from_model), ray_world);
 
         if mesh_entity.spatial == null {
 
-            for :TrianglesIterator triangle, triangle_index : entity.mesh {
+            for :ModelTriangleIterator triangle, triangle_index : entity.mesh {
                 ProcessTriangle(triangle, triangle_index);
             }
 
         } else {
 
-            Visit_Primitives_Intersecting_Ray(mesh_entity.spatial, ray,
+            VisitPrimitivesIntersectingRay(mesh_entity.spatial, ray_model,
                 #code ProcessTriangle(primitive, primitive_id)
             );
 
@@ -749,16 +750,12 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     if (has_degenerate_triangles) {
         for :Visible_Selectable_Mesh entity, entity_index : app.entities {
 
-            // ray in model space
-            ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
-
+            // nocommit This should be WorldTriangleEdgeIterator
             for i : 0..(entity.mesh.indices.count/3)-1 {
 
-                triangle : Triangle3;
-                triangle.a = entity.mesh.positions[entity.mesh.indices[3 * i + 0]];
-                triangle.b = entity.mesh.positions[entity.mesh.indices[3 * i + 1]];
-                triangle.c = entity.mesh.positions[entity.mesh.indices[3 * i + 2]];
+                triangle : Triangle3 = mesh_triangle_world(entity.mesh, i);
 
+                // nocommit Make this the canonical way to number triangle edges, put it in a function. We need this for edge annotations
                 segment3 : Segment3 = ---;
                 if triangle.a == triangle.b {
                     segment3.start = triangle.a;
@@ -774,16 +771,15 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
                     segment3.end = triangle.a;
                 }
 
-                // These are in model space
-                closest_point := closest_point_ray_segment(ray, segment3);
-                ipoint := closest_point.closest[1];
+                // These are in world space
+                closest_point := closest_point_ray_segment(ray_world, segment3);
+                ipoint_world := closest_point.closest[1];
                 d := closest_point.distance;
 
                 // @Incomplete continue if the distance is beyond a threshold?
 
                 if d < d_min {
 
-                    ipoint_world := transform_point(entity.mesh.world_from_model, ipoint);
                     if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
                         continue;
                     }
@@ -811,7 +807,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // @Incomplete If available, use the spatial index
-        for :SegmentIterator segment, segment_index : soup.shape {
+        for :PolylineSegmentIterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = <<segment.from_point;
             segment3.end = <<segment.to_point;
@@ -849,15 +845,15 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         soup := cast(*Polyline_Soup2_Entity)entity;
 
         // ray in model space
-        ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+        ray_model := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // @Incomplete If available, use the spatial index
-        for :SegmentIterator segment, segment_index : soup.shape {
+        for :PolylineSegmentIterator segment, segment_index : soup.shape {
             segment3 : Segment3;
             segment3.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
             segment3.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
 
-            closest_point := closest_point_ray_segment(ray, segment3);
+            closest_point := closest_point_ray_segment(ray_model, segment3);
             ipoint := closest_point.closest[1];
             d := closest_point.distance;
 

@@ -461,7 +461,7 @@ show_selection_ui :: () {
                     if !is_empty(app.user_selection) {
                         new_entity : *Entity = New(Point_Cloud_Entity);
 
-                        merge(new_entity.mesh, app.user_selection.mesh);
+                        merge(new_entity.mesh, app.user_selection.mesh); // nocommit Make this work properly, accounting for transforms etc
                         counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
                         set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
                         set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
@@ -1901,7 +1901,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     if annotation.kind == .BLOCK {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
-                        if ImGui.Button(imgui_label("Focus", xx *annotation)) {
+                        if ImGui.Button(imgui_label("Focus", xx annotation)) {
                             if annotation.kind == {
                                 case .TRIANGLE;
                                     item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);

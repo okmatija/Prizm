@@ -118,6 +118,7 @@ init_keymap :: () {
     add_key(*app.keymap, (unused)=>{toggle_current_selection_if_visible();}, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, (unused)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, (unused)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
+    // @FIXME Make these presets work with the alt key like the button
     add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
     // nocommit Make BooleanA F3!!

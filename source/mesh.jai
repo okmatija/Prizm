@@ -14,41 +14,63 @@ Mesh :: struct {
 // @Cleanup These functions should also consider the transform, or have _raw variants that don't
 // @Cleanup Add a points iterator that considers transforms
 
-TriangleTuplesIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+TriangleTupleIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
     assert(mesh.geometry_format == .TRIANGLES);
     assert(mesh.indices.count % 3 == 0);
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
-        `it := inline get_triangle_vertex_tuple(mesh, i);
+        `it := inline mesh_triangle_tuple(mesh, i);
         #insert (remove=#assert(false)) body;
     }
 }
 
-TrianglesIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+// Reserve the ambiguous name for this iterator which won't compile if used directly
+TriangleIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
     assert(mesh.geometry_format == .TRIANGLES);
     assert(mesh.indices.count % 3 == 0);
 
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
-        `it := inline get_triangle(mesh, i);
+        `it := inline mesh_triangle_hack(mesh, i, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
 
-Segment_Iterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
+ModelTriangleIterator :: #bake_arguments TriangleIterator(world_space=false);
+WorldTriangleIterator :: #bake_arguments TriangleIterator(world_space=true);
+
+// Reserve the ambiguous name for this iterator which won't compile if used directly
+SegmentIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
     assert(mesh.geometry_format == .LINES);
     assert(mesh.indices.count % 2 == 0);
 
     for i : 0..(mesh.indices.count/2)-1 {
         `it_index := i;
-        `it : Segment3 = inline get_segment3(mesh, i);
+        `it : Segment3 = inline mesh_segment3_hack(mesh, i, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
+
+ModelSegmentIterator :: #bake_arguments SegmentIterator(world_space=false);
+WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
+
+// Reserve the ambiguous name for this iterator which won't compile if used directly
+PointIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
+    #assert(flags == 0); // No options are supported
+
+    for point_model, point_index : mesh.positions {
+        `it_index := point_index;
+        `it : Vector3 = mesh_point_hack(mesh, point_index, world_space);
+        #insert (remove=#assert(false)) body;
+    }
+}
+
+ModelPointIterator :: #bake_arguments PointIterator(world_space=false);
+WorldPointIterator :: #bake_arguments PointIterator(world_space=true);
 
 // // @Incomplete see parshapes for a sample implementation
 // weld :: (mesh : Mesh) -> Mesh { }
@@ -59,6 +81,7 @@ Geometry_Format :: enum {
     POINTS;
     LINES;
     TRIANGLES;
+    // TETRAHEDRA; // @Think
 }
 
 to_nice_string :: (format : Geometry_Format, plural := false) -> string {
@@ -70,10 +93,42 @@ to_nice_string :: (format : Geometry_Format, plural := false) -> string {
     }
 }
 
-// @Cleanup _vertex_tuple is a weird postfix...
+// nocommit remove the _hack postfix
+
+/* @CompilerBug
+    E:/Dropbox/Prism/source/mesh.jai:82,66: Error: Internal compiler error: In #bake, we should be guaranteed to find an entry by this name, but we didn't.
+    
+        get_point_bake_arguments_proc :: #procedure_of_call get_point(Mesh.{}, 0, false);
+        get_point_model :: #bake_arguments get_point_bake_arguments_proc(world_space=false);
+        get_point_world :: #bake_arguments get_point_bake_arguments_proc(world_space=true);
+
+get_point :: (using mesh : Mesh, vid : int, $world_space : bool) -> Vector3 {
+    #if world_space {
+        return transform_point(world_from_model, positions[vid]);
+    }
+    return positions[vid];
+}
+
+get_point_bake_arguments_proc :: #procedure_of_call get_point(Mesh.{}, 0, false);
+get_point_model :: #bake_arguments get_point_bake_arguments_proc(world_space=false);
+get_point_world :: #bake_arguments get_point_bake_arguments_proc(world_space=true);
+*/
+
+mesh_point_hack :: inline (using mesh : Mesh, vid : int, $world_space : bool) -> Vector3 {
+    #if world_space {
+        return transform_point(world_from_model, positions[vid]);
+    }
+    return positions[vid];
+}
+
+mesh_point_model :: #bake_arguments mesh_point_hack(world_space=false);
+mesh_point_world :: #bake_arguments mesh_point_hack(world_space=true);
 
 
-get_segment3_vertex_tuple :: (mesh : Mesh, segment_index : int, $checked := false) -> Tuple2(u32) {
+
+
+
+mesh_segment3_tuple :: (mesh : Mesh, segment_index : int, $checked := false) -> Tuple2(u32) {
     #if checked assert(mesh.geometry_format == .LINES);
 
     i0 := mesh.indices[2 * xx segment_index + 0];
@@ -81,17 +136,22 @@ get_segment3_vertex_tuple :: (mesh : Mesh, segment_index : int, $checked := fals
     return inline make_Tuple2(i0, i1);
 }
 
-
-get_segment3 :: (mesh : Mesh, segment_index : int, $checked := false) -> Segment3 {
-    tuple := inline get_segment3_vertex_tuple(mesh, segment_index, checked);
+mesh_segment3_hack :: (mesh : Mesh, segment_index : int, $world_space : bool, $checked := false) -> Segment3 {
+    tuple := inline mesh_segment3_tuple(mesh, segment_index, checked);
 
     result : Segment3 = ---;
-    result.start = mesh.positions[tuple.component[0]]; 
-    result.end   = mesh.positions[tuple.component[1]]; 
+    result.start = mesh_point_hack(mesh, tuple.component[0], world_space); 
+    result.end   = mesh_point_hack(mesh, tuple.component[1], world_space); 
     return result;
 }
 
-get_triangle_vertex_tuple :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Tuple3(u32) {
+mesh_segment3_model :: #bake_arguments mesh_segment3_hack(world_space=false);
+mesh_segment3_world :: #bake_arguments mesh_segment3_hack(world_space=true);
+
+
+
+
+mesh_triangle_tuple :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Tuple3(u32) {
     #if checked assert(mesh.geometry_format == .TRIANGLES);
 
     i0 := mesh.indices[3 * xx triangle_index + 0];
@@ -100,16 +160,22 @@ get_triangle_vertex_tuple :: (using mesh : Mesh, triangle_index : int, $checked 
     return inline make_Tuple3(i0, i1, i2);
 }
 
-// Return the triangle in model space
-get_triangle :: (mesh : Mesh, triangle_index : int, $checked := false) -> Triangle3 {
-    tuple := inline get_triangle_vertex_tuple(mesh, triangle_index, checked);
+mesh_triangle_hack :: (mesh : Mesh, triangle_index : int, $world_space : bool, $checked := false) -> Triangle3 {
+    tuple := inline mesh_triangle_tuple(mesh, triangle_index, checked);
 
     result : Triangle3 = ---;
-    result.a = mesh.positions[tuple.component[0]];
-    result.b = mesh.positions[tuple.component[1]];
-    result.c = mesh.positions[tuple.component[2]];
+    result.a = mesh_point_hack(mesh, tuple.component[0], world_space);
+    result.b = mesh_point_hack(mesh, tuple.component[1], world_space);
+    result.c = mesh_point_hack(mesh, tuple.component[2], world_space);
     return result;
 }
+
+mesh_triangle_model :: #bake_arguments mesh_triangle_hack(world_space=false);
+mesh_triangle_world :: #bake_arguments mesh_triangle_hack(world_space=true);
+
+
+
+
 
 point_count :: (using mesh : Mesh) -> int {
     return mesh.positions.count;
@@ -136,6 +202,7 @@ element_count :: (using mesh : Mesh) -> int {
 // }
 
 // Iterates over all triangles, computes the triangle normal and assigns it to the vertices
+// - The normals will be in model space
 // - Vertices which are referenced by more than one triangle, will be given the normal of the triangle with the largest triangle index
 // - Vertices which are not referenced by any triangles will be assigned [0,0,0] as the normal
 compute_vertex_normals_from_triangles :: (mesh : *Mesh) -> bool, string {
@@ -149,7 +216,7 @@ compute_vertex_normals_from_triangles :: (mesh : *Mesh) -> bool, string {
         // Points not referenced by any triangle are assigned zero normals
         array_resize(*mesh.normals, mesh.positions.count, initialize=true);
 
-        for :TriangleTuplesIterator tt : mesh {
+        for :TriangleTupleIterator tt : mesh {
             if tt.i < mesh.positions.count && tt.i < mesh.positions.count && tt.i < mesh.positions.count {
                 tri : Triangle3 = ---;
                 tri.a = mesh.positions[tt.i];
@@ -194,6 +261,7 @@ deinit :: (using mesh : *Mesh) {
     mesh = null;
 }
 
+// nocommit Make sure to account for transforms!
 merge :: (dst : Mesh, src : Mesh) {
     poffset := dst.positions.count;
     toffset := dst.indices.count;
@@ -219,6 +287,7 @@ merge :: (dst : Mesh, src : Mesh) {
     }
 }
 
+// nocommit Add a $world_space argument
 bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {
     box : AxisBox3;
     for * mesh.positions {
@@ -227,6 +296,7 @@ bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {
     return box;
 }
 
+// nocommit Add a $world_space argument. WTF is the transform argument??
 bounding_box :: (using mesh : Mesh, transform : Matrix4) -> AxisBox3 #must {
     box : AxisBox3;
     for point_model : mesh.positions {
@@ -236,6 +306,7 @@ bounding_box :: (using mesh : Mesh, transform : Matrix4) -> AxisBox3 #must {
     return box;
 }
 
+// nocommit This transform should just update world_from_model???
 transform :: (using mesh : *Mesh, transform : Matrix4) {
     if !mesh return;
 

@@ -15,6 +15,7 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - Consider a naming convention init_Type_Name makes it easier to find the function?
 - Consider a naming convention new_Type_Name for functions which internally call New(Type_Name) and init_Type_Name
 - Consider a naming convention make_Type_Name for functions which return a copy of a struct?
+- init(thing : *Thing)/deinit(thing : *Thing) functions should work on stack instances as well as values on the head. Hence they shouldn't call free. Look up what New does (allocate, init, cast?), we want a placement new type thing
 
 
 # Release process
@@ -25,7 +26,7 @@ From the top-level project directory do the following:
 
 1. Update `changelog.jai` with the release date
 2. Disable the runtime console and compile using: `jai build.jai -- release`
-3. Test everything works
+3. Test everything works. Include a test with a large (>200MB) file. Maybe reproduce the steps in the preset tooltips
 4. Copy the top-level directory and rename it `Prism-X.Y.Z`
 5. Delete the .git, data, source folder and other folders/files not to be distributed
 6. Zip the release folder

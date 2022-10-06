@@ -1,5 +1,5 @@
 //
-// Polyline.
+// Polyline. Note: no concept of model/world space here
 //
 
 Polyline :: struct ($Point : Type)
@@ -35,7 +35,7 @@ bounding_box :: (using polyline : $T/Polyline) -> AxisBox(T.Point) #must {
 }
 
 //
-// Polyline Soup.
+// Polyline Soup. Note: no concept of model/world space here
 //
 
 Polyline_Soup :: struct ($Point : Type)
@@ -93,6 +93,7 @@ point_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
+// nocommit rename to polyline_point
 get_point ::  (using polyline_soup : $T/Polyline_Soup, global_index : int) -> T.Point {
     running_count : int = 0;
     for polyline : polyline_soup.polylines {
@@ -101,7 +102,7 @@ get_point ::  (using polyline_soup : $T/Polyline_Soup, global_index : int) -> T.
         }
         running_count += polyline.points.count;
     }
-    log_error("Error in get_point function");
+    log_error("Error in '%' function", #procedure_name());
     return .{}; // Should never reach here
 }
 
@@ -113,6 +114,7 @@ segment_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
+// nocommit rename to PolylinePointIterator
 Point_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
     `it_index := -1;
@@ -133,7 +135,7 @@ Point_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flag
 
 // @Speed This is horribly inefficient!
 get_segment :: (using polyline_soup : $T/Polyline_Soup, query_index : int) -> found : bool #must, segment : Edge(T.Point) {
-    for :SegmentIterator segment, segment_index : polyline_soup {
+    for :PolylineSegmentIterator segment, segment_index : polyline_soup {
         if segment_index == query_index {
             return true, segment;
         }
@@ -141,7 +143,7 @@ get_segment :: (using polyline_soup : $T/Polyline_Soup, query_index : int) -> fo
     return false, .{};
 }
 
-SegmentIterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
+PolylineSegmentIterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported.
 
     `it_index := -1;

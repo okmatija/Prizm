@@ -130,7 +130,7 @@ deinit :: (tree : *$T/AABB_Tree) {
 }
 
 // @CompilerBug We need to pass a pointer to the tree here due to a bug??
-Visit_Primitives_Intersecting_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
+VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 {
         return;
     }
@@ -236,7 +236,7 @@ Visit_Primitives_Near_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distanc
             for 0..node.range.count-1 {
 
                 `primitive_id := tree.primitive_info[node.range.first + it].primitive_id;
-                `primitive := get_primitive(tree, primitive_id);
+                `primitive := get_primitive(tree, primitive_id); // Model space
                 #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
 
             }

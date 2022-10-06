@@ -19,6 +19,10 @@ compute_normal :: inline (t : Triangle3, $normalize : bool = true) -> Vector3 {
     }
 }
 
+compute_centroid :: inline (t : Triangle3) -> Vector3 {
+    return (t.a + t.b + t.c) / 3;
+}
+
 
 make_sphere :: (center : Point3, radius : float) -> Sphere {
     result : Sphere = ---;
@@ -144,6 +148,10 @@ expand :: (using box : *AxisBox3, triangle : Triangle3) {
     expand(box, triangle.a);
     expand(box, triangle.b);
     expand(box, triangle.c);
+}
+
+centroid :: inline (segment : Segment3) -> Vector3 {
+    return (segment.start + segment.end) / 2;
 }
 
 #scope_file

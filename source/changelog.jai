@@ -1,3 +1,4 @@
+// TODO address the nocommits added during the world_from_model audit
 // TODO truncated strings in the BLOCK annotations list, with a tooltip showing the full thing
 // TODO Fix BS that happens when the item has a non-identity transform
 // TODO Update the help menu
@@ -39,12 +40,12 @@ PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
 - Changes to preset shapes:
 
   - Multiple instances of the same preset are generated with different names and hence colors.
-  - TODO By default a random shifting transform is also applied, the position can be fixed by holding Alt when you press the preset button/hotkey
+  - Added a random shift transform when presets are added, the transform can be set to identity by holding Alt when adding the preset via the button (not the hotkey!)
   - Disabled reloading of preset shapes for code architecture reasons, will re-enable this functionality in a future version
 
 - Removed the limit on degree of zoom by changing the default value of `Options > Advanced > camera_zoom_min_screen_filling_length_mm` from 0.0001 to 0.0
 - Improved UX when enabling visibility on previously hidden triangle/segment/point-based geometry which had triangles/segments/points not visible, enabling item visibility also enables visibility of the primary geometric primitive (triangles/segments/points)
-- TODO Fixed `item_focus_vertex`, `item_focus_segment`, `item_focus_triangle` and `item_find_open_edges` which previously ignored world_from_model transforms
+- Fixed `item_focus_vertex`, `item_focus_segment`, `item_focus_triangle` and `item_find_open_edges` so they work for items with non-identity world_from_model transforms
 DONE
 };
 

@@ -49,7 +49,7 @@ debug_fake_annotations :: (id : int) {
         array_add(*item.vertex_annotations, annotation);
     }
 
-    for :TrianglesIterator item.mesh {
+    for :TriangleTupleIterator item.mesh {
         annotation : Annotation;
         annotation.kind = .TRIANGLE;
         set(*annotation.value, random_get_zero_to_one());
@@ -353,7 +353,7 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
             return;
         }
 
-        segment := get_segment3(segment_soup3.shape, segment_index);
+        segment := mesh_segment3_model(segment_soup3.shape, segment_index);
         sphere.center = (segment.start + segment.end) / 2;
         sphere.radius = 2 * distance(segment.start, segment.end);
 
@@ -410,18 +410,15 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
         return;
     }
 
-    tri := get_triangle(entity.mesh, triangle_index, true);
-    tri.a = transform_point(entity.mesh.world_from_model, tri.a);
-    tri.b = transform_point(entity.mesh.world_from_model, tri.b);
-    tri.c = transform_point(entity.mesh.world_from_model, tri.c);
+    tri_world : Triangle3 = mesh_triangle_world(entity.mesh, triangle_index);
 
     sphere : Sphere;
-    sphere.center = (tri.a + tri.b + tri.c) / 3;
+    sphere.center = compute_centroid(tri_world);
 
     if clip_radius <= 0 {
-        sphere.radius = distance(sphere.center, tri.a);
-        sphere.radius = max(sphere.radius, distance(sphere.center, tri.b));
-        sphere.radius = max(sphere.radius, distance(sphere.center, tri.c));
+        sphere.radius = distance(sphere.center, tri_world.a);
+        sphere.radius = max(sphere.radius, distance(sphere.center, tri_world.b));
+        sphere.radius = max(sphere.radius, distance(sphere.center, tri_world.c));
         sphere.radius *= 2;
     } else {
         sphere.radius = clip_radius;
@@ -559,7 +556,7 @@ item_find_open_edges :: (id : int) {
         return;
     }
 
-    for :TriangleTuplesIterator mesh {
+    for :TriangleTupleIterator mesh {
         Process_Edge :: (i : u32, j : u32) #expand {
             edge := make_Tuple2(i, j);
             value, found := table_find(*edge_to_origin, edge);
@@ -585,10 +582,12 @@ item_find_open_edges :: (id : int) {
     segment_soup : Polyline_Soup3; // nocommit Make this a segment soup
     for origin, edge : edge_to_origin {
         segment := array_add(*segment_soup.polylines);
-        array_add(*segment.points, mesh.positions[edge.x]);
-        array_add(*segment.points, mesh.positions[edge.y]);
+        // Copy model space coordinates because the transform is encoded separately
+        array_add(*segment.points, mesh_point_model(mesh, edge.x));
+        array_add(*segment.points, mesh_point_model(mesh, edge.y));
     }
     new_mesh : Mesh = to_Mesh(segment_soup);
+    new_mesh.world_from_model = mesh.world_from_model;
 
     assert(app.console.history.count > 0);
 
@@ -654,7 +653,7 @@ item_perturb_positions :: (id : int, radius : float = .001) {
             for * :Point_Iterator point : entity.shape {
                 Perturb2(point);
             }
-            entity.mesh = to_Mesh(entity.shape);
+            entity.mesh = to_Mesh(entity.shape); // @Leak?
         case .POLYGON_SOUP;
             entity := cast(*Polygon_Soup_Entity)base;
             for polygon : entity.shape.polygons {
@@ -662,13 +661,13 @@ item_perturb_positions :: (id : int, radius : float = .001) {
                     Perturb2(point);
                 }
             }
-            entity.mesh = to_Mesh(entity.shape);
+            entity.mesh = to_Mesh(entity.shape); // @Leak?
         case .POLYLINE_SOUP3;
             entity := cast(*Polyline_Soup3_Entity)base;
             for * :Point_Iterator point : entity.shape {
                 Perturb3(point);
             }
-            entity.mesh = to_Mesh(entity.shape);
+            entity.mesh = to_Mesh(entity.shape); // @Leak?
         case .SEGMENT_SOUP3; #through;
         case .POINT_CLOUD;   #through;
         case .MESH;

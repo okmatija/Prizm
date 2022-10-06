@@ -2,11 +2,11 @@
 // AABB_Tree(Mesh) implementation
 
 get_primitive :: (tree : AABB_Tree(Mesh), triangle_index : int) -> Triangle3 {
-    return inline get_triangle(tree.shape, triangle_index);
+    return inline mesh_triangle_model(tree.shape, triangle_index);
 }
 
 get_primitive_center :: (triangle : Triangle3) -> Vector3 {
-    return (triangle.a + triangle.b + triangle.c) / 3.;
+    return compute_centroid(triangle);
 }
 
 get_primitive_aabb :: (triangle : Triangle3) -> AxisBox3 {
