@@ -579,7 +579,7 @@ item_find_open_edges :: (id : int) {
     }
 
     // Collect the segment soup @Incomplete weld/stitch polyline segments together
-    segment_soup : Polyline_Soup3; // nocommit Make this a segment soup
+    segment_soup : Polyline_Soup3; // @Cleanup Make this a segment soup
     for origin, edge : edge_to_origin {
         segment := array_add(*segment_soup.polylines);
         // Copy model space coordinates because the transform is encoded separately
@@ -598,10 +598,10 @@ item_find_open_edges :: (id : int) {
     set_entity_display_info(new_entity, new_mesh.geometry_format);
     new_entity.shape = segment_soup;
 
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // nocommit fishy, why do we do this
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
     new_entity.display_info.wireframe_width = 3;
 
-    // Set generation_index before adding to overwrite the correct entity // nocommit fishy
+    // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     new_entity.generation_index = app.entities[id].generation_index;
     add_entity(new_entity, .OVERWRITE);
 
@@ -837,7 +837,7 @@ make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : 
     set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
     new_entity.shape = shape;
 
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // nocommit fishy, why?
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why?
 
     // Set generation_index before adding to overwrite the correct entity
     new_entity.generation_index = 0;

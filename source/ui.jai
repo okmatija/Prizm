@@ -441,142 +441,141 @@ show_options :: () {
 
 }
 
-// nocommit Remove one level of indent here
 show_selection_ui :: () {
-        // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+    // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
 
-        // Selection Mode UI
-        if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
-            defer ImGui.EndTable();
+    // Selection Mode UI
+    if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
+        defer ImGui.EndTable();
 
-            it := *app.user_selection; // nocommit @Cleanup remove this
+        it := *app.user_selection; // @Cleanup remove this weird alias
 
-            ImGui.TableNextRow();
+        ImGui.TableNextRow();
 
-            // Remove button
-            ImGui.TableNextColumn();
-            {
-                disable_cache_button := is_empty(app.user_selection);
-                if disable_cache_button       ImGui.BeginDisabled();
-                defer if disable_cache_button ImGui.EndDisabled();
+        // Remove button
+        ImGui.TableNextColumn();
+        {
+            disable_cache_button := is_empty(app.user_selection);
+            if disable_cache_button       ImGui.BeginDisabled();
+            defer if disable_cache_button ImGui.EndDisabled();
 
-                if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
-                    if !is_empty(app.user_selection) {
-                        new_entity : *Entity = New(Point_Cloud_Entity);
+            if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
+                if !is_empty(app.user_selection) {
+                    new_entity : *Entity = New(Point_Cloud_Entity);
 
-                        merge(new_entity.mesh, app.user_selection.mesh); // nocommit Make this work properly, accounting for transforms etc
-                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
-                        set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
-                        set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
-                        counter.count += 1;
+                    merge(new_entity.mesh, app.user_selection.mesh); // @FIXME Make this work properly, accounting for transforms etc
+                    counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
+                    set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
+                    set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+                    counter.count += 1;
 
-                        add_entity(new_entity, app.settings.duplicate_file_behaviour);
+                    add_entity(new_entity, app.settings.duplicate_file_behaviour);
 
-                        deinit(*app.user_selection);
+                    deinit(*app.user_selection);
 
-                        log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
-                    } else {
-                        log("Point Selection caching omitted: Point Selection is empty");
-                    }
-                }
-                Show_Tooltip("Adds a new item based on this selection\nand resets the Point Selection");
-            }
-
-            // Color selection
-            {
-                ImGui.TableNextColumn();
-                if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
-                    // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
-                    it.display_info.vertex_label_style.label_color = darken(it.display_info.points_color, .8);
+                    log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
+                } else {
+                    log("Point Selection caching omitted: Point Selection is empty");
                 }
             }
-
-            // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
-            {
-                ImGui.TableNextColumn();
-                visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
-                Show_Tooltip("If enabled Ctrl LMB selects points");
-                // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
-            }
-
-            ImGui.TableNextColumn();
-            ImGui.Text("Point Selection");
-            if it.display_info.is_visible {
-                bindings : [..]Binding_With_Description;
-                bindings.allocator = temp;
-                array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
-                array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
-                array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
-                array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
-                Show_Tooltip_Binding(..bindings);
-            } else {
-                Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
-            }
-            if ImGui.IsItemClicked() && is_empty(it) == false {
-                fit_on_screen(it);
-            }
-            was_hovered := it.is_hovered;
-            it.is_hovered = ImGui.IsItemHovered();
-            if it.is_hovered {
-                it.display_info.flash_wave_dt += io().DeltaTime;
-            } else if was_hovered {
-                it.display_info.flash_wave_dt = 0;
-            }
-
-            current_pos := ImGui.GetWindowPos();
-            current_size := ImGui.GetWindowSize();
-            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
-            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-            
-            // Set popup border color to match the selection/RMB target item color
-            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-            if ImGui.BeginPopupContextItem(imgui_label("##selection_context_menu", it)) {
-                defer ImGui.EndPopup();
-
-                // Undo the previous thing so internals don't have this color
-                ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-                // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
-                // ImGui.SameLine();
-                // ImGui.PushItemWidth(70);
-                // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
-                // ImGui.PopItemWidth();
-                // Show_Tooltip("Opacity");
-
-                vertex_label_style := *it.display_info.vertex_label_style;
-
-                ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
-                ImGui.SameLine();
-                ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                ImGui.InputInt("Point size", *it.display_info.points_size);
-                it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
-
-                trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
-                ImGui.InputInt("Float decimals", *trailing_width);
-                vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
-                Show_Tooltip("Number of digits following the decimal point");
-
-                combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
-                ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
-
-                ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
-                Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
-                ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
-                ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
-
-                ImGui.Separator();
-
-                ImGui.Text("#points = %", it.mesh.positions.count);
-
-                maybe_update_render_info(*it.render_info, *it.mesh);
-                aabb := it.render_info.bounding_aabb;
-                imgui_text_for_aabb(it.render_info.bounding_aabb);
-            }
-
-            ImGui.TableNextRow();
-            ImGui.TableNextColumn();
+            Show_Tooltip("Adds a new item based on this selection\nand resets the Point Selection");
         }
+
+        // Color selection
+        {
+            ImGui.TableNextColumn();
+            if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
+                // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
+                it.display_info.vertex_label_style.label_color = darken(it.display_info.points_color, .8);
+            }
+        }
+
+        // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
+        {
+            ImGui.TableNextColumn();
+            visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
+            Show_Tooltip("If enabled Ctrl LMB selects points");
+            // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
+        }
+
+        ImGui.TableNextColumn();
+        ImGui.Text("Point Selection");
+        if it.display_info.is_visible {
+            bindings : [..]Binding_With_Description;
+            bindings.allocator = temp;
+            array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
+            array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
+            array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
+            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
+            Show_Tooltip_Binding(..bindings);
+        } else {
+            Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
+        }
+        if ImGui.IsItemClicked() && is_empty(it) == false {
+            fit_on_screen(it);
+        }
+        was_hovered := it.is_hovered;
+        it.is_hovered = ImGui.IsItemHovered();
+        if it.is_hovered {
+            it.display_info.flash_wave_dt += io().DeltaTime;
+        } else if was_hovered {
+            it.display_info.flash_wave_dt = 0;
+        }
+
+        current_pos := ImGui.GetWindowPos();
+        current_size := ImGui.GetWindowSize();
+        window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
+        ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+        
+        // Set popup border color to match the selection/RMB target item color
+        original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
+        if ImGui.BeginPopupContextItem(imgui_label("##selection_context_menu", it)) {
+            defer ImGui.EndPopup();
+
+            // Undo the previous thing so internals don't have this color
+            ScopedPopupBorderTheme(original_border_color, original_border_size);
+
+            // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
+            // ImGui.SameLine();
+            // ImGui.PushItemWidth(70);
+            // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
+            // ImGui.PopItemWidth();
+            // Show_Tooltip("Opacity");
+
+            vertex_label_style := *it.display_info.vertex_label_style;
+
+            ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
+            ImGui.SameLine();
+            ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.InputInt("Point size", *it.display_info.points_size);
+            it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
+
+            trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
+            ImGui.InputInt("Float decimals", *trailing_width);
+            vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
+            Show_Tooltip("Number of digits following the decimal point");
+
+            combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
+            ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
+
+            ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
+            Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
+            ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
+            ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
+
+            ImGui.Separator();
+
+            ImGui.Text("#points = %", it.mesh.positions.count);
+
+            maybe_update_render_info(*it.render_info, *it.mesh);
+            aabb := it.render_info.bounding_aabb;
+            imgui_text_for_aabb(it.render_info.bounding_aabb);
+        }
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+    }
 }
 
 ScopedPopupBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
@@ -2094,6 +2093,7 @@ FADE_TIME_SECS :: 1.;
 
 #scope_export // @CompilerBug without this scope_export the line below errors!
 ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
+ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
 
 // ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
 // This stuct stores stuff we need to remember to use in the next render frame

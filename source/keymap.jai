@@ -257,7 +257,7 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     assert(result.source == .FILE_ON_DISK); // because we loaded a file
     free(result.fully_pathed_name);
 
-    // nocommit @Cleanup use:
+    // @Cleanup use:
     // set_entity_source_from_preset(new_entity, tprint("% %", "Points", counter.count), null, point_count(app.user_selection));
     // set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
 

@@ -93,7 +93,7 @@ to_nice_string :: (format : Geometry_Format, plural := false) -> string {
     }
 }
 
-// nocommit remove the _hack postfix
+// @Cleanup remove the _hack postfix
 
 /* @CompilerBug
     E:/Dropbox/Prism/source/mesh.jai:82,66: Error: Internal compiler error: In #bake, we should be guaranteed to find an entry by this name, but we didn't.
@@ -261,7 +261,7 @@ deinit :: (using mesh : *Mesh) {
     mesh = null;
 }
 
-// nocommit Make sure to account for transforms!
+// @FIXME Make sure to account for transforms!
 merge :: (dst : Mesh, src : Mesh) {
     poffset := dst.positions.count;
     toffset := dst.indices.count;
@@ -287,7 +287,7 @@ merge :: (dst : Mesh, src : Mesh) {
     }
 }
 
-// nocommit Add a $world_space argument
+// @FIXME Add a $world_space argument
 bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {
     box : AxisBox3;
     for * mesh.positions {
@@ -296,7 +296,7 @@ bounding_box :: (using mesh : Mesh) -> AxisBox3 #must {
     return box;
 }
 
-// nocommit Add a $world_space argument. WTF is the transform argument??
+// @FIXME Add a $world_space argument. WTF is the transform argument??
 bounding_box :: (using mesh : Mesh, transform : Matrix4) -> AxisBox3 #must {
     box : AxisBox3;
     for point_model : mesh.positions {
@@ -306,7 +306,7 @@ bounding_box :: (using mesh : Mesh, transform : Matrix4) -> AxisBox3 #must {
     return box;
 }
 
-// nocommit This transform should just update world_from_model???
+// @FIXME This transform should just update world_from_model???
 transform :: (using mesh : *Mesh, transform : Matrix4) {
     if !mesh return;
 

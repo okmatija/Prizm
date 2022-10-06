@@ -93,7 +93,7 @@ point_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
-// nocommit rename to polyline_point
+// @Refactor rename to polyline_point
 get_point ::  (using polyline_soup : $T/Polyline_Soup, global_index : int) -> T.Point {
     running_count : int = 0;
     for polyline : polyline_soup.polylines {
@@ -114,7 +114,7 @@ segment_count :: (using polyline_soup : $T/Polyline_Soup) -> int {
     return count;
 }
 
-// nocommit rename to PolylinePointIterator
+// @Refactor rename to PolylinePointIterator
 Point_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flags) #expand {
     BY_POINTER :: cast(bool)(flags & .POINTER);
     `it_index := -1;

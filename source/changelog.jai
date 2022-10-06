@@ -1,5 +1,5 @@
-// TODO Add known issues: Include that sphere clipping does not work on point clouds. Use a FixVersion tag to note which version fixed the bug. So you can find regressions more easily
-// TODO address the nocommits added during the world_from_model audit
+// TODO Add a lightmode and make it the default
+// TODO Add known issues: Include that sphere clipping does not work on point clouds
 // Update the compiler and report the compiler bugs, including the one with find_or_add posted on the discord
 // TODO truncated strings in the BLOCK annotations list, with a tooltip showing the full thing
 // TODO Update the help menu
@@ -47,6 +47,7 @@ PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
 
 - Changes to preset shapes:
 
+  - Added two new preset shapes representing failed booleans courtesy of Jimmy Andrews, load them with F3 and F4, they have been annotated to function as a kind of Prism tutorial
   - Multiple instances of the same preset are generated with different names and hence colors.
   - Added a random shift transform when presets are added, the transform can be set to identity by holding Alt when adding the preset via the button (not the hotkey!)
   - Disabled reloading of preset shapes for code architecture reasons, will re-enable this functionality in a future version

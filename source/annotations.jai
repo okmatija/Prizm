@@ -1,5 +1,5 @@
 Annotation :: struct {
-    // nocommit @Cleanup Remove kind because we sort this out by storing annotations in separate containers
+    // @Cleanup Remove kind because we sort this out by storing annotations in separate containers
     Kind :: enum_flags {
         VERTEX;
         LINE;

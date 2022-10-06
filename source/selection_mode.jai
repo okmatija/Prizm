@@ -1,4 +1,5 @@
 // @TODO Separate clipping mode
+// @Refactor @Cleanup Clarify the variables in world/model space here by adding postfixes
 
 do_clip_radius_mode :: (clicked : bool = false) -> bool {
     if ImGui.IsMouseClicked(.Left) assert(ImGui.IsMouseDown(.Left));

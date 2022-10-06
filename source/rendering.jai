@@ -146,7 +146,7 @@ Display_Info :: struct {
 
     aabb_visible := false; @NoSync
 
-    // World space nocommit Verify this is how its computed!
+    // These are all in world space
     clip_ranges : [3]Clip_Range;
     clip_ranges[0] = .{normal=.{1,0,0}};
     clip_ranges[1] = .{normal=.{0,1,0}};
@@ -630,7 +630,8 @@ render_entities :: () {
         projection_from_world := make_projection_from_world(app.camera);
         projection_from_model := projection_from_world * entity.mesh.world_from_model;
 
-        // nocommit Use a macro to implement the option to render text in model/world coordinates. Model is probably mostly useful for 2D shapes? @Incomplete Add option to render points in world coordinates?
+        // @Incomplete Use a macro to implement the option to render text in model/world coordinates. Model is probably mostly useful for 2D shapes?
+        // @Incomplete Add option to render points in world coordinates?
 
         if #complete entity.type == {
             case .UNKNOWN;
@@ -652,7 +653,7 @@ render_entities :: () {
                 }
 
                 if is_visible(element_theme) for :PolylineSegmentIterator soup.shape {
-                    // nocommit Use centroid(Edge) here
+                    // @Cleanup Use centroid(Edge) here
                     point_model : Vector3 = make_vector3((<<it.from_point + <<it.to_point) / 2, 0);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     if is_clipped(entity.display_info, point_world) continue;

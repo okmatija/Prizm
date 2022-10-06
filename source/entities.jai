@@ -84,7 +84,7 @@ Entity :: struct {
     creation_size : s64;
 
     // This gets set when we add the entity to app.entities, and makes sense only in that context (I think)
-    generation_index : int; // nocommit delete this incorrect comment: entities with the same 'fully_pathed_name' will increment this
+    generation_index : int; // @Cleanup delete this incorrect comment: entities with the same 'fully_pathed_name' will increment this
 }
 
 SELECTION_FOLDER :: "Selections";
@@ -96,7 +96,7 @@ COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 Polyline_Soup2_Entity :: struct {
     #as using base : Entity;
     type = .POLYLINE_SOUP2;
-    display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // nocommit ditto these are probably all ignored @Cleanup put colors in app.jai
+    display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // @Cleanup put colors in app.jai
 
     Shape :: Polyline_Soup2;
     shape : Shape;
@@ -139,7 +139,7 @@ Point_Cloud_Entity :: struct {
     #as using base : Entity;
     type = .POINT_CLOUD;
 
-    // nocommit Probably we want to remove these base initializers
+    // @Cleanup Probably we want to remove these base initializers
     display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
     mesh.geometry_format = .POINTS;
 
@@ -750,12 +750,12 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     if (has_degenerate_triangles) {
         for :Visible_Selectable_Mesh entity, entity_index : app.entities {
 
-            // nocommit This should be WorldTriangleEdgeIterator
+            // FIXME This should be WorldTriangleEdgeIterator
             for i : 0..(entity.mesh.indices.count/3)-1 {
 
                 triangle : Triangle3 = mesh_triangle_world(entity.mesh, i);
 
-                // nocommit Make this the canonical way to number triangle edges, put it in a function. We need this for edge annotations
+                // FIXME Make this the canonical way to number triangle edges, put it in a function. We need this for edge annotations
                 segment3 : Segment3 = ---;
                 if triangle.a == triangle.b {
                     segment3.start = triangle.a;
@@ -909,7 +909,7 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
     defer free(contents);
 
     result : *Entity = load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
-    // nocommit check the directory has been set correctly here?
+    // @Incomplete check the directory has been set correctly here?
 
     return result;
 }
@@ -1063,7 +1063,7 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
 
         case .POINTS;
 
-            entity.display_info.surface_visible = true; // nocommit What the heck??
+            entity.display_info.surface_visible = true; // @Cleanup What the heck??
             entity.display_info.points_visible = true;
             entity.display_info.points_size = 4;
             entity.display_info.points_color = primary_color;
@@ -1081,7 +1081,7 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
     }
 }
 
-// nocommit Maybe this should also take the shape and set that (will set the mesh twice if T == Mesh_Entity, but that's fine)
+// Maybe this should also take the shape and set that (will set the mesh twice if T == Mesh_Entity, but that's fine)
 init_entity_spatial_index :: (entity : *$T/Entity) {
     assert(entity != null);
     entity.spatial = New(AABB_Tree(T.Shape));
@@ -1126,7 +1126,7 @@ init :: (using base : *Entity, set_source : $T/Entity_Source, geometry_format : 
 
         case .POINTS;
 
-            display_info.surface_visible = true; // nocommit huh??
+            display_info.surface_visible = true; // @Cleanup Why is this here??
             display_info.points_visible = true;
             display_info.points_size = 2;
             display_info.points_color = primary_color;

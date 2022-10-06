@@ -10,6 +10,7 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - Using a single space between an identifier and the :: or : and don't use backslashes in identifiers. This convention is intended to make searching easier. If explicit types are used use single spaces ie : Type =
 - But to improve readability avoid using := for assignments unless the type can be trivially inferred from the context (unfortunately there is a lot of code that doesn't do this, but it can be gradually fixed). Note that with explicit types its a bit harder to search for declarations (unless you also know the type)
 - Naming convention: function_names, Structs_And_Types, MacroNames, COMPILE_TIME_CONSTANTS (including enum names)
+- Naming convention: Use _model/_world postfix for geometry in model/world space
 - Consider using a g_ prefix for global variables
 - Consider using a t_ prefix for variables in temporary storage e.g., functions returning strings in temporary storage, or maybe _t postfix for functions returning results in temporary storage
 - Consider a naming convention init_Type_Name makes it easier to find the function?

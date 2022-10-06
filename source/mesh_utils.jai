@@ -37,7 +37,7 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh {
 to_Polyline_Soup2 :: #bake_arguments to_Polyline_Soup(Point = Vector2);
 to_Polyline_Soup3 :: #bake_arguments to_Polyline_Soup(Point = Vector3);
 
-// nocommit @Refactor This should assert some pre-conditions and then never fail, it should not be called (in the obj loading function if the preconditions aren't met)
+// @Cleanup @Refactor This should assert some pre-conditions and then never fail, it should not be called (in the obj loading function if the preconditions aren't met)
 to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #must {
     result : Polyline_Soup(Point);
     ok : bool;

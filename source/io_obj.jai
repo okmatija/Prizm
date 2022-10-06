@@ -296,13 +296,13 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
             #if false {
 
-                // nocommit @Incomplete make Segment_Soup2
+                // @FIXME make Segment_Soup2
 
-            } else { // nocommit Only call this if convert_to_polyline_soup function
+            } else { // @FIXME Only call this if convert_to_polyline_soup function
 
                 result = New(Polyline_Soup2_Entity);
                 e := cast(*Polyline_Soup2_Entity)result;
-                e.shape, ok = to_Polyline_Soup2(mesh); // nocommit This conversion should always succeed (have a separate convertible_to_Polyline_Soup2 function)
+                e.shape, ok = to_Polyline_Soup2(mesh); // @Cleanup This conversion should always succeed (have a separate convertible_to_Polyline_Soup2 function)
                 if !ok {
                     deinit(*e.shape);
                     return null;
@@ -313,7 +313,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 init_entity_spatial_index(cast(*Polyline_Soup2_Entity)result);
 
                 if entity_annotation_count(annotation_entity) {
-                    // FIXME Fixup annotation id numbering to sync with polyline soup conversion
+                    // @Incomplete Fixup annotation id numbering to sync with polyline soup conversion
                     log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
                     deinit(*annotation_entity);
                 }
@@ -330,7 +330,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 set_entity_display_info(result, mesh.geometry_format);
                 // init_entity_spatial_index(cast(*Segment_Soup3_Entity)result); // @Incomplete
 
-            } else { // nocommit Only call this if convert_to_polyline_soup function
+            } else { // @FIXME Only call this if convert_to_polyline_soup function
 
                 result = New(Polyline_Soup3_Entity);
                 result.mesh = mesh;
