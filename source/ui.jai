@@ -1076,7 +1076,7 @@ show_camera_controls :: () {
 
     using ImGui.WindowFlags;
 
-    ImGui.PushStyleColor(xx ImGui.Col.Border, .{0, 0, 0, 1});
+    ImGui.PushStyleColor(xx ImGui.Col.Border, app.theme.camera_ui_button_border_color);
     defer ImGui.PopStyleColor();
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});

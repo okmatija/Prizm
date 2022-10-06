@@ -15,6 +15,7 @@ Prism_Theme :: struct {
     item_list_border_size : float = BORDER_SIZE;
     camera_ui_border_color : Vector4 = NICE_GREY;
     camera_ui_border_size : float = BORDER_SIZE;
+    camera_ui_button_border_color : Vector4 = .{110./255, 110./255, 128./255, 128./255};
 }
 
 Prism_Theme_Light :: struct {
@@ -29,6 +30,7 @@ Prism_Theme_Dark :: struct {
     keymap_color = NICE_YELLOW;
     changelog_color = NICE_YELLOW;
     console_interactive_text_color = WHITE;
+    camera_ui_button_border_color = BLACK;
 }
 
 RED   :: ImGui.ImVec4.{1., 0., 0., 1.};
@@ -37,7 +39,7 @@ BLUE  :: ImGui.ImVec4.{0., 0., 1., 1.};
 BLACK :: ImGui.ImVec4.{0., 0., 0., 1.};
 WHITE :: ImGui.ImVec4.{1., 1., 1., 1.};
 NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
-NICE_BLUE :: ImGui.ImVec4.{40/255., 128/255., 221/255., 1};
+NICE_BLUE :: BLUE; // ImGui.ImVec4.{216/255., 109/255., 48/255., 1};
 NICE_GREY :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
 
 // Junk

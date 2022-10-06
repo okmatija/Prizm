@@ -1,14 +1,4 @@
-// TODO Add a lightmode and make it the default
-// TODO Add known issues: Include that sphere clipping does not work on point clouds
-// Update the compiler and report the compiler bugs, including the one with find_or_add posted on the discord
-// TODO truncated strings in the BLOCK annotations list, with a tooltip showing the full thing
-// TODO Update the help menu
-// TODO When you rotate the viewport that should not affect the cursor position for labeling! Its totally annoying to lose the label because you're rotating
-// TOOD Move AABB into base and make it work on the mesh only
-// TODO think about how to handle transforms with Polylines, the mesh.world_from_model transform is relevant but gets RE how to keep the .shape synced with .mesh and also 2D vs 3D
-
-
-PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "WIP", #string DONE
+PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "6 October 2022", #string DONE
 - Improvements to Annotations:
 
   - Moved annotations into a separate "Annotations" tab in the item context menu
