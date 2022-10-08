@@ -11,7 +11,7 @@ Don't remove leading spaces from BLOCK type annotations, so that formatting is b
 */
 
 ISSUE_005 :: "The .obj loader interprets face directives 'i//j' and 'i/j/k' as 'i//i' and 'i/i/i' e.g., 'f 4//1 5//2 6//3' is loaded as if it were 'f 4//4 5//5 6//6'. Will fix soon."; @KnownIssue
-ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
+//ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
 ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix soon."; @KnownIssue
 
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
@@ -40,12 +40,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
     mesh : Mesh;
     annotation_entity : Entity;
-
-    // @Cleanup nocommit Use the new using,only feature here
-    block_annotations := annotation_entity.block_annotations;
-    vertex_annotations := annotation_entity.vertex_annotations;
-    face_annotations := annotation_entity.face_annotations;
-    line_annotations := annotation_entity.line_annotations;
+    using,only(block_annotations,vertex_annotations,face_annotations,line_annotations) annotation_entity;
 
     defer if parser.failed {
         deinit(*mesh);
@@ -125,7 +120,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         } else if eat_possible_identifier(*parser, "p") {
 
             index := obj_parse_index(*parser);
-            array_add(*mesh.indices, index);
+            array_add(*mesh.indices, ToInt(index));
 
             if mesh.geometry_format == .UNKNOWN {
                 mesh.geometry_format = .POINTS;
@@ -143,8 +138,8 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
             start := obj_parse_index(*parser);
             end   := obj_parse_index(*parser);
-            array_add(*mesh.indices, start);
-            array_add(*mesh.indices, end);
+            array_add(*mesh.indices, ToInt(start));
+            array_add(*mesh.indices, ToInt(end));
 
             if mesh.geometry_format == .UNKNOWN {
                 mesh.geometry_format = .LINES;
@@ -169,13 +164,14 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             face : Obj_Face = parse_face(*parser);
             if face.index_count == 3 || face.index_count == 4 {
                 // @Incomplete Do something with the texture and normal indices
-                array_add(*mesh.indices, face.indices[0]);
-                array_add(*mesh.indices, face.indices[1]);
-                array_add(*mesh.indices, face.indices[2]);
+
+                array_add(*mesh.indices, ToInt(face.indices[0]));
+                array_add(*mesh.indices, ToInt(face.indices[1]));
+                array_add(*mesh.indices, ToInt(face.indices[2]));
                 if face.index_count == 4 {
-                    array_add(*mesh.indices, face.indices[0]);
-                    array_add(*mesh.indices, face.indices[2]);
-                    array_add(*mesh.indices, face.indices[3]);
+                    array_add(*mesh.indices, ToInt(face.indices[0]));
+                    array_add(*mesh.indices, ToInt(face.indices[2]));
+                    array_add(*mesh.indices, ToInt(face.indices[3]));
                 }
 
                 if mesh.geometry_format == .UNKNOWN {
@@ -244,7 +240,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     }
 
     if found_inf_or_nan {
-        log_warning("Detected inf/nan floats in file. In positions these set to the corresponding component of the \"Invalid Point\", elsewhere these are set to zero");
+        log_warning("Detected inf/nan floats in file. In 'v' directives these are set using components of \"Invalid Point\", elsewhere these are set to zero");
     }
 
     // Check obj indices
@@ -454,21 +450,34 @@ obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, b
     return dim, finite;
 }
 
-obj_parse_index :: (p : *Parser) -> u32 {
-    index := parse_integer(p);
+// 1-based indices
+Obj_Index :: #type,distinct int;
+
+// nocommit rename to parse_obj_index
+obj_parse_index :: (p : *Parser) -> Obj_Index {
+    index : Obj_Index = xx parse_integer(p);
     if index == 0 {
         error(p, peek_token(p), "Unexpected 0 index, the OBJ file format uses 1-based indices\n");
-    } else if index < 0 {
-        error(p, peek_token(p), "Support for OBJ files with negative indices is @Incomplete\n");
     }
-    return cast,no_check(u32)(index - 1);
+    return index;
+}
+
+ToInt :: (obj_index : Obj_Index) -> u32 #expand {
+    if obj_index > 0 {
+        return xx (obj_index - 1);
+    }
+    if `mesh.positions.count < xx -obj_index {
+        // No error, we'll log a warning and use the invalid point to make the file load in later code
+        return xx U32_MAX;
+    }
+    return xx (`mesh.positions.count + xx obj_index);
 }
 
 Obj_Face :: struct {
-    // 1-based indices
-    indices : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
-    texture : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
-    normal  : [4]u32 = .[U32_MAX, U32_MAX, U32_MAX, U32_MAX];
+
+    indices : [4]Obj_Index;
+    texture : [4]Obj_Index;
+    normal  : [4]Obj_Index;
     index_count : int; // How many indices followed the 'f'
 
     has_textures := false;
@@ -517,8 +526,7 @@ set_annotation_value :: (annotation : *Annotation, _string_value : string) {
     string_value := _string_value;
     if string_value.count == 0 return;
 
-    i := 0;
-    while string_value.data[i] == #char "#" {
+    while string_value.data[0] == #char "#" {
         string_value.data += 1;
         string_value.count -= 1;
     }

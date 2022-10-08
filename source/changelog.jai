@@ -1,3 +1,11 @@
+PRISM_VERSION_0_4_1 :: App.Version.{"0.4.1-rc", "WIP", #string DONE
+- Improvements to .obj file loading
+
+  - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
+  - Note: Using negative indices is useful so you obj logging code does not need to keep a running count of how many vertices have been written
+DONE
+};
+
 PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "6 October 2022", #string DONE
 - Improvements to Annotations:
 
@@ -320,6 +328,7 @@ DONE
 };
 
 init_changelog :: () {
+    array_add(*app.changelog, PRISM_VERSION_0_4_1);
     array_add(*app.changelog, PRISM_VERSION_0_4_0);
     array_add(*app.changelog, PRISM_VERSION_0_3_1);
     array_add(*app.changelog, PRISM_VERSION_0_3_0);
