@@ -261,6 +261,15 @@ deinit :: (using mesh : *Mesh) {
     mesh = null;
 }
 
+add_triangle :: (using mesh : *Mesh, triangle : Triangle3) {
+    array_add(*mesh.indices, xx mesh.indices.count);
+    array_add(*mesh.indices, xx mesh.indices.count);
+    array_add(*mesh.indices, xx mesh.indices.count);
+    array_add(*mesh.positions, triangle.a);
+    array_add(*mesh.positions, triangle.b);
+    array_add(*mesh.positions, triangle.c);
+}
+
 // @FIXME Make sure to account for transforms!
 merge :: (dst : Mesh, src : Mesh) {
     poffset := dst.positions.count;

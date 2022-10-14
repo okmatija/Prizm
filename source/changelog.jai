@@ -3,6 +3,17 @@ PRISM_VERSION_0_4_1 :: App.Version.{"0.4.1-rc", "WIP", #string DONE
 
   - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
   - Note: Using negative indices is useful so you obj logging code does not need to keep a running count of how many vertices have been written
+
+- Console commands
+
+  - Added a `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles of the given item
+  - Added a `select_if_visible` command which adds visible items to the current selection
+  - Added an invert option to the `select_if_XXX` commands
+  - Fixed some incorrectly formatted command log output
+
+- Fixed "Reload" buttons not working
+- Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
+- Renamed "Add" button in "Items" tab to "Presets"
 DONE
 };
 

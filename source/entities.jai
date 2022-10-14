@@ -936,7 +936,7 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
 
 // @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
-reload_entity :: (entity : *Entity) -> did_reload : bool {
+reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload : bool {
     if #complete entity.source == {
         case .UNKNOWN; #through;
         case .SELECTION;
@@ -952,7 +952,8 @@ reload_entity :: (entity : *Entity) -> did_reload : bool {
                 return true;
             }
 
-            if enable_reload_shortcut(entity) {
+            // Feature documentation: We want to always allow the user to reload the file by explictly clicking the UI button, but by default a user setting is set such that using the keyboard shortcut to reload a file will only reload it if it has changed
+            if triggered_by_button || enable_reload_shortcut(entity) {
                 log("Reloading file '%'... ", entity.fully_pathed_name);
                 new_entity := load_one_file(entity.fully_pathed_name, .OVERWRITE);
                 if new_entity {

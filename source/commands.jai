@@ -75,10 +75,10 @@ help :: () {
     }
 } @RegisterCommand
 
-select_if :: (should_select : (Entity)->bool) {
+select_if :: (should_select : (Entity)->bool, invert : int) {
     count := 0;
     for app.entities {
-        if should_select(it) {
+        if should_select(it) == (invert == 0) {
             it.is_selected = true;
             count += 1;
         }
@@ -89,50 +89,52 @@ select_if :: (should_select : (Entity)->bool) {
 
 // @TODO Add an invert option to these?
 
-// Add all items with POLYLINE_SOUP2 type to the selection
-select_if_Polyline_Soup2 :: () {
-    select_if((e) => (e.type == .POLYLINE_SOUP2));
+// Add items with/without POLYLINE_SOUP2 type to the selection, if `invert` is true/false
+select_if_Polyline_Soup2 :: (invert : int = 0) {
+    select_if((e) => (e.type == .POLYLINE_SOUP2), invert);
 } @RegisterCommand
 
-// Add all items with POLYLINE_SOUP3 type to the selection
-select_if_Polyline_Soup3 :: () {
-    select_if((e) => (e.type == .POLYLINE_SOUP3));
+// Add items with/without POLYLINE_SOUP3 type to the selection, if `invert` is true/false
+select_if_Polyline_Soup3 :: (invert : int = 0) {
+    select_if((e) => (e.type == .POLYLINE_SOUP3), invert);
 } @RegisterCommand
 
-// Add all items with POLYGON_SOUP type to the selection
-select_if_Polygon_Soup :: () {
-    select_if((e) => (e.type == .POLYGON_SOUP));
+// Add items with/without POLYGON_SOUP type to the selection, if `invert` is true/false
+select_if_Polygon_Soup :: (invert : int = 0) {
+    select_if((e) => (e.type == .POLYGON_SOUP), invert);
 } @RegisterCommand
 
-// Add all items with MESH type to the selection
-select_if_Mesh :: () {
-    select_if((e) => (e.type == .MESH));
+// Add items with/without MESH type to the selection, if `invert` is true/false
+select_if_Mesh :: (invert : int = 0) {
+    select_if((e) => (e.type == .MESH), invert);
 } @RegisterCommand
 
-// Add all items with no position data to the selection
-select_if_empty :: () {
-    // @CompilerBug the following quick lambda doesn't work, but should: select_if((e) => (is_empty(e)));
-    select_empty_entity :: (e : Entity) -> bool {
-        return is_empty(e);
-    }
-    select_if(select_empty_entity);
+// Add visible/invisible items to the selection, if `invert` is true/false
+select_if_visible :: (invert : int = 0) {
+    select_if((e) => (e.display_info.is_visible), invert);
+} @RegisterCommand
+
+// Add items with/without position data to the selection, if `invert` is true/false
+select_if_empty :: (invert : int = 0) {
+    select_if((e)=>(is_empty(e)), invert);
 } @RegisterCommand
 
 // @CompilerBug By passing *void data to the should_select procedure we could use the generic version above
 
-// Add all items with names/filenames that match the given `pattern` to the selection
+// Add items with names/filenames that match/dont match the given `pattern` to the selection, if `invert` is true/false
 // The following wildcards/regex patterns are supported: * ? [] [-]
-select_if_match :: (pattern : string) {
+select_if_match :: (pattern : string, invert : int = 0) {
     count := 0;
     for app.entities {
         text : string;
         if it.source == {
             case .FILE_ON_DISK;
-                text = it.fully_pathed_name; // So we can select all items in a sub-folder with wildcards
+                // Note: Not using entity_name here so we can select all items in a sub-folder with wildcards
+                text = it.fully_pathed_name;
             case;
                 text = entity_name(it);
         }
-        if wildcard_match(text, pattern) {
+        if wildcard_match(text, pattern) == (invert == 0) {
             it.is_selected = true;
             count += 1;
         }
@@ -552,7 +554,7 @@ item_find_open_edges :: (id : int) {
 
     mesh := app.entities[id].mesh;
     if mesh.geometry_format != .TRIANGLES {
-        log("Expected a mesh with TRIANGLES geometry format, got %.", mesh.geometry_format);
+        log("# Expected a mesh with TRIANGLES geometry format, got %.", mesh.geometry_format);
         return;
     }
 
@@ -574,7 +576,7 @@ item_find_open_edges :: (id : int) {
     }
 
     if edge_to_origin.count == 0 {
-        log("No boundary edges detected");
+        log("# No boundary edges detected");
         return;
     }
 
@@ -605,7 +607,62 @@ item_find_open_edges :: (id : int) {
     new_entity.generation_index = app.entities[id].generation_index;
     add_entity(new_entity, .OVERWRITE);
 
-    log("Added item '%'", entity_name(new_entity));
+    log("# Added item '%'", entity_name(new_entity));
+
+} @RegisterCommand
+
+item_find_zero_area_triangles :: (id : int) {
+    // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    target : *Entity = app.entities[id];
+
+    if target.type != .MESH {
+        log_error("Expected MESH type item, got %.", app.entities[id].type);
+        return;
+    }
+
+    if target.mesh.geometry_format != .TRIANGLES {
+        log("# Expected a mesh with TRIANGLES geometry format, got %.", target.mesh.geometry_format);
+        return;
+    }
+
+    zero_area_triangles : [..]Triangle3;
+    defer array_reset(*zero_area_triangles);
+    for :ModelTriangleIterator target.mesh {
+        if it.a == it.b || it.a == it.c || it.b == it.c {
+            array_add(*zero_area_triangles, it);
+        }
+    }
+
+    if zero_area_triangles.count == 0 {
+        log("# No zero area triangles detected");
+        return;
+    }
+
+    log("# Found % zero area triangles", zero_area_triangles.count);
+
+    assert(app.console.history.count > 0);
+
+    result := New(Mesh_Entity);
+    result.mesh.geometry_format = .TRIANGLES;
+    result.mesh.world_from_model = target.mesh.world_from_model;
+    for zero_area_triangles {
+        add_triangle(*result.mesh, it);
+    }
+    set_entity_source_from_command(result, tprint("%_zero_area", entity_name(target)), app.console.history[app.console.history.count - 1], result.mesh.positions.count);
+    set_entity_display_info(result, result.mesh.geometry_format);
+
+    maybe_update_render_info(*result.render_info, *result.mesh); // @Cleanup fishy, why do we do this
+    result.display_info.wireframe_width = 3;
+
+    // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
+    result.generation_index = target.generation_index;
+    add_entity(result, .OVERWRITE);
+
+    log("# Added item '%'", entity_name(result));
 
 } @RegisterCommand
 

@@ -377,8 +377,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
 
 show_add_item_ui :: () {
-    ImGui.Button(" Add ");
-    Show_Tooltip("LMB to access preset shape menu, or\nDrag and Drop files/directories, or\nRestart with file/directory arguments");
+    ImGui.Button("Presets");
 
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
@@ -929,7 +928,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 if !entity.is_selected {
                     if entity_name(entity).count {
 
-                        if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
+                        if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
                         if is_changed_on_disk(entity) == false {
                             Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                         }
@@ -965,7 +964,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                         for :Selected entity : app.entities {
                             if entity_name(entity).count {
 
-                                if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity);
+                                if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
                                 if is_changed_on_disk(entity) == false {
                                     Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                                 }
@@ -983,7 +982,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                         if ImGui.Button("Reload Selection  ") {
                             for :Selected entity : app.entities {
-                                reload_entity(entity);
+                                reload_entity(entity, triggered_by_button=true);
                             }
                             // ImGui.CloseCurrentPopup();
                         }
@@ -1216,7 +1215,7 @@ show_camera_controls :: () {
 show_help_ui :: () {
     table_flags := ImGui.TableFlags.BordersInnerV;
 
-    if ImGui.TreeNodeEx("About") {
+    if ImGui.TreeNodeEx("About", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
@@ -1235,7 +1234,7 @@ show_help_ui :: () {
         ImGui.Text(description);
     }
 
-    if ImGui.TreeNodeEx("Key Bindings for Viewport") {
+    if ImGui.TreeNodeEx("Key Bindings for Viewport", .SpanAvailWidth) {
         defer ImGui.TreePop();
         ImGui.BeginTable("", 2, flags=table_flags);
         defer ImGui.EndTable();
@@ -1248,14 +1247,7 @@ show_help_ui :: () {
         ShowBinding("Alt RMB", "Rotate about selected axis in the camera control pane");
     }
 
-    // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
-    Tree_Node_With_Tooltip :: (label : *u8, tooltip : string) -> bool #expand {
-        result := ImGui.TreeNodeEx(label);
-        Show_Tooltip(tooltip);
-        return result;
-    }
-
-    if ImGui.TreeNodeEx("Key Bindings for Items Tab") {
+    if ImGui.TreeNodeEx("Key Bindings for Items Tab", .SpanAvailWidth) {
         defer ImGui.TreePop();
         ImGui.BeginTable("", 2, flags=table_flags);
         defer ImGui.EndTable();
@@ -1272,8 +1264,7 @@ show_help_ui :: () {
         ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
     }
 
-    if Tree_Node_With_Tooltip("Key Bindings for Selection Mode",
-                              "Enable selection mode by toggling visibility\non the 'Selection' item") {
+    if ImGui.TreeNodeEx("Key Bindings for Point Selection", .SpanAvailWidth) {
         defer ImGui.TreePop();
         ImGui.BeginTable("", 2, flags=table_flags);
         defer ImGui.EndTable();
@@ -1283,7 +1274,7 @@ show_help_ui :: () {
         ShowBinding("Ctrl RMB", "Place camera orbit");
     }
 
-    if ImGui.TreeNodeEx("Key Bindings for Item Set Updates") {
+    if ImGui.TreeNodeEx("Key Bindings for Item Set Updates", .SpanAvailWidth) {
         defer ImGui.TreePop();
         ImGui.BeginTable("", 2, flags=table_flags);
         defer ImGui.EndTable();
@@ -1294,7 +1285,7 @@ show_help_ui :: () {
         }
     }
 
-    if ImGui.TreeNodeEx("Miscellaneous Key Bindings") {
+    if ImGui.TreeNodeEx("Miscellaneous Key Bindings", .SpanAvailWidth) {
         defer ImGui.TreePop();
         ImGui.BeginTable("", 2, flags=table_flags);
         defer ImGui.EndTable();
@@ -1313,7 +1304,7 @@ show_help_ui :: () {
     outer_size.x = min(800., app.current_window_width * .75);
     outer_size.y = 0;
 
-    if ImGui.TreeNodeEx("Changelog") {
+    if ImGui.TreeNodeEx("Changelog", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         if ImGui.Button("Save to CHANGELOG.md") {
@@ -1353,7 +1344,7 @@ show_help_ui :: () {
         }
     }
 
-    if ImGui.TreeNodeEx("Known Issues") {
+    if ImGui.TreeNodeEx("Known Issues", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         if ImGui.BeginTable("", 2, flags=table_flags | .ScrollX, outer_size=outer_size) {

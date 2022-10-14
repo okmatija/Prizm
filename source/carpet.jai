@@ -571,3 +571,10 @@ type_to_string :: (type: Type) -> string {
 
     return type_string;
 }
+
+// Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
+TreeNodeWithTooltip :: (label : *u8, tooltip : string) -> bool #expand {
+    result := ImGui.TreeNodeEx(label, .SpanAvailWidth);
+    Show_Tooltip(tooltip);
+    return result;
+}
