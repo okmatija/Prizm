@@ -5,6 +5,7 @@ Annotation :: struct {
         LINE;
         TRIANGLE;
         BLOCK; // e.g., a header at the top of an .obj file
+        COMMAND;
     }
     kind : Kind; // Should only have ONE flag set
 

@@ -41,6 +41,17 @@ Entity :: struct {
     render_info : Render_Info;
     display_info : Display_Info;
 
+    // Mesh normals and tangents are stored as overlays attributes
+    // Attributes are added via the item_add_attribute_XXX commands, which can/should be used in command obj comments
+    // Then name is specified in a leading #! ? maybe also say if the annotations are sparse or dense to pick the datastructure
+    // I need shaders for different types of data attached to vertices/segments/faces
+    // List of data types I want to support
+    // - scalars e.g., errors/costs
+    // - vectors e.g., Vector2 for UVs, Vector3 for normals/tangents/displacements
+    // - tensors e.g., Matrix4 for stresses
+    // - string  e.g., debug comments
+    mesh_attributes : [..]Simple_Mesh_Attribute;
+
     // Note the transform stored in this mesh also applies to:
     // - Shape geometry in the specialized types
     // - Bounding shapes in render_info
@@ -48,6 +59,7 @@ Entity :: struct {
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
     // Interpretation depends on Entity_Type (I think)
+    command_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
     block_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
     vertex_annotations : [..]Annotation; // Comments attached to vertices e.g., v directives in .obj files, @Think maybe also include comments on p directives
     face_annotations :   [..]Annotation; // Comments attached to triangles e.g., f directives in .obj files
@@ -323,6 +335,8 @@ deinit :: (base : *Entity) {
     }
 
     for :AnnotationIterator base deinit(it);
+    // nocommit We should have AnnotationListIterator, so we don't need to change so many places
+    array_reset(*base.command_annotations);
     array_reset(*base.block_annotations);
     array_reset(*base.vertex_annotations);
     array_reset(*base.face_annotations);
@@ -472,6 +486,7 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
 
 entity_annotation_count :: (using entity : Entity) -> int {
     result : int = 0; 
+    result += command_annotations.count;
     result += block_annotations.count;
     result += vertex_annotations.count;
     result += face_annotations.count;
@@ -480,18 +495,22 @@ entity_annotation_count :: (using entity : Entity) -> int {
 }
 
 entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annotation) -> s64) {
+    quick_sort(command_annotations,  compare);
     quick_sort(block_annotations,  compare);
     quick_sort(vertex_annotations, compare);
     quick_sort(face_annotations,   compare);
     quick_sort(line_annotations,   compare);
 }
 
+// nocommit Fragile when you add a new annotation array
 set_entity_annotations :: (entity : *Entity,
+    command_annotations : [..]Annotation,
     block_annotations :  [..]Annotation,
     vertex_annotations : [..]Annotation,
     face_annotations :   [..]Annotation,
     line_annotations :   [..]Annotation) {
 
+    entity.command_annotations = command_annotations;
     entity.block_annotations =  block_annotations;
     entity.vertex_annotations = vertex_annotations;
     entity.face_annotations =   face_annotations;
@@ -510,10 +529,14 @@ set_entity_annotations :: (entity : *Entity,
     if max < face_annotations.count {
         max, show_kind = face_annotations.count, .TRIANGLE;
     }
+    if max < command_annotations.count {
+        //  nocommit wtf
+        max, show_kind = command_annotations.count, .COMMAND;
+    }
 }
 
 // @Think Do we need this is we have a default value for kinds?
-AnnotationIterator :: #bake_arguments AnnotationIteratorBase(kinds=Annotation.Kind.BLOCK|.VERTEX|.LINE|.TRIANGLE);
+AnnotationIterator :: #bake_arguments AnnotationIteratorBase(kinds=Annotation.Kind.COMMAND|.BLOCK|.VERTEX|.LINE|.TRIANGLE);
 
 AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flags, kinds : Annotation.Kind) #expand {
     #assert(flags == 0); // No options are supported
@@ -521,6 +544,12 @@ AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flag
     `it : Annotation;
     `it_index : int;
 
+    if kinds & .COMMAND {
+        for annotation, annotation_index : command_annotations {
+            it, it_index = annotation, annotation_index;
+            #insert body;
+        }
+    }
 
     if kinds & .BLOCK {
         for annotation, annotation_index : block_annotations {

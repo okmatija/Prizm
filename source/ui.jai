@@ -1829,6 +1829,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             if !annotations.count ImGui.EndDisabled();
         }
 
+        // nocommit Make this work with reflection!
         DoRadioButton("Vertex", .VERTEX, entity.vertex_annotations);
         ImGui.SameLine();
         DoRadioButton("Edge", .LINE, entity.line_annotations);
@@ -1836,13 +1837,16 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         DoRadioButton("Face", .TRIANGLE, entity.face_annotations);
         ImGui.SameLine();
         DoRadioButton("Block", .BLOCK, entity.block_annotations);
+        ImGui.SameLine();
+        DoRadioButton("Command", .COMMAND, entity.command_annotations);
 
         annotations : [..]Annotation;
-        if entity.annotation_info.show_kind == {
+        if #complete entity.annotation_info.show_kind == {
             case .VERTEX;   annotations = entity.vertex_annotations;
             case .LINE;     annotations = entity.line_annotations;
             case .TRIANGLE; annotations = entity.face_annotations;
             case .BLOCK;    annotations = entity.block_annotations;
+            case .COMMAND;  annotations = entity.command_annotations;
         }
 
         if annotations.count {

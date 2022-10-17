@@ -89,7 +89,7 @@ console_history_clear :: () {
     console_save_history();
 } @RegisterCommand
 
-console_execute_command :: (_command : string) {
+console_execute_command :: (_command : string) -> success : bool {
     app.console.history_position = -1;
     defer console_save_history();
 
@@ -98,7 +98,9 @@ console_execute_command :: (_command : string) {
     p.tokens = get_tokens("console command", p.data);
     p.current_token = 0;
 
-    if !p.tokens.count return;
+    if !p.tokens.count {
+        return false;
+    }
 
     assert(p.tokens[p.tokens.count-1].type == .EOF);
 
@@ -111,20 +113,36 @@ console_execute_command :: (_command : string) {
         return any;
     }
 
-    // @TODO Allow nested function calls?
+    // @Volatile if Entity.source is .COMMAND_OUTPUT we assume Entity.source_info.console_command is the last history item
+    defer console_add_history("%", _command);
+
     command_name : string;
     command_args : [..]Any;
+    procedure : ([]Any)->() = null;
     while !p.failed {
         tok := peek_token(*p);
         if tok.type == .EOF {
             break;
         } else if tok.type == .IDENTIFIER {
             if command_name != "" {
+                p.failed = true;
                 log_error("Unexpected token IDENTIFIER (%) in argument list, string arguments use single/double quotes.", to_string(tok));
-                console_add_history("%", _command);
-                return;
+            } else {
+                command_name = tok.string_value;
+
+                for app.console.commands {
+                    if it.name == command_name {
+                        log("%", _command);
+                        procedure = it.procedure;
+                    }
+                }
+
+                if !procedure {
+                    p.failed = true;
+                    log_error("'%' : Command not found", command_name);
+                }
             }
-            command_name = tok.string_value;
+
             eat_token(*p);
         } else if tok.type == .SQSTRING || tok.type == .DQSTRING {
             array_add(*command_args, copy_any(tok.string_value));
@@ -140,32 +158,15 @@ console_execute_command :: (_command : string) {
             // @Cleanup Use parser.jai error function with custom logger which prints to the console
             p.failed = true;
             log_error("Unexpected token %.", to_string(tok));
-            console_add_history("%", _command);
-            return;
         }
     }
 
     if p.failed {
-        return;
+        return false;
     }
 
-    found_command := false;
-    for app.console.commands {
-        if it.name == command_name {
-
-            // @Volatile if Entity.source is .COMMAND_OUTPUT we assume Entity.source_info.console_command is the last history item
-            console_add_history("%", _command);
-            log("%", _command);
-            it.procedure(command_args);
-
-            found_command = true;
-            break;
-        }
-    }
-
-    if command_name != "" && !found_command {
-        log_error("'%' : Command not found", command_name);
-    }
+    procedure(command_args);
+    return true;
 }
 
 console_draw :: () {

@@ -266,6 +266,7 @@ get_location :: (lex: *Lexer) -> Source_Code_Location {
 DONE
     tokens := get_tokens(#file, TEST_STRING, obj_style_comments=true, cpp_style_comments=true);
     for tok : tokens {
+        // FIXME This code is broken if the token type is not a string
         for c : 0..tok.string_value.count-1 {
             if tok.string_value.data[c] == #char "\r" {
                 tok.string_value.data[c] = #char " ";

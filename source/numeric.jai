@@ -68,12 +68,17 @@ normalize_or_x_axis :: inline (using v: *Vector2) -> float {
 
 Tuple2 :: struct (T : Type) {
     x, y : T;
+
 #place x;
     component : [2] T = ---;
+
+#place x; i : T = ---;
+#place y; j : T = ---;
 }
 
 Tuple3 :: struct (T : Type) {
     x, y, z : T;
+
 #place x; component : [3] T = ---;
 
 #place x; i : T = ---;

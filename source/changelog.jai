@@ -1,14 +1,21 @@
 PRISM_VERSION_0_4_1 :: App.Version.{"0.4.1-rc", "WIP", #string DONE
-- Improvements to .obj file loading
+- .obj file loading
 
   - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
   - Note: Using negative indices is useful so you obj logging code does not need to keep a running count of how many vertices have been written
+
+- Annotations
+
+  - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file
+  - Annotatations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
+  - TODO Added a preset example to demonstrate the new annotation functionality
 
 - Console commands
 
   - Added a `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles of the given item
   - Added a `select_if_visible` command which adds visible items to the current selection
   - Added an invert option to the `select_if_XXX` commands
+  - Improved error reporting when a console command was not found
   - Fixed some incorrectly formatted command log output
 
 - Fixed "Reload" buttons not working

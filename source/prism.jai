@@ -183,7 +183,7 @@ main :: () {
         assert(app.simp_font != null);
     }
 
-    set_prism_theme(.DARK);
+    set_prism_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
     load_from_command_line();
 

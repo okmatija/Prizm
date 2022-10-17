@@ -1,0 +1,16 @@
+#  This file demonstrates the annotation functionality
+## Using two hashes next to each other is a way to type comments totally ignored by Prism
+#  This line is partially ignored # Here is the part that is ignored
+
+#! prism_log "This text will be printed to the log before the geometry gets parsed"
+
+vn 1 0 0
+vn 0 1 0
+vn 0 0 1
+
+v 0 0 0 
+v 1 0 0
+v 0 1 0
+f -3//-3 -2//-2 -1//-1
+
+#! prism_log_warning "This text is logged after the geometry got parsed"

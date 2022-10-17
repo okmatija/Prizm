@@ -737,6 +737,18 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     }
 } @RegisterCommand
 
+prism_log :: (message : string) {
+    log(message);
+} @RegisterCommand
+
+prism_log_warning :: (message : string) {
+    log_warning(message);
+} @RegisterCommand
+
+prism_log_error :: (message : string) {
+    log_error(message);
+} @RegisterCommand
+
 // @Incomplete variants to create a grids covering the aabb of an entity/selection/scene
 // @Incomplete disable reload selection on Grid items
 

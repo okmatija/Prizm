@@ -1,27 +1,6 @@
-// http://paulbourke.net/dataformats/obj/
+// FIXME Rename to load_obj when we switch from annotations to attributes
+load_obj_with_attributes :: (filename : string, data : string, name : string) -> *Entity {
 
-/* @Incomplete
-
-Tests covering:
-- Floats should parse properly
-- Files with junk on the end of a vertex/face definition should load and ignore relevant elements (the corrupted vertex/attached faces)
-- ...
-Don't remove leading spaces from BLOCK type annotations, so that formatting is better perserved in those comments
-
-*/
-
-ISSUE_005 :: "The .obj loader interprets face directives 'i//j' and 'i/j/k' as 'i//i' and 'i/i/i' e.g., 'f 4//1 5//2 6//3' is loaded as if it were 'f 4//4 5//5 6//6'. Will fix soon."; @KnownIssue
-//ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
-ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix soon."; @KnownIssue
-
-// @Cleanup Read shape from an obj and then turn that into a mesh?!
-// @Incomplete Parameter to enable objs with segments to not get converted to polylines?
-
-// @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
-load_obj :: (filename : string, data : string, name : string) -> *Entity {
-    return load_obj_with_attributes(filename, data, name); // nocommit
-
-/*
     if !data {
         log("File was empty");
         return null;
@@ -34,7 +13,22 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
     defer deinit(*parser);
 
-    // for parser.tokens log("token[%] = %\n", it_index, it);
+    // print("nocommit: WHAT THE HECK\n");
+    //     for tok : parser.tokens {
+    //         if tok.type == {
+    //             case .IDENTIFIER; #through;
+    //             case .COMMENT; #through;
+    //             case .SQSTRING; #through;
+    //             case .DQSTRING;
+    //                 for c : 0..tok.string_value.count-1 {
+    //                     if tok.string_value.data[c] == #char "\r" {
+    //                         tok.string_value.data[c] = #char " ";
+    //                     }
+    //                 }
+    //         }
+    //         print("token [%] = '%'\n", it_index, tok);
+    //     }
+
 
     // Make sure we at least got the end-of-file token
     assert(parser.tokens.count > 0);
@@ -79,11 +73,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
                 annotation : Annotation;
-
                 annotation.kind = .VERTEX;
-                set_annotation_value(*annotation, tok.string_value);
                 annotation.id = mesh.positions.count - 1;
-                array_add(*vertex_annotations, annotation);
+                if set_annotation_value(*annotation, tok.string_value) {
+                    array_add(*vertex_annotations, annotation);
+                }
 
                 eat_token(*parser);
             }
@@ -154,9 +148,10 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 annotation : Annotation;
 
                 annotation.kind = .LINE;
-                set_annotation_value(*annotation, tok.string_value);
                 annotation.id = mesh.indices.count / 2 - 1;
-                array_add(*line_annotations, annotation);
+                if set_annotation_value(*annotation, tok.string_value) {
+                    array_add(*line_annotations, annotation);
+                }
 
                 eat_token(*parser);
             }
@@ -187,9 +182,10 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                     annotation : Annotation;
 
                     annotation.kind = .TRIANGLE;
-                    set_annotation_value(*annotation, tok.string_value);
                     annotation.id = mesh.indices.count / 3 - 1;
-                    array_add(*face_annotations, annotation);
+                    if set_annotation_value(*annotation, tok.string_value) {
+                        array_add(*face_annotations, annotation);
+                    }
 
                     eat_token(*parser);
                 }
@@ -211,23 +207,54 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             }
 
         } else if peek_token(*parser).type == .COMMENT {
-            annotation : Annotation;
-            annotation.kind = .BLOCK;
-            annotation.id = current_line;
 
             block : [..]string;
             block.allocator = temp;
 
+            commands : [..]string;
+            commands.allocator = temp;
+
             tok := peek_token(*parser);
             while tok.type == .COMMENT && (tok.line_number - current_line < 2) {
                 current_line = tok.line_number;
-                array_add(*block, trim(tok.string_value, BYTES_TO_TRIM));
+
+                // Extract the string between #'s
+                remainder : string = advance(tok.string_value, 1);
+                remainder = trim(stop_at_any(remainder, "#"), BYTES_TO_TRIM);
+                if remainder {
+                    if remainder[0] == #char "!" {
+                        remainder = advance(remainder, 1);
+                        array_add(*commands, remainder);
+                    } else {
+                        array_add(*block, remainder);
+                    }
+                }
+
                 eat_token(*parser);
                 tok = peek_token(*parser);
             }
 
-            set_annotation_value(*annotation, join(..block, "\n"));
-            array_add(*block_annotations, annotation);
+            if block.count {
+                annotation : Annotation;
+                annotation.kind = .BLOCK;
+                annotation.id = current_line;
+                value : string = join(..block, "\n");
+                defer free(value);
+                if set_annotation_value(*annotation, value) {
+                    array_add(*block_annotations, annotation);
+                }
+            }
+
+            for command : commands {
+                console_execute_command(command);
+
+                annotation : Annotation;
+                annotation.kind = .COMMAND;
+                annotation.id = current_line;
+                if set_annotation_value(*annotation, command) {
+                    array_add(*command_annotations, annotation);
+                }
+            }
         } else {
 
             warning(*parser, peek_token(*parser), "Unexpected '%' token will be ignored. Attempting to continue...\n", to_string(peek_token(*parser)));
@@ -376,48 +403,4 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     }
 
     return result;
-*/
-}
-
-save_obj :: (filename : string, mesh : Mesh) -> bool
-{
-    // @Cleanup Are we calling file_close in the right places?
-
-    objfile, success :=  file_open(filename, for_writing=true, keep_existing_content=false);
-    if !success {
-        return false;
-    }
-
-    if mesh.geometry_format == .TRIANGLES {
-        if mesh.normals.count {
-            for i : 0..mesh.positions.count-1 {
-                px, py, pz := mesh.positions[i].x, mesh.positions[i].y, mesh.positions[i].z;
-                nx, ny, nz := mesh.normals[i].x, mesh.normals[i].y, mesh.normals[i].z;
-                file_write(*objfile, tprint("v % % %\n", px, py, pz));
-                file_write(*objfile, tprint("vn % % %\n", nx, ny, nz));
-            }
-            for i : 0..(mesh.indices.count/3)-1 {
-                a := 1 + mesh.indices[3 * i + 0];
-                b := 1 + mesh.indices[3 * i + 1];
-                c := 1 + mesh.indices[3 * i + 2];
-                file_write(*objfile, tprint("f %//% %//% %//%\n", a, a, b, b, c, c));
-            }
-        } else {
-            for i : 0..mesh.positions.count-1 {
-                file_write(*objfile, tprint("v % % %\n", mesh.positions[i].x, mesh.positions[i].y, mesh.positions[i].z));
-            }
-            for i : 0..(mesh.indices.count/3)-1 {
-                a := 1 + mesh.indices[3 * i + 0];
-                b := 1 + mesh.indices[3 * i + 1];
-                c := 1 + mesh.indices[3 * i + 2];
-                file_write(*objfile, tprint("f % % %\n", a, b, c));
-            }
-        }
-    } else {
-        log_warning("@Incomplete save_obj only supports TRIANGLE geometry format, got %\n", mesh.geometry_format);
-        return false;
-    }
-
-    file_close(*objfile);
-    return true;
 }
