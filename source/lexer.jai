@@ -95,6 +95,7 @@ default_error_callback :: (loc: Source_Code_Location, fmt: string, args: .. Any)
 
 get_tokens :: (filename: string, input: string, cpp_style_comments := false, obj_style_comments := false) -> [..] Token {
     tokens: [..] Token;
+    defer assert(tokens[tokens.count-1].type == .EOF);
 
     lex: Lexer;
     lex.data = input;

@@ -1,9 +1,10 @@
 // FIXME Rename to load_obj when we switch from annotations to attributes
 load_obj_with_attributes :: (filename : string, data : string, name : string) -> *Entity {
 
+    result : *Mesh_Entity;
     if !data {
-        log("File was empty");
-        return null;
+        log(" File was empty");
+        return result;
     }
 
     parser : Parser;
@@ -13,35 +14,32 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
     defer deinit(*parser);
 
-    // print("nocommit: WHAT THE HECK\n");
-    //     for tok : parser.tokens {
-    //         if tok.type == {
-    //             case .IDENTIFIER; #through;
-    //             case .COMMENT; #through;
-    //             case .SQSTRING; #through;
-    //             case .DQSTRING;
-    //                 for c : 0..tok.string_value.count-1 {
-    //                     if tok.string_value.data[c] == #char "\r" {
-    //                         tok.string_value.data[c] = #char " ";
-    //                     }
-    //                 }
-    //         }
-    //         print("token [%] = '%'\n", it_index, tok);
-    //     }
-
+    //for tok : parser.tokens {
+    //    if tok.type == {
+    //        case .IDENTIFIER; #through;
+    //        case .COMMENT; #through;
+    //        case .SQSTRING; #through;
+    //        case .DQSTRING;
+    //            for c : 0..tok.string_value.count-1 {
+    //                if tok.string_value.data[c] == #char "\r" {
+    //                    tok.string_value.data[c] = #char " ";
+    //                }
+    //            }
+    //    }
+    //    print("token [%] = '%'\n", it_index, tok);
+    //}
 
     // Make sure we at least got the end-of-file token
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
-    mesh : Mesh;
-    annotation_entity : Entity;
-    using,only(command_annotations, block_annotations,vertex_annotations,face_annotations,line_annotations) annotation_entity;
-
-    defer if parser.failed {
-        deinit(*mesh);
-        deinit(*annotation_entity);
-    }
+    result = New(Mesh_Entity);
+    using,only(mesh,
+        command_annotations,
+        block_annotations,
+        vertex_annotations,
+        face_annotations,
+        line_annotations) result;
 
     found_inf_or_nan : bool;
 
@@ -75,7 +73,7 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
                 annotation : Annotation;
                 annotation.kind = .VERTEX;
                 annotation.id = mesh.positions.count - 1;
-                if set_annotation_value(*annotation, tok.string_value) {
+                if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
                     array_add(*vertex_annotations, annotation);
                 }
 
@@ -149,7 +147,7 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
                 annotation.kind = .LINE;
                 annotation.id = mesh.indices.count / 2 - 1;
-                if set_annotation_value(*annotation, tok.string_value) {
+                if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
                     array_add(*line_annotations, annotation);
                 }
 
@@ -183,7 +181,8 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
                     annotation.kind = .TRIANGLE;
                     annotation.id = mesh.indices.count / 3 - 1;
-                    if set_annotation_value(*annotation, tok.string_value) {
+
+                    if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
                         array_add(*face_annotations, annotation);
                     }
 
@@ -218,13 +217,12 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
             while tok.type == .COMMENT && (tok.line_number - current_line < 2) {
                 current_line = tok.line_number;
 
-                // Extract the string between #'s
-                remainder : string = advance(tok.string_value, 1);
-                remainder = trim(stop_at_any(remainder, "#"), BYTES_TO_TRIM);
+                remainder : string = string_between_hashes(tok.string_value);
                 if remainder {
                     if remainder[0] == #char "!" {
+                        // Remove the ! and any space after it
                         remainder = advance(remainder, 1);
-                        array_add(*commands, remainder);
+                        array_add(*commands, trim_left(remainder));
                     } else {
                         array_add(*block, remainder);
                     }
@@ -266,7 +264,7 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
             }
 
         }
-    }
+    } // end parsing
 
     if found_inf_or_nan {
         log_warning("Detected inf/nan floats in file. In 'v' directives these are set using components of \"Invalid Point\", elsewhere these are set to zero");
@@ -303,104 +301,30 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
         parser.failed = true;
     }
 
+    if mesh.geometry_format != .TRIANGLES {
+        // @Incomplete Improve this message to suggest user may have missed p commands for a point cloud if they had vertices in the mesh
+        log_warning("@Incomplete Currently only triangle meshes are supported!\n");
+        parser.failed = true;
+    }
+
     if parser.failed {
+        deinit(result);
         return null;
     }
 
     // Sort annotations by kind then by id
-    entity_sort_annotations(annotation_entity, (a,b)=>(compare_annotation_ids(a, b)));
+    entity_sort_annotations(result, (a,b)=>(compare_annotation_ids(a, b)));
 
-    result : *Entity;
-    if #complete mesh.geometry_format == {
-        case .LINES;
-
-            dim := 2;
-            for mesh.positions if it.z != 0 dim = 3;
-
-            if dim == 2 {
-
-            #if false {
-
-                // @FIXME make Segment_Soup2
-
-            } else { // @FIXME Only call this if convert_to_polyline_soup function
-
-                result = New(Polyline_Soup2_Entity);
-                e := cast(*Polyline_Soup2_Entity)result;
-                e.shape, ok = to_Polyline_Soup2(mesh); // @Cleanup This conversion should always succeed (have a separate convertible_to_Polyline_Soup2 function)
-                if !ok {
-                    deinit(*e.shape);
-                    return null;
-                }
-                result.mesh = mesh;
-                set_entity_source_from_file(result, filename);
-                set_entity_display_info(result, mesh.geometry_format);
-                init_entity_spatial_index(cast(*Polyline_Soup2_Entity)result);
-
-                if entity_annotation_count(annotation_entity) {
-                    // @Incomplete Fixup annotation id numbering to sync with polyline soup conversion
-                    log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
-                    deinit(*annotation_entity);
-                }
-            }
-
-            } else if dim == 3 {
-
-            #if true {
-
-                result = New(Segment_Soup3_Entity);
-                result.mesh = mesh;
-                set_entity_annotations(result, command_annotations, block_annotations, vertex_annotations, face_annotations, line_annotations);
-                set_entity_source_from_file(result, filename);
-                set_entity_display_info(result, mesh.geometry_format);
-                // init_entity_spatial_index(cast(*Segment_Soup3_Entity)result); // @Incomplete
-
-            } else { // @FIXME Only call this if convert_to_polyline_soup function
-
-                result = New(Polyline_Soup3_Entity);
-                result.mesh = mesh;
-                set_entity_source_from_file(result, filename);
-                set_entity_display_info(result, mesh.geometry_format);
-
-                e := cast(*Polyline_Soup3_Entity)result;
-                e.shape, ok = to_Polyline_Soup3(mesh);
-                if !ok {
-                    deinit(*e.shape);
-                    return null;
-                }
-                init_entity_spatial_index(cast(*Polyline_Soup3_Entity)result);
-
-                // FIXME Fixup annotation id numbering to sync with polyline soup conversion
-                if annotations.count {
-                    log_warning("Omitting annotations for % since support for closed loops in polyline soups is @Incomplete, sorry!", filename);
-                    deinit(*annotation_entity);
-                }
-            }
-
-            }
-
-        case .POINTS;
-
-            result = New(Point_Cloud_Entity);
-            result.mesh = mesh;
-            set_entity_annotations(result, command_annotations, block_annotations, vertex_annotations, face_annotations, line_annotations);
-            set_entity_source_from_file(result, filename);
-            set_entity_display_info(result, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Point_Cloud_Entity)result);
-
-        case .TRIANGLES;
-
-            result = New(Mesh_Entity);
-            result.mesh = mesh;
-            set_entity_annotations(result, command_annotations, block_annotations, vertex_annotations, face_annotations, line_annotations);
-            set_entity_source_from_file(result, filename);
-            set_entity_display_info(result, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Mesh_Entity)result);
-
-        case .UNKNOWN;
-
-            assert(false, "Should have handled UNKNOWN geometry format by now\n");
-    }
+    // nocommit remove this, and replace with something to deduce annotation_info?
+    set_entity_annotations(result, 
+        result.command_annotations,
+        result.block_annotations,
+        result.vertex_annotations,
+        result.face_annotations,
+        result.line_annotations);
+    set_entity_source_from_file(result, filename);
+    set_entity_display_info(result, mesh.geometry_format);
+    init_entity_spatial_index(result);
 
     return result;
 }

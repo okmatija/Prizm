@@ -98,11 +98,10 @@ console_execute_command :: (_command : string) -> success : bool {
     p.tokens = get_tokens("console command", p.data);
     p.current_token = 0;
 
-    if !p.tokens.count {
+    if p.tokens.count < 2 {
+        // We failed to execute the command if it was empty (gives us only .EOF token)
         return false;
     }
-
-    assert(p.tokens[p.tokens.count-1].type == .EOF);
 
     // Creates an Any in temporary storage so that we can return an Any created from a value on the stack, and have the value_pointer be valid after the stack unrolls
     copy_any :: (x: Any) -> Any {
@@ -124,10 +123,7 @@ console_execute_command :: (_command : string) -> success : bool {
         if tok.type == .EOF {
             break;
         } else if tok.type == .IDENTIFIER {
-            if command_name != "" {
-                p.failed = true;
-                log_error("Unexpected token IDENTIFIER (%) in argument list, string arguments use single/double quotes.", to_string(tok));
-            } else {
+            if !command_name {
                 command_name = tok.string_value;
 
                 for app.console.commands {
@@ -141,6 +137,9 @@ console_execute_command :: (_command : string) -> success : bool {
                     p.failed = true;
                     log_error("'%' : Command not found", command_name);
                 }
+            } else {
+                p.failed = true;
+                log_error("Unexpected token IDENTIFIER (%) in argument list, string arguments use single/double quotes.", to_string(tok));
             }
 
             eat_token(*p);

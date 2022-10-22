@@ -119,3 +119,10 @@ set_annotation_value :: (annotation : *Annotation, _string_value : string) -> bo
 
     return true;
 }
+
+string_between_hashes :: (input : string) -> string {
+    assert(input[0] == #char "#");
+    result : string = advance(input, 1);
+    result = trim(stop_at_any(result, "#"), BYTES_TO_TRIM);
+    return result;
+}

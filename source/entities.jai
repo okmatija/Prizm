@@ -530,8 +530,7 @@ set_entity_annotations :: (entity : *Entity,
         max, show_kind = face_annotations.count, .TRIANGLE;
     }
     if max < command_annotations.count {
-        //  nocommit wtf
-        max, show_kind = command_annotations.count, .COMMAND;
+        max, show_kind = command_annotations.count, Annotation.Kind.COMMAND; // @CompilerBug Unary '.' identifier should work here!
     }
 }
 
@@ -1292,6 +1291,9 @@ new_debug_mesh_entity :: (mesh : Mesh) {
 
 load_one_file_from_memory :: (filename : string, contents : string, name : string) -> *Entity {
     result : *Entity;
+
+    // @Refactor Improve the log messaging during file loading e.g., with indents after this message
+    log("Loading file '%'...", filename);
 
     if ends_with_nocase(filename, "obj") {
         result = load_obj(filename, contents, name);
