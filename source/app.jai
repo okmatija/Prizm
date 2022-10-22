@@ -395,11 +395,13 @@ ImGui :: #import "ImGui";
 #load "inspector.jai";
 #load "lexer.jai";
 #load "parser.jai";
-#load "console.jai";
-#load "commands.jai";
 #load "changelog.jai";
 #load "colors.jai";
 #load "demo_mode.jai";
+
+#load "console/console.jai";
+#load "console/commands.jai";
+#load "console/grid_commands.jai";
 
 #load "kernel/distance.jai";
 #load "kernel/intersect.jai";

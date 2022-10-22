@@ -319,15 +319,20 @@ generate_code_to_register_console_commands :: (w : Workspace) {
         Print("        return;\n");
         Print("    }\n\n");
 
+        // command has type Code_Procedure_Header
+        // command.arguments has type []*Code_Declaration
         if command.arguments.count {
             Print("    // Declare arguments\n");
             defer Print("\n");
+            // arg has type Code_Node
             for arg, arg_index : command.arguments {
+                // arg.type has type *Type_Info
                 if arg.type.type == {
                     case .INTEGER; Print("    a%1 : int = ---;\n", arg_index);
                     case .FLOAT;   Print("    a%1 : float = ---;\n", arg_index);
                     case .STRING;  Print("    a%1 : string = ---;\n", arg_index);
-                    case; compiler_report(path, arg.l0, arg.c0, tprint("Unsupported console command argument type %, only int/float/string are supported.", arg.type.type));
+                    case .TYPE;    Print("    a%1 : Type = ---;\n", arg_index);
+                    case; compiler_report(path, arg.l0, arg.c0, tprint("Unsupported console command argument type %, only int/float/string/Type are supported.", arg.type.type));
                 }
             }
         }
@@ -370,6 +375,13 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     Print("%    a%2 = xx <<cast(*string)(args[%2].value_pointer);\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not an string, its a %%\", args[%2].type.type);\n", indent, arg_index);
+                    Print("%    return;\n", indent);
+                    Print("%}\n", indent);
+                case .TYPE;
+                    Print("%if args[%].type.type == .TYPE {\n", indent, arg_index);
+                    Print("%    a%2 = xx <<cast(*Type)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%} else {\n", indent);
+                    Print("%    log_error(\"Argument %2 is not an Type, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
             }
