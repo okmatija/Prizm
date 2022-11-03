@@ -749,19 +749,46 @@ prism_log_error :: (message : string) {
     log_error(message);
 } @RegisterCommand
 
-item_add_vertex_attribute :: (id : int, attribute_name : string, attribute_type : Type) {
+item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : Type) {
     if !check_geometry_index(id) {
         return;
     }
 
-    supported_attribute_types := Type.[string, float, Vector2, Vector3, Vector4];
-    found, unused := array_find(supported_attribute_types, attribute_type);
-    if !found {
-        log_error("Unsupported attribute type item type.");
+    item : *Entity = app.entities[id];
+
+    // @cleanup generate this code
+    if value_type == {
+        case string;
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(string, .TRIANGLE));
+        case Matrix3;
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE));
+        case;
+            // nocommit Add others from the attribute list and improve this error message
+            log_error("unsupported attribute type '%'", value_type);
+            return;
+    }
+
+} @registercommand
+
+item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Type) {
+    if !check_geometry_index(id) {
         return;
     }
 
-} @RegisterCommand
+    item : *Entity = app.entities[id];
+
+    // @cleanup generate this code
+    if value_type == {
+        case string;
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(string, .VERTEX));
+        case float;
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(float, .VERTEX));
+        case;
+            // nocommit Add others from the attribute list and improve this error message
+            log_error("unsupported attribute type '%'", value_type);
+            return;
+    }
+} @registercommand
 
 /*
 clear_normals :: (id : int) {

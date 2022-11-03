@@ -28,6 +28,7 @@ find_header_annotation :: (entity : *Entity) -> *Annotation {
 }
 
 // @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
+// @Refactor Maybe Entity should contain the mesh and the item variables, but data specific to rendering meshes should be in the mesh?
 
 Entity :: struct {
     type : Entity_Type = .UNKNOWN;
@@ -50,7 +51,7 @@ Entity :: struct {
     // - vectors e.g., Vector2 for UVs, Vector3 for normals/tangents/displacements
     // - tensors e.g., Matrix4 for stresses
     // - string  e.g., debug comments
-    mesh_attributes : [..]Simple_Mesh_Attribute;
+    mesh_attributes : [..]*Simple_Mesh_Attribute;
 
     // Note the transform stored in this mesh also applies to:
     // - Shape geometry in the specialized types

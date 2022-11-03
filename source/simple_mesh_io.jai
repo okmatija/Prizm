@@ -1,6 +1,8 @@
 // FIXME Rename to load_obj when we switch from annotations to attributes
 load_obj_with_attributes :: (filename : string, data : string, name : string) -> *Entity {
 
+    //printv(filename); // nocommit
+
     result : *Mesh_Entity;
     if !data {
         log(" File was empty");
@@ -33,7 +35,7 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
-    result = New(Mesh_Entity);
+    result = New(Mesh_Entity); // nocommit local_entities should be the result 
     using,only(mesh,
         command_annotations,
         block_annotations,
@@ -41,9 +43,28 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
         face_annotations,
         line_annotations) result;
 
-    found_inf_or_nan : bool;
+    // Temporary storage for normals and texture coordinates read from vn and vt directives
+    scratch_vn : [..]Vector3;
+    // scratch_vt : [..]Vector3;
+    defer {
+        array_free(scratch_vn);
+        // array_free(scratch_vt);
+    }
 
-    ok : bool = true;
+    // For the duration of this function make app.entities point to the local entities array so that:
+    // 1. We can more conveniently index entities created by this function, without needing a larger refactor to implement negative entity indexing (which we should still do)
+    // 3. We can later multithread file loading
+    local_entities, old_entities : [..]*Entity;
+    array_add(*local_entities, result);
+    old_entities = app.entities;
+    app.entities = local_entities;
+    defer app.entities = old_entities;
+
+    found_inf_or_nan : bool;
+    missing_normals_count : int;
+    missing_vertices_count : int;
+    MISSING_NORMAL_FALLBACK :: Vector3.{0,0,0};
+    MISSING_VERTEX_INDEX :: U32_MAX;
 
     while peek_token(*parser).type != .EOF && !parser.failed {
 
@@ -87,6 +108,8 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
                 found_inf_or_nan = true;
             }
 
+            array_add(*scratch_vn, normal);
+            // nocommit remove this
             array_add(*mesh.normals, normal);
 
             tok := peek_token(*parser);
@@ -100,10 +123,10 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
             uv, finite := ensure_finite(parse_vector2(*parser));
             if !finite {
                 // @Incomplete
-                //found_inf_or_nan = true;
+                // found_inf_or_nan = true;
             }
-            // @Incomplete
-            // array_add(*mesh.uvs0, uv);
+
+            // array_add(*scratch_vt, make_Vector3(uv, 0));
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
@@ -113,8 +136,11 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
         } else if eat_possible_identifier(*parser, "p") {
 
-            index := obj_parse_index(*parser);
-            array_add(*mesh.indices, ToInt(index));
+            missing, index := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            array_add(*mesh.indices, index);
+            if missing {
+                missing_vertices_count += 1;
+            }
 
             if mesh.geometry_format == .UNKNOWN {
                 mesh.geometry_format = .POINTS;
@@ -130,10 +156,13 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
         } else if eat_possible_identifier(*parser, "l") {
 
-            start := obj_parse_index(*parser);
-            end   := obj_parse_index(*parser);
-            array_add(*mesh.indices, ToInt(start));
-            array_add(*mesh.indices, ToInt(end));
+            missing, index := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            if missing missing_vertices_count += 1;
+            array_add(*mesh.indices, index);
+
+            missing, index = obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            if missing missing_vertices_count += 1;
+            array_add(*mesh.indices, index);
 
             if mesh.geometry_format == .UNKNOWN {
                 mesh.geometry_format = .LINES;
@@ -157,16 +186,36 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
         } else if eat_possible_identifier(*parser, "f") {
 
             face : Obj_Face = parse_face(*parser);
-            if face.index_count == 3 || face.index_count == 4 {
-                // @Incomplete Do something with the texture and normal indices
+            if face.index_count < 3 {
+                log_warning("Ignoring invalid face on line %\n", current_line);
+                // Do not error here! 
+            } else {
 
-                array_add(*mesh.indices, ToInt(face.indices[0]));
-                array_add(*mesh.indices, ToInt(face.indices[1]));
-                array_add(*mesh.indices, ToInt(face.indices[2]));
+                AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Mesh) #expand {
+                    if face.has_normals {
+                        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(result, "vn", Simple_Mesh_Normals);
+                        normals : *Matrix3 = array_add(*vn.values);
+                        for i : 0..2 {
+                            missing : bool;
+                            missing, normals.v[i] = obj_value(scratch_vn, face.normal[vids[i]], MISSING_NORMAL_FALLBACK);
+                            if missing {
+                                `missing_normals_count += 1;
+                            }
+                        }
+                    }
+
+                    for i : 0..2 {
+                        missing, index := obj_index(mesh.positions.count, face.indices[vids[i]], MISSING_VERTEX_INDEX);
+                        array_add(*mesh.indices, index);
+                        if missing {
+                            `missing_vertices_count += 1;
+                        }
+                    }
+                }
+
+                AddFace(.[0, 1, 2], face, *mesh);
                 if face.index_count == 4 {
-                    array_add(*mesh.indices, ToInt(face.indices[0]));
-                    array_add(*mesh.indices, ToInt(face.indices[2]));
-                    array_add(*mesh.indices, ToInt(face.indices[3]));
+                    AddFace(.[0, 2, 3], face, *mesh);
                 }
 
                 if mesh.geometry_format == .UNKNOWN {
@@ -188,9 +237,6 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
                     eat_token(*parser);
                 }
-            } else {
-                log_warning("Ignoring invalid face on line %\n", current_line);
-                // Do not error here! 
             }
 
         } else if eat_possible_identifier(*parser, "g") ||
@@ -271,26 +317,15 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
     }
 
     // Check obj indices
-    max_index : s64 = -1;
-    out_of_range_count : u64 = 0;
-    for mesh.indices {
-        if it > max_index {
-            max_index = it;
-        }
-        if it >= mesh.positions.count {
-            out_of_range_count += 1;
-        }
-    }
-
-    if max_index >= mesh.positions.count {
-        log_warning("Detected % missing points in the mesh file '%'. These will be positioned at %", out_of_range_count, filename, app.invalid_point);
-        for * mesh.indices if <<it >= mesh.positions.count {
+    if missing_vertices_count {
+        log_warning("Detected % missing points in the mesh file '%'. These will be positioned at %", missing_vertices_count, filename, app.invalid_point);
+        for * mesh.indices if <<it == MISSING_VERTEX_INDEX {
             <<it = xx mesh.positions.count; // Point to the missing/invalid point location
         }
         array_add(*mesh.positions, app.invalid_point);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
-    } else if mesh.normals.count != 0 && max_index >= mesh.normals.count {
-        log_warning("Detected % missing normals in the mesh file '%'. These will be set to zero.", max_index + 1 - mesh.normals.count, filename);
+    } else if missing_normals_count {
+        log_warning("Detected % missing normals in the mesh file '%'. These will be set to %.", missing_normals_count, filename, MISSING_NORMAL_FALLBACK);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
     }
 
@@ -325,6 +360,16 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
     set_entity_source_from_file(result, filename);
     set_entity_display_info(result, mesh.geometry_format);
     init_entity_spatial_index(result);
+
+    // nocommit
+    //print("result = %\n", formatStruct(<<result, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));
+    //for result.mesh_attributes {
+    //    if it.type == {
+    //        case Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
+    //            attr := <<cast(*Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE))it;
+    //            printv(attr);
+    //    }
+    //}
 
     return result;
 }

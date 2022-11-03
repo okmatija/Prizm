@@ -39,15 +39,34 @@ obj_parse_index :: (p : *Parser) -> Obj_Index {
     return index;
 }
 
-ToInt :: (obj_index : Obj_Index) -> u32 #expand {
+obj_index :: (array_count : s64, obj_index : Obj_Index, fallback : u32) -> is_fallback : bool, index : u32 {
     if obj_index > 0 {
-        return xx (obj_index - 1);
+        array_index : u32 = xx (obj_index - 1);
+        if array_index < array_count {
+            return false, array_index;
+        }
+    } else if obj_index < 0 {
+        array_index : u32 = xx (array_count + xx obj_index);
+        if array_index > 0 {
+            return false, array_index;
+        }
     }
-    if `mesh.positions.count < xx -obj_index {
-        // No error, we'll log a warning and use the invalid point to make the file load in later code
-        return xx U32_MAX;
+    return true, fallback;
+}
+
+obj_value :: (array : []$T, obj_index : Obj_Index, fallback : T) -> is_fallback : bool, value : T {
+    if obj_index > 0 {
+        array_index : u32 = xx (obj_index - 1);
+        if array_index < array.count {
+            return false, array[array_index];
+        }
+    } else if obj_index < 0 {
+        array_index : u32 = xx (array.count + xx obj_index);
+        if array_index > 0 {
+            return false, array[array_index];
+        }
     }
-    return xx (`mesh.positions.count + xx obj_index);
+    return true, fallback;
 }
 
 Obj_Face :: struct {
@@ -62,7 +81,7 @@ Obj_Face :: struct {
 }
 
 parse_face :: (p : *Parser) -> Obj_Face {
-    face : Obj_Face = ---;
+    face : Obj_Face;
     current_line := peek_token(p).line_number;
     for i : 0..3 {
         if peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {

@@ -4,13 +4,20 @@
 
 #! prism_log "This text will be printed to the log before the geometry gets parsed"
 
-vn 1 0 0
-vn 0 1 0
-vn 0 0 1
-
 v 0 0 0 
 v 1 0 0
 v 0 1 0
+vn 1 1 1
+vn 2 2 2
+vn 3 3 3
 f -3//-3 -2//-2 -1//-1
+
+v 2 0 0
+v 1 1 0
+vn 4 4 4
+vn 5 5 5
+f 2//2 -2//-2 -1//-1
+
+## nocommit Add a face mixing negative and positive index references
 
 #! prism_log_warning "This text is logged after the geometry got parsed"
