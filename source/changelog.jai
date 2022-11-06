@@ -27,6 +27,7 @@ PRISM_VERSION_0_4_1 :: App.Version.{"0.4.1-rc", "WIP", #string DONE
 
 - Fixed "Reload" buttons not working
 - Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
+- Improved organisation/presentation of key bindings in the "Help" tab
 - Renamed "Add" button in "Items" tab to "Presets"
 DONE
 };

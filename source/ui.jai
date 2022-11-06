@@ -1354,7 +1354,7 @@ show_camera_controls :: () {
 }
 
 show_help_ui :: () {
-    table_flags := ImGui.TableFlags.BordersInnerV;
+    table_flags := ImGui.TableFlags.BordersInnerV | .RowBg;
 
     if ImGui.TreeNodeEx("About", .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -1388,69 +1388,73 @@ show_help_ui :: () {
         ImGui.Text(description);
     }
 
-    if ImGui.TreeNodeEx("Key Bindings for Viewport", .SpanAvailWidth) {
+    if ImGui.TreeNodeEx("Key Bindings", .SpanAvailWidth) {
         defer ImGui.TreePop();
-        ImGui.BeginTable("", 2, flags=table_flags);
-        defer ImGui.EndTable();
 
-        ShowBinding("MMB", "Pan the camera");
-        ShowBinding("Scroll", "Zoom the camera into the position under the cursor");
-        ShowBinding("Alt   Scroll", "Zoom the camera into the position under the cursor slowly");
-        ShowBinding("Shift Scroll", "Zoom the camera into the camera look position");
-        ShowBinding("RMB", "Rotate the camera");
-        ShowBinding("Alt RMB", "Rotate about selected axis in the camera control pane");
-    }
+        if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.BeginTable("", 2, flags=table_flags);
+            defer ImGui.EndTable();
 
-    if ImGui.TreeNodeEx("Key Bindings for Items Tab", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-        ImGui.BeginTable("", 2, flags=table_flags);
-        defer ImGui.EndTable();
-
-        ShowBinding("LMB", "(on a filename) Focus an item");
-        ShowBinding("Ctrl LMB", "(on a filename) Select an item");
-        ShowBinding("Shift LMB", "(on a filename) Focus an item and zoom in");
-        ShowBinding("RMB", "(on a filename) Open context menu which modifies only the clicked item");
-        ShowBinding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
-        ShowBinding("RMB", "(on a color) Cycle shading styles");
-        ShowBinding("MMB", "(on a color) Reset color from the filename");
-        ShowBinding("LMB", "(sweep over visibility checkbox) Update item visibility");
-        ShowBinding("Ctrl LMB", "(sweep over visibility checkbox) Focus hovered item");
-        ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
-    }
-
-    if ImGui.TreeNodeEx("Key Bindings for Point Selection", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-        ImGui.BeginTable("", 2, flags=table_flags);
-        defer ImGui.EndTable();
-
-        ShowBinding("Ctrl LMB", "Add nearest unclipped vertex to 'Selection' item");
-        ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
-        ShowBinding("Ctrl RMB", "Place camera orbit");
-    }
-
-    if ImGui.TreeNodeEx("Key Bindings for Item Set Updates", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-        ImGui.BeginTable("", 2, flags=table_flags);
-        defer ImGui.EndTable();
-
-        for app.keymap_actions.mappings {
-            push_allocator(temp);
-            ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
+            ShowBinding("MMB", "Pan the camera");
+            ShowBinding("Scroll", "Zoom the camera into the position under the cursor");
+            ShowBinding("Alt   Scroll", "Zoom the camera into the position under the cursor slowly");
+            ShowBinding("Shift Scroll", "Zoom the camera into the camera look position");
+            ShowBinding("RMB", "Rotate the camera");
+            ShowBinding("Alt RMB", "Rotate about selected axis in the camera control pane");
         }
-    }
 
-    if ImGui.TreeNodeEx("Miscellaneous Key Bindings", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-        ImGui.BeginTable("", 2, flags=table_flags);
-        defer ImGui.EndTable();
+        if ImGui.TreeNodeEx("In the Items Tab", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.BeginTable("", 2, flags=table_flags);
+            defer ImGui.EndTable();
 
-        for app.keymap_keydown.mappings {
-            push_allocator(temp);
-            ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
+            ShowBinding("LMB", "(on a filename) Focus an item");
+            ShowBinding("Ctrl LMB", "(on a filename) Select an item");
+            ShowBinding("Shift LMB", "(on a filename) Focus an item and zoom in");
+            ShowBinding("RMB", "(on a filename) Open context menu which modifies only the clicked item");
+            ShowBinding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
+            ShowBinding("RMB", "(on a color) Cycle shading styles");
+            ShowBinding("MMB", "(on a color) Reset color from the filename");
+            ShowBinding("LMB", "(sweep over visibility checkbox) Update item visibility");
+            ShowBinding("Ctrl LMB", "(sweep over visibility checkbox) Focus hovered item");
+            ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
         }
-        for app.keymap.mappings {
-            push_allocator(temp);
-            ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+
+        if ImGui.TreeNodeEx("For Point Selection", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.BeginTable("", 2, flags=table_flags);
+            defer ImGui.EndTable();
+
+            ShowBinding("Ctrl LMB", "Add nearest unclipped vertex to 'Selection' item");
+            ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
+            ShowBinding("Ctrl RMB", "Place camera orbit");
+        }
+
+        if ImGui.TreeNodeEx("For Item Set Updates", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.BeginTable("", 2, flags=table_flags);
+            defer ImGui.EndTable();
+
+            for app.keymap_actions.mappings {
+                push_allocator(temp);
+                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
+            }
+        }
+
+        if ImGui.TreeNodeEx("Miscellaneous", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.BeginTable("", 2, flags=table_flags);
+            defer ImGui.EndTable();
+
+            for app.keymap_keydown.mappings {
+                push_allocator(temp);
+                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
+            }
+            for app.keymap.mappings {
+                push_allocator(temp);
+                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+            }
         }
     }
 
