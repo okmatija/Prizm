@@ -1,6 +1,6 @@
 # Goals
 
-- When you implement a feature adding a comment explaining the user-facing motivation for it next to the implementation is useful, so that we are not tempted to remove an obscure looking feature because we forgot why it was useful
+- When you implement a feature adding a comment explaining the user-facing motivation for it next to the implementation is useful, so that we are not tempted to remove an obscure looking feature because we forgot why it was useful. Perhaps start such comments with "Feature documentation:"
 - Prism supports annotations by making comments in .obj files semantically significant, this should be the only way we extend other formats, it would be annoying for users if we encourage them to write data to the file that would make it not loadable in other viewers
 
 # Coding style
@@ -17,6 +17,8 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - Consider a naming convention new_Type_Name for functions which internally call New(Type_Name) and init_Type_Name
 - Consider a naming convention make_Type_Name for functions which return a copy of a struct?
 - init(thing : *Thing)/deinit(thing : *Thing) functions should work on stack instances as well as values on the head. Hence they shouldn't call free. Look up what New does (allocate, init, cast?), we want a placement new type thing
+- Consider using `thing_kind` for `enum` variables, `thing_type` for `Type` variables and `thing` otherwise
+- When you rename a function, particularly a console command, search all .jai and .obj files for the name so you can fix all the references, we think good, unambiguous user documentation is important!
 
 
 # Release process
@@ -35,3 +37,6 @@ From the top-level project directory do the following:
 8. Use the GitHub UI to complete the release: upload the release zip and copy the new section in the changelog to the description and set the git tag
 
 Note: Delete tags using: `git tag --delete vNNN && git push --delete origin vNNN`
+
+After you've made a Prism.zip THEN rename it to Prism_X.Y.Z.zip, it will unzip containing Prism folder
+Post the changelog with a SCREENSHOT, and put the exe in the thread

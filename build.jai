@@ -332,6 +332,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     case .FLOAT;   Print("    a%1 : float = ---;\n", arg_index);
                     case .STRING;  Print("    a%1 : string = ---;\n", arg_index);
                     case .TYPE;    Print("    a%1 : Type = ---;\n", arg_index);
+                    // @Incomplete support enum types, which can be specified with a prefix dot, as in jai
                     case; compiler_report(path, arg.l0, arg.c0, tprint("Unsupported console command argument type %, only int/float/string/Type are supported.", arg.type.type));
                 }
             }

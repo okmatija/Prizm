@@ -768,7 +768,7 @@ item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : 
             return;
     }
 
-} @registercommand
+} @RegisterCommand
 
 item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Type) {
     if !check_geometry_index(id) {
@@ -788,7 +788,7 @@ item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Ty
             log_error("unsupported attribute type '%'", value_type);
             return;
     }
-} @registercommand
+} @RegisterCommand
 
 /*
 clear_normals :: (id : int) {
