@@ -554,12 +554,8 @@ show_selection_ui :: () {
             ImGui.InputInt("Point size", *it.display_info.points_size);
             it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
 
-            trailing_width : s32 = xx vertex_label_style.format_float.trailing_width;
-            ImGui.InputInt("Float decimals", *trailing_width);
-            vertex_label_style.format_float.trailing_width = clamp(trailing_width, 0, 12);
-            Show_Tooltip("Number of digits following the decimal point");
+            format_float_ui(*vertex_label_style.format_float);
 
-            combo_box("Float format", *vertex_label_style.format_float.mode, type_info(FormatFloat.Mode));
             ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
 
             ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
@@ -579,6 +575,39 @@ show_selection_ui :: () {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
     }
+}
+
+// @Incomplete This should have an update struct so we can know what changed on a granular level, we want to apply updates on a granular level
+format_float_ui :: (format : *FormatFloat) -> bool {
+    changed := false;
+
+    trailing_width : s32 = xx format.trailing_width;
+    changed |= ImGui.InputInt("Float decimals", *trailing_width);
+    format.trailing_width = clamp(trailing_width, 0, 12);
+    Show_Tooltip("Number of digits following the decimal point");
+    changed |= combo_box("Float format", *format.mode, type_info(FormatFloat.Mode));
+
+    return changed;
+}
+
+// @Incomplete This should have an update struct so we can know what changed on a granular level, we want to apply updates on a granular level
+format_struct_ui :: (format : *FormatStruct) -> bool {
+    changed := false;
+
+    use_long_form := format.use_long_form_if_more_than_this_many_members == -1;
+    if ImGui.Checkbox("Long form", *use_long_form) {
+        format.use_long_form_if_more_than_this_many_members = ifx use_long_form then -1 else 99999;
+        changed = true;
+    }
+    Show_Tooltip(TOOLTIP);
+TOOLTIP :: #string DONE
+"short form" means just draw values e.g., {1, 3, 5}
+"long form"  means draw names then values e.g., {x = 1; y = 3; z = 5;}
+DONE
+    ImGui.SameLine();
+    changed |= ImGui.Checkbox("Long form newlines", *format.use_newlines_if_long_form);
+
+    return changed;
 }
 
 ScopedPopupBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
@@ -922,9 +951,11 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
         // Undo the previous thing so internals don't have this color
         ScopedPopupBorderTheme(original_border_color, original_border_size);
 
-        if (ImGui.BeginTabBar("##AnnotationTab", flags=ImGui.TabBarFlags.None)) {
+        if ImGui.BeginTabBar("##AnnotationTab", flags=ImGui.TabBarFlags.None) {
+            defer ImGui.EndTabBar();
 
-            if (ImGui.BeginTabItem("Display")) {
+            if ImGui.BeginTabItem("Display") {
+                defer ImGui.EndTabItem();
                 if !entity.is_selected {
                     if entity_name(entity).count {
 
@@ -1025,10 +1056,24 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                     apply_display_info_update(set, .SELECTED);
                 }
-                ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Annotations")) {
+            annotation_theme_ui :: (theme : *Annotation_Theme, update : *Annotation_Theme_Update) {
+                update.visible = ImGui.Checkbox("Visible", *theme.visible);
+
+                // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
+                update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
+
+                // Visible radius
+                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+                radius_px := cast(float) theme.visible_radius_px;
+                update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+                theme.visible_radius_px = cast(int) radius_px;
+            }
+
+            if ImGui.BeginTabItem("Annotations") {
+                defer ImGui.EndTabItem();
 
                 set : Display_Info_Update;
                 display_info : *Display_Info;
@@ -1043,17 +1088,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     theme :  *Annotation_Theme = *display_info.annotation_theme;
                     update : *Annotation_Theme_Update = *set.annotation_theme_update;
 
-                    update.visible = ImGui.Checkbox("Visible", *theme.visible);
-
-                    // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-                    update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                    update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-
-                    // Visible radius
-                    radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                    radius_px := cast(float) theme.visible_radius_px;
-                    update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                    theme.visible_radius_px = cast(int) radius_px;
+                    annotation_theme_ui(theme, update);
                 }
                 if entity.is_selected {
                     apply_display_info_update(set, .SELECTED);
@@ -1061,10 +1096,116 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                 // Only display the annotations for the RMB'd entity, even if its selected. @Think Maybe this is just confusing?
                 display_annotations(entity, entity_index);
-
-                ImGui.EndTabItem();
             }
-            ImGui.EndTabBar();
+
+            attribute_theme_ui :: (theme : *Attribute_Theme, update : *Attribute_Theme_Update) {
+                update.visible = ImGui.Checkbox("Visible", *theme.visible);
+
+                // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
+                update.label_color = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                update.label_scale = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
+
+                // Visible radius
+                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+                radius_px := cast(float) theme.visible_radius_px;
+                update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+                theme.visible_radius_px = cast(int) radius_px;
+
+                format_float_ui(*theme.format_float);
+                format_struct_ui(*theme.format_struct);
+            }
+
+
+            for base_attribute : entity.mesh.attributes {
+                if ImGui.BeginTabItem(imgui_label(base_attribute.name, base_attribute)) {
+                    defer ImGui.EndTabItem();
+
+                    value_type : Type;
+                    element_kind : Simple_Mesh_Attribute.Element;
+                    if base_attribute.type == {
+                        case Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
+                            ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
+                            Show_Tooltip(TOOLTIP);
+                            TOOLTIP :: #string DONE
+Matrix3 :: struct {
+    _11, _12, _13 : float;
+    _21, _22, _23 : float;
+    _31, _32, _33 : float;
+    #place _11; row: [3]Vector3 = ---;
+}
+DONE;
+                    }
+
+
+                    if ImGui.TreeNodeEx("Attribute Labels", .SpanAvailWidth) {
+                        defer ImGui.TreePop();
+                        update : Attribute_Theme_Update; // nocommit Hook this up
+                        attribute_theme_ui(*base_attribute.display_info.theme, *update);
+                    }
+
+                    if base_attribute.type == {
+                        case Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
+
+                            attribute := cast(*Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE))base_attribute;
+                            if ImGui.TreeNodeEx(imgui_label(tprint("Attributes (%)", attribute.values.count), base_attribute), .SpanAvailWidth) {
+                                defer ImGui.TreePop();
+
+                                if attribute.values.count {
+
+                                    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable; // | .Sortable;
+                                    outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+
+                                    if last_frame_annotation_list_height_px < outer_size.y {
+                                        table_flags &= ~.ScrollY;
+                                        outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
+                                    }
+
+                                    column_count : s32 = 3;
+                                    if ImGui.BeginTable(imgui_label("##Attribute_Table", attribute), column_count, flags=table_flags, outer_size=outer_size) {
+                                        defer ImGui.EndTable();
+
+                                        ImGui.TableSetupColumn("UI",    ImGui.TableColumnFlags.WidthFixed | .NoSort);
+                                        ImGui.TableSetupColumn("Index", ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
+                                        ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthStretch);
+                                        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+                                        ImGui.TableHeadersRow();
+
+                                        last_frame_annotation_list_height_px = 0.;
+                                        for :ListClipperIterator value, index : attribute.values {
+                                            last_frame_annotation_list_height_px = clipper.ItemsHeight;
+
+                                            ImGui.TableNextRow();
+
+                                            ImGui.TableNextColumn();
+                                            if ImGui.Button(imgui_label("Focus", xx index)) {
+                                                item_focus_triangle(entity_index, index, ifx io().KeyShift then 0. else -1.);
+                                            }
+                                            bindings : [..]Binding_With_Description;
+                                            bindings.allocator = temp;
+                                            array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
+                                            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
+                                            Show_Tooltip_Binding(..bindings);
+
+                                            ImGui.TableNextColumn();
+                                            ImGui.Text(tprint("%", index));
+
+                                            ImGui.TableNextColumn();
+                                            new_context : Context;
+                                            new_context.print_style.default_format_float = attribute.display_info.theme.format_float;
+                                            new_context.print_style.default_format_struct = attribute.display_info.theme.format_struct;
+                                            push_context new_context {
+                                                ImGui.Text(tprint("%", value));
+                                            }
+                                        }
+                                        last_frame_annotation_list_height_px *= attribute.values.count; // FIXME This is wrong if string annotations have different numbers of lines
+                                    }
+                                }
+                            }
+                        case;
+                            log_warning("@Incomplete attribute table UI for attribute type '%'", base_attribute.type);
+                    }
+                }
+            }
         }
     }
 }
@@ -1221,7 +1362,20 @@ show_help_ui :: () {
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         ImGui.Text("Prism is a tool for debugging computational geometry algorithms.");
         ImGui.PopStyleColor();
+        ImGui.Text("");
+        ImGui.Text("Load files/folders with drag/drop or via command line arguments");
+        ImGui.Text("");
 
+        /*
+        Goals
+        - work with .obj file format
+        - writing quads seems not that useful, so make `f a b c d` represent a tet rather than a quad
+        */
+
+        ImGui.Text("Feedback/Bugs can be:");
+        ImGui.Text("- sent to matija.kecman@epicgames.com, or");
+        ImGui.Text("- posted on the slack channel #sig-prism-ext, or");
+        ImGui.Text("- suggested on the User Guide document pinned on slack");
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %.", compiler_get_version_info(null));
         ImGui.Text(COMPILER_VERSION_INFO);
     }
@@ -1406,7 +1560,7 @@ show_pending_directories_ui :: () {
         ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
         ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
         ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthFixed, 60);
-        ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
+        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
         ImGui.TableHeadersRow();
 
         // Sort our data if sort specs have been changed!
@@ -1554,6 +1708,16 @@ Annotation_Theme_Update :: struct {
     visible_radius_px : bool;
     label_scale : bool;
     label_color : bool;
+}
+
+// @Think Do we even want this? The XXX_Update stucts are used to apply changes to multiple items. We can use it to apply changes to multiple items with the same attribute
+Attribute_Theme_Update :: struct {
+    visible : bool;
+    visible_radius_px : bool;
+    label_scale : bool;
+    label_color : bool;
+    format_float : bool;
+    format_struct : bool;
 }
 
 // @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
@@ -1836,7 +2000,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         ImGui.SameLine();
         DoRadioButton("Face", .TRIANGLE, entity.face_annotations);
         ImGui.SameLine();
-        DoRadioButton("Block", .BLOCK, entity.block_annotations);
+        DoRadioButton("Block", .BLOCK, entity.block_annotations); // nocommit a better name is FILE annotation
         ImGui.SameLine();
         DoRadioButton("Command", .COMMAND, entity.command_annotations);
 
@@ -1867,7 +2031,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
                 ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .NoSort);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
-                ImGui.TableSetupScrollFreeze(0, 1); // Make row always visible
+                ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
                 ImGui.TableHeadersRow();
 
                 // Sort our data if sort specs have been changed!
@@ -1896,7 +2060,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                 }
 
                 last_frame_annotation_list_height_px = 0.;
-                for * :ListClipperIterator annotation : annotations {
+                for :ListClipperIterator annotation : annotations {
                     last_frame_annotation_list_height_px = clipper.ItemsHeight;
 
                     ImGui.TableNextRow();
@@ -1905,7 +2069,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     if annotation.kind == .BLOCK {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
-                        if ImGui.Button(imgui_label("Focus", xx annotation)) {
+                        if ImGui.Button(imgui_label("Focus", xx annotation.id)) {
                             if annotation.kind == {
                                 case .TRIANGLE;
                                     item_focus_triangle(entity_index, annotation.id, ifx io().KeyShift then 0. else -1.);
@@ -1938,6 +2102,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
     }
 }
 
+// This is also used for the attribute tables, so don't be confused by the name..!
 last_frame_annotation_list_height_px : float;
 
 show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {

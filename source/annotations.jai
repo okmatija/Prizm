@@ -14,7 +14,7 @@ Annotation :: struct {
     id : int;
 
     // strings are owned @Cleanup This sucks, we should use a pool for the annotations
-    value : Tagged_Union(string, float);
+    value : Tagged_Union(string, float); // nocommit This should just be string type, typed data should be an attribute
 }
 
 deinit :: (annotation : Annotation) {

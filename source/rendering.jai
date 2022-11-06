@@ -37,6 +37,24 @@ is_visible :: (theme : Annotation_Theme) -> bool {
     return theme.visible;
 }
 
+Attribute_Theme :: struct {
+    visible := false;
+    visible_radius_px : int = 50;
+    label_scale := .3;
+    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+
+    format_float : FormatFloat; // We ignore the `value` field
+    format_float.mode = .SHORTEST;
+    format_float.trailing_width = 8;
+    format_float.zero_removal = .NO;
+
+    format_struct : FormatStruct; // We ignore the `value` field
+}
+
+Attribute_Theme_Update :: struct {
+    // @Incomplete
+}
+
 Display_Mode :: enum #specified {
     NORMALS ::     0;
     SOLID_COLOR :: 1;
@@ -48,7 +66,7 @@ Backface_Mode :: enum #specified {
     CULL :: 1;
     FIXED :: 2;
     DARKEN :: 3;
-    SCREENTONE_1 :: 4;
+    SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
     SCREENTONE_2 :: 5;
 }
 

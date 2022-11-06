@@ -8,6 +8,17 @@ Simple_Mesh :: struct {
     segments : [..]Tuple2(u32); // l's OR construct if we contruct special edge data
     triangles : [..]Tuple3(u32); // f's with 3 indices
 
+    // Mesh normals and tangents are stored as overlays attributes
+    // Attributes are added via the item_add_attribute_XXX commands, which can/should be used in command obj comments
+    // Then name is specified in a leading #! ? maybe also say if the annotations are sparse or dense to pick the datastructure
+    // I need shaders for different types of data attached to vertices/segments/faces
+    // List of data types I want to support
+    // - scalars e.g., errors/costs
+    // - vectors e.g., Vector2 for UVs, Vector3 for normals/tangents/displacements
+    // - tensors e.g., Matrix4 for stresses
+    // - string  e.g., debug comments
+    attributes : [..]*Simple_Mesh_Attribute;
+
     // We still don't support f i//a j//b k//c with i/j/k != a/b/c 
     // Normals should be dense attributes on faces, not verticies
 
@@ -24,12 +35,20 @@ Simple_Mesh_Attribute :: struct {
     }
 
     Attribute_Display_Info :: struct {
-        // ...
+        // @Incomplete nocommit Only show the relevant parts of the format options depending on the type of the values
+        theme : Attribute_Theme;
+        theme.format_struct.use_long_form_if_more_than_this_many_members = 99999;
+    }
+
+    // Rendering of attributes is @Incomplete
+    Attribute_Render_Info :: struct {
+        buffer : GLuint;
     }
 
     name : string;
     type : Type;
     display_info : Attribute_Display_Info;
+    render_info : Attribute_Render_Info;
 }
 
 Simple_Mesh_Normals :: Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
@@ -43,6 +62,7 @@ Simple_Mesh_Dense_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_
     values : [..]Value_Type;
 }
 
+// nocommit Remove these entirely! Annotations will be the sparse version of attributes, and they will only be string types!
 // Sparse attributes are only attached to a few elements of the mesh
 Simple_Mesh_Sparse_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Attribute.Element) {
     using #as base : Simple_Mesh_Attribute;
@@ -56,12 +76,19 @@ Simple_Mesh_Sparse_Attribute :: struct (Value_Type : Type, Element_Kind : Simple
     indexed_values : [..]Indexed_Value;
 }
 
-ATTRIBUTE_VALUE_TYPES :: Type.[string, float, Vector2, Vector3, Vector4, Matrix3];
+// string  - renders as text near cursor, so build up text quads which is already supported
+// float   - renders as colors on point/segment/face
+// Vector2 - renders as texture/texture coordinate
+// Vector3 - renders as vectors or colors in barycentric space of the face
+// Matrix3 - renders as vectors on face vertices/edges
+ATTRIBUTE_VALUE_TYPES :: Type.[string, float, Vector3, Matrix3];
 
 // @Think Perhaps we want dynamic_ versions of these functions which have non-constant value_type??
 
+// nocommit These functions should work on the mesh directly, not the entity
+
 find_mesh_attribute :: (entity : *Entity, attribute_name : string, $attribute_type : Type) -> *attribute_type {
-    for entity.mesh_attributes {
+    for entity.mesh.attributes {
         if it.type == attribute_type && it.name == attribute_name {
             return xx it;
         }
@@ -72,9 +99,9 @@ find_mesh_attribute :: (entity : *Entity, attribute_name : string, $attribute_ty
 add_mesh_attribute :: (entity : *Entity, attribute_name : string, $attribute_type : Type) -> *attribute_type {
 
     attribute := New(attribute_type);
-    array_add(*entity.mesh_attributes, attribute);
+    array_add(*entity.mesh.attributes, attribute);
 
-    result : *Simple_Mesh_Attribute = entity.mesh_attributes[entity.mesh_attributes.count - 1];
+    result : *Simple_Mesh_Attribute = entity.mesh.attributes[entity.mesh.attributes.count - 1];
     result.name = attribute_name;
     result.display_info = .{};
 

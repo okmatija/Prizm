@@ -47,7 +47,7 @@ obj_index :: (array_count : s64, obj_index : Obj_Index, fallback : u32) -> is_fa
         }
     } else if obj_index < 0 {
         array_index : u32 = xx (array_count + xx obj_index);
-        if array_index > 0 {
+        if array_index >= 0 {
             return false, array_index;
         }
     }
@@ -62,7 +62,7 @@ obj_value :: (array : []$T, obj_index : Obj_Index, fallback : T) -> is_fallback 
         }
     } else if obj_index < 0 {
         array_index : u32 = xx (array.count + xx obj_index);
-        if array_index > 0 {
+        if array_index >= 0 {
             return false, array[array_index];
         }
     }

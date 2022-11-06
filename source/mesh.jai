@@ -8,6 +8,18 @@ Mesh :: struct {
     indices :  [..]u32;
     // texture_uvs : [..]Vector2; @Incomplete
 
+    // nocommit Cleanup this comment
+    // Mesh normals and tangents are stored as overlays attributes
+    // Attributes are added via the item_add_attribute_XXX commands, which can/should be used in command obj comments
+    // Then name is specified in a leading #! ? maybe also say if the annotations are sparse or dense to pick the datastructure
+    // I need shaders for different types of data attached to vertices/segments/faces
+    // List of data types I want to support
+    // - scalars e.g., errors/costs
+    // - vectors e.g., Vector2 for UVs, Vector3 for normals/tangents/displacements
+    // - tensors e.g., Matrix4 for stresses
+    // - string  e.g., debug comments
+    attributes : [..]*Simple_Mesh_Attribute;
+
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
 }
 

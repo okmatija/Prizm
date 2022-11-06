@@ -193,6 +193,7 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
 
                 AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Mesh) #expand {
                     if face.has_normals {
+                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(result, "vn", Simple_Mesh_Normals);
                         normals : *Matrix3 = array_add(*vn.values);
                         for i : 0..2 {

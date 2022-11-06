@@ -1,14 +1,21 @@
 PRISM_VERSION_0_4_1 :: App.Version.{"0.4.1-rc", "WIP", #string DONE
-- .obj file loading
+- New Feature: Attributes
 
-  - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
-  - Note: Using negative indices is useful so you obj logging code does not need to keep a running count of how many vertices have been written
+  - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
+  - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
+  - Multiple attributes are supported, and each will have its own tab in the item context menu
 
 - Annotations
 
   - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file
   - Annotatations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
   - TODO Added a preset example to demonstrate the new annotation functionality
+  - TODO Remove the display of annotations for the RMB'd item when more than one item is selected, its confusing, also do the same for attributes
+
+- .obj file loading
+
+  - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
+  - Note: Using negative indices is useful so you obj logging code does not need to keep a running count of how many vertices have been written
 
 - Console commands
 

@@ -1,15 +1,155 @@
-#  This file demonstrates the annotation functionality
-## Using two hashes next to each other is a way to type comments totally ignored by Prism
-#  This line is partially ignored # Here is the part that is ignored
+## nocommit Why does this not appear as a header annotation???
 
-#! prism_log "This text will be printed to the log before the geometry gets parsed"
+#  User Guide: Annotations, Command Annotations, Comments, and Attributes
+#  ======================================================================
+#
+#  In Prism .obj comments have semantic significance an encode 'annotations'
+#  and 'attributes', genuine comments totally ignored by Prism are also possible.
+#  This design means it is possible to view .obj files written for Prism
+#  in other .obj viewers, and it also reduces the learning curve for Prism
+#  since users can open vanilla .obj files to start with and postpone
+#  learning more advanced features.  The explanation here is kinda long, but
+#  its intended to be exhaustive, users should be able to read this file and
+#  have no questions.
+#
+#  An .obj comment that starts with a non-special charater and extending
+#  until the next special character is an 'annotation'.  The special characters
+#  are hash, exclamation mark and semicolon, which introduce comments, 'command annotations'
+#  and 'attributes' respectively. These are discussed the following sections character, which introduce comments and attributes respectively.
+#  If the first character is an exclamation 
+#
+#  Annotations
+#  -----------
+#
+# string which Prism can display in its UI
+#  and viewport.  Annotations contain the text immediately after
+#  the hash starting an obj comment and extend until a 'special character' (not escaped
+#  with a backslash) is encountered on the same line.
+#  Annotations will appear in the "Annotations" tab in the item context menu, they
+#  are indented to be sparse and untyped, well, they are always
+#  strings. When they are on their own in a block, they form 'block annotations',
+#  the first block annotation in a file is the 'header annotation'
+#  and will appear in the item tooltip. This tutorial text is will
+#  form a header annotation.  Annotations on .obj elements are intended for adding sparse comments to the code.
+#  In your C++ code, you might have some context which tells you that you have encountered an error condition at
+#  a particular vertex/face, and you might be interested in finding this in your shape, so you
+#  could annotate that element with some text and use the Prism annotation table to locate the problem region.
+#
+#
+#  The special characters are:
+#
+#  1. Hash: A hash character prefixes 'comment' text which is totally ignored by Prism
+#
+#  2. Exclamation: An exclamation character indicates that the rest
+#     of the text on the line until the next special character (not
+#     escaped by a backslash, and not contained in a double-quoted
+#     string argument) will be interpreted as a 'Command'.
+#
+#  3. Semicolon: A semicolon character introduces an 'attribute'.
+#     Attributes are data attached to .obj geometry elements and hence
+#     are only accepted on lines that contain a .obj directive like the
+#     face directive 'f' or vertex directive 'v'.  There can be multiple
+#     attributes on the same line, each one is introduced by a semicolon.
+#     Attributes are dense. Annotations are sparse.
+#
+#
+#  Comments
+#  --------
+#
+#  Prism extends .obj comment syntax to implement annotations and attributes
+#  but sometimes its helpful to be able to write a comment which is totally
+#  ignored by Prism e.g., if you want to disable commands without deleting the
+#  command text. Some examples of comments:
+#
+#  1. This text will appear in the header annotation # But everthing following the second hash is ignored
+#
+#  2. This text will appear in the header annotation and has some special characters in it: \! \# \;
+#
+## 3. This line is totally ignored by Prism, note we don't need to escape !, ; and # here
+#
+#
+#  Command Annotations
+#  -------------------
+#
+#  Command annotations are annotations where the first character is an exclamation mark.
+#  This syntax is inspired by the shebang/hash-bang character sequence  used as an interpreter directive in Unix.
+#  Commands are executed immediately and work very similarly to commands executed in the console, any command
+#  that can be called in the console can also be called in a Command.
+#
+#  For maximum clarity its helpful to explain the process for loading .obj files in Prism:
+#  A new item is created and added to an item array local to loading function, this array is the
+#  one targetted by the item indices in commands (ie you use -1 to refer to the item
+#  currently loaded file, if you call a command that creates a new item that item will
+#  be appended to the item list, so the item currently being loaded will be indexed with
+#  -2 from then on), the loaded file and an other items created by the commands in the file
+#  are then merged in order to the item list of the main Prism application
+#
+#  Some examples cases of commands in .obj files:
+#
+#  0. Reporting messages using 'prism_log', 'prism_log_warning' etc
+#
+#  1. Setting state on a loaded item.  This is the simplest application, we can do things like
+#     changing color, enabling wireframe mode 
+#
+#  2. Declaring an attribute: 'item_add_triangle_attribute' command can be used to introduce
+#     a triangle attribute.  As mentioned in the section covering Attributes, doing this is
+#     recommended but not essential, doing so enables you to provide a better name for the
+#     attribute (TODO and disambiguates the type??, maybe not worth mentioning that)
+#
+#  3. Post-processing an attribute. Attribute from an element addressable in .obj file syntax (e.g., vertex
+#     via 'v' directive or triangle via 'f' directive) to an element that isn't.  This can be
+#     done with the 'item_transform_attribute_A_X_to_B_Y' commands where A and B are types, and X and Y are
+#     mesh elements (TODO come up with a practical example)
+#     nocommit An alternative to this might be having different ways to interpret the data on a face,
+#     one of which is as edge data. Maybe it would be better to have special syntax to attach data directly
+#     on edges, we could consider doing that after we see how things go with this command-based method
+#
+#  4. Post-processing a loaded file. If an open edge in a mesh represents a bug in
+#     your code, you can write the .obj with a 'item_find_open_edges' command after all the geometry
+#     has been loaded, then you can have this file hot-reload while you iterate on your code and
+#     you'll be able to see at a glance when your bug has been fixed because the item created
+#     by the 'item_find_open_edges' call will be empty
+#     and appear in light grey in the item list)
+#
+#  If you call a command that creates other items consider using the function 'prism_set_duplicate_file_mode'
+#  to overwrite or append, this is important for item reloading
+#
+#
+#  Attributes
+#  ----------
+#
+#  @Think Be aware that in most cases I guess we'll only have one attribute! So make sure that case is super convenient!
+#
+#  Attributes are typed data attached to individual elements (a.k.a vertex, triangle, edge...)
+#  of a mesh.  The supported attribute types are string, float, Vector3, Matrix3.  A semicolon
+#  is used to introduce an attribute, then the text until the next special character is parsed
+#  and stored in the attribute value type. Attribute introducing functions must be called before
+#  a relevant attribute is encountered (its probably simplest to put all commands at the top or bottom
+#  of the file, but it might be more convenient in your code to write the commands related to face
+#  attributes just before you write your face list). Attributes are dense in the sense that all
+#  mesh elements are expected to have the same attributes and these are expected to appear in a
+#  semicolon separated list in a consistent order and not doing so will raise an error. That said,
+#  attributes can be assigned default values if the text that would otherwise be parsed to set them
+#  is ommitted, the default value is the empty string for string attributes and zeroed values/memory
+#  float or struct attributes.  Depending on the application you may prefer to set sparse data in
+#  element annotations, which would be more memory efficient but only supports string types and there is
+#  only one string per element. Perhaps we should allow the attribute introducing functions to specify
+#  default values (this would be useful for Vector3s interpreted as colors for example)
+
+##  This line is annotated ! print_log "This line has a command" # This line is also commented nocommit don't support this, its too weird
+##  Annotations can prefix commands, maybe not useful, but consistent ! prism_log "Hello" # This part is still ignored
+##  Annotations can prefix attributes, which kindof useful
+##  This is an annotation; "This is a string attribute, unlike annotations, it must be quoted" ; 1; 1 2 3; 1 2 3 4 5 6 7 8 9
+##
+##; This will be an attribute; Another attribute; Another
+## This will be an annotation; This is a string attribute; {2,3,5}; 5
 
 v 0 0 0 
 v 1 0 0
 v 0 1 0
-vn 1 1 1
-vn 2 2 2
-vn 3 3 3
+vn 1 0 1
+vn 2 2 0
+vn 0 3 0
 f -3//-3 -2//-2 -1//-1
 
 v 2 0 0
