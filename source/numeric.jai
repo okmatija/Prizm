@@ -66,6 +66,9 @@ normalize_or_x_axis :: inline (using v: *Vector2) -> float {
     return normalize(v, fallback=.{x=1});
 } @NoProfile
 
+Tuple2i :: Tuple2(int);
+Tuple3i :: Tuple2(int);
+
 Tuple2 :: struct (T : Type) {
     x, y : T;
 
@@ -101,12 +104,29 @@ make_Tuple3 :: (x : $T, y : T, z : T) -> Tuple3(T) {
     return result;
 }
 
+operator - :: (a : $T/Tuple2, b : T) -> T {
+    result : T = ---;
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    return result;
+}
+
 operator == :: (a : $T/Tuple2, b : T) -> bool {
     return a.x == b.x && a.y == b.y;
 }
 
 operator == :: (a : $T/Tuple3, b : T) -> bool {
     return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+// Based on boost::hash_combine
+hash_combine :: (lhs : u32, rhs : u32) -> u32 {
+    lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
+    return lhs;
+}
+
+hash_Tuple2i :: (key : Tuple2i) -> u32 {
+    return hash_combine(get_hash(key.x), get_hash(key.y));
 }
 
 ensure_finite :: (input : Vector3, fallback : Vector3 = .{0,0,0}) -> Vector3, bool {

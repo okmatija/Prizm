@@ -4,11 +4,13 @@
 
 do_demo_mode :: () {
     if io_mouse_left_down() {
-        text_position_11, text_position_px : Vector2; // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+        // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+        text_position_11 : Vector2;
         text_position_11.x = 0;
         text_position_11.y = 0.9;
-        text_position_px.x = cast(float)app.current_window_width *  (text_position_11.x + 1) / 2;
-        text_position_px.y = cast(float)app.current_window_height * (text_position_11.y + 1) / 2;
+        text_position_px : Tuple2i;
+        text_position_px.x = xx (app.current_window_width *  (text_position_11.x + 1) / 2);
+        text_position_px.y = xx (app.current_window_height * (text_position_11.y + 1) / 2);
 
         Simp.ScopeContext();
         glEnable(GL_BLEND);
@@ -25,11 +27,13 @@ do_demo_mode :: () {
     }
 
     if io_mouse_right_down() {
-        text_position_11, text_position_px : Vector2; // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+        // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+        text_position_11 : Vector2;
         text_position_11.x = 0;
         text_position_11.y = 0.9;
-        text_position_px.x = cast(float)app.current_window_width *  (text_position_11.x + 1) / 2;
-        text_position_px.y = cast(float)app.current_window_height * (text_position_11.y + 1) / 2;
+        text_position_px : Tuple2i;
+        text_position_px.x = xx (app.current_window_width *  (text_position_11.x + 1) / 2);
+        text_position_px.y = xx (app.current_window_height * (text_position_11.y + 1) / 2);
 
         Simp.ScopeContext();
         glEnable(GL_BLEND);
@@ -46,11 +50,13 @@ do_demo_mode :: () {
     }
 
     if io_mouse_middle_down() {
-        text_position_11, text_position_px : Vector2; // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+        // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+        text_position_11 : Vector2;
         text_position_11.x = 0;
         text_position_11.y = 0.9;
-        text_position_px.x = cast(float)app.current_window_width *  (text_position_11.x + 1) / 2;
-        text_position_px.y = cast(float)app.current_window_height * (text_position_11.y + 1) / 2;
+        text_position_px : Tuple2i;
+        text_position_px.x = xx (app.current_window_width *  (text_position_11.x + 1) / 2);
+        text_position_px.y = xx (app.current_window_height * (text_position_11.y + 1) / 2);
 
         Simp.ScopeContext();
         glEnable(GL_BLEND);
