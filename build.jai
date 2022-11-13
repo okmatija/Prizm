@@ -151,7 +151,7 @@ build :: () {
                             decl := tc.expression;
                             if decl.expression && decl.expression.kind == .LITERAL && has_note(decl, "KnownIssue") {
                                 literal := cast(*Code_Literal)decl.expression;
-                                if decl.flags == .IS_CONSTANT && literal.value_type == .STRING {
+                                if (decl.flags & .IS_CONSTANT) && literal.value_type == .STRING {
                                     array_add(*registered_known_issues, decl);
                                     // print("%", message.fully_pathed_filename);
                                     // print("Found issue '%' (%)\n", literal._string, decl.name);
