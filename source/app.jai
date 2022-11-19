@@ -93,8 +93,9 @@ App :: struct {
     selection_display_info.surface_visible = false;
     selection_display_info.aabb_visible = false;
 
+    // @Refactor Make this entity 0
     user_selection : Mesh_Entity;
-    user_selection_cursor_text_shown := false;
+    user_selection_cursor_text_shown := false; // @Refactor This isn't really related to selection anymore
     user_selection_cursor_text_scale := .4;
     user_selection_max_point_count_for_selectable_entity := 5_000_000; // @Cleanup remove this?
 
@@ -380,6 +381,7 @@ ImGui :: #import "ImGui";
 #load "grid.jai";
 #load "axes.jai";
 #load "selection_mode.jai";
+#load "clipping_sphere_mode.jai";
 #load "numeric.jai";
 #load "intervals.jai";
 #load "io_obj.jai";
