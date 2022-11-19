@@ -54,6 +54,28 @@ TriangleIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_
 ModelTriangleIterator :: #bake_arguments TriangleIterator(world_space=false);
 WorldTriangleIterator :: #bake_arguments TriangleIterator(world_space=true);
 
+// @Think Warning! Not sure we're doing the right thing with break/continue here
+TriangleEdgeIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
+    #assert(flags == 0); // No options are supported
+    assert(mesh.geometry_format == .TRIANGLES);
+    assert(mesh.indices.count % 3 == 0);
+
+    for i : 0..(mesh.indices.count/3)-1 {
+        triangle : Triangle3 = inline mesh_triangle_hack(mesh, i, world_space);
+        TRIANGLE_EDGES :: Tuple2i.[.{0, 1}, .{1, 2}, .{2, 0}];
+        for e : 0..2 {
+            `it_index := 3 * i + e;
+            `it : Segment3 = ---;
+            it.start = triangle.v[TRIANGLE_EDGES[e].x];
+            it.end = triangle.v[TRIANGLE_EDGES[e].y];
+            #insert (remove=#assert(false), break=break i) body;
+        }
+    }
+}
+
+ModelTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=false);
+WorldTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=true);
+
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 SegmentIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
@@ -69,6 +91,8 @@ SegmentIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_s
 
 ModelSegmentIterator :: #bake_arguments SegmentIterator(world_space=false);
 WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
+
+// @Cleanup @Refactor Maybe we should make the Point iterator loop over obj p-directive elements, and Vertex iterator which loop over v-directive elements
 
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 PointIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {

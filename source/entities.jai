@@ -640,7 +640,8 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
 
 Point_On_Entity :: struct {
     position : Point3; // World space
-    element_index : int = -1; // Vertex or Triangle
+    element_kind : Simple_Mesh_Element = .MESH;
+    element_index : int = -1;
     entity_index : int = -1;
 }
 
@@ -652,7 +653,7 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
     result : Point_On_Entity;
 
     // @Incomplete Add a screenspace distance filter
-
+//nocommit Use the visible iterator here
     min_dist2 := FLOAT32_INFINITY;
     for entity, entity_index : app.entities {
         if entity.display_info.is_visible {
@@ -681,6 +682,7 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
                         min_dist2 = dist2;
                         result.position = point_world;
+                        result.element_kind = .VERTEX;
                         result.element_index = point_index;
                         result.entity_index = entity_index;
                     }
@@ -692,6 +694,7 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
     return result;
 }
 
+// @Incomplete Pass a parameter or have a method on Point_On_Entity, which changes the element_kind to .VERTEX if the barycentric/segment parameter is 0/1?
 find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_On_Entity {
 
     sphere_clipped :: true;
@@ -708,14 +711,12 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         ));
 
     intersected_triangle := false;
-    has_degenerate_triangles := false;
     t_min := FLOAT32_INFINITY;
 
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
         normal_direction := compute_normal(triangle_model, normalize=false);
     
         if normal_direction == Vector3.{0, 0, 0} {
-            `has_degenerate_triangles = true;
             continue;
         }
     
@@ -736,6 +737,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     
         `t_min = t;
         `result.position = isect_world;
+        `result.element_kind = .TRIANGLE;
         `result.element_index = triangle_id;
         `result.entity_index = `entity_index;
         `intersected_triangle = true;
@@ -765,52 +767,59 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     }
 
     d_min := FLOAT32_INFINITY;
-    if (has_degenerate_triangles) {
-        for :Visible_Selectable_Mesh entity, entity_index : app.entities {
 
-            // FIXME This should be WorldTriangleEdgeIterator
-            for i : 0..(entity.mesh.indices.count/3)-1 {
+    // @Cleanup This should be done when we loop over each triangle?
+    for :Visible_Selectable_Mesh entity, entity_index : app.entities {
 
-                triangle : Triangle3 = mesh_triangle_world(entity.mesh, i);
+        for :WorldTriangleEdgeIterator segment, segment_index : entity.mesh { 
+            // These are in world space
+            closest_point := closest_point_ray_segment(ray_world, segment);
+            ipoint_world := closest_point.closest[1];
+            d := closest_point.distance;
 
-                // FIXME Make this the canonical way to number triangle edges, put it in a function. We need this for edge annotations
-                segment3 : Segment3 = ---;
-                if triangle.a == triangle.b {
-                    segment3.start = triangle.a;
-                    segment3.end = triangle.c;
-                } else if triangle.a == triangle.c {
-                    segment3.start = triangle.a;
-                    segment3.end = triangle.b;
-                } else if triangle.b == triangle.c {
-                    segment3.start = triangle.a;
-                    segment3.end = triangle.b;
-                } else {
-                    segment3.start = triangle.a;
-                    segment3.end = triangle.a;
+            // @Incomplete continue if the distance is beyond a threshold?
+
+            if d < d_min {
+
+                if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                    continue;
                 }
 
-                // These are in world space
-                closest_point := closest_point_ray_segment(ray_world, segment3);
-                ipoint_world := closest_point.closest[1];
-                d := closest_point.distance;
-
-                // @Incomplete continue if the distance is beyond a threshold?
-
-                if d < d_min {
-
-                    if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
-                        continue;
-                    }
-
-                    d_min = d;
-                    result.position = ipoint_world;
-                    result.element_index = 0; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
-                    result.entity_index = entity_index;
-                }
+                d_min = d;
+                result.position = ipoint_world;
+                result.element_kind = .SEGMENT;
+                result.element_index = segment_index;
+                result.entity_index = entity_index;
             }
         }
     }
 
+    Visible_Selectable_Point_Cloud :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+            e.display_info.is_visible &&
+            e.type == .POINT_CLOUD &&
+            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+        ));
+
+    // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
+    for :Visible_Selectable_Point_Cloud entity, entity_index : app.entities {
+        for :WorldPointIterator point_world, point_index : entity.mesh {
+
+            unused_closest_point, dist2, unused_t := distance_point3_ray3(point_world, ray_world);
+
+            if dist2 < d_min * d_min {
+
+                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                    continue;
+                }
+
+                d_min = sqrt(dist2);
+                result.position = point_world;
+                result.element_kind = .POINT;
+                result.element_index = point_index;
+                result.entity_index = entity_index;
+            }
+        }
+    }
 
     Visible_Selectable_Polyline_Soup3 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
             e.display_info.is_visible &&
@@ -845,6 +854,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
                 d_min = d;
                 result.position = ipoint_world;
+                result.element_kind = .SEGMENT;
                 result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                 result.entity_index = entity_index;
             }
@@ -886,6 +896,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
 
                 d_min = d;
                 result.position = ipoint_world;
+                result.element_kind = .SEGMENT;
                 result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                 result.entity_index = entity_index;
             }
@@ -923,6 +934,7 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
 
     add_directory(get_directory(filename));
 
+    // @Speed After reading the file from disk the application should immediately read other files from disk, and do the rest of the file loading in a different thread
     contents := read_entire_file(filename);
     defer free(contents);
 
@@ -963,6 +975,7 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
 
         case .FILE_ON_DISK;
 
+            // nocommit This code is in the wrong place
             enable_reload_shortcut :: (entity : Entity) -> bool {
                 if app.settings.disable_reload_key_if_file_unchanged {
                     return is_changed_on_disk(entity);
@@ -973,11 +986,14 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
             // Feature documentation: We want to always allow the user to reload the file by explictly clicking the UI button, but by default a user setting is set such that using the keyboard shortcut to reload a file will only reload it if it has changed
             if triggered_by_button || enable_reload_shortcut(entity) {
                 log("Reloading file '%'... ", entity.fully_pathed_name);
-                new_entity := load_one_file(entity.fully_pathed_name, .OVERWRITE);
+                duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
+
+                // nocommit With command annotations this function could return a list of new entities, and each of these should be merged into the item list using duplicate_file_behaviour
+                new_entity := load_one_file(entity.fully_pathed_name, duplicate_file_behaviour);
                 if new_entity {
                     // Set generation_index before adding to overwrite the correct entity
                     new_entity.generation_index = entity.generation_index;
-                    add_entity(new_entity, .OVERWRITE); // This will internally overwrite entity
+                    add_entity(new_entity, duplicate_file_behaviour);
                 } else {
                     // If the entity didn't exist or couldn't be loaded clear the entity
                     clear(entity);

@@ -4,7 +4,7 @@ Simple_Mesh :: struct {
 
     // Elements
     // .obj loading will fill these in from p, l and f directives respectively
-    points : [..]u32;
+    points : [..]u32; // Point clouds must set these, and thse are the only thing checked for 
     segments : [..]Tuple2(u32); // l's OR construct if we contruct special edge data
     triangles : [..]Tuple3(u32); // f's with 3 indices
 
@@ -25,15 +25,15 @@ Simple_Mesh :: struct {
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
 }
 
-Simple_Mesh_Attribute :: struct {
-    Element :: enum {
-        VERTEX;
-        POINT; // Kindof redundant
-        SEGMENT;
-        TRIANGLE;
-        MESH; // For attributes for the whole file, probably only sparse make sense, and value index would be line number in the file
-    }
+Simple_Mesh_Element :: enum {
+    VERTEX; // Set via the v-directive
+    POINT; // Set via the p-directive
+    SEGMENT;
+    TRIANGLE;
+    MESH; // For attributes for the whole file, probably only sparse make sense, and value index would be line number in the file
+}
 
+Simple_Mesh_Attribute :: struct {
     Attribute_Display_Info :: struct {
         // @Incomplete nocommit Only show the relevant parts of the format options depending on the type of the values
         theme : Attribute_Theme;
@@ -55,7 +55,7 @@ Simple_Mesh_Normals :: Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
 Simple_Mesh_UVs :: Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
 
 // Dense attributes have values array with the same count as the corresponding element container in the mesh
-Simple_Mesh_Dense_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Attribute.Element) {
+Simple_Mesh_Dense_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Element) {
     using #as base : Simple_Mesh_Attribute;
     base.type = Simple_Mesh_Dense_Attribute(Value_Type, Element_Kind);
 
@@ -64,7 +64,7 @@ Simple_Mesh_Dense_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_
 
 // nocommit Remove these entirely! Annotations will be the sparse version of attributes, and they will only be string types!
 // Sparse attributes are only attached to a few elements of the mesh
-Simple_Mesh_Sparse_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Attribute.Element) {
+Simple_Mesh_Sparse_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Element) {
     using #as base : Simple_Mesh_Attribute;
     base.type = Simple_Mesh_Sparse_Attribute(Value_Type, Element_Kind);
 

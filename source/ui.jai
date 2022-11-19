@@ -1123,7 +1123,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     defer ImGui.EndTabItem();
 
                     value_type : Type;
-                    element_kind : Simple_Mesh_Attribute.Element;
+                    element_kind : Simple_Mesh_Element;
                     if base_attribute.type == {
                         case Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
                             ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);

@@ -236,19 +236,13 @@ main :: () {
 
         // nocommit Since most of these modes are independent we can simplify the code by having each mode do its own ray cast
         closest : Point_On_Entity;
-        if mouse_init_clip_center() || mouse_add_to_selection() || mouse_reposition_camera() || app.user_selection_cursor_text_shown {
+        if mouse_init_clip_center() || mouse_add_to_selection() || app.user_selection_cursor_text_shown {
             if mouse_init_clip_center() {
                 // We dont check against vertices here. This would be handy in some case (e.g., if we have a bunch of floating points not
                 // referenced by a triangle and we want to center the clipping sphere on one of them) but it spoils a handy workflow in
                 // more common cases where the user has an active clipping sphere and can hold shift and click off the visible surface to
                 // temporarily popup the wireframe of the rest of the mode, but wont affect the position/size of the clipping sphere
                 closest = find_closest_point_on_visible_entities(); // @Volatile closest.element_index is a triangle index
-            } else if mouse_reposition_camera() {
-                closest = find_closest_point_on_visible_entities();
-                if closest.element_index == -1 {
-                    closest = find_closest_vertex_on_visible_entities();
-                }
-                // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
             } else {
                 closest = find_closest_vertex_on_visible_entities(); // @Volatile closest.element_index is now a vertex index
             }
@@ -277,21 +271,6 @@ main :: () {
                     it.display_info.clip_sphere_prev = it.display_info.clip_sphere;
                     it.display_info.clip_sphere = new_sphere;
                 }
-
-            } else if mouse_reposition_camera() {
-
-                sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.display_info.is_visible), fixed_center=*closest.position);
-
-                // nocommit Cleanup use transform_point/transform_vector here
-                view_from_world := make_look_at_matrix(app.camera);
-                closest_view := view_from_world * make_vector4(closest.position, 1.);
-                world_from_view := inverse(view_from_world);
-                eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
-
-                app.camera.look_position = closest.position;
-                app.camera.eye_position  += eye_displacement;
-                app.camera.far = sphere.radius * 2;
-                app.camera.near = -app.camera.far;
 
             } else if mouse_add_to_selection() {
 

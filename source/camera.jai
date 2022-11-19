@@ -115,8 +115,26 @@ update_camera :: (delta_time : float) {
 
     world_from_projection := inverse(make_projection_from_world(camera));
 
-    // Pan with middle down.
-    if io_mouse_middle_down() && mouse_move_valid {
+    if mouse_reposition_camera() {
+
+        // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
+        closest : Point_On_Entity = find_closest_point_on_visible_entities();
+        if closest.entity_index != -1 {
+            sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.display_info.is_visible), fixed_center=*closest.position);
+
+            // nocommit Cleanup use transform_point/transform_vector here
+            view_from_world := make_look_at_matrix(app.camera);
+            closest_view := view_from_world * make_vector4(closest.position, 1.);
+            world_from_view := inverse(view_from_world);
+            eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
+
+            app.camera.look_position = closest.position;
+            app.camera.eye_position  += eye_displacement;
+            app.camera.far = sphere.radius * 2;
+            app.camera.near = -app.camera.far;
+        }
+
+    } else if io_mouse_middle_down() && mouse_move_valid { // Pan with middle down.
 
         get_pan_position :: (mouse_position_px : Vector2, world_from_projection : Matrix4, camera : Camera) -> Vector3, bool {
             plane := make_hyperplane3(unit_vector(camera.eye_position - camera.look_position), camera.look_position);
@@ -532,5 +550,6 @@ arcball_vector :: (mouse_position_px : Vector2) -> Vector3
     return result;
 }
 
+#scope_export
 camera_at_mouse_down : Camera;
 rmb_down_pos : Vector2; // @Cleanup: replace this state with ImGui: use GetMouseDragDelta
