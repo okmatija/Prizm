@@ -106,6 +106,33 @@ Keymap :: struct {
     mappings : [..] Single_Key_Mapping;
 }
 
+mouse_add_to_selection :: () -> bool {
+    if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
+        return false;
+    }
+    return ImGui.IsMouseClicked(.Left) && io().KeyCtrl && app.user_selection.display_info.is_visible;
+}
+
+mouse_reposition_camera :: () -> bool {
+    if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
+        return false;
+    }
+    return ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
+}
+mouse_init_clip_center :: () -> bool {
+    if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
+        return false;
+    }
+    return ImGui.IsMouseClicked(.Left) && io().KeyShift;
+}
+
+mouse_set_clip_radius :: () -> bool {
+    if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
+        return false;
+    }
+    return ImGui.IsMouseDown(.Left) && io().KeyShift;
+}
+
 init_keymap :: () {
 
     // TODO Add options here for behaviour customizations?

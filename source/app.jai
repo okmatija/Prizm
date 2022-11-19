@@ -140,6 +140,8 @@ App :: struct {
     }
     known_issues : [..]Known_Issue;
 
+    demo_mode := false; // See demo_mode.jai
+
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
     debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;

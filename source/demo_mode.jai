@@ -3,6 +3,8 @@
 // - 
 
 do_demo_mode :: () {
+    if !app.demo_mode return;
+
     if io_mouse_left_down() {
         // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
         text_position_11 : Vector2;

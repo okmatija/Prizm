@@ -144,7 +144,7 @@ update_camera :: (delta_time : float) {
             camera.look_position += increment;
         }
 
-    } else if ImGui.IsMouseDragging(.Right, 0.) && mouse_move_valid && !do_clip_radius_mode() { // Orbit about the look position using right button
+    } else if ImGui.IsMouseDragging(.Right, 0.) && mouse_move_valid { // Orbit about the look position using right button
 
         world_from_projection_at_mouse_down := inverse(make_projection_from_world(camera_at_mouse_down));
 

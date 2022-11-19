@@ -303,9 +303,9 @@ render_mesh_points :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
-render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
     if !wireframe_visible return;
-    render_simple_mesh_common(mesh, render_info, display_info);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
 
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
 
@@ -425,7 +425,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     glBlendEquation(GL_FUNC_ADD);
 }
 
-render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
 
     maybe_update_render_info(render_info, mesh);
 
@@ -451,8 +451,7 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
         glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
 
-        // @Refactor move the clip_radius_mode stuff to the shader, do switching there
-        clip_mode := ifx do_clip_radius_mode() then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+        clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
         glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx clip_mode);
     }
 
@@ -548,6 +547,14 @@ on_screen_in_disk :: (text_position_px : Tuple2i, visible_radius_px : int) -> bo
     return true;
 }
 
+entity_in_clip_radius_mode :: (entity_index : int) -> bool {
+    return mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index >= 0 &&
+    (
+        ( app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.entities[entity_index].is_selected) ||
+        (!app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.clipping_sphere_mode_entity_index == entity_index)
+    );
+}
+
 render_entities :: () {
 
     Scope_GL_State();
@@ -558,59 +565,48 @@ render_entities :: () {
         old_display_info := entity.display_info;
         defer entity.display_info = old_display_info;
 
-        clip_radius_mode :=
-            do_clip_radius_mode() && app.clipping_sphere_mode_entity_index >= 0 &&
-            (
-                ( app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.entities[entity_index].is_selected) ||
-                (!app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.clipping_sphere_mode_entity_index == entity_index)
-            );
+        clip_radius_mode := entity_in_clip_radius_mode(entity_index);
 
         if #complete entity.type == {
             case .POLYLINE_SOUP2;
 
-                soup := cast(*Polyline_Soup2_Entity) entity;
-                render_mesh_points(*soup.mesh, ri, di);
-                render_mesh_lines(*soup.mesh, ri, di);
-                render_aabb(*soup.mesh, ri, di);
+                render_mesh_points(*entity.mesh, ri, di);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_aabb(*entity.mesh, ri, di);
 
             case .POLYLINE_SOUP3;
 
-                soup := cast(*Polyline_Soup3_Entity) entity;
-                render_mesh_points(*soup.mesh, ri, di);
-                render_mesh_lines(*soup.mesh, ri, di);
-                render_normals(*soup.mesh, ri, di);
-                render_aabb(*soup.mesh, ri, di);
+                render_mesh_points(*entity.mesh, ri, di);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_normals(*entity.mesh, ri, di);
+                render_aabb(*entity.mesh, ri, di);
 
             case .SEGMENT_SOUP3;
 
-                soup := cast(*Segment_Soup3_Entity) entity;
-                render_mesh_points(*soup.mesh, ri, di);
-                render_mesh_lines(*soup.mesh, ri, di);
-                render_normals(*soup.mesh, ri, di);
-                render_aabb(*soup.mesh, ri, di);
+                render_mesh_points(*entity.mesh, ri, di);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_normals(*entity.mesh, ri, di);
+                render_aabb(*entity.mesh, ri, di);
 
             case .POLYGON_SOUP;
 
-                soup := cast(*Polygon_Soup_Entity) entity;
-                render_mesh_points(*soup.mesh, ri, di);
-                render_mesh_triangles(*soup.mesh, ri, di, clip_radius_mode);
-                render_aabb(*soup.mesh, ri, di);
+                render_mesh_points(*entity.mesh, ri, di);
+                render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
+                render_aabb(*entity.mesh, ri, di);
 
             case .POINT_CLOUD;
 
-                cloud := cast(*Point_Cloud_Entity) entity;
-                render_mesh_points(*cloud.mesh, ri, di);
-                render_normals(*cloud.mesh, ri, di);
-                render_aabb(*cloud.mesh, ri, di);
+                render_mesh_points(*entity.mesh, ri, di);
+                render_normals(*entity.mesh, ri, di);
+                render_aabb(*entity.mesh, ri, di);
 
             case .MESH;
 
-                mesh := cast(*Mesh_Entity) entity;
-                render_mesh_points(*mesh.mesh, ri, di);
+                render_mesh_points(*entity.mesh, ri, di);
                 if clip_radius_mode {
                     di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
                 }
-                render_mesh_triangles(*mesh.mesh, ri, di, clip_radius_mode);
+                render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
                 if clip_radius_mode {
                     di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
                 } else if di.surface_visible && di.wireframe_width >= 1 {
@@ -618,9 +614,9 @@ render_entities :: () {
                     // smooth version drawn in the render_mesh_triangles call
                     di.wireframe_width = max(di.wireframe_width - 1, 1);
                 }
-                render_mesh_lines(*mesh.mesh, ri, di);
-                render_normals(*mesh.mesh, ri, di);
-                render_aabb(*mesh.mesh, ri, di);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_normals(*entity.mesh, ri, di);
+                render_aabb(*entity.mesh, ri, di);
 
             case .UNKNOWN;
         }
@@ -891,6 +887,40 @@ render_entities :: () {
     for :Visible_Hovered     app.entities render_entity_text(it);
 
     for :Visible_Hovered     app.entities render_entity_geometry(it, it_index);
+}
+
+
+render_selections :: () {
+    Scope_GL_State();
+
+    if app.user_selection.is_hovered {
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
+    entity := *app.user_selection;
+    mesh := *app.user_selection.mesh;
+
+    dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
+
+    render_mesh_points(mesh, *entity.render_info, entity.display_info);
+    render_mesh_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_normals(mesh, *entity.render_info, entity.display_info);
+
+    projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
+
+    // We intentionally always all the text for selections since there usually aren't lots
+    // of overlapping ones and its annoying not to see everything. We also don't consider
+    // the clipping sphere (there is no way to set it right now, anyway) since this is also
+    // annoying in the case of selections
+
+    Simp.ScopeContext();
+    point_theme := entity.display_info.vertex_label_style;
+    for mesh.positions {
+        text := get_point_text(it, it_index, point_theme);
+        text_position_px := get_text_screen_position(it, projection_from_model);
+        Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, point_theme.label_color, scale=point_theme.label_scale);
+    }
 }
 
 // This function was added so that we could use Simp *when it was using the same context as the rest of the

@@ -431,6 +431,8 @@ show_options :: () {
         ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
+        ImGui.Checkbox("Demo Mode", *app.demo_mode);
+        Show_Tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
 
         disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
         if disable_window_resize_button ImGui.BeginDisabled();

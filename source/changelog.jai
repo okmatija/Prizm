@@ -35,8 +35,10 @@ Label rendering improvements:
 
 - Fixed "Reload" buttons not working
 - Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
+- Fixed the weird requirement for Point Selection to be visible in order to use sphere clipping mode, those two things are now independant
 - Improved organisation/presentation of key bindings in the "Help" tab
 - Renamed "Add" button in "Items" tab to "Presets"
+- Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
 DONE
 };
 
