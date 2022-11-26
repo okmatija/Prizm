@@ -61,17 +61,15 @@ TriangleEdgeIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $wo
     assert(mesh.indices.count % 3 == 0);
 
     for i : 0..(mesh.indices.count/3)-1 {
-        triangle : Triangle3 = inline mesh_triangle_hack(mesh, i, world_space);
-        TRIANGLE_EDGES :: Tuple2i.[.{0, 1}, .{1, 2}, .{2, 0}];
+        edges : Tuple3(Segment3) = inline mesh_triangle_edges_hack(mesh, i, world_space);
         for e : 0..2 {
             `it_index := 3 * i + e;
-            `it : Segment3 = ---;
-            it.start = triangle.v[TRIANGLE_EDGES[e].x];
-            it.end = triangle.v[TRIANGLE_EDGES[e].y];
+            `it : Segment3 = edges.component[e]; 
             #insert (remove=#assert(false), break=break i) body;
         }
     }
 }
+
 
 ModelTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=false);
 WorldTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=true);
@@ -208,6 +206,39 @@ mesh_triangle_hack :: (mesh : Mesh, triangle_index : int, $world_space : bool, $
 
 mesh_triangle_model :: #bake_arguments mesh_triangle_hack(world_space=false);
 mesh_triangle_world :: #bake_arguments mesh_triangle_hack(world_space=true);
+
+
+
+
+
+
+mesh_triangle_edges_tuple :: (using mesh : Mesh, triangle_index : int, $checked := false) -> Tuple3(Tuple2(u32)) {
+    #if checked assert(mesh.geometry_format == .TRIANGLES);
+    triangle_indices : Tuple3(u32) = inline mesh_triangle_tuple(mesh, triangle_index);
+
+    result : Tuple3(Tuple2(u32)) = ---;
+    for e : 0..2 {
+        TRIANGLE_EDGES :: Tuple2i.[.{0, 1}, .{1, 2}, .{2, 0}];
+        result.component[e].x = triangle_indices.component[TRIANGLE_EDGES[e].x];
+        result.component[e].y = triangle_indices.component[TRIANGLE_EDGES[e].y];
+    }
+    return result;
+}
+
+mesh_triangle_edges_hack :: (mesh : Mesh, triangle_index : int, $world_space : bool, $checked := false) -> Tuple3(Segment3) {
+    edge_indices : Tuple3(Tuple2(u32)) = inline mesh_triangle_edges_tuple(mesh, triangle_index, checked);
+
+    result : Tuple3(Segment3) = ---;
+    for e : 0..2 {
+        result.component[e].start = mesh_point_hack(mesh, edge_indices.component[e].x, world_space);
+        result.component[e].end =   mesh_point_hack(mesh, edge_indices.component[e].y, world_space);
+    }
+    return result;
+}
+
+mesh_triangle_edges_model :: #bake_arguments mesh_triangle_edges_hack(world_space=false);
+mesh_triangle_edges_world :: #bake_arguments mesh_triangle_edges_hack(world_space=true);
+
 
 
 
