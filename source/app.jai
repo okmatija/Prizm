@@ -107,7 +107,11 @@ App :: struct {
     user_selection.display_info.vertex_label_style.show_position = true;
     user_selection.display_info.vertex_label_style.label_color = .{0, 0, 0, 1};
 
-    clipping_sphere_mode_entity_index : int = -1; // The entity which set the clipping sphere center
+    // The entity which set the clipping sphere center
+    clipping_sphere_mode_entity_index : int = -1;
+
+    // This member is used to implement the handy feature in clipping sphere mode where the use can click far away from a clipped entity and, while the click is held, have the wireframe of the items previously clipped with a sphere to show their wireframes. While this is happening the position/size of the clipping spheres is not changed.
+    clipping_sphere_mode_last_entity_index_set : [..]int;
 
     camera : Camera;
     console : Console;
@@ -283,6 +287,8 @@ User_Settings :: struct {
     camera_zoom_min_screen_filling_length_mm := 0.; // .0001; // .1um
     camera_zoom_max_screen_filling_length_factor := 4.; // multiplies a visible scene bounding sphere radius
     camera_zoom_max_limited_by_scene_bounding_sphere := false;
+
+    closest_point_query_max_dist_px := 20;
 
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;

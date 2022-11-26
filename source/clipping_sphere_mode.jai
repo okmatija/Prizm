@@ -1,24 +1,17 @@
 do_clipping_sphere_mode :: () {
-    // nocommit Since most of these modes are independent we can simplify the code by having each mode do its own ray cast
-    closest : Point_On_Entity;
-    if mouse_init_clip_center() {
-        if mouse_init_clip_center() {
-            // We dont check against vertices here. This would be handy in some case (e.g., if we have a bunch of floating points not
-            // referenced by a triangle and we want to center the clipping sphere on one of them) but it spoils a handy workflow in
-            // more common cases where the user has an active clipping sphere and can hold shift and click off the visible surface to
-            // temporarily popup the wireframe of the rest of the mode, but wont affect the position/size of the clipping sphere
-            closest = find_closest_point_on_visible_entities(); // @Volatile closest.element_index is a triangle index
-        }
-    }
+    if mouse_init_clip_center() { // Set the clipping sphere center
+        closest : Point_On_Entity = find_closest_point_on_visible_entities(); // @Volatile closest.element_index is a triangle index
 
-    if closest.entity_index != -1 {
-        if mouse_set_clip_radius() {
+        if closest.entity_index != -1 {
+            array_reset(*app.clipping_sphere_mode_last_entity_index_set);
 
             // When we first enter clip radius mode (when the mouse is first clicked) we:
             // 1. Store the previous sphere
             // 2. Store the center of the new sphere
 
             app.clipping_sphere_mode_entity_index = closest.entity_index;
+            array_add(*app.clipping_sphere_mode_last_entity_index_set, closest.entity_index);
+
             entity := app.entities[app.clipping_sphere_mode_entity_index];
 
             new_sphere : Clip_Sphere;
@@ -33,11 +26,10 @@ do_clipping_sphere_mode :: () {
                 if it == entity continue; // Must skip entity since we set it above
                 it.display_info.clip_sphere_prev = it.display_info.clip_sphere;
                 it.display_info.clip_sphere = new_sphere;
+                array_add(*app.clipping_sphere_mode_last_entity_index_set, it_index);
             }
         }
-    }
-
-    if mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index >= 0 {
+    } else if mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index != -1 { // Set the clipping sphere radius
         entity := app.entities[app.clipping_sphere_mode_entity_index];
         sphere := entity.display_info.clip_sphere;
 

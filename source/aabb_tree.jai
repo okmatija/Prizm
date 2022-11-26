@@ -185,7 +185,8 @@ VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $V
     }
 }
 
-Visit_Primitives_Brute_Force :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE : Code) #expand {
+// @Cleanup Remove this
+VisitPrimitivesBruteForce :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE : Code) #expand {
     // Use distance from all corners to ray as maximum distance of box to ray, so you can just visit all primitives in the box rather than test them all
 
     if tree.nodes.count == 0 {
@@ -200,13 +201,13 @@ Visit_Primitives_Brute_Force :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE
 }
 
 // Note: the ray is expected to be in the model space of the mesh, since the tree is constructed from the model space mesh
-Visit_Primitives_Near_Ray :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
+VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 || !is_finite(distance) {
         return;
     }
 
     if app.debug_frame {
-        log_error("Debugging Visit_Primitives_Near_Ray");
+        log_error("Debugging VisitPrimitivesNearRay");
     }
 
     // Only nodes whose AABBs are intersected by the ray will be pushed onto the stack

@@ -1,4 +1,4 @@
-PRISM_VERSION_0_4_1 :: App.Version.{"0.4.1-rc", "WIP", #string DONE
+PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 - New Feature: Attributes
 
   - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -38,6 +38,7 @@ Label rendering improvements:
 - Fixed the weird requirement for Point Selection to be visible in order to use sphere clipping mode, those two things are now independant
 - Improved organisation/presentation of key bindings in the "Help" tab
 - Renamed "Add" button in "Items" tab to "Presets"
+- Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
 - Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
 DONE
 };
@@ -364,7 +365,7 @@ DONE
 };
 
 init_changelog :: () {
-    array_add(*app.changelog, PRISM_VERSION_0_4_1);
+    array_add(*app.changelog, PRISM_VERSION_LATEST);
     array_add(*app.changelog, PRISM_VERSION_0_4_0);
     array_add(*app.changelog, PRISM_VERSION_0_3_1);
     array_add(*app.changelog, PRISM_VERSION_0_3_0);

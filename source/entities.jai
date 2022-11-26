@@ -638,6 +638,7 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
     return found, found_index;
 }
 
+// @Think Add field to say if its intersection or nearest point etc?
 Point_On_Entity :: struct {
     position : Point3; // World space
     element_kind : Simple_Mesh_Element = .MESH;
@@ -645,6 +646,8 @@ Point_On_Entity :: struct {
     entity_index : int = -1;
 }
 
+
+    // nocommit @Incomplete Add a screenspace distance filter
 // @Cleanup Add a threshold for how close you need to be to consider adding a vertex
 find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
@@ -652,7 +655,6 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 
     result : Point_On_Entity;
 
-    // @Incomplete Add a screenspace distance filter
 //nocommit Use the visible iterator here
     min_dist2 := FLOAT32_INFINITY;
     for entity, entity_index : app.entities {
@@ -695,7 +697,24 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
 }
 
 // @Incomplete Pass a parameter or have a method on Point_On_Entity, which changes the element_kind to .VERTEX if the barycentric/segment parameter is 0/1?
-find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_On_Entity {
+find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing_only := false) -> Point_On_Entity {
+
+    max_dist_px : int = ifx _max_dist_px < 0 then app.settings.closest_point_query_max_dist_px else _max_dist_px;
+    projection_from_world : Matrix4 = make_projection_from_world(app.camera);
+
+    // Return true if the given point is further than max_dist_px from the mouse position and false otherwise
+    OutsideScreenDist :: (point_world : Vector3) -> bool #expand {
+        mouse_px : Vector2 = ---;
+        mouse_px.x = io().MousePos.x;
+        mouse_px.y = io().MousePos.y;
+
+        point_px : Vector2 = ---;
+        point_px_i : Tuple2i = to_screen_position(point_world, `projection_from_world);
+        point_px.x = xx point_px_i.x;
+        point_px.y = cast(float) app.current_window_height - xx point_px_i.y;
+
+        return distance(mouse_px, point_px) > xx `max_dist_px;
+    }
 
     sphere_clipped :: true;
     range_clipped :: true;
@@ -747,6 +766,11 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         mesh_entity := cast(*Mesh_Entity)entity;
         ray_model : Ray3 = transform_ray(inverse(mesh_entity.mesh.world_from_model), ray_world);
 
+        // Early out using a ray-clipping sphere check 
+        // if is_clipped(`entity.display_info, isect_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
+        //     continue;
+        // }
+
         if mesh_entity.spatial == null {
 
             for :ModelTriangleIterator triangle, triangle_index : entity.mesh {
@@ -774,19 +798,23 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
         for :WorldTriangleEdgeIterator segment, segment_index : entity.mesh { 
             // These are in world space
             closest_point := closest_point_ray_segment(ray_world, segment);
-            ipoint_world := closest_point.closest[1];
+            point_world := closest_point.closest[1];
             d := closest_point.distance;
 
             // @Incomplete continue if the distance is beyond a threshold?
 
             if d < d_min {
 
-                if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                    continue;
+                }
+
+                if OutsideScreenDist(point_world) {
                     continue;
                 }
 
                 d_min = d;
-                result.position = ipoint_world;
+                result.position = point_world;
                 result.element_kind = .SEGMENT;
                 result.element_index = segment_index;
                 result.entity_index = entity_index;
@@ -812,6 +840,10 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
                     continue;
                 }
 
+                if OutsideScreenDist(point_world) {
+                    continue;
+                }
+
                 d_min = sqrt(dist2);
                 result.position = point_world;
                 result.element_kind = .POINT;
@@ -830,8 +862,7 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
 
-        // ray in model space
-        ray := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+        ray_model := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // @Incomplete If available, use the spatial index
         for :PolylineSegmentIterator segment, segment_index : soup.shape {
@@ -839,21 +870,25 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
             segment3.start = <<segment.from_point;
             segment3.end = <<segment.to_point;
 
-            closest_point := closest_point_ray_segment(ray, segment3);
-            ipoint := closest_point.closest[1];
+            closest_point := closest_point_ray_segment(ray_model, segment3);
+            point_model := closest_point.closest[1];
             d := closest_point.distance;
 
             // @Incomplete continue if the distance is beyond a threshold?
 
             if d < d_min {
 
-                ipoint_world := transform_point(entity.mesh.world_from_model, ipoint);
-                if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                point_world := transform_point(entity.mesh.world_from_model, point_model);
+                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                    continue;
+                }
+
+                if OutsideScreenDist(point_world) {
                     continue;
                 }
 
                 d_min = d;
-                result.position = ipoint_world;
+                result.position = point_world;
                 result.element_kind = .SEGMENT;
                 result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                 result.entity_index = entity_index;
@@ -872,7 +907,6 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
     for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
 
-        // ray in model space
         ray_model := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // @Incomplete If available, use the spatial index
@@ -882,20 +916,24 @@ find_closest_point_on_visible_entities :: (front_facing_only := false) -> Point_
             segment3.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
 
             closest_point := closest_point_ray_segment(ray_model, segment3);
-            ipoint := closest_point.closest[1];
+            point_model := closest_point.closest[1];
             d := closest_point.distance;
 
             // @Incomplete continue if the distance is beyond a threshold?
 
             if d < d_min {
 
-                ipoint_world := transform_point(entity.mesh.world_from_model, ipoint);
-                if is_clipped(entity.display_info, ipoint_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                point_world := transform_point(entity.mesh.world_from_model, point_model);
+                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                    continue;
+                }
+
+                if OutsideScreenDist(point_world) {
                     continue;
                 }
 
                 d_min = d;
-                result.position = ipoint_world;
+                result.position = point_world;
                 result.element_kind = .SEGMENT;
                 result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
                 result.entity_index = entity_index;

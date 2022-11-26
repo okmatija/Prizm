@@ -515,7 +515,7 @@ get_point_text :: (point : Vector3, point_index : int, theme : Label_Theme, labe
 }
 
 // _space is model or world but it could be whatever else
-get_text_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -> Tuple2i {
+to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -> Tuple2i {
     result : Tuple2i = ---;
 
     // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
@@ -566,6 +566,7 @@ render_entities :: () {
         defer entity.display_info = old_display_info;
 
         clip_radius_mode := entity_in_clip_radius_mode(entity_index);
+        clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
         if #complete entity.type == {
             case .POLYLINE_SOUP2;
@@ -603,18 +604,18 @@ render_entities :: () {
             case .MESH;
 
                 render_mesh_points(*entity.mesh, ri, di);
-                if clip_radius_mode {
+                if clip_radius_mode_show_wireframe {
                     di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
                 }
                 render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
-                if clip_radius_mode {
+                if clip_radius_mode_show_wireframe {
                     di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
                 } else if di.surface_visible && di.wireframe_width >= 1 {
                     // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
                     // smooth version drawn in the render_mesh_triangles call
                     di.wireframe_width = max(di.wireframe_width - 1, 1);
                 }
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
                 render_normals(*entity.mesh, ri, di);
                 render_aabb(*entity.mesh, ri, di);
 
@@ -645,7 +646,7 @@ render_entities :: () {
         point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         CachePointLabels :: (index : int) #expand {
             if !is_clipped(`entity.display_info, `point_world) {
-                text_position_px : Tuple2i = get_text_screen_position(`point_world, `projection_from_world);
+                text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
                 if on_screen_in_disk(text_position_px, `point_theme.visible_radius_px) {
                     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
                     text : string = get_point_text(`point_model, index, `point_theme);
@@ -657,7 +658,7 @@ render_entities :: () {
         element_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         CacheElementLabels :: (index : int) #expand {
             if !is_clipped(`entity.display_info, `point_world) {
-                text_position_px : Tuple2i = get_text_screen_position(`point_world, `projection_from_world);
+                text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
                 if on_screen_in_disk(text_position_px, `element_theme.visible_radius_px) {
                     text : string = get_point_text(`point_model, index, `element_theme);
                     array_add(*`element_labels, make_Label_Info(text_position_px, text));
@@ -668,7 +669,7 @@ render_entities :: () {
         annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         CacheAnnotationLabels :: () #expand {
             if !is_clipped(`entity.display_info, `point_world) {
-                text_position_px : Tuple2i = get_text_screen_position(`point_world, `projection_from_world);
+                text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
                 if on_screen_in_disk(text_position_px, `entity.display_info.annotation_theme.visible_radius_px) {
                     text : string = to_string(`annotation);
                     array_add(*`annotation_labels, make_Label_Info(text_position_px, text));
@@ -858,7 +859,7 @@ render_entities :: () {
                     // @Incomplete Support perspective projection
                     distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
 
-                    if is_visible(element_theme) Visit_Primitives_Near_Ray(mesh.spatial, ray_model, distance,
+                    if is_visible(element_theme) VisitPrimitivesNearRay(mesh.spatial, ray_model, distance,
                         #code ProcessTriangle(primitive, primitive_id)
                     );
                 }
@@ -918,7 +919,7 @@ render_selections :: () {
     point_theme := entity.display_info.vertex_label_style;
     for mesh.positions {
         text := get_point_text(it, it_index, point_theme);
-        text_position_px := get_text_screen_position(it, projection_from_model);
+        text_position_px : Tuple2i = to_screen_position(it, projection_from_model);
         Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, point_theme.label_color, scale=point_theme.label_scale);
     }
 }
