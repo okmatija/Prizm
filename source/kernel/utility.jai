@@ -9,6 +9,21 @@ transform_ray :: (transform : Matrix4, ray : Ray3) -> Ray3 {
     return result;
 }
 
+transform_segment :: (transform : Matrix4, segment : Segment3) -> Segment3 {
+    result : Segment3 = ---;
+    result.start = transform_point(transform, segment.start);
+    result.end = transform_vector(transform, segment.end);
+    return result;
+}
+
+transform_triangle :: (transform : Matrix4, triangle : Triangle3) -> Triangle3 {
+    result : Triangle3 = ---;
+    result.a = transform_point(transform, triangle.a);
+    result.b = transform_point(transform, triangle.b);
+    result.c = transform_point(transform, triangle.c);
+    return result;
+}
+
 compute_normal :: inline (t : Triangle3, $normalize : bool = true) -> Vector3 {
     ab := t.b - t.a;
     ac := t.c - t.a;

@@ -638,57 +638,75 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
     return found, found_index;
 }
 
-// @Think Add field to say if its intersection or nearest point etc?
-Point_On_Entity :: struct {
-    position : Point3; // World space
-    element_kind : Simple_Mesh_Element = .MESH;
+// @Think Add a function to change closest_point_element to .VERTEX if the barycentric/segment parameter is 0/1?
+Closest_Point_Ray_Entity :: struct {
+    // Valid values are POINT/SEGMENT/TRIANGLE.
+    // When the closest point was computed on a triangle this will be .TRIANGLE and not .SEGMENT/.POINT, even if closest_point.triangle.distance > 0. This will be only be .SEGMENT/.POINT when the ray was tested against segments/points
+    closest_point_element : Simple_Mesh_Element = .MESH;
+
+    // If the distance member is zero the closest point is an intersection point
+    using closest_point : union {
+        point : Closest_Point_Ray_Point;
+        segment : Closest_Point_Ray_Segment;
+        triangle : Closest_Point_Ray_Triangle;
+    }
+
     element_index : int = -1;
     entity_index : int = -1;
+}
+
+get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Vector3 {
+    if closest_point_element == {
+        case .POINT;
+            return point.point;
+        case .SEGMENT;
+            return segment.closest[1];
+        case .TRIANGLE;
+            return triangle.closestPoint[1];
+    }
+    return .{};
 }
 
 
     // nocommit @Incomplete Add a screenspace distance filter
 // @Cleanup Add a threshold for how close you need to be to consider adding a vertex
-find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
+find_closest_vertex_on_visible_entities :: () -> Closest_Point_Ray_Entity {
 
+    // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
 
-    result : Point_On_Entity;
+    result : Closest_Point_Ray_Entity;
 
-//nocommit Use the visible iterator here
     min_dist2 := FLOAT32_INFINITY;
-    for entity, entity_index : app.entities {
-        if entity.display_info.is_visible {
-            if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-                inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
-                for :WorldPointIterator point_world, point_index : entity.mesh {
+    
+    for :VisibleSelectableTriangleMesh entity, entity_index : app.entities {
+        inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
+        for :WorldPointIterator point_world, point_index : entity.mesh {
 
-                    front_facing_only :: false;
+            front_facing_only :: false;
 
-                    // Note if the vertex normals are 0 the dot product will be 0 and will _not_ trigger the continue, we
-                    // want to be able to select vertices with 0 normals in all cases
-                    if front_facing_only && entity.mesh.normals.count {
-                        normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
-                        if dot(normal_world, current_look_direction()) > 0 {
-                            continue;
-                        }
-                    }
-
-                    unused_closest_point, dist2, unused_t := distance_point3_ray3(point_world, ray_world);
-
-                    if dist2 < min_dist2 {
-
-                        if is_clipped(entity.display_info, point_world) {
-                            continue;
-                        }
-
-                        min_dist2 = dist2;
-                        result.position = point_world;
-                        result.element_kind = .VERTEX;
-                        result.element_index = point_index;
-                        result.entity_index = entity_index;
-                    }
+            // Note if the vertex normals are 0 the dot product will be 0 and will _not_ trigger the continue, we
+            // want to be able to select vertices with 0 normals in all cases
+            if front_facing_only && entity.mesh.normals.count {
+                normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
+                if dot(normal_world, current_look_direction()) > 0 {
+                    continue;
                 }
+            }
+
+            if is_clipped(entity.display_info, point_world) {
+                continue;
+            }
+
+            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
+
+            if cp_world.sqrDistance < min_dist2 {
+
+                min_dist2 = cp_world.sqrDistance;
+                result.closest_point_element = .POINT;                        
+                result.closest_point.point = cp_world;
+                result.element_index = point_index;
+                result.entity_index = entity_index;
             }
         }
     }
@@ -696,10 +714,18 @@ find_closest_vertex_on_visible_entities :: () -> Point_On_Entity {
     return result;
 }
 
-// @Incomplete Pass a parameter or have a method on Point_On_Entity, which changes the element_kind to .VERTEX if the barycentric/segment parameter is 0/1?
-find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing_only := false) -> Point_On_Entity {
+
+// Result positions are in world space
+find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing_only := false) -> Closest_Point_Ray_Entity {
+
+    // @Refactor to pass in the ray?
+    ray_world := make_camera_ray();
 
     max_dist_px : int = ifx _max_dist_px < 0 then app.settings.closest_point_query_max_dist_px else _max_dist_px;
+
+    // @Incomplete Support perspective projection
+    max_dist : float = ((app.camera.right - app.camera.left) / app.current_window_width) * max_dist_px;
+
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
     // Return true if the given point is further than max_dist_px from the mouse position and false otherwise
@@ -716,127 +742,108 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
         return distance(mouse_px, point_px) > xx `max_dist_px;
     }
 
-    sphere_clipped :: true;
-    range_clipped :: true;
-
-    ray_world := make_camera_ray();
-
-    result : Point_On_Entity;
-
-    Visible_Selectable_Mesh :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.display_info.is_visible &&
-            e.type == .MESH &&
-            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-        ));
-
-    intersected_triangle := false;
-    t_min := FLOAT32_INFINITY;
-
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
-        normal_direction := compute_normal(triangle_model, normalize=false);
+
+        if `front_facing_only {
+            // Don't skip degenerate triangles, note we check closest point from ray to triangle
+            normal_direction := compute_normal(triangle_model, normalize=false);
+            if dot_product(normal_direction, `ray_model.direction) > 0 {
+                continue;
+            }
+        }
+
+        triangle_world : Triangle3 = transform_triangle(`entity.mesh.world_from_model, triangle_model);
     
-        if normal_direction == Vector3.{0, 0, 0} {
+        cp : Closest_Point_Ray_Triangle = closest_point_ray_triangle(`ray_world, triangle_world);
+
+        if cp.distance > `max_dist {
             continue;
         }
-    
-        if `front_facing_only && dot_product(normal_direction, `ray_model.direction) > 0 {
+
+        if is_clipped(`entity.display_info, cp.closestPoint[1]) {
             continue;
         }
-    
-        is_hit, t, isect_model := find_intersect_primitive_ray3(triangle_model, `ray_model);
-    
-        if is_hit == false || t >= `t_min {
-            continue;
+
+        if cp.distance == 0 {
+            if cp.rayParameter < `best_ray_triangle_hit.rayParameter {
+                `best_ray_triangle_hit = cp;
+                `best_ray_triangle_hit_index = triangle_id;
+            }
+        } else {
+            if cp.rayParameter < `best_ray_triangle_miss.rayParameter {
+                `best_ray_triangle_miss = cp;
+                `best_ray_triangle_miss_index = triangle_id;
+            }
         }
-    
-        isect_world : Vector3 = transform_point(`entity.mesh.world_from_model, isect_model);
-        if is_clipped(`entity.display_info, isect_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
-            continue;
-        }
-    
-        `t_min = t;
-        `result.position = isect_world;
-        `result.element_kind = .TRIANGLE;
-        `result.element_index = triangle_id;
-        `result.entity_index = `entity_index;
-        `intersected_triangle = true;
     }
 
-    for :Visible_Selectable_Mesh entity, entity_index : app.entities {
+    result : Closest_Point_Ray_Entity;
+
+    d_min := FLOAT32_INFINITY;
+
+    for :VisibleSelectableTriangleMesh entity, entity_index : app.entities {
         mesh_entity := cast(*Mesh_Entity)entity;
         ray_model : Ray3 = transform_ray(inverse(mesh_entity.mesh.world_from_model), ray_world);
 
-        // Early out using a ray-clipping sphere check 
+        // Keep track of the best candidates (closest to the camera/ray origin) for intersected/hit triangles and missed ones
+        best_ray_triangle_hit, best_ray_triangle_miss : Closest_Point_Ray_Triangle;
+        best_ray_triangle_hit_index, best_ray_triangle_miss_index : int = -1;
+
+        // nocommit Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
         // if is_clipped(`entity.display_info, isect_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
         //     continue;
         // }
 
         if mesh_entity.spatial == null {
 
+            // nocommit Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
             for :ModelTriangleIterator triangle, triangle_index : entity.mesh {
                 ProcessTriangle(triangle, triangle_index);
             }
 
         } else {
 
-            VisitPrimitivesIntersectingRay(mesh_entity.spatial, ray_model,
-                #code ProcessTriangle(primitive, primitive_id)
+            VisitPrimitivesNearRay(mesh_entity.spatial, ray_model, max_dist,
+                 #code ProcessTriangle(primitive, primitive_id)
             );
 
         }
-    }
 
-    if intersected_triangle {
-        return result;
-    }
-
-    d_min := FLOAT32_INFINITY;
-
-    // @Cleanup This should be done when we loop over each triangle?
-    for :Visible_Selectable_Mesh entity, entity_index : app.entities {
-
-        for :WorldTriangleEdgeIterator segment, segment_index : entity.mesh { 
-            // These are in world space
-            closest_point := closest_point_ray_segment(ray_world, segment);
-            point_world := closest_point.closest[1];
-            d := closest_point.distance;
-
-            // @Incomplete continue if the distance is beyond a threshold?
-
-            if d < d_min {
-
-                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
-                    continue;
-                }
-
-                if OutsideScreenDist(point_world) {
-                    continue;
-                }
-
-                d_min = d;
-                result.position = point_world;
-                result.element_kind = .SEGMENT;
-                result.element_index = segment_index;
+        if best_ray_triangle_hit_index >= 0 {
+            // If we hit a triangle in this entity, always update the result if the hit is closer because we prefer hits to misses
+            if best_ray_triangle_hit.rayParameter < d_min {
+                d_min = best_ray_triangle_hit.rayParameter;
+                result.closest_point_element = .TRIANGLE;
+                result.closest_point.triangle = best_ray_triangle_hit;
+                result.element_index = best_ray_triangle_hit_index;
+                result.entity_index = entity_index;
+            }
+        } else if best_ray_triangle_miss_index >= 0 {
+            // If we missed triangles in this entity, only update the result if its not storing a hit because we always prefer hits to misses
+            if (result.entity_index == -1 || (result.entity_index >= 0 && result.closest_point.triangle.distance > 0)) && best_ray_triangle_miss.rayParameter < d_min {
+                d_min = best_ray_triangle_miss.rayParameter;
+                result.closest_point_element = .TRIANGLE;
+                result.closest_point.triangle = best_ray_triangle_miss;
+                result.element_index = best_ray_triangle_miss_index;
                 result.entity_index = entity_index;
             }
         }
     }
 
-    Visible_Selectable_Point_Cloud :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.display_info.is_visible &&
-            e.type == .POINT_CLOUD &&
-            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-        ));
+    // Since we can only miss segments/points, and we always prefer hits to misses, return here if we have hit a triangle
+    if result.closest_point.triangle.distance == 0 {
+        return result;
+    }
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
-    for :Visible_Selectable_Point_Cloud entity, entity_index : app.entities {
+    for :VisibleSelectablePointCloud entity, entity_index : app.entities {
         for :WorldPointIterator point_world, point_index : entity.mesh {
 
-            unused_closest_point, dist2, unused_t := distance_point3_ray3(point_world, ray_world);
+            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
 
-            if dist2 < d_min * d_min {
+            if cp_world.distance < d_min {
 
-                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                if is_clipped(entity.display_info, point_world) {
                     continue;
                 }
 
@@ -844,20 +851,15 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
                     continue;
                 }
 
-                d_min = sqrt(dist2);
-                result.position = point_world;
-                result.element_kind = .POINT;
+                d_min = cp_world.distance;
+                result.closest_point_element = .POINT;                        
+                result.closest_point.point = cp_world;
                 result.element_index = point_index;
                 result.entity_index = entity_index;
             }
         }
     }
 
-    Visible_Selectable_Polyline_Soup3 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.display_info.is_visible &&
-            e.type == .POLYLINE_SOUP3 &&
-            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-        ));
 
     for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup3_Entity)entity;
@@ -866,43 +868,33 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
         // @Incomplete If available, use the spatial index
         for :PolylineSegmentIterator segment, segment_index : soup.shape {
-            segment3 : Segment3;
-            segment3.start = <<segment.from_point;
-            segment3.end = <<segment.to_point;
+            segment_world : Segment3 = ---;
+            segment_world.start = transform_point(entity.mesh.world_from_model, <<segment.from_point);
+            segment_world.end = transform_point(entity.mesh.world_from_model, <<segment.to_point);
 
-            closest_point := closest_point_ray_segment(ray_model, segment3);
-            point_model := closest_point.closest[1];
-            d := closest_point.distance;
+            cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
 
             // @Incomplete continue if the distance is beyond a threshold?
 
-            if d < d_min {
+            if cp_world.distance < d_min {
 
-                point_world := transform_point(entity.mesh.world_from_model, point_model);
-                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                if is_clipped(entity.display_info, cp_world.closest[1]) {
                     continue;
                 }
 
-                if OutsideScreenDist(point_world) {
+                if OutsideScreenDist(cp_world.closest[1]) {
                     continue;
                 }
 
-                d_min = d;
-                result.position = point_world;
-                result.element_kind = .SEGMENT;
-                result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
+                d_min = cp_world.distance;
+                result.closest_point_element = .SEGMENT;
+                result.closest_point.segment = cp_world;
+                result.element_index = segment_index;
                 result.entity_index = entity_index;
             }
         }
     }
 
-
-
-    Visible_Selectable_Polyline_Soup2 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-            e.display_info.is_visible &&
-            e.type == .POLYLINE_SOUP2 &&
-            e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-        ));
 
     for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
@@ -911,31 +903,29 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
         // @Incomplete If available, use the spatial index
         for :PolylineSegmentIterator segment, segment_index : soup.shape {
-            segment3 : Segment3;
-            segment3.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
-            segment3.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
+            segment_model : Segment3 = ---;
+            segment_model.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
+            segment_model.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
+            segment_world : Segment3 = transform_segment(entity.mesh.world_from_model, segment_model);
 
-            closest_point := closest_point_ray_segment(ray_model, segment3);
-            point_model := closest_point.closest[1];
-            d := closest_point.distance;
+            cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
 
             // @Incomplete continue if the distance is beyond a threshold?
 
-            if d < d_min {
+            if cp_world.distance < d_min {
 
-                point_world := transform_point(entity.mesh.world_from_model, point_model);
-                if is_clipped(entity.display_info, point_world, test_sphere=sphere_clipped, test_ranges=range_clipped) {
+                if is_clipped(entity.display_info, cp_world.closest[1]) {
                     continue;
                 }
 
-                if OutsideScreenDist(point_world) {
+                if OutsideScreenDist(cp_world.closest[1]) {
                     continue;
                 }
 
-                d_min = d;
-                result.position = point_world;
-                result.element_kind = .SEGMENT;
-                result.element_index = segment_index; // @Incomplete Is this properly handled? Maybe it should be the vertex index if the segment parameter is 0 or 1
+                d_min = cp_world.distance;
+                result.closest_point_element = .SEGMENT;
+                result.closest_point.segment = cp_world;
+                result.element_index = segment_index;
                 result.entity_index = entity_index;
             }
         }
@@ -1157,8 +1147,12 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
 // Maybe this should also take the shape and set that (will set the mesh twice if T == Mesh_Entity, but that's fine)
 init_entity_spatial_index :: (entity : *$T/Entity) {
     assert(entity != null);
-    entity.spatial = New(AABB_Tree(T.Shape));
-    init(entity.spatial, *entity.shape);
+    if entity.mesh.geometry_format == .TRIANGLES {
+        entity.spatial = New(AABB_Tree(T.Shape));
+        init(entity.spatial, *entity.shape);
+    } else {
+        log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
+    }
 }
 
 // Plan:

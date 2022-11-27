@@ -118,17 +118,18 @@ update_camera :: (delta_time : float) {
     if mouse_reposition_camera() {
 
         // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
-        closest : Point_On_Entity = find_closest_point_on_visible_entities();
+        closest : Closest_Point_Ray_Entity = find_closest_point_on_visible_entities();
         if closest.entity_index != -1 {
-            sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.display_info.is_visible), fixed_center=*closest.position);
+            position := get_closest_point_on_element(closest);
+            sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.display_info.is_visible), fixed_center=*position);
 
             // nocommit Cleanup use transform_point/transform_vector here
             view_from_world := make_look_at_matrix(app.camera);
-            closest_view := view_from_world * make_vector4(closest.position, 1.);
+            closest_view := view_from_world * make_vector4(position, 1.);
             world_from_view := inverse(view_from_world);
             eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
 
-            app.camera.look_position = closest.position;
+            app.camera.look_position = position;
             app.camera.eye_position  += eye_displacement;
             app.camera.far = sphere.radius * 2;
             app.camera.near = -app.camera.far;

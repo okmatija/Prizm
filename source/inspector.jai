@@ -1,3 +1,5 @@
+// @Incomplete Make the comments above inspected members into tooltips, perhaps with an optional generated struct containing booleans passed in, similarly to how its done for command line arguement parsing
+
 show_inspector := false;
 
 inspect :: (name: *u8, t : *$T, new_window : bool = false) {

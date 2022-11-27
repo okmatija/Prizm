@@ -20,6 +20,7 @@ Mesh :: struct {
     // - string  e.g., debug comments
     attributes : [..]*Simple_Mesh_Attribute;
 
+    // @Volatile Code in various places may need to change if this changes distances so they are not the same in world/model space
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
 }
 

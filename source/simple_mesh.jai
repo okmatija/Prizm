@@ -22,7 +22,10 @@ Simple_Mesh :: struct {
     // We still don't support f i//a j//b k//c with i/j/k != a/b/c 
     // Normals should be dense attributes on faces, not verticies
 
+    // @Volatile Code in various places may need to change if this changes distances so they are not the same in world/model space
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
+
+    // @Incomplete cache Box_Sphere_Bounds here and also store the spatial index
 }
 
 Simple_Mesh_Element :: enum {

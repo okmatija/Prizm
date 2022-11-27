@@ -1,8 +1,6 @@
 // FIXME Rename to load_obj when we switch from annotations to attributes
 load_obj_with_attributes :: (filename : string, data : string, name : string) -> *Entity {
 
-    //printv(filename); // nocommit
-
     result : *Mesh_Entity;
     if !data {
         log(" File was empty");
@@ -337,11 +335,12 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
         parser.failed = true;
     }
 
-    if mesh.geometry_format != .TRIANGLES {
-        // @Incomplete Improve this message to suggest user may have missed p commands for a point cloud if they had vertices in the mesh
-        log_warning("@Incomplete Currently only triangle meshes are supported!\n");
-        parser.failed = true;
-    }
+    // nocommit why was this here???
+    // if mesh.geometry_format != .TRIANGLES {
+    //     // @Incomplete Improve this message to suggest user may have missed p commands for a point cloud if they had vertices in the mesh
+    //     log_warning("@Incomplete Currently only triangle meshes are supported!\n");
+    //     parser.failed = true;
+    // }
 
     if parser.failed {
         deinit(result);

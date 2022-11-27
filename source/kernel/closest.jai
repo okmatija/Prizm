@@ -135,10 +135,14 @@ closest_point_ray3_axis_box3 :: (ray : Ray3, box : AxisBox3) -> Closest_Point_Ra
 */
 
 Closest_Point_Ray_Segment :: struct {
-    distance : float = 0;
-    sqrDistance : float = 0;
-    parameter : [2]float = .[0, 0];
-    closest : [2]Point3 = .[.{0,0,0}, .{0,0,0}];
+    // Initialize the fields we'll use when calling closest_point_ray_segment many times to find the closest
+    distance : float = FLOAT32_INFINITY;
+    sqrDistance : float = FLOAT32_INFINITY;
+
+    // Index 0 corresponds to the ray
+    // Index 1 corresponds to the segment
+    parameter : [2]float = ---;
+    closest : [2]Point3 = ---;
 };
 
 // Compute the distance between a ray and a segment in nD.

@@ -1,6 +1,6 @@
 do_clipping_sphere_mode :: () {
     if mouse_init_clip_center() { // Set the clipping sphere center
-        closest : Point_On_Entity = find_closest_point_on_visible_entities(); // @Volatile closest.element_index is a triangle index
+        closest : Closest_Point_Ray_Entity = find_closest_point_on_visible_entities();
 
         if closest.entity_index != -1 {
             array_reset(*app.clipping_sphere_mode_last_entity_index_set);
@@ -16,7 +16,7 @@ do_clipping_sphere_mode :: () {
 
             new_sphere : Clip_Sphere;
             new_sphere.is_active = true;
-            new_sphere.center = closest.position;
+            new_sphere.center = get_closest_point_on_element(closest);
             new_sphere.radius = 0.;
 
             // @Cleanup Make this into two calls to an update sphere function!

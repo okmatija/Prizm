@@ -40,8 +40,6 @@ to_string :: (annotation : Annotation) -> string {
             return tprint("%", <<pointer);
     }
     vt := annotation.value.value_types;
-    printv(vt);
-    printv(annotation);
     assert(false); // unreachable
     return "";
 }

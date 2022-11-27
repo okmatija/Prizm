@@ -572,27 +572,27 @@ render_entities :: () {
             case .POLYLINE_SOUP2;
 
                 render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
                 render_aabb(*entity.mesh, ri, di);
 
             case .POLYLINE_SOUP3;
 
                 render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
                 render_normals(*entity.mesh, ri, di);
                 render_aabb(*entity.mesh, ri, di);
 
             case .SEGMENT_SOUP3;
 
                 render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode);
+                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
                 render_normals(*entity.mesh, ri, di);
                 render_aabb(*entity.mesh, ri, di);
 
             case .POLYGON_SOUP;
 
                 render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
+                render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
                 render_aabb(*entity.mesh, ri, di);
 
             case .POINT_CLOUD;

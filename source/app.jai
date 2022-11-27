@@ -97,7 +97,7 @@ App :: struct {
     user_selection : Mesh_Entity;
     user_selection_cursor_text_shown := false; // @Refactor This isn't really related to selection anymore
     user_selection_cursor_text_scale := .4;
-    user_selection_max_point_count_for_selectable_entity := 5_000_000; // @Cleanup remove this?
+    user_selection_max_point_count_for_selectable_entity := 5_000_000; // @Cleanup remove this? and make it only apply to entities without a spatial index 
 
     // Set the defaults for the user selection display
     user_selection.display_info.is_visible = true;
@@ -270,6 +270,31 @@ Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, s
 Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.display_info.is_visible));
 Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected));
 
+VisibleSelectableTriangleMesh :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+        e.display_info.is_visible &&
+        e.type == .MESH &&
+        e.mesh.geometry_format == .TRIANGLES &&
+        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+    ));
+
+VisibleSelectablePointCloud :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+        e.display_info.is_visible &&
+        e.type == .POINT_CLOUD &&
+        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+    ));
+
+Visible_Selectable_Polyline_Soup3 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+        e.display_info.is_visible &&
+        e.type == .POLYLINE_SOUP3 &&
+        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+    ));
+
+Visible_Selectable_Polyline_Soup2 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+        e.display_info.is_visible &&
+        e.type == .POLYLINE_SOUP2 &&
+        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+    ));
+
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
     item_list_max_size_before_scroll_px := 300.;
@@ -313,13 +338,17 @@ Duplicate_File_Behaviour :: enum u8 #specified {
 
 clamp_user_settings :: ()
 {
-    using app.settings;
-    // camera_zoom_dragging_ratio = clamp(camera_zoom_dragging_ratio, .3, .99);
-    camera_zoom_scrolling_ratio = clamp(camera_zoom_scrolling_ratio, .3, .99);
-    camera_zoom_min_screen_filling_length_mm = clamp(camera_zoom_min_screen_filling_length_mm, .0, app.camera.scene_bounding_sphere.radius / 2);
+    clamp :: (value : *$T, min : T, max : T) {
+        <<value = clamp(<<value, min, max);
+    }
 
-    item_list_max_size_before_scroll_px = clamp(item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
-    annotation_list_max_size_before_scroll_px = clamp(annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+    using app.settings;
+    // clamp(*camera_zoom_dragging_ratio, .3, .99);
+    clamp(*camera_zoom_scrolling_ratio, .3, .99);
+    clamp(*camera_zoom_min_screen_filling_length_mm, 0., app.camera.scene_bounding_sphere.radius / 2);
+    clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+    clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+    clamp(*closest_point_query_max_dist_px, 0, 100);
 }
 
 set_prism_theme :: (theme : Prism_Color_Theme) {
@@ -413,9 +442,17 @@ ImGui :: #import "ImGui";
 #load "console/commands.jai";
 #load "console/grid_commands.jai";
 
-#load "kernel/distance.jai";
-#load "kernel/intersect.jai";
-#load "kernel/closest.jai";
+#load "kernel/distance.jai"; // @Cleanup
+#load "kernel/intersect.jai"; // @Cleanup
+#load "kernel/closest.jai"; // @Cleanup
+#load "kernel/GTE_Mathematics_Vector.jai";
+#load "kernel/GTE_Mathematics_Vector3.jai";
+#load "kernel/GTE_Mathematics_Segment.jai";
+#load "kernel/GTE_Mathematics_DistPointRay.jai";
+#load "kernel/GTE_Mathematics_DistLineSegment.jai";
+#load "kernel/GTE_Mathematics_DistLine3Triangle3.jai";
+#load "kernel/GTE_Mathematics_DistRay3Triangle3.jai";
+#load "kernel/GTE_Mathematics_DistPointTriangle.jai";
 #load "kernel/utility.jai";
 #load "kernel/types.jai";
 #load "kernel/test.jai";
