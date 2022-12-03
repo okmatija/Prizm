@@ -295,18 +295,6 @@ VisibleSelectableMeshVertices :: #bake_arguments Entities_Iterator(should_visit 
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 
-Visible_Selectable_Polyline_Soup3 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-        e.display_info.is_visible &&
-        e.type == .POLYLINE_SOUP3 &&
-        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-    ));
-
-Visible_Selectable_Polyline_Soup2 :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-        e.display_info.is_visible &&
-        e.type == .POLYLINE_SOUP2 &&
-        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-    ));
-
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
     item_list_max_size_before_scroll_px := 300.;

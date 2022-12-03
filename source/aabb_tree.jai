@@ -31,8 +31,6 @@ AABB_Tree :: struct(Shape : Type) {
             case; compiler_report(tprint("AABB_Tree unsupported for shape with type '%'.", Shape));
             #through; // So all control paths return a value
 
-            case Polyline_Soup3; return Segment3,  Vector3, AxisBox3;
-            case Polyline_Soup2; return Segment2,  Vector3, AxisBox3;
             case Mesh;           return Triangle3, Vector3, AxisBox3;
         }
     }();

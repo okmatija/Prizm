@@ -979,8 +979,8 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     display_information(entity);
                     display_transform(entity);
 
-                    normals_ui :=  entity.type == .MESH || entity.type == .POLYLINE_SOUP3;
-                    lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
+                    normals_ui :=  entity.type == .MESH;
+                    lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS);
                     faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES);
                     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
@@ -1917,16 +1917,6 @@ display_information :: (entity : *Entity) {
         defer ImGui.PopStyleColor();
 
         if #complete entity.type == {
-            case .POLYLINE_SOUP2;
-
-                using soup := cast(*Polyline_Soup2_Entity)entity;
-                ImGui.Text("PolylineSoup2 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
-
-            case .POLYLINE_SOUP3;
-
-                using soup := cast(*Polyline_Soup3_Entity)entity;
-                ImGui.Text("PolyineSoup3 #points, #polylines = %, %", point_count(shape), shape.polylines.count);
-
             case .UNKNOWN;     #through;
             case .MESH;
 

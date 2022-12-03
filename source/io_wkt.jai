@@ -90,36 +90,27 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 break; // empty polyline soup
             } else if dim == 2 {
 
-                entity = New(Polyline_Soup2_Entity);
-                e : *Polyline_Soup2_Entity = xx entity;
-
                 shape : Polyline_Soup2;
                 array_add(*shape.polylines).points = points2;
                 mesh : Mesh = to_Mesh(shape);
 
-                // init base
+                entity = New(Mesh_Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-
-                // init derived
-                e.shape = shape;
-                init_entity_spatial_index(e);
+                init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
             } else if dim == 3 {
-
-                entity = New(Polyline_Soup3_Entity);
-                e : *Polyline_Soup3_Entity = xx entity;
 
                 shape : Polyline_Soup3;
                 array_add(*shape.polylines).points = points3;
                 mesh : Mesh = to_Mesh(shape);
 
+                entity = New(Mesh_Entity);
                 entity.mesh = mesh;
-                e.shape = shape;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-                init_entity_spatial_index(e);
+                init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -140,31 +131,21 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
                 mesh : Mesh = to_Mesh(polyline_soup2);
 
-                // init base
-                entity = New(Polyline_Soup2_Entity);
+                entity = New(Mesh_Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-
-                // init derived
-                e : *Polyline_Soup2_Entity = xx entity;
-                e.shape = polyline_soup2;
-                init_entity_spatial_index(e);
+                init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
             } else if dim == 3 {
 
                 mesh : Mesh = to_Mesh(polyline_soup3);
 
-                // init base
-                entity = New(Polyline_Soup3_Entity);
+                entity = New(Mesh_Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-
-                // init derived
-                e : *Polyline_Soup3_Entity = xx entity;
-                e.shape = polyline_soup3;
-                init_entity_spatial_index(e);
+                init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");

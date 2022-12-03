@@ -569,19 +569,6 @@ render_entities :: () {
         clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
         if #complete entity.type == {
-            case .POLYLINE_SOUP2;
-
-                render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-                render_aabb(*entity.mesh, ri, di);
-
-            case .POLYLINE_SOUP3;
-
-                render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-                render_normals(*entity.mesh, ri, di);
-                render_aabb(*entity.mesh, ri, di);
-
             case .MESH;
 
                 render_mesh_points(*entity.mesh, ri, di);
@@ -662,49 +649,6 @@ render_entities :: () {
 
         if #complete entity.type == {
             case .UNKNOWN;
-            case .POLYLINE_SOUP2;
-
-                // @Incomplete Annotations
-                soup := cast(*Polyline_Soup2_Entity) entity;
-
-                if is_visible(point_theme) for :Point_Iterator soup.shape {
-                    point_model : Vector3 = make_vector3(it, 0);
-                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                    CachePointLabels(it_index);
-                }
-
-                if is_visible(element_theme) for :PolylineSegmentIterator soup.shape {
-                    // @Cleanup Use centroid(Edge) here
-                    point_model : Vector3 = make_vector3((<<it.from_point + <<it.to_point) / 2, 0);
-                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                    CacheElementLabels(it_index);
-                }
-
-            case .POLYLINE_SOUP3;
-
-                soup := cast(*Polyline_Soup3_Entity) entity;
-
-                if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
-                    if annotation.kind == .VERTEX {
-                        point_model : Vector3 = soup.mesh.positions[annotation.id];
-                        point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                        CacheAnnotationLabels();
-                    } else if annotation.kind == .LINE {
-                        // @Incomplete
-                    }
-                }
-
-                if is_visible(point_theme) for :Point_Iterator point_model, point_index : soup.shape {
-                    point_world := transform_point(entity.mesh.world_from_model, point_model);
-                    CachePointLabels(point_index);
-                }
-
-                if is_visible(element_theme) for :PolylineSegmentIterator soup.shape {
-                    point_model : Vector3 = (<<it.from_point + <<it.to_point) / 2;
-                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                    CacheElementLabels(it_index);
-                }
-
             case .MESH;
 
                 mesh := cast(*Mesh_Entity) entity;

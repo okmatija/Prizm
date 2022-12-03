@@ -1,8 +1,5 @@
 Entity_Type :: enum {
-    // GENERAL_OBJ; // See what the snake example does
     MESH; // @Cleanup rename this to TRIANGLE_MESH, and the corresponding Mesh_Entity to Triangle_Mesh_Entity
-    POLYLINE_SOUP2;
-    POLYLINE_SOUP3;
     UNKNOWN;
 }
 
@@ -92,26 +89,6 @@ COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
 // :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
 
-Polyline_Soup2_Entity :: struct {
-    #as using base : Entity;
-    type = .POLYLINE_SOUP2;
-    display_info.element_label_theme.label_color = .{.6, .6, 0, 1}; // @Cleanup put colors in app.jai
-
-    Shape :: Polyline_Soup2;
-    shape : Shape;
-    spatial : *AABB_Tree(Shape);
-}
-
-Polyline_Soup3_Entity :: struct {
-    #as using base : Entity;
-    type = .POLYLINE_SOUP3;
-    display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
-
-    Shape :: Polyline_Soup3;
-    shape : Shape;
-    spatial : *AABB_Tree(Shape);
-}
-
 // mesh.geometry_format will be .TRIANGLES for a Mesh_Entity
 Mesh_Entity :: struct {
     #as using base : Entity;
@@ -177,18 +154,6 @@ clear :: (base : *Entity) {
         case .UNKNOWN;
             // do nothing
 
-        case .POLYLINE_SOUP2;
-
-            entity := cast(*Polyline_Soup2_Entity)base;
-            clear(*entity.mesh);
-            clear(*entity.shape);
-
-        case .POLYLINE_SOUP3;
-
-            entity := cast(*Polyline_Soup3_Entity)base;
-            clear(*entity.mesh);
-            clear(*entity.shape);
-
         case .MESH;
 
             entity := cast(*Mesh_Entity)base;
@@ -228,20 +193,6 @@ deinit :: (base : *Entity) {
     if #complete base.type == {
         case .UNKNOWN;
             // do nothing
-
-        case .POLYLINE_SOUP2;
-
-            entity := cast(*Polyline_Soup2_Entity)base;
-            deinit(*entity.mesh);
-            deinit(*entity.shape);
-            deinit(entity.spatial);
-
-        case .POLYLINE_SOUP3;
-
-            entity := cast(*Polyline_Soup3_Entity)base;
-            deinit(*entity.mesh);
-            deinit(*entity.shape);
-            deinit(entity.spatial);
 
         case .MESH;
 
@@ -349,8 +300,6 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
                 case .LINES;     return *display_info.wireframe_color, *display_info.wireframe_visible;
                 case .TRIANGLES; return *display_info.surface_color,   *display_info.surface_visible;
             }
-        case .POLYLINE_SOUP2; return *display_info.wireframe_color, *display_info.wireframe_visible;
-        case .POLYLINE_SOUP3; return *display_info.wireframe_color, *display_info.wireframe_visible;
     }
     return null, null;
 }
@@ -793,6 +742,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
         }
     }
 
+    // nocommit inline this
     ProcessSegment :: (segment_world : Segment3, segment_index : int) #expand {
     
         cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(`ray_world, segment_world);
@@ -821,32 +771,6 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
     for :VisibleSelectableMeshSegments entity, entity_index : app.entities {
         for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
-            ProcessSegment(segment_world, segment_index);
-        }
-    }
-
-    for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
-        soup := cast(*Polyline_Soup3_Entity)entity;
-        for :PolylineSegmentIterator segment, segment_index : soup.shape {
-            segment_model : Segment3 = ---;
-            segment_model.start = <<segment.from_point;
-            segment_model.end   = <<segment.to_point;
-            segment_world : Segment3 = transform_segment(entity.mesh.world_from_model, segment_model);
-
-            ProcessSegment(segment_world, segment_index);
-        }
-    }
-
-    for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
-        soup := cast(*Polyline_Soup2_Entity)entity;
-
-        // @Incomplete If available, use the spatial index
-        for :PolylineSegmentIterator segment, segment_index : soup.shape {
-            segment_model : Segment3 = ---;
-            segment_model.start = make_vector3(<<segment.from_point, 0.);
-            segment_model.end   = make_vector3(<<segment.to_point,   0.);
-            segment_world : Segment3 = transform_segment(entity.mesh.world_from_model, segment_model);
-
             ProcessSegment(segment_world, segment_index);
         }
     }
@@ -1075,14 +999,6 @@ init_entity_spatial_index :: (entity : *Mesh_Entity) {
     } else {
         log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
     }
-}
-
-init_entity_spatial_index :: (entity : *Polyline_Soup2_Entity) {
-    log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
-}
-
-init_entity_spatial_index :: (entity : *Polyline_Soup3_Entity) {
-    log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
 }
 
 // Plan:

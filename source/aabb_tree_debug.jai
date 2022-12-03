@@ -35,9 +35,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
         assert(app.console.history.count > 0);
 
-        entity := New(Polyline_Soup3_Entity);
+        entity := New(Mesh_Entity);
         entity.mesh = mesh;
-        entity.shape = shape;
         set_entity_source_from_command(entity, tprint("%_debug_spatial_aabbs", entity_name(mesh_entity)), app.console.history[app.console.history.count - 1], mesh.positions.count);
         set_entity_display_info(entity, mesh.geometry_format);
 

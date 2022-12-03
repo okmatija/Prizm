@@ -95,15 +95,7 @@ select_if :: (should_select : (Entity)->bool, invert : int) {
 
 // @TODO Add an invert option to these?
 
-// Add items with/without POLYLINE_SOUP2 type to the selection, if `invert` is true/false
-select_if_Polyline_Soup2 :: (invert : int = 0) {
-    select_if((e) => (e.type == .POLYLINE_SOUP2), invert);
-} @RegisterCommand
-
-// Add items with/without POLYLINE_SOUP3 type to the selection, if `invert` is true/false
-select_if_Polyline_Soup3 :: (invert : int = 0) {
-    select_if((e) => (e.type == .POLYLINE_SOUP3), invert);
-} @RegisterCommand
+// nocommit Add variations for kinds of mesh geometry segment
 
 // Add items with/without MESH type to the selection, if `invert` is true/false
 select_if_Mesh :: (invert : int = 0) {
@@ -279,18 +271,6 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
-as_polyline_soup :: (entity : *Entity) -> *Polyline_Soup2_Entity, *Polyline_Soup3_Entity {
-    if entity.type == {
-        case .POLYLINE_SOUP2;
-            soup2 := cast(*Polyline_Soup2_Entity) entity;
-            return soup2, null;
-        case .POLYLINE_SOUP3;
-            soup3 := cast(*Polyline_Soup3_Entity) entity;
-            return null, soup3;
-    }
-    return null, null;
-}
-
 as_segment_soup :: (entity : *Entity) -> *Mesh_Entity {
     if entity.type == {
         case .MESH;
@@ -320,38 +300,11 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
 
     entity := app.entities[id];
 
-    polyline_soup2, polyline_soup3 := as_polyline_soup(entity);
     segment_soup3 := as_segment_soup(entity);
 
     sphere : Sphere;
 
-    if polyline_soup2 {
-
-        sid_max := segment_count(polyline_soup2.shape) - 1;
-        if segment_index < 0 || segment_index > sid_max {
-            log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
-            return;
-        }
-
-        found, segment := get_segment(polyline_soup2.shape, segment_index);
-        center2 : Vector2 = (<<segment.from_point + <<segment.to_point) / 2;
-        sphere.center = make_vector3(center2, 0);
-        sphere.radius = 2 * distance(segment.from_point, segment.to_point);
-
-    } else if polyline_soup3 {
-
-        sid_max := segment_count(polyline_soup3.shape) - 1;
-        if segment_index < 0 || segment_index > sid_max {
-            log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
-            return;
-        }
-
-        found, segment := get_segment(polyline_soup3.shape, segment_index);
-        sphere.center = (<<segment.from_point + <<segment.to_point) / 2;
-        sphere.radius = 2 * distance(segment.from_point, segment.to_point);
-
-    } else if segment_soup3 {
-
+    if segment_soup3 {
         sid_max := element_count(segment_soup3.shape) - 1;
         if segment_index < 0 || segment_index > sid_max {
             log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
@@ -363,7 +316,7 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
         sphere.radius = 2 * distance(segment.start, segment.end);
 
     } else {
-        log_error("Expected segment or polyline soup type item, got %.", entity.type);
+        log_error("Expected segment soup type item, got %.", entity.type);
         return;
     }
 
@@ -467,26 +420,6 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
                 return;
             }
             sphere.center = entity.mesh.positions[vertex_index];
-
-        case .POLYLINE_SOUP2;
-
-            polyline_entity := cast(*Polyline_Soup2_Entity) entity;
-            vid_max := point_count(polyline_entity.shape) - 1;
-            if vertex_index < 0 || vertex_index > vid_max {
-                log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
-                return;
-            }
-            sphere.center = make_vector3(get_point(polyline_entity.shape, vertex_index), 0.);
-
-        case .POLYLINE_SOUP3;
-
-            polyline_entity := cast(*Polyline_Soup3_Entity) entity;
-            vid_max := point_count(polyline_entity.shape) - 1;
-            if vertex_index < 0 || vertex_index > vid_max {
-                log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
-                return;
-            }
-            sphere.center = get_point(polyline_entity.shape, vertex_index);
 
         case .UNKNOWN;
             log_error("Unexpected % item type", entity.type);
@@ -704,18 +637,6 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     base := app.entities[id];
     base.render_info.is_dirty = true;
     if #complete base.type == {
-        case .POLYLINE_SOUP2;
-            entity := cast(*Polyline_Soup2_Entity)base;
-            for * :Point_Iterator point : entity.shape {
-                Perturb2(point);
-            }
-            entity.mesh = to_Mesh(entity.shape); // @Leak?
-        case .POLYLINE_SOUP3;
-            entity := cast(*Polyline_Soup3_Entity)base;
-            for * :Point_Iterator point : entity.shape {
-                Perturb3(point);
-            }
-            entity.mesh = to_Mesh(entity.shape); // @Leak?
         case .MESH;
             for * point : base.mesh.positions {
                 Perturb3(point);
