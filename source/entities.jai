@@ -4,7 +4,6 @@ Entity_Type :: enum {
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
     POLYGON_SOUP;
-    POINT_CLOUD;   // isa Mesh
     SEGMENT_SOUP3; // isa Mesh
     UNKNOWN;
 }
@@ -137,20 +136,6 @@ Segment_Soup3_Entity :: struct {
     shape : Shape = ---; // Alias for consistency
 }
 
-Point_Cloud_Entity :: struct {
-    #as using base : Entity;
-    type = .POINT_CLOUD;
-
-    // @Cleanup Probably we want to remove these base initializers
-    display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
-    mesh.geometry_format = .POINTS;
-
-    Shape :: Point_Cloud;
-    spatial : *AABB_Tree(Shape);
-#place mesh;
-    shape : Shape = ---; // Alias for consistency
-}
-
 // mesh.geometry_format will be .TRIANGLES for a Mesh_Entity
 Mesh_Entity :: struct {
     #as using base : Entity;
@@ -215,11 +200,6 @@ clear :: (base : *Entity) {
     if #complete base.type == {
         case .UNKNOWN;
             // do nothing
-
-        case .POINT_CLOUD;
-
-            entity := cast(*Point_Cloud_Entity)base;
-            clear(*entity.mesh);
 
         case .POLYLINE_SOUP2;
 
@@ -303,12 +283,6 @@ deinit :: (base : *Entity) {
             entity := cast(*Polygon_Soup_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
-            deinit(entity.spatial);
-
-        case .POINT_CLOUD;
-
-            entity := cast(*Point_Cloud_Entity)base;
-            deinit(*entity.mesh);
             deinit(entity.spatial);
 
         case .SEGMENT_SOUP3;
@@ -427,7 +401,6 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
         case .POLYLINE_SOUP3; return *display_info.wireframe_color, *display_info.wireframe_visible;
         case .SEGMENT_SOUP3;  return *display_info.wireframe_color, *display_info.wireframe_visible;
         case .POLYGON_SOUP;   return *display_info.surface_color,   *display_info.surface_visible;
-        case .POINT_CLOUD;    return *display_info.points_color,    *display_info.points_visible;
     }
     return null, null;
 }
@@ -668,34 +641,40 @@ get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Ve
 }
 
 
-    // nocommit @Incomplete Add a screenspace distance filter
-// @Cleanup Add a threshold for how close you need to be to consider adding a vertex
-find_closest_vertex_on_visible_entities :: () -> Closest_Point_Ray_Entity {
+// @Refactor Use spatial lookups on triangles/segments/points
+find_closest_vertex_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
+
+    max_dist_px : int = ifx _max_dist_px < 0 then app.settings.closest_point_query_max_dist_px else _max_dist_px;
+
+    projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
     result : Closest_Point_Ray_Entity;
 
     min_dist2 := FLOAT32_INFINITY;
     
-    for :VisibleSelectableTriangleMesh entity, entity_index : app.entities {
+    for :VisibleSelectable entity, entity_index : app.entities {
         inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
         for :WorldPointIterator point_world, point_index : entity.mesh {
 
-            front_facing_only :: false;
+            if is_clipped(entity.display_info, point_world) {
+                continue;
+            }
+
+            if OutsideScreenDist(point_world) {
+                continue;
+            }
 
             // Note if the vertex normals are 0 the dot product will be 0 and will _not_ trigger the continue, we
             // want to be able to select vertices with 0 normals in all cases
+            front_facing_only :: false;
             if front_facing_only && entity.mesh.normals.count {
                 normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
                 if dot(normal_world, current_look_direction()) > 0 {
                     continue;
                 }
-            }
-
-            if is_clipped(entity.display_info, point_world) {
-                continue;
             }
 
             cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
@@ -714,6 +693,19 @@ find_closest_vertex_on_visible_entities :: () -> Closest_Point_Ray_Entity {
     return result;
 }
 
+// Return true if the given point is further than max_dist_px from the mouse position and false otherwise
+OutsideScreenDist :: (point_world : Vector3) -> bool #expand {
+    mouse_px : Vector2 = ---;
+    mouse_px.x = io().MousePos.x;
+    mouse_px.y = io().MousePos.y;
+
+    point_px : Vector2 = ---;
+    point_px_i : Tuple2i = to_screen_position(point_world, `projection_from_world);
+    point_px.x = xx point_px_i.x;
+    point_px.y = cast(float) app.current_window_height - xx point_px_i.y;
+
+    return distance(mouse_px, point_px) > xx `max_dist_px;
+}
 
 // Result positions are in world space
 find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing_only := false) -> Closest_Point_Ray_Entity {
@@ -727,20 +719,6 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
     max_dist : float = ((app.camera.right - app.camera.left) / app.current_window_width) * max_dist_px;
 
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
-
-    // Return true if the given point is further than max_dist_px from the mouse position and false otherwise
-    OutsideScreenDist :: (point_world : Vector3) -> bool #expand {
-        mouse_px : Vector2 = ---;
-        mouse_px.x = io().MousePos.x;
-        mouse_px.y = io().MousePos.y;
-
-        point_px : Vector2 = ---;
-        point_px_i : Tuple2i = to_screen_position(point_world, `projection_from_world);
-        point_px.x = xx point_px_i.x;
-        point_px.y = cast(float) app.current_window_height - xx point_px_i.y;
-
-        return distance(mouse_px, point_px) > xx `max_dist_px;
-    }
 
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
 
@@ -764,6 +742,11 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
             continue;
         }
 
+                // nocommit This is missing here!!!
+                // if OutsideScreenDist(point_world) {
+                //     continue;
+                // }
+
         if cp.distance == 0 {
             if cp.rayParameter < `best_ray_triangle_hit.rayParameter {
                 `best_ray_triangle_hit = cp;
@@ -781,7 +764,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
     d_min := FLOAT32_INFINITY;
 
-    for :VisibleSelectableTriangleMesh entity, entity_index : app.entities {
+    for :VisibleSelectableMeshTriangles entity, entity_index : app.entities {
         mesh_entity := cast(*Mesh_Entity)entity;
         ray_model : Ray3 = transform_ray(inverse(mesh_entity.mesh.world_from_model), ray_world);
 
@@ -836,7 +819,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
     }
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
-    for :VisibleSelectablePointCloud entity, entity_index : app.entities {
+    for :VisibleSelectableMeshVertices entity, entity_index : app.entities {
         for :WorldPointIterator point_world, point_index : entity.mesh {
 
             cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
@@ -860,74 +843,61 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
         }
     }
 
+    ProcessSegment :: (segment_world : Segment3, segment_index : int) #expand {
+    
+        cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(`ray_world, segment_world);
 
-    for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
-        soup := cast(*Polyline_Soup3_Entity)entity;
+        // @Incomplete continue if the distance is beyond a threshold?
 
-        ray_model := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+        if cp_world.distance < `d_min { // @CompilerBug This compiled without a backtick on d_min, which caused a bug!!!!!
 
-        // @Incomplete If available, use the spatial index
-        for :PolylineSegmentIterator segment, segment_index : soup.shape {
-            segment_world : Segment3 = ---;
-            segment_world.start = transform_point(entity.mesh.world_from_model, <<segment.from_point);
-            segment_world.end = transform_point(entity.mesh.world_from_model, <<segment.to_point);
-
-            cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
-
-            // @Incomplete continue if the distance is beyond a threshold?
-
-            if cp_world.distance < d_min {
-
-                if is_clipped(entity.display_info, cp_world.closest[1]) {
-                    continue;
-                }
-
-                if OutsideScreenDist(cp_world.closest[1]) {
-                    continue;
-                }
-
-                d_min = cp_world.distance;
-                result.closest_point_element = .SEGMENT;
-                result.closest_point.segment = cp_world;
-                result.element_index = segment_index;
-                result.entity_index = entity_index;
+            if is_clipped(`entity.display_info, cp_world.closest[1]) {
+                continue;
             }
+
+            if OutsideScreenDist(cp_world.closest[1]) {
+                continue;
+            }
+
+            `d_min = cp_world.distance;
+            `result.closest_point_element = .SEGMENT;
+            `result.closest_point.segment = cp_world;
+            `result.element_index = segment_index;
+            `result.entity_index = `entity_index;
         }
     }
 
+    // @Incomplete When available, use the spatial index
+
+    for :VisibleSelectableMeshSegments entity, entity_index : app.entities {
+        for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
+            ProcessSegment(segment_world, segment_index);
+        }
+    }
+
+    for :Visible_Selectable_Polyline_Soup3 entity, entity_index : app.entities {
+        soup := cast(*Polyline_Soup3_Entity)entity;
+        for :PolylineSegmentIterator segment, segment_index : soup.shape {
+            segment_model : Segment3 = ---;
+            segment_model.start = <<segment.from_point;
+            segment_model.end   = <<segment.to_point;
+            segment_world : Segment3 = transform_segment(entity.mesh.world_from_model, segment_model);
+
+            ProcessSegment(segment_world, segment_index);
+        }
+    }
 
     for :Visible_Selectable_Polyline_Soup2 entity, entity_index : app.entities {
         soup := cast(*Polyline_Soup2_Entity)entity;
 
-        ray_model := transform_ray(inverse(entity.mesh.world_from_model), ray_world);
-
         // @Incomplete If available, use the spatial index
         for :PolylineSegmentIterator segment, segment_index : soup.shape {
             segment_model : Segment3 = ---;
-            segment_model.start = make_vector3(segment.from_point.x, segment.from_point.y, 0.);
-            segment_model.end   = make_vector3(segment.to_point.x, segment.to_point.y, 0.);
+            segment_model.start = make_vector3(<<segment.from_point, 0.);
+            segment_model.end   = make_vector3(<<segment.to_point,   0.);
             segment_world : Segment3 = transform_segment(entity.mesh.world_from_model, segment_model);
 
-            cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
-
-            // @Incomplete continue if the distance is beyond a threshold?
-
-            if cp_world.distance < d_min {
-
-                if is_clipped(entity.display_info, cp_world.closest[1]) {
-                    continue;
-                }
-
-                if OutsideScreenDist(cp_world.closest[1]) {
-                    continue;
-                }
-
-                d_min = cp_world.distance;
-                result.closest_point_element = .SEGMENT;
-                result.closest_point.segment = cp_world;
-                result.element_index = segment_index;
-                result.entity_index = entity_index;
-            }
+            ProcessSegment(segment_world, segment_index);
         }
     }
 
@@ -1130,12 +1100,14 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
             entity.display_info.points_visible = true;
             entity.display_info.points_size = 4;
             entity.display_info.points_color = primary_color;
+            entity.display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
 
         case .LINES;
 
             entity.display_info.wireframe_visible = true;
             entity.display_info.wireframe_width = 1;
             entity.display_info.wireframe_color = primary_color;
+            entity.display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
 
         case .TRIANGLES;
 

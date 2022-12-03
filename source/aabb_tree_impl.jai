@@ -41,37 +41,6 @@ find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : 
     return result.intersect, result.parameter[i], result.point[i];
 }
 
-// AABB_Tree(Point_Cloud) implementation
-
-get_primitive :: (tree : AABB_Tree(Point_Cloud), point_index : int) -> Vector3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-get_primitive_center :: (point : Vector3) -> Vector3 {
-    return point;
-}
-
-get_primitive_aabb :: (point : Vector3) -> AxisBox3 {
-    return make_axis_box3(point, point);
-}
-
-get_primitive_index_array :: (cloud : Point_Cloud) -> [..]int {
-    result : [..]int;
-    array_reserve(*result, cloud.positions.count);
-    for 0..cloud.positions.count-1 {
-        array_add(*result, it);
-    }
-    return result;
-}
-
-find_intersect_primitive_ray3 :: (point : Vector3, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3 {
-    assert(false, "@Incomplete");
-    return false, 0, .{};
-}
-
-// find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : float, point : Vector3
-
 // AABB_Tree(Polyline_Soup3) implementation
 
 get_primitive :: (tree : AABB_Tree(Polyline_Soup3), triangle_index : int) -> Segment3 {

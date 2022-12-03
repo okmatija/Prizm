@@ -463,7 +463,6 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
     if #complete entity.type == {
         case .SEGMENT_SOUP3; #through;
-        case .POINT_CLOUD;   #through;
         case .MESH;
 
             vid_max := entity.mesh.positions.count - 1;
@@ -732,7 +731,6 @@ item_perturb_positions :: (id : int, radius : float = .001) {
             }
             entity.mesh = to_Mesh(entity.shape); // @Leak?
         case .SEGMENT_SOUP3; #through;
-        case .POINT_CLOUD;   #through;
         case .MESH;
             for * point : base.mesh.positions {
                 Perturb3(point);

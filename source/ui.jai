@@ -466,7 +466,7 @@ show_selection_ui :: () {
 
             if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
                 if !is_empty(app.user_selection) {
-                    new_entity : *Entity = New(Point_Cloud_Entity);
+                    new_entity : *Entity = New(Mesh_Entity);
 
                     merge(new_entity.mesh, app.user_selection.mesh); // @FIXME Make this work properly, accounting for transforms etc
                     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
@@ -979,7 +979,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     display_information(entity);
                     display_transform(entity);
 
-                    normals_ui :=  entity.type == .MESH || entity.type == .POINT_CLOUD || entity.type == .POLYLINE_SOUP3;
+                    normals_ui :=  entity.type == .MESH || entity.type == .POLYLINE_SOUP3;
                     lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS) || entity.type == .POLYLINE_SOUP2 || entity.type == .POLYLINE_SOUP3;
                     faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES) || entity.type == .POLYGON_SOUP;
                     maybe_update_render_info(*entity.render_info, *entity.mesh);
@@ -1937,11 +1937,6 @@ display_information :: (entity : *Entity) {
                 using soup := cast(*Polygon_Soup_Entity)entity;
                 ImGui.Text("PolygonSoup #points, #polygons = %, %", point_count(shape), shape.polygons.count);
 
-            case .POINT_CLOUD;
-
-                cloud := cast(*Point_Cloud_Entity)entity;
-                ImGui.Text("PointCloud #points = %", cloud.mesh.positions.count);
-
             case .UNKNOWN;     #through;
             case .MESH;
 
@@ -1949,7 +1944,6 @@ display_information :: (entity : *Entity) {
                 if #complete mesh.mesh.geometry_format == {
                     case .UNKNOWN; #through;
                     case .POINTS;
-                        // @Cleanup: This never happens, its handled in .POINT_
                         ImGui.Text("Mesh #points = %", mesh.mesh.positions.count);
                     case .LINES;
                         ImGui.Text("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2);

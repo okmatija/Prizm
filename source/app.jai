@@ -272,15 +272,26 @@ Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, s
 Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.display_info.is_visible));
 Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected));
 
-VisibleSelectableTriangleMesh :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+VisibleSelectable :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+        e.display_info.is_visible &&
+        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+    ));
+
+VisibleSelectableMeshTriangles :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.display_info.is_visible &&
         (e.type == .MESH && e.mesh.geometry_format == .TRIANGLES) &&
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 
-VisibleSelectablePointCloud :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+VisibleSelectableMeshSegments :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.display_info.is_visible &&
-        e.type == .POINT_CLOUD &&
+        (e.type == .MESH && e.mesh.geometry_format == .LINES) &&
+        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
+    ));
+
+VisibleSelectableMeshVertices :: #bake_arguments Entities_Iterator(should_visit = (e) => (
+        e.display_info.is_visible &&
+        (e.type == .MESH && e.mesh.geometry_format == .POINTS) &&
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 
@@ -404,7 +415,6 @@ ImGui :: #import "ImGui";
 #load "axis_box.jai";
 #load "polyline.jai";
 #load "polygon.jai";
-#load "point_cloud.jai";
 #load "segment_soup.jai";
 #load "edge.jai";
 #load "mesh.jai";

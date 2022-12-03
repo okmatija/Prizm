@@ -45,11 +45,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-            entity = New(Point_Cloud_Entity);
+            entity = New(Mesh_Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Point_Cloud_Entity)entity);
+            init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
         } else if eat_possible_identifier(*parser, "MULTIPOINT") {
 
@@ -72,11 +72,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-            entity = New(Point_Cloud_Entity);
+            entity = New(Mesh_Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Point_Cloud_Entity)entity);
+            init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
         } else if eat_possible_identifier(*parser, "LINESTRING") {
 

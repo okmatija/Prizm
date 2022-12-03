@@ -595,12 +595,6 @@ render_entities :: () {
                 render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
                 render_aabb(*entity.mesh, ri, di);
 
-            case .POINT_CLOUD;
-
-                render_mesh_points(*entity.mesh, ri, di);
-                render_normals(*entity.mesh, ri, di);
-                render_aabb(*entity.mesh, ri, di);
-
             case .MESH;
 
                 render_mesh_points(*entity.mesh, ri, di);
@@ -773,32 +767,6 @@ render_entities :: () {
                     }
                 }
 
-            case .POINT_CLOUD;
-
-                cloud := cast(*Point_Cloud_Entity) entity;
-                count := cloud.mesh.positions.count;
-
-                if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
-                    if annotation.kind == .VERTEX {
-                        point_world : Vector3 = mesh_point_world(cloud.mesh, annotation.id);
-                        point_model : Vector3 = mesh_point_model(cloud.mesh, annotation.id);
-                        CacheAnnotationLabels();
-                    }
-                }
-
-                inverse_transpose := transpose(inverse(cloud.mesh.world_from_model));
-                if is_visible(point_theme) for :ModelPointIterator point_model, point_index : cloud.mesh {
-                    if point_theme.show_backfacing == false && cloud.mesh.normals.count {
-                        world_normal : Vector3 = transform_vector(inverse_transpose, cloud.mesh.normals[point_index]);
-                        if dot_product(world_normal, current_look_direction()) > 0 {
-                            continue;
-                        }
-                    }
-
-                    point_world : Vector3 = mesh_point_world(entity.mesh, point_index);
-                    CachePointLabels(point_index);
-                }
-
             case .MESH;
 
                 mesh := cast(*Mesh_Entity) entity;
@@ -828,7 +796,7 @@ render_entities :: () {
                         }
                     }
 
-                    point_world := transform_point(entity.mesh.world_from_model, point_model);
+                    point_world := mesh_point_world(entity.mesh, point_index);
                     CachePointLabels(point_index);
                 }
 
@@ -849,6 +817,12 @@ render_entities :: () {
                     // log_error("Use brute force");
                     if is_visible(element_theme) for :ModelTriangleIterator mesh.mesh {
                         ProcessTriangle(it, it_index);
+                    }
+
+                    if is_visible(element_theme) for :ModelSegmentIterator segment : mesh.mesh {
+                        point_model : Vector3 = centroid(segment);
+                        point_world : Vector3 = transform_point(mesh.mesh.world_from_model, point_model);
+                        CacheElementLabels(it_index);
                     }
                 } else {
                     // log_error("Use spatial index");

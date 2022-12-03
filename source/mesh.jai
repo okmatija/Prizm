@@ -29,9 +29,12 @@ Mesh :: struct {
 
 TriangleTupleIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #expand {
     #assert(flags == 0); // No options are supported
-    assert(mesh.geometry_format == .TRIANGLES);
-    assert(mesh.indices.count % 3 == 0);
 
+    if mesh.geometry_format != .TRIANGLES {
+        return;
+    }
+
+    assert(mesh.indices.count % 3 == 0);
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
         `it := inline mesh_triangle_tuple(mesh, i);
@@ -42,9 +45,12 @@ TriangleTupleIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags) #e
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 TriangleIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
-    assert(mesh.geometry_format == .TRIANGLES);
-    assert(mesh.indices.count % 3 == 0);
 
+    if mesh.geometry_format != .TRIANGLES {
+        return;
+    }
+
+    assert(mesh.indices.count % 3 == 0);
     for i : 0..(mesh.indices.count/3)-1 {
         `it_index := i;
         `it := inline mesh_triangle_hack(mesh, i, world_space);
@@ -58,9 +64,12 @@ WorldTriangleIterator :: #bake_arguments TriangleIterator(world_space=true);
 // @Think Warning! Not sure we're doing the right thing with break/continue here
 TriangleEdgeIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
-    assert(mesh.geometry_format == .TRIANGLES);
-    assert(mesh.indices.count % 3 == 0);
 
+    if mesh.geometry_format != .TRIANGLES {
+        return;
+    }
+
+    assert(mesh.indices.count % 3 == 0);
     for i : 0..(mesh.indices.count/3)-1 {
         edges : Tuple3(Segment3) = inline mesh_triangle_edges_hack(mesh, i, world_space);
         for e : 0..2 {
@@ -78,9 +87,12 @@ WorldTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=tr
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 SegmentIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
-    assert(mesh.geometry_format == .LINES);
-    assert(mesh.indices.count % 2 == 0);
 
+    if mesh.geometry_format != .LINES {
+        return;
+    }
+
+    assert(mesh.indices.count % 2 == 0);
     for i : 0..(mesh.indices.count/2)-1 {
         `it_index := i;
         `it : Segment3 = inline mesh_segment3_hack(mesh, i, world_space);
@@ -91,7 +103,7 @@ SegmentIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_s
 ModelSegmentIterator :: #bake_arguments SegmentIterator(world_space=false);
 WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
 
-// @Cleanup @Refactor Maybe we should make the Point iterator loop over obj p-directive elements, and Vertex iterator which loop over v-directive elements
+// nocommit @Cleanup @Refactor Maybe we should make the Point iterator loop over obj p-directive elements, and Vertex iterator which loop over v-directive elements
 
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 PointIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
