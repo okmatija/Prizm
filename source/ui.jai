@@ -400,7 +400,7 @@ show_add_item_ui :: () {
         Show_Tooltip("A basic cube. Hold Alt to fix position");
         ImGui.SameLine(); 
         if ImGui.Button("Widget  ") { add_preset_widget(); }
-        Show_Tooltip("A part autonomously machined by CloudNC");
+        Show_Tooltip("A mesh generated from a CAD file");
 
         if ImGui.Button("BooleanA") { add_preset_boolean_a(); }
         Show_Tooltip("A failed mesh boolean");
@@ -1362,22 +1362,20 @@ show_help_ui :: () {
         defer ImGui.TreePop();
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
+        defer ImGui.PopStyleColor();
         ImGui.Text("Prism is a tool for debugging computational geometry algorithms.");
-        ImGui.PopStyleColor();
-        ImGui.Text("");
-        ImGui.Text("Load files/folders with drag/drop or via command line arguments");
-        ImGui.Text("");
+        ImGui.Text("Load files/folders with drag/drop or via command line arguments.");
 
         /*
         Goals
         - work with .obj file format
         - writing quads seems not that useful, so make `f a b c d` represent a tet rather than a quad
-        */
-
         ImGui.Text("Feedback/Bugs can be:");
         ImGui.Text("- sent to matija.kecman@epicgames.com, or");
         ImGui.Text("- posted on the slack channel #sig-prism-ext, or");
         ImGui.Text("- suggested on the User Guide document pinned on slack");
+        */
+
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %.", compiler_get_version_info(null));
         ImGui.Text(COMPILER_VERSION_INFO);
     }

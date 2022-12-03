@@ -196,6 +196,7 @@ debug_delete_spatial_index :: (id : int) {
 
 #scope_file
 
+// nocommit Use actual edges for this when we switch to Simple_Mesh
 to_edge_Mesh :: (using box : AxisBox3) -> Mesh #must {
     mesh : Mesh;
     mesh.geometry_format = .TRIANGLES;

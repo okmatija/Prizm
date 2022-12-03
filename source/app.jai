@@ -255,6 +255,8 @@ current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;
 }
 
+// nocommit Also pass the index to the predicate!
+// nocommit Rename this to something less generic and use this name for a basic iterator over entities
 Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, should_visit : (*Entity)->bool) #expand {
     #assert(flags == 0); // No options are supported
 
@@ -272,8 +274,7 @@ Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected
 
 VisibleSelectableTriangleMesh :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.display_info.is_visible &&
-        e.type == .MESH &&
-        e.mesh.geometry_format == .TRIANGLES &&
+        (e.type == .MESH && e.mesh.geometry_format == .TRIANGLES) &&
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 

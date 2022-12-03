@@ -41,23 +41,29 @@ debug_fake_annotations :: (id : int) {
     array_reset_keeping_memory(*item.vertex_annotations);
     array_reset_keeping_memory(*item.face_annotations);
 
-    for item.mesh.positions {
-        annotation : Annotation;
-        annotation.kind = .VERTEX;
-        set(*annotation.value, sprint("vertex %", it_index));
-        annotation.id = it_index;
-        array_add(*item.vertex_annotations, annotation);
+    {
+        for item.mesh.positions {
+            annotation : Annotation;
+            annotation.kind = .VERTEX;
+            set(*annotation.value, sprint("vertex %", it_index));
+            annotation.id = it_index;
+            array_add(*item.vertex_annotations, annotation);
+        }
+
+        log("# Cleared vertex annotations and added fake ones");
     }
 
-    for :TriangleTupleIterator item.mesh {
-        annotation : Annotation;
-        annotation.kind = .TRIANGLE;
-        set(*annotation.value, random_get_zero_to_one());
-        annotation.id = it_index;
-        array_add(*item.face_annotations, annotation);
-    }
+    if item.mesh.geometry_format == .TRIANGLES {
+        for :TriangleTupleIterator item.mesh {
+            annotation : Annotation;
+            annotation.kind = .TRIANGLE;
+            set(*annotation.value, random_get_zero_to_one());
+            annotation.id = it_index;
+            array_add(*item.face_annotations, annotation);
+        }
 
-    log("# Cleared vertex and face annotations and added fake ones");
+        log("# Cleared triangle annotations and added fake ones");
+    }
 
 } @RegisterCommand
 
