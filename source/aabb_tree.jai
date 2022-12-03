@@ -34,7 +34,6 @@ AABB_Tree :: struct(Shape : Type) {
             case Polyline_Soup3; return Segment3,  Vector3, AxisBox3;
             case Polyline_Soup2; return Segment2,  Vector3, AxisBox3;
             case Polygon_Soup;   return Segment3,  Vector3, AxisBox3;
-            case Segment_Soup3;  return Segment3,  Vector3, AxisBox3;
             case Mesh;           return Triangle3, Vector3, AxisBox3;
         }
     }();

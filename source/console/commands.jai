@@ -296,11 +296,13 @@ as_polyline_soup :: (entity : *Entity) -> *Polyline_Soup2_Entity, *Polyline_Soup
     return null, null;
 }
 
-as_segment_soup :: (entity : *Entity) -> *Segment_Soup3_Entity {
+as_segment_soup :: (entity : *Entity) -> *Mesh_Entity {
     if entity.type == {
-        case .SEGMENT_SOUP3;
-            soup3 := cast(*Segment_Soup3_Entity) entity;
-            return soup3;
+        case .MESH;
+            if entity.mesh.geometry_format == .LINES {
+                soup3 := cast(*Mesh_Entity) entity;
+                return soup3;
+            }
     }
     return null;
 }
@@ -462,7 +464,6 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
     sphere : Sphere;
 
     if #complete entity.type == {
-        case .SEGMENT_SOUP3; #through;
         case .MESH;
 
             vid_max := entity.mesh.positions.count - 1;
@@ -586,24 +587,23 @@ item_find_open_edges :: (id : int) {
     }
 
     // Collect the segment soup @Incomplete weld/stitch polyline segments together
-    segment_soup : Polyline_Soup3; // @Cleanup Make this a segment soup
+    polyline_soup : Polyline_Soup3;
     for origin, edge : edge_to_origin {
-        segment := array_add(*segment_soup.polylines);
+        segment := array_add(*polyline_soup.polylines);
         // Copy model space coordinates because the transform is encoded separately
         array_add(*segment.points, mesh_point_model(mesh, edge.x));
         array_add(*segment.points, mesh_point_model(mesh, edge.y));
     }
-    new_mesh : Mesh = to_Mesh(segment_soup);
+    new_mesh : Mesh = to_Mesh(polyline_soup);
     new_mesh.world_from_model = mesh.world_from_model;
 
     assert(app.console.history.count > 0);
 
     // Add a new item
-    new_entity := New(Polyline_Soup3_Entity);
+    new_entity := New(Mesh_Entity);
     new_entity.mesh = new_mesh;
     set_entity_source_from_command(new_entity, tprint("%_open_edges", entity_name(app.entities[id])), app.console.history[app.console.history.count - 1], mesh.positions.count);
     set_entity_display_info(new_entity, new_mesh.geometry_format);
-    new_entity.shape = segment_soup;
 
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
     new_entity.display_info.wireframe_width = 3;
@@ -730,7 +730,6 @@ item_perturb_positions :: (id : int, radius : float = .001) {
                 Perturb3(point);
             }
             entity.mesh = to_Mesh(entity.shape); // @Leak?
-        case .SEGMENT_SOUP3; #through;
         case .MESH;
             for * point : base.mesh.positions {
                 Perturb3(point);

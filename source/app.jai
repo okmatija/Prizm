@@ -415,7 +415,6 @@ ImGui :: #import "ImGui";
 #load "axis_box.jai";
 #load "polyline.jai";
 #load "polygon.jai";
-#load "segment_soup.jai";
 #load "edge.jai";
 #load "mesh.jai";
 #load "mesh_utils.jai";

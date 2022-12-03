@@ -582,13 +582,6 @@ render_entities :: () {
                 render_normals(*entity.mesh, ri, di);
                 render_aabb(*entity.mesh, ri, di);
 
-            case .SEGMENT_SOUP3;
-
-                render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-                render_normals(*entity.mesh, ri, di);
-                render_aabb(*entity.mesh, ri, di);
-
             case .POLYGON_SOUP;
 
                 render_mesh_points(*entity.mesh, ri, di);
@@ -718,33 +711,6 @@ render_entities :: () {
                     CacheElementLabels(it_index);
                 }
 
-            case .SEGMENT_SOUP3;
-
-                soup := cast(*Segment_Soup3_Entity) entity;
-
-                if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
-                    if annotation.kind == .VERTEX {
-                        point_world : Vector3 = mesh_point_world(soup.mesh, annotation.id);
-                        point_model : Vector3 = mesh_point_model(soup.mesh, annotation.id);
-                        CacheAnnotationLabels();
-                    } else if annotation.kind == .LINE {
-                        point_world : Vector3 = centroid(mesh_segment3_world(soup.mesh, annotation.id));
-                        point_model : Vector3 = centroid(mesh_segment3_model(soup.mesh, annotation.id));
-                        CacheAnnotationLabels();
-                    }
-                }
-
-                if is_visible(point_theme) for :ModelPointIterator point_model, point_index : soup.mesh {
-                    point_world : Vector3 = transform_point(soup.mesh.world_from_model, point_model);
-                    CachePointLabels(point_index);
-                }
-
-                if is_visible(element_theme) for :ModelSegmentIterator segment : soup.mesh {
-                    point_model : Vector3 = centroid(segment);
-                    point_world : Vector3 = transform_point(soup.mesh.world_from_model, point_model);
-                    CacheElementLabels(it_index);
-                }
-
             case .POLYGON_SOUP;
 
                 // @Incomplete annotations
@@ -778,6 +744,10 @@ render_entities :: () {
                         case .VERTEX;
                             point_model : Vector3 = mesh_point_model(mesh.mesh, annotation.id);
                             point_world : Vector3 = mesh_point_world(mesh.mesh, annotation.id);
+                            CacheAnnotationLabels();
+                        case .LINE;
+                            point_model : Vector3 = centroid(mesh_segment3_model(mesh.mesh, annotation.id));
+                            point_world : Vector3 = centroid(mesh_segment3_world(mesh.mesh, annotation.id));
                             CacheAnnotationLabels();
                         case .TRIANGLE;
                             point_model : Vector3 = compute_centroid(mesh_triangle_model(mesh.mesh, annotation.id));

@@ -4,7 +4,6 @@ Entity_Type :: enum {
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
     POLYGON_SOUP;
-    SEGMENT_SOUP3; // isa Mesh
     UNKNOWN;
 }
 
@@ -124,18 +123,6 @@ Polygon_Soup_Entity :: struct {
     spatial : *AABB_Tree(Shape);
 }
 
-Segment_Soup3_Entity :: struct {
-    #as using base : Entity;
-    type = .SEGMENT_SOUP3;
-    display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
-
-    Shape :: Segment_Soup3;
-    spatial : *AABB_Tree(Shape);
-
-#place mesh;
-    shape : Shape = ---; // Alias for consistency
-}
-
 // mesh.geometry_format will be .TRIANGLES for a Mesh_Entity
 Mesh_Entity :: struct {
     #as using base : Entity;
@@ -213,11 +200,6 @@ clear :: (base : *Entity) {
             clear(*entity.mesh);
             clear(*entity.shape);
 
-        case .SEGMENT_SOUP3;
-
-            entity := cast(*Segment_Soup3_Entity)base;
-            clear(*entity.mesh);
-
         case .POLYGON_SOUP;
 
             entity := cast(*Polygon_Soup_Entity)base;
@@ -283,12 +265,6 @@ deinit :: (base : *Entity) {
             entity := cast(*Polygon_Soup_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
-            deinit(entity.spatial);
-
-        case .SEGMENT_SOUP3;
-
-            entity := cast(*Segment_Soup3_Entity)base;
-            deinit(*entity.mesh);
             deinit(entity.spatial);
 
         case .MESH;
@@ -399,7 +375,6 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
             }
         case .POLYLINE_SOUP2; return *display_info.wireframe_color, *display_info.wireframe_visible;
         case .POLYLINE_SOUP3; return *display_info.wireframe_color, *display_info.wireframe_visible;
-        case .SEGMENT_SOUP3;  return *display_info.wireframe_color, *display_info.wireframe_visible;
         case .POLYGON_SOUP;   return *display_info.surface_color,   *display_info.surface_visible;
     }
     return null, null;
