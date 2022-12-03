@@ -95,13 +95,6 @@ select_if :: (should_select : (Entity)->bool, invert : int) {
 
 // @TODO Add an invert option to these?
 
-// nocommit Add variations for kinds of mesh geometry segment
-
-// Add items with/without MESH type to the selection, if `invert` is true/false
-select_if_Mesh :: (invert : int = 0) {
-    select_if((e) => (e.type == .MESH), invert);
-} @RegisterCommand
-
 // Add visible/invisible items to the selection, if `invert` is true/false
 select_if_visible :: (invert : int = 0) {
     select_if((e) => (e.display_info.is_visible), invert);
@@ -222,11 +215,6 @@ item_flip_normals :: (id : int) {
 
     entity := app.entities[id];
 
-    if entity.type != .MESH {
-        log_error("Expected MESH type item, got %.", entity.type);
-        return;
-    }
-
     if entity.mesh.geometry_format != .TRIANGLES {
         log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
         return;
@@ -271,16 +259,6 @@ set_edge_color_to_face_color :: () {
     }
 } @RegisterCommand
 
-as_segment_soup :: (entity : *Entity) -> *Mesh_Entity {
-    if entity.type == {
-        case .MESH;
-            if entity.mesh.geometry_format == .LINES {
-                soup3 := cast(*Mesh_Entity) entity;
-                return soup3;
-            }
-    }
-    return null;
-}
 
 // Update the camera to focus on the given segment. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the segment centroid.
@@ -300,23 +278,21 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
 
     entity := app.entities[id];
 
-    segment_soup3 := as_segment_soup(entity);
-
     sphere : Sphere;
 
-    if segment_soup3 {
-        sid_max := element_count(segment_soup3.shape) - 1;
+    if entity.mesh.geometry_format == .LINES {
+        sid_max := element_count(entity.mesh) - 1;
         if segment_index < 0 || segment_index > sid_max {
             log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
             return;
         }
 
-        segment := mesh_segment3_model(segment_soup3.shape, segment_index);
+        segment := mesh_segment3_model(entity.mesh, segment_index);
         sphere.center = (segment.start + segment.end) / 2;
         sphere.radius = 2 * distance(segment.start, segment.end);
 
     } else {
-        log_error("Expected segment soup type item, got %.", entity.type);
+        log_error("Expected segment soup type item, got %.", entity.mesh.geometry_format);
         return;
     }
 
@@ -351,11 +327,6 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
     }
 
     entity := app.entities[id];
-
-    if entity.type != .MESH {
-        log_error("Expected MESH type item, got %.", entity.type);
-        return;
-    }
 
     if entity.mesh.geometry_format != .TRIANGLES {
         log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
@@ -411,19 +382,13 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
     sphere : Sphere;
 
-    if #complete entity.type == {
-        case .MESH;
-
-            vid_max := entity.mesh.positions.count - 1;
-            if vertex_index < 0 || vertex_index > vid_max {
-                log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
-                return;
-            }
-            sphere.center = entity.mesh.positions[vertex_index];
-
-        case .UNKNOWN;
-            log_error("Unexpected % item type", entity.type);
+    {
+        vid_max := entity.mesh.positions.count - 1;
+        if vertex_index < 0 || vertex_index > vid_max {
+            log_error("Expected a vertex index in the range [0, %], got %.", vid_max, vertex_index);
             return;
+        }
+        sphere.center = entity.mesh.positions[vertex_index];
     }
 
     sphere.center = transform_point(entity.mesh.world_from_model, sphere.center);
@@ -460,11 +425,6 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 item_find_open_edges :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
-        return;
-    }
-
-    if app.entities[id].type != .MESH {
-        log_error("Expected MESH type item, got %.", app.entities[id].type);
         return;
     }
 
@@ -527,7 +487,7 @@ item_find_open_edges :: (id : int) {
     assert(app.console.history.count > 0);
 
     // Add a new item
-    new_entity := New(Mesh_Entity);
+    new_entity := New(Entity);
     new_entity.mesh = new_mesh;
     set_entity_source_from_command(new_entity, tprint("%_open_edges", entity_name(app.entities[id])), app.console.history[app.console.history.count - 1], mesh.positions.count);
     set_entity_display_info(new_entity, new_mesh.geometry_format);
@@ -551,11 +511,6 @@ item_find_zero_area_triangles :: (id : int) {
 
     target : *Entity = app.entities[id];
 
-    if target.type != .MESH {
-        log_error("Expected MESH type item, got %.", app.entities[id].type);
-        return;
-    }
-
     if target.mesh.geometry_format != .TRIANGLES {
         log("# Expected a mesh with TRIANGLES geometry format, got %.", target.mesh.geometry_format);
         return;
@@ -578,7 +533,7 @@ item_find_zero_area_triangles :: (id : int) {
 
     assert(app.console.history.count > 0);
 
-    result := New(Mesh_Entity);
+    result := New(Entity);
     result.mesh.geometry_format = .TRIANGLES;
     result.mesh.world_from_model = target.mesh.world_from_model;
     for zero_area_triangles {
@@ -634,16 +589,10 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     // @FIXME: This is broken becuase the mesh points are not synced with the polyline (and polygon?) points,
     // the implementation should perturb the mesh and then recompute the shapes.
 
-    base := app.entities[id];
-    base.render_info.is_dirty = true;
-    if #complete base.type == {
-        case .MESH;
-            for * point : base.mesh.positions {
-                Perturb3(point);
-            }
-        case .UNKNOWN;
-            log_error("Unknown item type.");
-            return;
+    entity := app.entities[id];
+    entity.render_info.is_dirty = true;
+    for * point : entity.mesh.positions {
+        Perturb3(point);
     }
 } @RegisterCommand
 

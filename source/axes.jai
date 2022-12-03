@@ -1,8 +1,8 @@
 Axes_Triad :: struct {
-    x_axis : Mesh_Entity;
-    y_axis : Mesh_Entity;
-    z_axis : Mesh_Entity;
-    origin : Mesh_Entity;
+    x_axis : Entity;
+    y_axis : Entity;
+    z_axis : Entity;
+    origin : Entity;
     visible := true;
 }
 

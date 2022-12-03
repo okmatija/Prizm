@@ -1,8 +1,3 @@
-Entity_Type :: enum {
-    MESH; // @Cleanup rename this to TRIANGLE_MESH, and the corresponding Mesh_Entity to Triangle_Mesh_Entity
-    UNKNOWN;
-}
-
 // Used for entity reloading, order is important here becaues reload_items uses it for sorting @Think If the order is changed but the values stay constant what happens?
 Entity_Source :: enum #specified {
     UNKNOWN :: 0;
@@ -24,8 +19,9 @@ find_header_annotation :: (entity : *Entity) -> *Annotation {
 // @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
 // @Refactor Maybe Entity should contain the mesh and the item variables, but data specific to rendering meshes should be in the mesh?
 
+// :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
+
 Entity :: struct {
-    type : Entity_Type = .UNKNOWN;
     source : Entity_Source = .UNKNOWN;
 
     // source : Tagged_Union();
@@ -39,10 +35,10 @@ Entity :: struct {
     // Note the transform stored in this mesh also applies to:
     // - Shape geometry in the specialized types
     // - Bounding shapes in render_info
-    mesh : Mesh; // :EntityInitializers Note that sometimes its convenient to start with the mesh and compute the shape in the Entity sub-types, and other timee vice-verse!
+    mesh : Mesh;
+    spatial : *AABB_Tree(Mesh);
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
-    // Interpretation depends on Entity_Type (I think)
     command_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
     block_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
     vertex_annotations : [..]Annotation; // Comments attached to vertices e.g., v directives in .obj files, @Think maybe also include comments on p directives
@@ -87,25 +83,6 @@ SELECTION_FOLDER :: "Selections";
 PRESET_SHAPE_FOLDER :: "Preset Shapes";
 COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
-// :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
-
-// mesh.geometry_format will be .TRIANGLES for a Mesh_Entity
-Mesh_Entity :: struct {
-    #as using base : Entity;
-    type = .MESH;
-    display_info.element_label_theme.label_color = .{1., 1., 0, 1};
-
-    // display_info.wireframe_visible = true;
-    // display_info.wireframe_width = 2;
-    // display_info.element_label_theme.show_index = true;
-    // display_info.vertex_label_style.show_position = true;
-
-    Shape :: Mesh;
-    spatial : *AABB_Tree(Shape);
-#place mesh;
-    shape : Shape = ---; // Alias for consistency
-}
-
 /*
 
 // Annotate these with the entity and source index
@@ -148,22 +125,13 @@ update_entity_transform :: (entity : *Entity, shift : Vector3) {
     }
 }
 
-clear :: (base : *Entity) {
-    // @Cleanup Pull out all the clear mesh calls
-    if #complete base.type == {
-        case .UNKNOWN;
-            // do nothing
-
-        case .MESH;
-
-            entity := cast(*Mesh_Entity)base;
-            clear(*entity.mesh);
-    }
+clear :: (using entity : *Entity) {
+    clear(*mesh);
 
     // Remove data from gpu memory as well
-    if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
-    if base.render_info.ibo glDeleteBuffers(1, *base.render_info.ibo);
-    base.render_info = .{};
+    if render_info.vbo glDeleteBuffers(1, *render_info.vbo);
+    if render_info.ibo glDeleteBuffers(1, *render_info.ibo);
+    render_info = .{};
 }
 
 
@@ -187,40 +155,32 @@ remove_entities_if_selected :: () {
     }
 }
 
-deinit :: (base : *Entity) {
-    if !base return;
+deinit :: (using entity : *Entity) {
+    if !entity return;
 
-    if #complete base.type == {
-        case .UNKNOWN;
-            // do nothing
-
-        case .MESH;
-
-            entity := cast(*Mesh_Entity)base;
-            deinit(*entity.mesh);
-            deinit(entity.spatial);
-    }
-
-    for :AnnotationIterator base deinit(it);
+    deinit(*mesh);
+    deinit(spatial);
+    
+    for :AnnotationIterator entity deinit(it);
     // nocommit We should have AnnotationListIterator, so we don't need to change so many places
-    array_reset(*base.command_annotations);
-    array_reset(*base.block_annotations);
-    array_reset(*base.vertex_annotations);
-    array_reset(*base.face_annotations);
-    array_reset(*base.line_annotations);
+    array_reset(*command_annotations);
+    array_reset(*block_annotations);
+    array_reset(*vertex_annotations);
+    array_reset(*face_annotations);
+    array_reset(*line_annotations);
 
-    if #complete base.source == {
+    if #complete source == {
         case .UNKNOWN;        // Do nothing
         case .FILE_ON_DISK;   // Do nothing
-        case .COMMAND_OUTPUT; free(base.console_command);
+        case .COMMAND_OUTPUT; free(console_command);
         case .PRESET_SHAPE;   // Do nothing
         case .SELECTION;      // Do nothing
     }
 
     // Remove data from gpu memory as well
-    if base.render_info.vbo glDeleteBuffers(1, *base.render_info.vbo);
-    if base.render_info.ibo glDeleteBuffers(1, *base.render_info.ibo);
-    base.render_info = .{};
+    if render_info.vbo glDeleteBuffers(1, *render_info.vbo);
+    if render_info.ibo glDeleteBuffers(1, *render_info.ibo);
+    render_info = .{};
 }
 
 // If matching_name_behaviour == .OVERWRITE you need to also set entity.generation_index to the value you wanted
@@ -291,15 +251,11 @@ is_changed_on_disk :: (using entity : Entity) -> bool {
 
 
 entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
-    if #complete type == {
-        case .UNKNOWN; #through;
-        case .MESH;
-            if #complete mesh.geometry_format == {
-                case .UNKNOWN;   #through;
-                case .POINTS;    return *display_info.points_color,    *display_info.points_visible;
-                case .LINES;     return *display_info.wireframe_color, *display_info.wireframe_visible;
-                case .TRIANGLES; return *display_info.surface_color,   *display_info.surface_visible;
-            }
+    if #complete mesh.geometry_format == {
+        case .UNKNOWN;   #through;
+        case .POINTS;    return *display_info.points_color,    *display_info.points_visible;
+        case .LINES;     return *display_info.wireframe_color, *display_info.wireframe_visible;
+        case .TRIANGLES; return *display_info.surface_color,   *display_info.surface_visible;
     }
     return null, null;
 }
@@ -664,8 +620,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
     d_min := FLOAT32_INFINITY;
 
     for :VisibleSelectableMeshTriangles entity, entity_index : app.entities {
-        mesh_entity := cast(*Mesh_Entity)entity;
-        ray_model : Ray3 = transform_ray(inverse(mesh_entity.mesh.world_from_model), ray_world);
+        ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // Keep track of the best candidates (closest to the camera/ray origin) for intersected/hit triangles and missed ones
         best_ray_triangle_hit, best_ray_triangle_miss : Closest_Point_Ray_Triangle;
@@ -676,7 +631,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
         //     continue;
         // }
 
-        if mesh_entity.spatial == null {
+        if entity.spatial == null {
 
             // nocommit Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
             for :ModelTriangleIterator triangle, triangle_index : entity.mesh {
@@ -685,7 +640,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
         } else {
 
-            VisitPrimitivesNearRay(mesh_entity.spatial, ray_model, max_dist,
+            VisitPrimitivesNearRay(entity.spatial, ray_model, max_dist,
                  #code ProcessTriangle(primitive, primitive_id)
             );
 
@@ -990,14 +945,13 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
     }
 }
 
-// Maybe this should also take the shape and set that (will set the mesh twice if T == Mesh_Entity, but that's fine)
-init_entity_spatial_index :: (entity : *Mesh_Entity) {
+init_entity_spatial_index :: (using entity : *Entity) {
     assert(entity != null);
-    if entity.mesh.geometry_format == .TRIANGLES {
-        entity.spatial = New(AABB_Tree(Mesh));
-        init(entity.spatial, *entity.shape);
+    if mesh.geometry_format == .TRIANGLES {
+        spatial = New(AABB_Tree(Mesh));
+        init(spatial, *mesh);
     } else {
-        log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
+        log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", mesh.geometry_format);
     }
 }
 
@@ -1186,7 +1140,7 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
     }
 
     if result {
-        log("Loaded file '%', with type %", filename, result.type);
+        log("Loaded file '%'", filename);
     } else {
         log_error("Could not load file '%'", filename);
     }

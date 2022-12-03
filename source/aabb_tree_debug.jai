@@ -7,12 +7,9 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         return;
     }
 
-    if app.entities[id].type != .MESH {
-        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[id].type);
-        return;
-    }
+    // @FIXME This does not apply the mesh transform properly
 
-    mesh_entity := cast(*Mesh_Entity)app.entities[id];
+    mesh_entity := app.entities[id];
     spatial := mesh_entity.spatial;
 
     if spatial == null || spatial.nodes.count == 0 {
@@ -35,7 +32,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
         assert(app.console.history.count > 0);
 
-        entity := New(Mesh_Entity);
+        entity := New(Entity);
         entity.mesh = mesh;
         set_entity_source_from_command(entity, tprint("%_debug_spatial_aabbs", entity_name(mesh_entity)), app.console.history[app.console.history.count - 1], mesh.positions.count);
         set_entity_display_info(entity, mesh.geometry_format);
@@ -61,7 +58,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     assert(app.console.history.count > 0);
 
-                    entity := New(Mesh_Entity);
+                    entity := New(Entity);
                     entity.mesh = to_edge_Mesh(node.aabb);
                     set_entity_source_from_command(entity,  tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count);  // @Incomplete pad depth integer?
                     set_entity_display_info(entity, entity.mesh.geometry_format);
@@ -81,8 +78,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     table_add(entity_at_depth, depth, entity);
                 } else {
                     entity_base := <<found;
-                    assert(entity_base.type == .MESH);
-                    entity := cast(*Mesh_Entity)entity_base;
+                    entity := entity_base;
                     entity.render_info.is_dirty = true; // Redundant
                     entity.display_info.wireframe_visible = true;
                     entity.display_info.wireframe_width = 2;
@@ -116,20 +112,18 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                 if found == null {
                     assert(app.console.history.count > 0);
 
-                    entity := New(Mesh_Entity);
+                    entity := New(Entity);
                     entity.mesh = to_edge_Mesh(node.aabb);
                     set_entity_source_from_command(entity, tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count); // @Incomplete pad depth integer?
                     set_entity_display_info(entity, entity.mesh.geometry_format);
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
-                    entity_base := <<found;
-                    assert(entity_base.type == .MESH);
+                    entity := <<found;
 
                     other := to_edge_Mesh(node.aabb);
                     defer deinit(*other);
 
-                    entity := cast(*Mesh_Entity)entity_base;
                     merge(entity.mesh, other);
                     entity.render_info.is_dirty = true; // Redundant
                 }
@@ -182,12 +176,7 @@ debug_delete_spatial_index :: (id : int) {
         return;
     }
 
-    if app.entities[id].type != .MESH {
-        log_error("@Incomplete Currently only % type is supported, got %.", Entity_Type.MESH, app.entities[id].type);
-        return;
-    }
-
-    mesh_entity := cast(*Mesh_Entity)app.entities[id];
+    mesh_entity := app.entities[id];
     deinit(mesh_entity.spatial);
     mesh_entity.spatial = null;
 

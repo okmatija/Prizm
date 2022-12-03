@@ -144,9 +144,14 @@ Display_Info :: struct {
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
     points_size : s32 = 0;
+
     vertex_label_style : Label_Theme;
+
     element_label_theme : Label_Theme;
+    element_label_theme.label_color = .{1., 1., 0, 1};
+
     annotation_theme : Annotation_Theme;
+
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
@@ -568,27 +573,21 @@ render_entities :: () {
         clip_radius_mode := entity_in_clip_radius_mode(entity_index);
         clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
-        if #complete entity.type == {
-            case .MESH;
-
-                render_mesh_points(*entity.mesh, ri, di);
-                if clip_radius_mode_show_wireframe {
-                    di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
-                }
-                render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
-                if clip_radius_mode_show_wireframe {
-                    di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
-                } else if di.surface_visible && di.wireframe_width >= 1 {
-                    // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
-                    // smooth version drawn in the render_mesh_triangles call
-                    di.wireframe_width = max(di.wireframe_width - 1, 1);
-                }
-                render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-                render_normals(*entity.mesh, ri, di);
-                render_aabb(*entity.mesh, ri, di);
-
-            case .UNKNOWN;
+        render_mesh_points(*entity.mesh, ri, di);
+        if clip_radius_mode_show_wireframe {
+            di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
         }
+        render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
+        if clip_radius_mode_show_wireframe {
+            di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
+        } else if di.surface_visible && di.wireframe_width >= 1 {
+            // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
+            // smooth version drawn in the render_mesh_triangles call
+            di.wireframe_width = max(di.wireframe_width - 1, 1);
+        }
+        render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_normals(*entity.mesh, ri, di);
+        render_aabb(*entity.mesh, ri, di);
     }
 
     render_entity_text :: (entity : *Entity) {
@@ -647,82 +646,78 @@ render_entities :: () {
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
-        if #complete entity.type == {
-            case .UNKNOWN;
-            case .MESH;
+        {
+            count := entity.mesh.positions.count;
 
-                mesh := cast(*Mesh_Entity) entity;
-                count := mesh.mesh.positions.count;
+            // @Speed this should use the spatial index?? since annotations are sparse, maybe not
+            if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
+                if annotation.kind == {
+                    case .VERTEX;
+                        point_model : Vector3 = mesh_point_model(entity.mesh, annotation.id);
+                        point_world : Vector3 = mesh_point_world(entity.mesh, annotation.id);
+                        CacheAnnotationLabels();
+                    case .LINE;
+                        point_model : Vector3 = centroid(mesh_segment3_model(entity.mesh, annotation.id));
+                        point_world : Vector3 = centroid(mesh_segment3_world(entity.mesh, annotation.id));
+                        CacheAnnotationLabels();
+                    case .TRIANGLE;
+                        point_model : Vector3 = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
+                        point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                        CacheAnnotationLabels();
+                }
+            }
 
-                // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-                if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
-                    if annotation.kind == {
-                        case .VERTEX;
-                            point_model : Vector3 = mesh_point_model(mesh.mesh, annotation.id);
-                            point_world : Vector3 = mesh_point_world(mesh.mesh, annotation.id);
-                            CacheAnnotationLabels();
-                        case .LINE;
-                            point_model : Vector3 = centroid(mesh_segment3_model(mesh.mesh, annotation.id));
-                            point_world : Vector3 = centroid(mesh_segment3_world(mesh.mesh, annotation.id));
-                            CacheAnnotationLabels();
-                        case .TRIANGLE;
-                            point_model : Vector3 = compute_centroid(mesh_triangle_model(mesh.mesh, annotation.id));
-                            point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                            CacheAnnotationLabels();
+            // @Speed this should use the spatial index??
+            inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
+            if is_visible(point_theme) for :ModelPointIterator point_model, point_index : entity.mesh {
+                if point_theme.show_backfacing == false && entity.mesh.normals.count {
+                    normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
+                    if dot_product(normal_world, current_look_direction()) > 0 {
+                        continue;
                     }
                 }
 
-                // @Speed this should use the spatial index??
-                inverse_transpose := transpose(inverse(mesh.mesh.world_from_model));
-                if is_visible(point_theme) for :ModelPointIterator point_model, point_index : mesh.mesh {
-                    if point_theme.show_backfacing == false && mesh.mesh.normals.count {
-                        normal_world : Vector3 = transform_vector(inverse_transpose, mesh.mesh.normals[point_index]);
-                        if dot_product(normal_world, current_look_direction()) > 0 {
-                            continue;
-                        }
-                    }
+                point_world := mesh_point_world(entity.mesh, point_index);
+                CachePointLabels(point_index);
+            }
 
-                    point_world := mesh_point_world(entity.mesh, point_index);
-                    CachePointLabels(point_index);
+            ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
+                if element_theme.show_backfacing == false {
+                    normal_world : Vector3 = transform_vector(`inverse_transpose, compute_normal(triangle_model));
+                    if dot_product(normal_world, current_look_direction()) > 0 {
+                        continue;
+                    }
                 }
 
-                ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
-                    if element_theme.show_backfacing == false {
-                        normal_world : Vector3 = transform_vector(`inverse_transpose, compute_normal(triangle_model));
-                        if dot_product(normal_world, current_look_direction()) > 0 {
-                            continue;
-                        }
-                    }
+                point_model : Vector3 = compute_centroid(triangle_model);
+                point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                CacheElementLabels(triangle_index);
+            }
 
-                    point_model : Vector3 = compute_centroid(triangle_model);
+            if entity.spatial == null {
+                // log_error("Use brute force");
+                if is_visible(element_theme) for :ModelTriangleIterator entity.mesh {
+                    ProcessTriangle(it, it_index);
+                }
+
+                if is_visible(element_theme) for :ModelSegmentIterator segment : entity.mesh {
+                    point_model : Vector3 = centroid(segment);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                    CacheElementLabels(triangle_index);
+                    CacheElementLabels(it_index);
                 }
+            } else {
+                // log_error("Use spatial index");
 
-                if mesh.spatial == null {
-                    // log_error("Use brute force");
-                    if is_visible(element_theme) for :ModelTriangleIterator mesh.mesh {
-                        ProcessTriangle(it, it_index);
-                    }
+                ray_world : Ray3 = make_camera_ray();
+                ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
-                    if is_visible(element_theme) for :ModelSegmentIterator segment : mesh.mesh {
-                        point_model : Vector3 = centroid(segment);
-                        point_world : Vector3 = transform_point(mesh.mesh.world_from_model, point_model);
-                        CacheElementLabels(it_index);
-                    }
-                } else {
-                    // log_error("Use spatial index");
+                // @Incomplete Support perspective projection
+                distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
 
-                    ray_world : Ray3 = make_camera_ray();
-                    ray_model : Ray3 = transform_ray(inverse(mesh.mesh.world_from_model), ray_world);
-
-                    // @Incomplete Support perspective projection
-                    distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
-
-                    if is_visible(element_theme) VisitPrimitivesNearRay(mesh.spatial, ray_model, distance,
-                        #code ProcessTriangle(primitive, primitive_id)
-                    );
-                }
+                if is_visible(element_theme) VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
+                    #code ProcessTriangle(primitive, primitive_id)
+                );
+            }
         }
 
         draw_label_infos(point_labels, point_theme);

@@ -94,7 +94,7 @@ App :: struct {
     selection_display_info.aabb_visible = false;
 
     // @Refactor Make this entity 0
-    user_selection : Mesh_Entity;
+    user_selection : Entity;
     user_selection_cursor_text_shown := false; // @Refactor This isn't really related to selection anymore
     user_selection_cursor_text_scale := .4;
     user_selection_max_point_count_for_selectable_entity := 5_000_000; // @Cleanup remove this? and make it only apply to entities without a spatial index 
@@ -279,19 +279,19 @@ VisibleSelectable :: #bake_arguments Entities_Iterator(should_visit = (e) => (
 
 VisibleSelectableMeshTriangles :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.display_info.is_visible &&
-        (e.type == .MESH && e.mesh.geometry_format == .TRIANGLES) &&
+        e.mesh.geometry_format == .TRIANGLES &&
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 
 VisibleSelectableMeshSegments :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.display_info.is_visible &&
-        (e.type == .MESH && e.mesh.geometry_format == .LINES) &&
+        e.mesh.geometry_format == .LINES &&
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 
 VisibleSelectableMeshVertices :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.display_info.is_visible &&
-        (e.type == .MESH && e.mesh.geometry_format == .POINTS) &&
+        e.mesh.geometry_format == .POINTS &&
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 

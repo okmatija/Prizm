@@ -1,7 +1,7 @@
 // FIXME Rename to load_obj when we switch from annotations to attributes
 load_obj_with_attributes :: (filename : string, data : string, name : string) -> *Entity {
 
-    result : *Mesh_Entity;
+    result : *Entity;
     if !data {
         log(" File was empty");
         return result;
@@ -33,7 +33,7 @@ load_obj_with_attributes :: (filename : string, data : string, name : string) ->
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
-    result = New(Mesh_Entity); // nocommit local_entities should be the result 
+    result = New(Entity); // nocommit local_entities should be the result 
     using,only(mesh,
         command_annotations,
         block_annotations,

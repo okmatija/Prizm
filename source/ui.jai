@@ -466,7 +466,7 @@ show_selection_ui :: () {
 
             if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
                 if !is_empty(app.user_selection) {
-                    new_entity : *Entity = New(Mesh_Entity);
+                    new_entity : *Entity = New(Entity);
 
                     merge(new_entity.mesh, app.user_selection.mesh); // @FIXME Make this work properly, accounting for transforms etc
                     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
@@ -979,9 +979,9 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     display_information(entity);
                     display_transform(entity);
 
-                    normals_ui :=  entity.type == .MESH;
-                    lines_ui   := (entity.type == .MESH && entity.mesh.geometry_format != .POINTS);
-                    faces_ui   := (entity.type == .MESH && entity.mesh.geometry_format == .TRIANGLES);
+                    normals_ui := true;
+                    lines_ui   := entity.mesh.geometry_format != .POINTS;
+                    faces_ui   := entity.mesh.geometry_format == .TRIANGLES;
                     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
                     aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
@@ -1916,20 +1916,14 @@ display_information :: (entity : *Entity) {
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
 
-        if #complete entity.type == {
-            case .UNKNOWN;     #through;
-            case .MESH;
-
-                mesh := cast(*Mesh_Entity)entity;
-                if #complete mesh.mesh.geometry_format == {
-                    case .UNKNOWN; #through;
-                    case .POINTS;
-                        ImGui.Text("Mesh #points = %", mesh.mesh.positions.count);
-                    case .LINES;
-                        ImGui.Text("Mesh #points, #lines = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 2);
-                    case .TRIANGLES;
-                        ImGui.Text("Mesh #points, #triangles = %, %", mesh.mesh.positions.count, mesh.mesh.indices.count / 3);
-                }
+        if #complete entity.mesh.geometry_format == {
+            case .UNKNOWN; #through;
+            case .POINTS;
+                ImGui.Text("Mesh #points = %", entity.mesh.positions.count);
+            case .LINES;
+                ImGui.Text("Mesh #points, #lines = %, %", entity.mesh.positions.count, entity.mesh.indices.count / 2);
+            case .TRIANGLES;
+                ImGui.Text("Mesh #points, #triangles = %, %", entity.mesh.positions.count, entity.mesh.indices.count / 3);
         }
         maybe_update_render_info(*entity.render_info, *entity.mesh);
 

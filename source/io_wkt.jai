@@ -45,11 +45,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-            entity = New(Mesh_Entity);
+            entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Mesh_Entity)entity);
+            init_entity_spatial_index(entity);
 
         } else if eat_possible_identifier(*parser, "MULTIPOINT") {
 
@@ -72,11 +72,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
             }
 
-            entity = New(Mesh_Entity);
+            entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Mesh_Entity)entity);
+            init_entity_spatial_index(entity);
 
         } else if eat_possible_identifier(*parser, "LINESTRING") {
 
@@ -94,11 +94,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 array_add(*shape.polylines).points = points2;
                 mesh : Mesh = to_Mesh(shape);
 
-                entity = New(Mesh_Entity);
+                entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-                init_entity_spatial_index(cast(*Mesh_Entity)entity);
+                init_entity_spatial_index(entity);
 
             } else if dim == 3 {
 
@@ -106,11 +106,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 array_add(*shape.polylines).points = points3;
                 mesh : Mesh = to_Mesh(shape);
 
-                entity = New(Mesh_Entity);
+                entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-                init_entity_spatial_index(cast(*Mesh_Entity)entity);
+                init_entity_spatial_index(entity);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -131,21 +131,21 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
                 mesh : Mesh = to_Mesh(polyline_soup2);
 
-                entity = New(Mesh_Entity);
+                entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-                init_entity_spatial_index(cast(*Mesh_Entity)entity);
+                init_entity_spatial_index(entity);
 
             } else if dim == 3 {
 
                 mesh : Mesh = to_Mesh(polyline_soup3);
 
-                entity = New(Mesh_Entity);
+                entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
                 set_entity_display_info(entity, mesh.geometry_format);
-                init_entity_spatial_index(cast(*Mesh_Entity)entity);
+                init_entity_spatial_index(entity);
 
             } else {
                 assert(false, "Unreachable, we should have set parser failure in this case!");
@@ -157,11 +157,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             array_add(*shape.polygons, parse_polygon(*parser));
             mesh : Mesh = to_Mesh(shape);
 
-            entity = New(Mesh_Entity);
+            entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Mesh_Entity)entity);
+            init_entity_spatial_index(entity);
 
             if entity.mesh.positions.count == 0 {
                 log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
@@ -173,11 +173,11 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             shape : Polygon_Soup = parse_polygon_soup(*parser);
             mesh : Mesh = to_Mesh(shape);
 
-            entity = New(Mesh_Entity);
+            entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
-            init_entity_spatial_index(cast(*Mesh_Entity)entity);
+            init_entity_spatial_index(entity);
 
             if entity.mesh.positions.count == 0 {
                 // nocommit Make these render like polylines in the meantime!
@@ -191,7 +191,7 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
         }
     }
 
-    if parser.failed || (entity && entity.type == .UNKNOWN) {
+    if parser.failed {
         deinit(entity);
         return null;
     }
