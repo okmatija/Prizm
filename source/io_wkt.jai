@@ -176,41 +176,30 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             array_add(*shape.polygons, parse_polygon(*parser));
             mesh : Mesh = to_Mesh(shape);
 
-            // init base
-            entity = New(Polygon_Soup_Entity);
+            entity = New(Mesh_Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
+            init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
-            // init derived
-            e : *Polygon_Soup_Entity = xx entity;
-            e.shape = shape;
-            init_entity_spatial_index(e);
-
-            if !is_empty(e.shape) && e.mesh.positions.count == 0 {
+            if entity.mesh.positions.count == 0 {
                 log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
                 parser.failed = true;
             }
-
-            entity = e;
 
         } else if eat_possible_identifier(*parser, "MULTIPOLYGON") {
 
             shape : Polygon_Soup = parse_polygon_soup(*parser);
             mesh : Mesh = to_Mesh(shape);
 
-            // init base
-            entity = New(Polygon_Soup_Entity);
+            entity = New(Mesh_Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
             set_entity_display_info(entity, mesh.geometry_format);
+            init_entity_spatial_index(cast(*Mesh_Entity)entity);
 
-            // init derived
-            e : *Polygon_Soup_Entity = xx entity;
-            e.shape = shape;
-            init_entity_spatial_index(e);
-
-            if !is_empty(e.shape) && e.mesh.positions.count == 0 {
+            if entity.mesh.positions.count == 0 {
+                // nocommit Make these render like polylines in the meantime!
                 log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
                 parser.failed = true;
             }

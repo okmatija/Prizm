@@ -41,6 +41,7 @@ find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : 
     return result.intersect, result.parameter[i], result.point[i];
 }
 
+/*
 // AABB_Tree(Polyline_Soup3) implementation
 
 get_primitive :: (tree : AABB_Tree(Polyline_Soup3), triangle_index : int) -> Segment3 {
@@ -103,24 +104,4 @@ find_intersect_aabb_ray3 :: (aabb : AxisBox2, ray : Ray3) -> is_hit : bool, t : 
     assert(false, "@Incomplete");
     return false, 0, .{};
 }
-
-// AABB_Tree(Polygon_Soup) implementation
-
-get_primitive :: (tree : AABB_Tree(Polygon_Soup), triangle_index : int) -> Segment3 {
-    assert(false, "@Incomplete");
-    return .{};
-}
-
-// get_primitive_center :: (segment : Segment3) -> Vector3
-
-// get_primitive_aabb :: (segment : Segment3) -> AxisBox3
-
-get_primitive_index_array :: (soup : Polygon_Soup) -> [..]int {
-    assert(false, "@Incomplete");
-    dummy : [..]int;
-    return dummy;
-}
-
-// find_intersect_primitive_ray3 :: (segment : Segment3, ray : Ray3) ->  is_hit : bool, t : float, point : Vector3
-
-// find_intersect_aabb_ray3 :: (aabb : AxisBox3, ray : Ray3) -> is_hit : bool, t : float, point : Vector3
+*/

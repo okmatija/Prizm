@@ -582,12 +582,6 @@ render_entities :: () {
                 render_normals(*entity.mesh, ri, di);
                 render_aabb(*entity.mesh, ri, di);
 
-            case .POLYGON_SOUP;
-
-                render_mesh_points(*entity.mesh, ri, di);
-                render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-                render_aabb(*entity.mesh, ri, di);
-
             case .MESH;
 
                 render_mesh_points(*entity.mesh, ri, di);
@@ -709,28 +703,6 @@ render_entities :: () {
                     point_model : Vector3 = (<<it.from_point + <<it.to_point) / 2;
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     CacheElementLabels(it_index);
-                }
-
-            case .POLYGON_SOUP;
-
-                // @Incomplete annotations
-                // @Incomplete segment labels
-                // @Refactor use iterators and label segments
-                soup := cast(*Polygon_Soup_Entity) entity;
-                count := point_count(soup.shape);
-
-                if is_visible(point_theme) for polygon : soup.shape.polygons {
-                    for polygon.outer_ring.points {
-                        point_model := make_vector3(it, 0);
-                        point_world := transform_point(entity.mesh.world_from_model, point_model);
-                        CachePointLabels(it_index);
-                    }
-
-                    for inner_ring : polygon.inner_rings for inner_ring.points {
-                        point_model := make_vector3(it, 0);
-                        point_world := transform_point(entity.mesh.world_from_model, point_model);
-                        CachePointLabels(it_index);
-                    }
                 }
 
             case .MESH;

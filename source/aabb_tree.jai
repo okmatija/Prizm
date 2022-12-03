@@ -33,7 +33,6 @@ AABB_Tree :: struct(Shape : Type) {
 
             case Polyline_Soup3; return Segment3,  Vector3, AxisBox3;
             case Polyline_Soup2; return Segment2,  Vector3, AxisBox3;
-            case Polygon_Soup;   return Segment3,  Vector3, AxisBox3;
             case Mesh;           return Triangle3, Vector3, AxisBox3;
         }
     }();
@@ -92,8 +91,8 @@ AABB_Tree :: struct(Shape : Type) {
     shape : *Shape; // Borrowed
 }
 
-init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
-    if T.Shape != Mesh {
+init :: (tree : *AABB_Tree, target : *tree.Shape) {
+    if tree.Shape != Mesh {
         // log("@Incomplete Building AABB not yet implemented for % primitives, queries will be brute force", T.Primitive);
         return;
     }
@@ -120,7 +119,7 @@ init :: (tree : *$T/AABB_Tree, target : *T.Shape) {
     build(tree, 0, 0);
 }
 
-deinit :: (tree : *$T/AABB_Tree) {
+deinit :: (tree : *AABB_Tree) {
     if !tree return;
     array_reset(*tree.primitive_info);
     array_reset(*tree.nodes);
@@ -271,7 +270,7 @@ VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance :
 // Simple tree traversal, if you want more precise control e.g., over which child is visited first (see first_primitive_intersection)
 // you may want to write a sepecialized function
 // @Cleanup Use a macro rather than hacking a closure
-depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
+depth_first_visit :: (using tree : AABB_Tree, visitor : tree.Node_Visitor) {
     if tree.nodes.count == 0 {
         return;
     }
@@ -311,7 +310,7 @@ depth_first_visit :: (using tree : $T/AABB_Tree, visitor : T.Node_Visitor) {
 
 #scope_file // AABB_Tree implementation details
 
-build :: (using tree : *$T/AABB_Tree, depth : int, parent : int) {
+build :: (using tree : *AABB_Tree, depth : int, parent : int) {
 
     if nodes[parent].range.count <= LEAF_MAX_PRIMITIVES_COUNT {
         return; // parent is a leaf node

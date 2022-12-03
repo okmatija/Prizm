@@ -105,11 +105,6 @@ select_if_Polyline_Soup3 :: (invert : int = 0) {
     select_if((e) => (e.type == .POLYLINE_SOUP3), invert);
 } @RegisterCommand
 
-// Add items with/without POLYGON_SOUP type to the selection, if `invert` is true/false
-select_if_Polygon_Soup :: (invert : int = 0) {
-    select_if((e) => (e.type == .POLYGON_SOUP), invert);
-} @RegisterCommand
-
 // Add items with/without MESH type to the selection, if `invert` is true/false
 select_if_Mesh :: (invert : int = 0) {
     select_if((e) => (e.type == .MESH), invert);
@@ -493,9 +488,8 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
             }
             sphere.center = get_point(polyline_entity.shape, vertex_index);
 
-        case .POLYGON_SOUP; #through;
         case .UNKNOWN;
-            log_error("Support for % item type is @Incomplete", entity.type);
+            log_error("Unexpected % item type", entity.type);
             return;
     }
 
@@ -714,14 +708,6 @@ item_perturb_positions :: (id : int, radius : float = .001) {
             entity := cast(*Polyline_Soup2_Entity)base;
             for * :Point_Iterator point : entity.shape {
                 Perturb2(point);
-            }
-            entity.mesh = to_Mesh(entity.shape); // @Leak?
-        case .POLYGON_SOUP;
-            entity := cast(*Polygon_Soup_Entity)base;
-            for polygon : entity.shape.polygons {
-                for * :Point_Iterator point : polygon {
-                    Perturb2(point);
-                }
             }
             entity.mesh = to_Mesh(entity.shape); // @Leak?
         case .POLYLINE_SOUP3;

@@ -3,7 +3,6 @@ Entity_Type :: enum {
     MESH; // @Cleanup rename this to TRIANGLE_MESH, and the corresponding Mesh_Entity to Triangle_Mesh_Entity
     POLYLINE_SOUP2;
     POLYLINE_SOUP3;
-    POLYGON_SOUP;
     UNKNOWN;
 }
 
@@ -113,16 +112,6 @@ Polyline_Soup3_Entity :: struct {
     spatial : *AABB_Tree(Shape);
 }
 
-Polygon_Soup_Entity :: struct {
-    #as using base : Entity;
-    type = .POLYGON_SOUP;
-    display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
-
-    Shape :: Polygon_Soup;
-    shape : Shape;
-    spatial : *AABB_Tree(Shape);
-}
-
 // mesh.geometry_format will be .TRIANGLES for a Mesh_Entity
 Mesh_Entity :: struct {
     #as using base : Entity;
@@ -200,12 +189,6 @@ clear :: (base : *Entity) {
             clear(*entity.mesh);
             clear(*entity.shape);
 
-        case .POLYGON_SOUP;
-
-            entity := cast(*Polygon_Soup_Entity)base;
-            clear(*entity.mesh);
-            clear(*entity.shape);
-
         case .MESH;
 
             entity := cast(*Mesh_Entity)base;
@@ -256,13 +239,6 @@ deinit :: (base : *Entity) {
         case .POLYLINE_SOUP3;
 
             entity := cast(*Polyline_Soup3_Entity)base;
-            deinit(*entity.mesh);
-            deinit(*entity.shape);
-            deinit(entity.spatial);
-
-        case .POLYGON_SOUP;
-
-            entity := cast(*Polygon_Soup_Entity)base;
             deinit(*entity.mesh);
             deinit(*entity.shape);
             deinit(entity.spatial);
@@ -375,7 +351,6 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
             }
         case .POLYLINE_SOUP2; return *display_info.wireframe_color, *display_info.wireframe_visible;
         case .POLYLINE_SOUP3; return *display_info.wireframe_color, *display_info.wireframe_visible;
-        case .POLYGON_SOUP;   return *display_info.surface_color,   *display_info.surface_visible;
     }
     return null, null;
 }
@@ -1092,14 +1067,22 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
 }
 
 // Maybe this should also take the shape and set that (will set the mesh twice if T == Mesh_Entity, but that's fine)
-init_entity_spatial_index :: (entity : *$T/Entity) {
+init_entity_spatial_index :: (entity : *Mesh_Entity) {
     assert(entity != null);
     if entity.mesh.geometry_format == .TRIANGLES {
-        entity.spatial = New(AABB_Tree(T.Shape));
+        entity.spatial = New(AABB_Tree(Mesh));
         init(entity.spatial, *entity.shape);
     } else {
         log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
     }
+}
+
+init_entity_spatial_index :: (entity : *Polyline_Soup2_Entity) {
+    log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
+}
+
+init_entity_spatial_index :: (entity : *Polyline_Soup3_Entity) {
+    log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", entity.mesh.geometry_format);
 }
 
 // Plan:

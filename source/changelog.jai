@@ -17,13 +17,18 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
   - Note: Negative indices are useful if you don't want to keep a running count of how many vertices have been written or if you're writing a triangle soup with duplicate vertices where it can reduce file size. It seems not to be a well supported feature in other obj views TODO check paraview, meshlab and vscode
 
-Label rendering improvements:
+- Label rendering improvements:
 
   - Fixed overlapping text labels of the same type in the same item. This is probably the most common case, more work is needed to fix other cases
     - ex1. labels for co-located vertices in the same item no longer overlap
     - ex2. labels for co-located vertices on different items will still overlap
     - ex3. labels for vertices and annotation/attribute labels on the same verticies will still overlap TODO Fix this one
   - TODO When rotating the scene labels which were visible at the start of the rotation persist, this behaviour can be changed in the Options menu
+
+- Data-structure changes
+
+  - TODO Enabled support for multiple element types in the same item, previously Prism could only load meshes which were entirely triangles, segments or points 
+  - Removed Polygon_Soup, Polyline_Soup, Segment_Soup item types and TODO corresponding select_if_XXX commands
 
 - Console commands
 
