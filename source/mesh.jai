@@ -351,22 +351,32 @@ add_triangle :: (using mesh : *Mesh, triangle : Triangle3) {
 }
 
 // @FIXME Make sure to account for transforms!
-merge :: (dst : Mesh, src : Mesh) {
+merge :: (dst : *Mesh, src : Mesh) {
     poffset := dst.positions.count;
     toffset := dst.indices.count;
 
     npoints := dst.positions.count + src.positions.count;
     ntriangles := dst.indices.count + src.indices.count;
 
+    if dst.geometry_format == .UNKNOWN {
+        dst.geometry_format = src.geometry_format;
+    }
+
+    dst_model_from_world := inverse(dst.world_from_model);
+    dst_model_from_world_vector := transpose(inverse(dst_model_from_world));
+    src_world_from_model_vector := transpose(inverse(src.world_from_model));
+
     array_resize(*dst.positions, npoints);
     for i : 0..src.positions.count-1 {
-        dst.positions[poffset + i] = src.positions[i];
+        dst.positions[poffset + i] = transform_point(dst_model_from_world, mesh_point_world(src, i));
     }
 
     if src.normals.count || dst.normals.count {
         array_resize(*dst.normals, npoints);
         for i : 0..src.normals.count-1 {
-            dst.normals[poffset + i] = src.normals[i];
+            src_normal_world := transform_vector(src_world_from_model_vector, src.normals[i]);
+            dst_normal_model := transform_vector(dst_model_from_world_vector, src_normal_world);
+            dst.normals[poffset + i] = dst_normal_model;
         }
     }
 

@@ -409,8 +409,6 @@ ImGui :: #import "ImGui";
 #load "simple_mesh.jai";
 #load "simple_mesh_io.jai";
 #load "aabb_tree.jai";
-#load "aabb_tree_impl.jai";
-#load "aabb_tree_debug.jai";
 #load "grid.jai";
 #load "axes.jai";
 #load "selection_mode.jai";
@@ -439,6 +437,7 @@ ImGui :: #import "ImGui";
 #load "console/console.jai";
 #load "console/commands.jai";
 #load "console/grid_commands.jai";
+#load "console/aabb_commands.jai";
 
 #load "kernel/distance.jai"; // @Cleanup
 #load "kernel/intersect.jai"; // @Cleanup

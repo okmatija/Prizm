@@ -468,7 +468,7 @@ show_selection_ui :: () {
                 if !is_empty(app.user_selection) {
                     new_entity : *Entity = New(Entity);
 
-                    merge(new_entity.mesh, app.user_selection.mesh); // @FIXME Make this work properly, accounting for transforms etc
+                    merge(*new_entity.mesh, app.user_selection.mesh);
                     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
                     set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
                     set_entity_display_info(new_entity, new_entity.mesh.geometry_format);

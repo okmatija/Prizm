@@ -41,6 +41,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 - Fixed "Reload" buttons not working
 - Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
 - Fixed the weird requirement for Point Selection to be visible in order to use sphere clipping mode, those two things are now independant
+- Fixed bug where the transform was not accounted for in mesh merging operations, affected point selection and the `debug_spatial_index` command
 - Improved organisation/presentation of key bindings in the "Help" tab
 - Renamed "Add" button in "Items" tab to "Presets"
 - Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels

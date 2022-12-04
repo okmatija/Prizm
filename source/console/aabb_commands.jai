@@ -59,7 +59,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     assert(app.console.history.count > 0);
 
                     entity := New(Entity);
-                    entity.mesh = to_edge_Mesh(node.aabb);
+                    entity.mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     set_entity_source_from_command(entity,  tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count);  // @Incomplete pad depth integer?
                     set_entity_display_info(entity, entity.mesh.geometry_format);
 
@@ -72,7 +72,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                             array_add(*indices, xx indices.count); array_add(*positions, tri.b);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.c);
                         }
-                        merge(entity.mesh, primitives);
+                        primitives.world_from_model = tree.shape.world_from_model;
+                        merge(*entity.mesh, primitives);
                     }
 
                     table_add(entity_at_depth, depth, entity);
@@ -92,13 +93,14 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                             array_add(*indices, xx indices.count); array_add(*positions, tri.b);
                             array_add(*indices, xx indices.count); array_add(*positions, tri.c);
                         }
-                        merge(entity.mesh, primitives);
+                        primitives.world_from_model = tree.shape.world_from_model;
+                        merge(*entity.mesh, primitives);
                     }
 
                     {
-                        using edges : Mesh = to_edge_Mesh(node.aabb);
+                        using edges : Mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                         defer deinit(*edges);
-                        merge(entity.mesh, edges);
+                        merge(*entity.mesh, edges);
                     }
 
                 }
@@ -113,7 +115,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     assert(app.console.history.count > 0);
 
                     entity := New(Entity);
-                    entity.mesh = to_edge_Mesh(node.aabb);
+                    entity.mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     set_entity_source_from_command(entity, tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count); // @Incomplete pad depth integer?
                     set_entity_display_info(entity, entity.mesh.geometry_format);
 
@@ -121,10 +123,10 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                 } else {
                     entity := <<found;
 
-                    other := to_edge_Mesh(node.aabb);
+                    other := to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     defer deinit(*other);
 
-                    merge(entity.mesh, other);
+                    merge(*entity.mesh, other);
                     entity.render_info.is_dirty = true; // Redundant
                 }
             }
@@ -185,9 +187,10 @@ debug_delete_spatial_index :: (id : int) {
 #scope_file
 
 // nocommit Use actual edges for this when we switch to Simple_Mesh
-to_edge_Mesh :: (using box : AxisBox3) -> Mesh #must {
+to_edge_Mesh :: (using box : AxisBox3, world_from_model : Matrix4) -> Mesh #must {
     mesh : Mesh;
     mesh.geometry_format = .TRIANGLES;
+    mesh.world_from_model = world_from_model;
 
     AddEdgeAsDegenerateTriangle :: (a : Corner3, b : Corner3) #expand {
         offset : u32 = xx mesh.positions.count;

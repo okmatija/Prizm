@@ -22,6 +22,7 @@ do_selection_mode :: () {
         array_add(*app.user_selection.mesh.positions, position);
     }
 
+    app.user_selection.mesh.geometry_format = .POINTS; // We added a point, we'll probably want to remove this
     app.user_selection.render_info.is_dirty = true;
 }
 
