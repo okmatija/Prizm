@@ -570,9 +570,6 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
     max_dist_px : int = ifx _max_dist_px < 0 then app.settings.closest_point_query_max_dist_px else _max_dist_px;
 
-    // @Incomplete Support perspective projection
-    max_dist : float = ((app.camera.right - app.camera.left) / app.current_window_width) * max_dist_px;
-
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
@@ -589,18 +586,13 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
     
         cp : Closest_Point_Ray_Triangle = closest_point_ray_triangle(`ray_world, triangle_world);
 
-        if cp.distance > `max_dist {
-            continue;
-        }
-
         if is_clipped(`entity.display_info, cp.closestPoint[1]) {
             continue;
         }
 
-                // nocommit This is missing here!!!
-                // if OutsideScreenDist(point_world) {
-                //     continue;
-                // }
+        if OutsideScreenDist(cp.closestPoint[1]) {
+            continue;
+        }
 
         if cp.distance == 0 {
             if cp.rayParameter < `best_ray_triangle_hit.rayParameter {
@@ -640,6 +632,9 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
         } else {
 
+            // @Incomplete Support perspective projection
+            max_dist : float = ((app.camera.right - app.camera.left) / app.current_window_width) * max_dist_px;
+
             VisitPrimitivesNearRay(entity.spatial, ray_model, max_dist,
                  #code ProcessTriangle(primitive, primitive_id)
             );
@@ -672,6 +667,8 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
         return result;
     }
 
+    // @Incomplete When available, use the spatial index
+
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
     for :VisibleSelectableMeshVertices entity, entity_index : app.entities {
         for :WorldPointIterator point_world, point_index : entity.mesh {
@@ -697,36 +694,26 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
         }
     }
 
-    // nocommit inline this
-    ProcessSegment :: (segment_world : Segment3, segment_index : int) #expand {
-    
-        cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(`ray_world, segment_world);
-
-        // @Incomplete continue if the distance is beyond a threshold?
-
-        if cp_world.distance < `d_min { // @CompilerBug This compiled without a backtick on d_min, which caused a bug!!!!!
-
-            if is_clipped(`entity.display_info, cp_world.closest[1]) {
-                continue;
-            }
-
-            if OutsideScreenDist(cp_world.closest[1]) {
-                continue;
-            }
-
-            `d_min = cp_world.distance;
-            `result.closest_point_element = .SEGMENT;
-            `result.closest_point.segment = cp_world;
-            `result.element_index = segment_index;
-            `result.entity_index = `entity_index;
-        }
-    }
-
-    // @Incomplete When available, use the spatial index
-
     for :VisibleSelectableMeshSegments entity, entity_index : app.entities {
         for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
-            ProcessSegment(segment_world, segment_index);
+            cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
+
+            if cp_world.distance < d_min { // @CompilerBug When the body of the second for-loop was a macro it compiled without a backtick on d_min, which caused a bug!!!!! d_min wasn't locally declared in the macro either..!
+
+                if is_clipped(entity.display_info, cp_world.closest[1]) {
+                    continue;
+                }
+
+                if OutsideScreenDist(cp_world.closest[1]) {
+                    continue;
+                }
+
+                d_min = cp_world.distance;
+                result.closest_point_element = .SEGMENT;
+                result.closest_point.segment = cp_world;
+                result.element_index = segment_index;
+                result.entity_index = entity_index;
+            }
         }
     }
 
