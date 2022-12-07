@@ -16,7 +16,7 @@ App :: struct {
 
     // When we source and entity from a file we update the directories in these members
     directories : [..]Folder; // named folder not directory since we use it to group items not on disk too, and its a nicer word
-    file_watcher : File_Watcher;
+    file_watcher : File_Watcher();
 
     // When the user adds directories (via drag-drop or via the commandline on startup) show UI asking the user what should be done with the files in those directories
     pending_directories : [..]Pending_Directory;

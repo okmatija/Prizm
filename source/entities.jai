@@ -61,6 +61,7 @@ Entity :: struct {
         preset_proc : #type () -> *Entity;
     }
 
+    // @Incomplete This should be a Duplicate_File_Behaviour, defaulting to ignore, so that the user can choose if this file should overwrite or append if it changes on disk
     auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
 
     // This should be used to find entities
@@ -800,7 +801,7 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
             // Feature documentation: We want to always allow the user to reload the file by explictly clicking the UI button, but by default a user setting is set such that using the keyboard shortcut to reload a file will only reload it if it has changed
             if triggered_by_button || enable_reload_shortcut(entity) {
                 log("Reloading file '%'... ", entity.fully_pathed_name);
-                duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
+                duplicate_file_behaviour := Duplicate_File_Behaviour.OVERWRITE; // @Incomplete this should be customizable
 
                 // nocommit With command annotations this function could return a list of new entities, and each of these should be merged into the item list using duplicate_file_behaviour
                 new_entity := load_one_file(entity.fully_pathed_name, duplicate_file_behaviour);

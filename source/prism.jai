@@ -104,7 +104,7 @@ main :: () {
     init_keymap();
     init_known_issues();
 
-    file_change_callback :: (watcher: *File_Watcher, change: *File_Change) {
+    file_change_callback :: (watcher: *File_Watcher(), change: *File_Change, user_data : *void) {
         // print("Change for path %: %", change.full_path, change.events);
 
         found_entity : *Entity;
@@ -144,7 +144,7 @@ main :: () {
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
     file_events_to_watch |= File_Change_Event.ADDED | .MODIFIED;
-    if !init(*app.file_watcher, file_change_callback, file_events_to_watch, merge_window_seconds = .1, watch_recursively = false, verbose = false) {
+    if !init(*app.file_watcher, file_change_callback, null, file_events_to_watch, merge_window_seconds = .1, watch_recursively = false, verbose = false) {
         log_error("Could not init file watcher"); // @Cleanup Should just disable this feature in this case..
         exit(1);
     }
