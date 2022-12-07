@@ -407,7 +407,6 @@ ImGui :: #import "ImGui";
 #load "mesh.jai";
 #load "mesh_utils.jai";
 #load "simple_mesh.jai";
-#load "simple_mesh_io.jai";
 #load "aabb_tree.jai";
 #load "grid.jai";
 #load "axes.jai";
