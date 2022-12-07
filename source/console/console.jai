@@ -23,6 +23,7 @@ Console :: struct {
     scroll_to_bottom_frame_count := SCROLL_TO_BOTTOM_FRAME_INIT;
 }
 
+// @Incomplete If the message is already present in the log don't add it again... in all cases?
 console_logger :: (message: string, data: *void, info: Log_Info) {
     console_log := cast(*[..]string) data;
     if info.common_flags & .ERROR {

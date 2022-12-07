@@ -578,3 +578,27 @@ TreeNodeWithTooltip :: (label : *u8, tooltip : string) -> bool #expand {
     Show_Tooltip(tooltip);
     return result;
 }
+
+/*
+hold_lmb_and_hover_to_open_tree :: () -> bool {
+    do_tree := ImGui.TreeNodeEx("Testing", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+    if ImGui.IsItemHovered() {
+        projection_from_world := make_projection_from_world(app.camera);
+
+        // Compute warped position in projection coordinates Fd
+        warped_ndc : Vector3 = transform_point(projection_from_world, app.camera.look_position);
+
+        // Convert to screen coordinates
+        warped_px : Vector2;
+        warped_px.x = cast(float)app.current_window_width *  (warped_ndc.x + 1) / 2;
+        warped_px.y = cast(float)app.current_window_height * (warped_ndc.y + 1) / 2;
+        SDL_WarpMouseInWindow(app.window, xx warped_px.x, xx warped_px.y);
+
+        rmb_down_pos = make_Vector2(warped_px);
+        camera_at_mouse_down = app.camera;
+    }
+
+    if ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
+}
+*/

@@ -637,7 +637,7 @@ render_entities :: () {
         CacheAnnotationLabels :: () #expand {
             if !is_clipped(`entity.display_info, `point_world) {
                 text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
-                if on_screen_in_disk(text_position_px, `entity.display_info.annotation_theme.visible_radius_px) {
+                if on_screen_in_disk(text_position_px, `annotation_theme.visible_radius_px) {
                     text : string = to_string(`annotation);
                     array_add(*`annotation_labels, make_Label_Info(text_position_px, text));
                 }
@@ -696,6 +696,7 @@ render_entities :: () {
 
             if entity.spatial == null {
                 // log_error("Use brute force");
+
                 if is_visible(element_theme) for :ModelTriangleIterator entity.mesh {
                     ProcessTriangle(it, it_index);
                 }
@@ -923,3 +924,7 @@ draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
     cached_font.current_quads = quads;
     Simp.draw_generated_quads(*cached_font, color);
 }
+
+
+
+
