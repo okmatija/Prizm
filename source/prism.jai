@@ -109,14 +109,15 @@ main :: () {
 
         found_entity : *Entity;
         for entity : app.entities {
-            if entity.source == .FILE_ON_DISK && entity.fully_pathed_name == change.full_path {
+            if entity.source.kind == .Entity_Source_File && get_entity_source(entity).path == change.full_path {
                 found_entity = entity;
                 break entity; // There can only be one relevant entity for each file change
             }
         }
 
         if found_entity {
-            if found_entity.auto_reload {
+            source := isa(found_entity.source, Entity_Source_File);
+            if source && source.auto_reload {
                 reload_entity(found_entity);
 
                 if app.settings.fit_to_screen_on_file_watcher_event {
@@ -128,6 +129,7 @@ main :: () {
             for *dir : app.directories {
                 if dir.path == get_directory(change.full_path) {
                     found_dir = dir;
+                    break;
                 }
             }
             if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {

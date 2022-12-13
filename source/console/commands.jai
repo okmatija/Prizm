@@ -107,19 +107,13 @@ select_if_empty :: (invert : int = 0) {
 
 // @CompilerBug By passing *void data to the should_select procedure we could use the generic version above
 
-// Add items with names/filenames that match/dont match the given `pattern` to the selection, if `invert` is true/false
+// Add items with names that match/dont match (`invert` is true/false) the given `pattern` to the selection 
 // The following wildcards/regex patterns are supported: * ? [] [-]
 select_if_match :: (pattern : string, invert : int = 0) {
     count := 0;
     for app.entities {
-        text : string;
-        if it.source == {
-            case .FILE_ON_DISK;
-                // Note: Not using entity_name here so we can select all items in a sub-folder with wildcards
-                text = it.fully_pathed_name;
-            case;
-                text = entity_name(it);
-        }
+        // Note: We use entity_name here, we could have used the fully pathed filename but then you need to prefix with a * always
+        text : string = entity_name(it);
         if wildcard_match(text, pattern) == (invert == 0) {
             it.is_selected = true;
             count += 1;
@@ -154,16 +148,16 @@ sort_by_name :: (reversed : int = 0) {
 sort_by_time :: (ascending : int = 1) {
     compare_ascending :: (a : *Entity, b : *Entity) -> s64 {
         // @Cleanup This is a pretty weird way to do this...
-        at := filetime_to_readable_date(a.creation_time);
-        bt := filetime_to_readable_date(b.creation_time);
+        at := filetime_to_readable_date(get_entity_source(a).creation_time);
+        bt := filetime_to_readable_date(get_entity_source(b).creation_time);
         if at == bt return compare_nocase(entity_name(b), entity_name(a));
         return compare_nocase(bt, at);
     }
 
     compare_descending :: (a : *Entity, b : *Entity) -> s64 {
         // @Cleanup This is a pretty weird way to do this...
-        at := filetime_to_readable_date(a.creation_time);
-        bt := filetime_to_readable_date(b.creation_time);
+        at := filetime_to_readable_date(get_entity_source(a).creation_time);
+        bt := filetime_to_readable_date(get_entity_source(b).creation_time);
         if at == bt return compare_nocase(entity_name(a), entity_name(b));
         return compare_nocase(at, bt);
     }

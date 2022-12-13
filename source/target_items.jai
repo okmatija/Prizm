@@ -755,11 +755,11 @@ reload_items :: (unused : *void, target : Target_Items) {
 
     no_dependencies_first_then_chronological :: (a : *Entity, b : *Entity) -> s64 {
         // FILE_ON_DISK and PRESET_SHAPE sources do not depend on other entities, but command outputs can, so we load those last and in order of 
-        if cast(int) a.source > cast(int) b.source return  1;
-        if cast(int) a.source < cast(int) b.source return -1;
-        assert(a.source == b.source);
-        if a.creation_time > b.creation_time       return  1;
-        if a.creation_time < b.creation_time       return -1;
+        if a.source.kind > b.source.kind return  1;
+        if a.source.kind < b.source.kind return -1;
+        assert(a.source.kind == b.source.kind);
+        if get_entity_source(a).creation_time > get_entity_source(b).creation_time return  1;
+        if get_entity_source(a).creation_time < get_entity_source(b).creation_time return -1;
         return 0;
     }
 

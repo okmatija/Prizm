@@ -18,24 +18,22 @@ Annotation :: struct {
 }
 
 deinit :: (annotation : Annotation) {
-    if annotation.value.tag == {
-        case string;
+    if #complete annotation.value.kind == {
+        case .string;
             pointer := cast(*string) annotation.value.bytes.data;
             free(<<pointer);
-        case float;
+        case .float32;
             // do nothing
-        case;
-            assert(false); // unreachable
     }
 }
 
 // In temporary storage... @Cleanup, this should use the contextual allocator
 to_string :: (annotation : Annotation) -> string {
-    if annotation.value.tag == {
-        case string;
+    if #complete annotation.value.kind == {
+        case .string;
             pointer := cast(*string) annotation.value.bytes.data;
             return tprint("%", <<pointer); // necessary??
-        case float;
+        case .float32;
             pointer := cast(*float) annotation.value.bytes.data;
             return tprint("%", <<pointer);
     }
@@ -51,8 +49,8 @@ compare_annotation_ids :: (a : Annotation , b : Annotation) -> int {
 }
 
 compare_annotation_values :: (a : Annotation , b : Annotation) -> int {
-    afound, aindex := array_find(a.value.value_types, a.value.tag);
-    bfound, bindex := array_find(b.value.value_types, b.value.tag);
+    afound, aindex := array_find(a.value.value_types, get_type(a.value));
+    bfound, bindex := array_find(b.value.value_types, get_type(b.value));
     if aindex < bindex return -1;
     if aindex > bindex return  1;
 

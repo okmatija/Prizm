@@ -221,7 +221,7 @@ remove_directory :: (directory : string) {
     // Check if no other entities will need to watch this directory
     remove_directory := true;
     for app.entities {
-        if it.source == .FILE_ON_DISK && get_directory(it.fully_pathed_name) == directory {
+        if it.source.kind == .Entity_Source_File && get_directory(get_entity_source(it).path) == directory {
             remove_directory = false;
             break;
         }
@@ -380,14 +380,12 @@ set_prism_theme :: (theme : Prism_Color_Theme) {
 #import "Reflection";
 #import "Math";
 #import "SDL";
-Simp :: #import "Simp_beta_0_1_016";
 #import "Window_Type";
 #import "GL";
 #import "Deep_Copy";
 Debug :: #import "Debug";
 #import "Hash";
 #import "Hash_Table";
-#import "Tagged_Union"(DEBUG=true);
 #import "freetype255";
 #import "System";
 ImGui :: #import "ImGui";
@@ -398,6 +396,11 @@ ImGui :: #import "ImGui";
 #import "Windows";
 #import "Windows_Utf8";
 }
+
+// Prism modules
+Simp :: #import "Simp_beta_0_1_016";
+// #import "Tagged_Union_Enum"(DEBUG=true);
+#load "modules/Tagged_Union_Enum.jai"; // nocommit FIXME this should be a module but it doesn't work when we use it as a module
 
 #load "annotations.jai";
 #load "axis_box.jai";

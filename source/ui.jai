@@ -83,7 +83,7 @@ show_item_list_ui :: () {
             entities_in_folder : [..]Local_Entity;
             entities_in_folder.allocator = temp;
             for entity, entity_index : app.entities {
-                if get_directory(entity.fully_pathed_name) == folder.path {
+                if get_directory(get_entity_source(entity).path) == folder.path {
                     local_entity : Local_Entity;
                     local_entity.entity = entity;
                     local_entity.global_index = entity_index;
@@ -900,35 +900,10 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
             ImGui.Checkbox("Auto-load new files", auto_load_new_files);
         }
 
-        // These are disabled since the user can Ctrl LMB on folder names to select all the items and then press delete to remove them, or click on visibility to toggle visibility
-        /*
-        if ImGui.Button("Toggle folder selection") {
-            selected_state := false;
-            for app.entities if get_directory(it.fully_pathed_name) == path {
-                selected_state = !it.is_selected;
-                break;
-            }
-
-            for app.entities if get_directory(it.fully_pathed_name) == path {
-                it.is_selected = selected_state;
-            }
-        }
-
-        if ImGui.Button("Toggle folder visibility") {
-            visible_state := false;
-            for app.entities if get_directory(it.fully_pathed_name) == path {
-                visible_state = !it.display_info.is_visible;
-                break;
-            }
-
-            for app.entities if get_directory(it.fully_pathed_name) == path {
-                it.display_info.is_visible = visible_state;
-            }
-        }
-        */
+        // We could have buttons to toggle selection/visibility by folder but we don't, the user can just Ctrl LMB on folder names to select all the items and then press delete to remove them, or click on visibility to toggle visibility. Maybe we should have the buttons for better discoverability, but I think more tooltips (when we move to an ImGui version where delays are properly supported) will be a better solution
 
         if ImGui.Button("Remove folder") {
-            for app.entities if get_directory(it.fully_pathed_name) == path {
+            for app.entities if get_directory(get_entity_source(it).path) == path {
                 remove it;
             }
             remove_directory(path);
@@ -966,9 +941,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                             Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                         }
 
-                        ImGui.SameLine();
-                        ImGui.Checkbox(imgui_label("", entity), *entity.auto_reload);
-                        Show_Tooltip("Auto-reload if file changes on disk");
+                        source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
+                        if source {
+                            ImGui.SameLine();
+                            ImGui.Checkbox(imgui_label("", entity), *source.auto_reload);
+                            Show_Tooltip("Auto-reload if file changes on disk");
+                        }
 
                         ImGui.SameLine();
                         text := entity_description(entity, with_creation_time=true);
@@ -1002,9 +980,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                                     Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                                 }
 
-                                ImGui.SameLine();
-                                ImGui.Checkbox(imgui_label("", entity), *entity.auto_reload);
-                                Show_Tooltip("Auto-reload if file changes on disk");
+                                entity_source_file := isa(entity.source, Entity_Source_File);
+                                if entity_source_file {
+                                    ImGui.SameLine();
+                                    ImGui.Checkbox(imgui_label("", entity), *entity_source_file.auto_reload);
+                                    Show_Tooltip("Auto-reload if file changes on disk");
+                                }
 
                                 ImGui.SameLine();
                                 text := entity_description(entity, with_creation_time=true);
@@ -1024,12 +1005,18 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                             // Find the state to toggle
                             state := false;
                             for :Selected app.entities {
-                                state = !it.auto_reload;
-                                break;
+                                source := isa(it.source, Entity_Source_File);
+                                if source {
+                                    state = !source.auto_reload;
+                                    break;
+                                }
                             }
 
                             for :Selected app.entities {
-                                it.auto_reload = state;
+                                source := isa(it.source, Entity_Source_File);
+                                if source {
+                                    source.auto_reload = state;
+                                }
                             }
                         }
                         Show_Tooltip("Toggle auto-reload state on selected items");
@@ -1651,7 +1638,9 @@ show_pending_directories_ui :: () {
                 entity := load_one_file(file.fully_pathed_filename, .IGNORE);
                 if entity {
                     add_entity(entity, .IGNORE); 
-                    entity.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
+                    source := isa(entity.source, Entity_Source_File);
+                    assert(source != null); // Expecte a file
+                    source.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
                 }
             }
         }
@@ -2062,7 +2051,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     ImGui.Text(tprint("%", annotation.id));
 
                     ImGui.TableNextColumn();
-                    ImGui.Text(tprint("%", annotation.value.tag));
+                    ImGui.Text(tprint("%", get_type(annotation.value)));
 
                     ImGui.TableNextColumn();
                     ImGui.Text(to_string(annotation));
@@ -2210,12 +2199,19 @@ imgui_text_for_aabb :: (aabb : AxisBox3) {
 }
 
 entity_source_tooltip :: (entity : Entity) {
-    if #complete entity.source == {
-        case .UNKNOWN;        // Do nothing
-        case .FILE_ON_DISK;   Show_Tooltip(tprint("File:    %\nCreated: %", entity.fully_pathed_name, filetime_to_readable_date(entity.creation_time)));
-        case .COMMAND_OUTPUT; Show_Tooltip(tprint("Command: %\nCreated: %", entity.console_command, filetime_to_readable_date(entity.creation_time)));
-        case .PRESET_SHAPE;   Show_Tooltip(tprint("Preset shape\nCreated: %", filetime_to_readable_date(entity.creation_time)));
-        case .SELECTION;      Show_Tooltip(tprint("% Selection\nCreated: %", to_nice_string(entity.mesh.geometry_format), filetime_to_readable_date(entity.creation_time)));
+    if #complete entity.source.kind == {
+        case .Entity_Source_File;
+            source := isa(entity.source, Entity_Source_File); assert(source != null); // @CompilerBug Why assert(source) does not work?
+            Show_Tooltip(tprint("File:    %\nCreated: %", source.path, filetime_to_readable_date(source.creation_time)));
+        case .Entity_Source_Command;
+            source := isa(entity.source, Entity_Source_Command); assert(source != null);
+            Show_Tooltip(tprint("Command: %\nCreated: %", source.console_command, filetime_to_readable_date(source.creation_time)));
+        case .Entity_Source_Preset;
+            source := isa(entity.source, Entity_Source_Preset); assert(source != null);
+            Show_Tooltip(tprint("Preset shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
+        case .Entity_Source_Selection;
+            source := isa(entity.source, Entity_Source_Selection); assert(source != null);
+            Show_Tooltip(tprint("% Selection\nCreated: %", to_nice_string(entity.mesh.geometry_format), filetime_to_readable_date(source.creation_time)));
     }
 }
 

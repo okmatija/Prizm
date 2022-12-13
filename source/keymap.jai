@@ -281,18 +281,15 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     result : *Entity = load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
 
     // Update the source to be a preset
-    assert(result.source == .FILE_ON_DISK); // because we loaded a file
-    free(result.fully_pathed_name);
+    assert(result.source.kind == .Entity_Source_File); // because we loaded a file
+    free(get_entity_source(result).path);
 
-    // @Cleanup use:
-    // set_entity_source_from_preset(new_entity, tprint("% %", "Points", counter.count), null, point_count(app.user_selection));
-    // set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
 
-    result.source = .PRESET_SHAPE;
+    // Set a null preset_proc, which we'll initialize properly later
     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, NAME);
-    result.fully_pathed_name = copy_string(tprint("%/% %", PRESET_SHAPE_FOLDER, NAME, counter.count));
+    set_entity_source_from_preset(result, tprint("% %", NAME, counter.count), null, point_count(result.mesh));
     counter.count += 1;
-    reset_entity_primary_color(result);
+    set_entity_display_info(result, result.mesh.geometry_format);
 
     // If we're not holding control then we apply a random tranformation in 10x the preset bounding box
     if RANDOMIZE() {
@@ -308,34 +305,31 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     return result;
 }
 
+add_preset :: (preset_proc : #type ()->*Entity) {
+    entity : *Entity = preset_proc();
+    source := isa(entity.source, Entity_Source_Preset);
+    assert(source != null); // Expected a preset
+    source.preset_proc = preset_proc;
+    add_entity(entity, app.settings.duplicate_file_behaviour);
+    fit_scene_on_screen();
+}
+
 add_preset_cube :: () {
     preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Cube", FILENAME="shapes/cube.obj", RANDOMIZE=()=>(!io().KeyAlt));
-    entity : *Entity = preset_proc();
-    add_entity(entity, app.settings.duplicate_file_behaviour);
-    entity.preset_proc = preset_proc;
-    fit_scene_on_screen();
+    add_preset(preset_proc);
 }
 
 add_preset_widget :: () {
     preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Widget", FILENAME="shapes/widget.obj", RANDOMIZE=()=>(!io().KeyAlt));
-    entity : *Entity = preset_proc();
-    add_entity(entity, app.settings.duplicate_file_behaviour);
-    entity.preset_proc = preset_proc;
-    fit_scene_on_screen();
+    add_preset(preset_proc);
 }
 
 add_preset_boolean_a :: () {
     preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanA", FILENAME="shapes/failed_boolean_a.obj", RANDOMIZE=()=>(!io().KeyAlt));
-    entity : *Entity = preset_proc();
-    add_entity(entity, app.settings.duplicate_file_behaviour);
-    entity.preset_proc = preset_proc;
-    fit_scene_on_screen();
+    add_preset(preset_proc);
 }
 
 add_preset_boolean_b :: () {
     preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanB", FILENAME="shapes/failed_boolean_b.obj", RANDOMIZE=()=>(!io().KeyAlt));
-    entity : *Entity = preset_proc();
-    add_entity(entity, app.settings.duplicate_file_behaviour);
-    entity.preset_proc = preset_proc;
-    fit_scene_on_screen();
+    add_preset(preset_proc);
 }

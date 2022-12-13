@@ -1,30 +1,20 @@
-// Used for entity reloading, order is important here becaues reload_items uses it for sorting @Think If the order is changed but the values stay constant what happens?
-Entity_Source :: enum #specified {
-    UNKNOWN :: 0;
-    FILE_ON_DISK :: 1;
-    SELECTION :: 2;
-    COMMAND_OUTPUT :: 3;
-    PRESET_SHAPE :: 4;
-}
-
-find_header_annotation :: (entity : *Entity) -> *Annotation {
-    for *annotation : entity.block_annotations {
-        if annotation.kind == .BLOCK && annotation.id == 1 {
-            return annotation;
-        }
-    }
-    return null;
-}
-
 // @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
 // @Refactor Maybe Entity should contain the mesh and the item variables, but data specific to rendering meshes should be in the mesh?
 
 // :EntityInitializers I tried twice to make init functions for these structs but it seems like a waste of time! These structs collections of things, some don't need initting, and others do but in orders that change depending on the context e.g., set the mesh then convert to the shape, or set the shape and convert ot a mesh. It's fine just to set the fields when their needed, you could make local init functions specific to the local context if it saves typing out the initting code.
 
 Entity :: struct {
-    source : Entity_Source = .UNKNOWN;
-
-    // source : Tagged_Union();
+    // Note @ctp has a custom version of Tagged_Union posted on the secret beta discord, which works around some problems in this one (not exactly sure what the problems are though)
+    // Note: To debug in RemedyBG use this in the watch window, note that bytes will be a static c-array of bytes, so it doesn't have a data member:
+    //       (Entity_Source_File*)(&app->entities.data[0]->_source.bytes)
+    source : Tagged_Union(
+        // Order is important here because reload_items uses it for sorting
+        // @Think If the order is changed but the values stay constant what happens?
+        Entity_Source_File,
+        Entity_Source_Preset,
+        Entity_Source_Command,
+        Entity_Source_Selection,
+    );
 
     is_selected := false;
     is_hovered := false;
@@ -53,29 +43,7 @@ Entity :: struct {
     // @Incomplete
     // user_data : *void; // Registered commands may want to attach data here
 
-    using source_info : union {
-        // The console command the user executed to generate the entity
-        console_command : string;
-
-        // The function that was called to generate the entity
-        preset_proc : #type () -> *Entity;
-    }
-
-    // @Incomplete This should be a Duplicate_File_Behaviour, defaulting to ignore, so that the user can choose if this file should overwrite or append if it changes on disk
-    auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
-
-    // This should be used to find entities
-    // If source == .SELECTION      this is SELECTION_FOLDER/name
-    // If source == .FILE_ON_DISK   this is fully_pathed_filename
-    // If source == .PRESET_SHAPE   this is PRESET_SHAPE_FOLDER/name
-    // If source == .COMMAND_OUTPUT this is COMMAND_OUTPUT_FOLDER/name
-    fully_pathed_name : string;
-
-    // if source == .FILE_ON_DISK these are filled using file_modtime_and_size
-    // otherwise these are the current_time_consensus and the mesh vertex count
-    creation_time : Apollo_Time;
-    creation_size : s64;
-
+    // Move this to entity source base?
     // This gets set when we add the entity to app.entities, and makes sense only in that context (I think)
     generation_index : int; // @Cleanup delete this incorrect comment: entities with the same 'fully_pathed_name' will increment this
 }
@@ -139,20 +107,19 @@ clear :: (using entity : *Entity) {
 remove_entity_by_index :: (entity_to_remove_index : int) {
     if entity_to_remove_index >= 0 && entity_to_remove_index < app.entities.count {
         entity_to_remove : *Entity = app.entities[entity_to_remove_index];
-        remove_directory(get_directory(entity_to_remove.fully_pathed_name));
+        remove_directory(get_directory(get_entity_source(entity_to_remove).path));
         deinit(entity_to_remove);
         free(entity_to_remove);
         array_ordered_remove_by_index(*app.entities, entity_to_remove_index);
     }
 }
 
-// @FIXME This should be an ordered remove!
 remove_entities_if_selected :: () {
     for app.entities if it.is_selected {
-        remove_directory(get_directory(it.fully_pathed_name));
+        remove_directory(get_directory(get_entity_source(it).path));
         deinit(it);
         free(it);
-        remove it; // @FIXME this screws up the order of items in the list
+        remove it; // @FIXME this screws up the order of items in the list, this function should do an ordered remove
     }
 }
 
@@ -170,12 +137,16 @@ deinit :: (using entity : *Entity) {
     array_reset(*face_annotations);
     array_reset(*line_annotations);
 
-    if #complete source == {
-        case .UNKNOWN;        // Do nothing
-        case .FILE_ON_DISK;   // Do nothing
-        case .COMMAND_OUTPUT; free(console_command);
-        case .PRESET_SHAPE;   // Do nothing
-        case .SELECTION;      // Do nothing
+
+    free(get_entity_source(entity).path);
+    if #complete source.kind == {
+        case .Entity_Source_File;      #through;
+        case .Entity_Source_Preset;    #through;
+        case .Entity_Source_Selection;
+            // Do nothing
+        case .Entity_Source_Command;
+            source := isa(entity.source, Entity_Source_Command);
+            free(source.console_command);
     }
 
     // Remove data from gpu memory as well
@@ -194,10 +165,10 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
     found_index : int = -1;
     if matching_name_behaviour == .APPEND {
         // Finds the entity with maximum generation index
-        found, found_index = find_entity(entity.fully_pathed_name, -1);
+        found, found_index = find_entity(get_entity_source(entity).path, -1);
     } else {
         // Finds the entity with matching generation index
-        found, found_index = find_entity(entity.fully_pathed_name, entity.generation_index);
+        found, found_index = find_entity(get_entity_source(entity).path, entity.generation_index);
     }
 
     if found {
@@ -214,7 +185,12 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
                 // entity.generation_index =   found.generation_index; // Already matches
                 entity.display_info =          found.display_info;
                 entity.is_selected =           found.is_selected;
-                entity.auto_reload =           found.auto_reload;
+
+                entity_source := isa(entity.source, Entity_Source_File);
+                found_source :=  isa(found.source,  Entity_Source_File);
+                if entity_source && found_source {
+                    entity_source.auto_reload = found_source.auto_reload;
+                }
 
                 deinit(found);
 
@@ -239,11 +215,13 @@ is_empty :: (entity : Entity) -> bool {
     // return inline point_count(entity.mesh) == 0; // @CompilerBug? Error: Attempted use of keyword 'inline' on a non-procedure-call.
 }
 
-is_changed_on_disk :: (using entity : Entity) -> bool {
+is_changed_on_disk :: (entity : Entity) -> bool {
     changed := false;
-    if source == .FILE_ON_DISK {
-        modtime, size, ok := file_modtime_and_size(fully_pathed_name);
-        if modtime > creation_time || size != creation_size {
+    if entity.source.kind == .Entity_Source_File {
+        source := isa(entity.source, Entity_Source_File);
+        assert(source != null);
+        modtime, size, ok := file_modtime_and_size(source.path);
+        if modtime > source.creation_time || size != source.creation_size {
             changed = true;
         }
     }
@@ -264,7 +242,7 @@ entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
 reset_entity_primary_color :: (entity : *Entity) {
     color : *Vector4 = entity_primary_color(entity);
     if color {
-        <<color = color_from_path(entity.fully_pathed_name);
+        <<color = color_from_path(get_entity_source(entity).path);
     }
 }
 
@@ -283,7 +261,7 @@ entity_name :: (fully_pathed_name : string) -> string {
 
 // Returns a string pointing into entity.fully_pathed_name
 entity_name :: (entity : Entity) -> string {
-    return entity_name(entity.fully_pathed_name);
+    return entity_name(get_entity_source(entity).path);
 }
 
 entity_description :: (using entity : Entity, with_creation_time : bool) -> string {
@@ -296,7 +274,7 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
     time_text := "";
     time_separator := "";
     if with_creation_time {
-        time_text = filetime_to_readable_date(creation_time);
+        time_text = filetime_to_readable_date(get_entity_source(entity).creation_time);
         time_separator = " @ ";
     }
 
@@ -319,6 +297,16 @@ entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annota
     quick_sort(vertex_annotations, compare);
     quick_sort(face_annotations,   compare);
     quick_sort(line_annotations,   compare);
+}
+
+// nocommit Rename to entity_header_annotation
+find_header_annotation :: (entity : *Entity) -> *Annotation {
+    for *annotation : entity.block_annotations {
+        if annotation.kind == .BLOCK && annotation.id == 1 {
+            return annotation;
+        }
+    }
+    return null;
 }
 
 // nocommit Fragile when you add a new annotation array
@@ -444,7 +432,7 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
     if generation_index >= 0 {
         for app.entities {
             if it.generation_index == generation_index {
-                if it.fully_pathed_name == fully_pathed_name {
+                if get_entity_source(it).path == fully_pathed_name {
                     found = it;
                     found_index = it_index;
                     break;
@@ -455,7 +443,7 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
         max_generation_index : int = -1;
         for app.entities {
             if it.generation_index > max_generation_index {
-                if it.fully_pathed_name == fully_pathed_name {
+                if get_entity_source(it).path == fully_pathed_name {
                     max_generation_index = it.generation_index;
                     found = it;
                     found_index = it_index;
@@ -782,13 +770,12 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
 // @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload : bool {
-    if #complete entity.source == {
-        case .UNKNOWN; #through;
-        case .SELECTION;
+    if #complete entity.source.kind == {
+        case .Entity_Source_Selection;
 
             return false;
 
-        case .FILE_ON_DISK;
+        case .Entity_Source_File;
 
             // nocommit This code is in the wrong place
             enable_reload_shortcut :: (entity : Entity) -> bool {
@@ -800,11 +787,11 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
 
             // Feature documentation: We want to always allow the user to reload the file by explictly clicking the UI button, but by default a user setting is set such that using the keyboard shortcut to reload a file will only reload it if it has changed
             if triggered_by_button || enable_reload_shortcut(entity) {
-                log("Reloading file '%'... ", entity.fully_pathed_name);
+                log("Reloading file '%'... ", get_entity_source(entity).path);
                 duplicate_file_behaviour := Duplicate_File_Behaviour.OVERWRITE; // @Incomplete this should be customizable
 
                 // nocommit With command annotations this function could return a list of new entities, and each of these should be merged into the item list using duplicate_file_behaviour
-                new_entity := load_one_file(entity.fully_pathed_name, duplicate_file_behaviour);
+                new_entity := load_one_file(get_entity_source(entity).path, duplicate_file_behaviour);
                 if new_entity {
                     // Set generation_index before adding to overwrite the correct entity
                     new_entity.generation_index = entity.generation_index;
@@ -816,7 +803,7 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
                 return true;
             }
 
-        case .PRESET_SHAPE;
+        case .Entity_Source_Preset;
 
             #if false {
                 if entity.preset_proc() {
@@ -836,12 +823,15 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
                 return false;
             }
 
-        case .COMMAND_OUTPUT;
+        case .Entity_Source_Command;
+
+            source := isa(entity.source, Entity_Source_Command);
+            assert(source != null);
 
             // Note: This is only intended to support simple use cases,
             // reloading command output can easily break if e.g., item indices change
-            log("Re-executing console command '%'... ", entity.console_command);
-            console_execute_command(entity.console_command);
+            log("Re-executing console command '%'... ", source.console_command);
+            console_execute_command(source.console_command);
             return true;
     }
 
@@ -850,46 +840,54 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
 
 set_entity_source_from_file :: (entity : *Entity, fully_pathed_filename : string, loc := #caller_location) {
     assert(entity != null);
-    entity.fully_pathed_name = copy_string(fully_pathed_filename);
 
-    entity.source = .FILE_ON_DISK;
+    source : Entity_Source_File;
+    source.path = copy_string(fully_pathed_filename);
     modtime, size, ok := file_modtime_and_size(fully_pathed_filename);
     if ok {
-        entity.creation_time = modtime;
-        entity.creation_size = size;
+        source.creation_time = modtime;
+        source.creation_size = size;
     } else {
         name := entity_name(fully_pathed_filename);
         log_error("Function % failed for entity '%' when called in %. Called from %", #procedure_name(file_modtime_and_size), name, #procedure_name(), loc);
     }
+
+    set(*entity.source, source);
 }
 
 set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc : #type ()->*Entity, point_count : s64) {
     assert(entity != null);
-    entity.fully_pathed_name = copy_string(tprint("%/%", PRESET_SHAPE_FOLDER, name));
 
-    entity.source = .PRESET_SHAPE;
-    entity.creation_time = current_time_consensus();
-    entity.creation_size = point_count;
-    entity.preset_proc = preset_proc;
+    source : Entity_Source_Preset;
+    source.path = sprint("%/%", PRESET_SHAPE_FOLDER, name);
+    source.creation_time = current_time_consensus();
+    source.creation_size = point_count;
+    source.preset_proc = preset_proc;
+
+    set(*entity.source, source);
 }
 
 set_entity_source_from_selection :: (entity : *Entity, name : string, point_count : s64) {
     assert(entity != null);
-    entity.fully_pathed_name = copy_string(tprint("%/%", SELECTION_FOLDER, name));
 
-    entity.source = .SELECTION;
-    entity.creation_time = current_time_consensus();
-    entity.creation_size = point_count;
+    source : Entity_Source_Selection;
+    source.path = sprint("%/%", SELECTION_FOLDER, name);
+    source.creation_time = current_time_consensus();
+    source.creation_size = point_count;
+
+    set(*entity.source, source);
 }
 
 set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
     assert(entity != null);
-    entity.fully_pathed_name = copy_string(tprint("%/%", COMMAND_OUTPUT_FOLDER, name));
 
-    entity.source = .COMMAND_OUTPUT;
-    entity.creation_time = current_time_consensus();
-    entity.creation_size = point_count;
-    entity.console_command = copy_string(console_command);
+    source : Entity_Source_Command;
+    source.path = sprint("%/%", COMMAND_OUTPUT_FOLDER, name);
+    source.creation_time = current_time_consensus();
+    source.creation_size = point_count;
+    source.console_command = copy_string(console_command);
+
+    set(*entity.source, source);
 }
 
 // set_entity_source_from_code :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
@@ -901,11 +899,11 @@ set_entity_source_from_command :: (entity : *Entity, name : string, console_comm
 //     entity.creation_size = point_count;
 // }
 
-// Preconditions: entity.fully_pathed_name has been set
+// Preconditions: entity.source->path has been set
 set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format) {
     assert(entity != null);
 
-    primary_color := color_from_path(entity.fully_pathed_name);
+    primary_color := color_from_path(get_entity_source(entity).path);
     if #complete geometry_format == {
         case .UNKNOWN;
 
@@ -943,175 +941,50 @@ init_entity_spatial_index :: (using entity : *Entity) {
     }
 }
 
-// Plan:
-// - Single pixel radius means just select the item under the cursor, unless we miss and then just use the closest thing
-// - Init the base struct, move the source stuff into an Entity_Source type? and init that separately?
 
-
-/*
-
-Ex:
-
-init :: (using base : *Entity, set_source : $T/Entity_Source, geometry_format : Geometry_Format) {
-    assert(base != null); // Make sure New succeeded, or we're on the stack
-
-    set(*source, set_source);
-
-    base_source := cast(*Entity_Source)source.bytes.data;
-    fully_pathed_filename := tprint("%/%", base_source.path, base.name);
-    primary_color := color_from_path(fully_pathed_filename);
-
-    //if #complete set_source.kind == {
-    //    case .UNKNOWN;
-    //        assert(false); // Should I crash or not?
-    //    case .FILE_ON_DISK;
-    //        fully_pathed_filename = tprint("%/%", set_source.path, base.name);
-    //    case .PRESET_SHAPE;
-    //        fully_pathed_filename = tprint("%/%", PRESET_SHAPE_FOLDER, base.name);
-    //    case .COMMAND_OUTPUT;
-    //        fully_pathed_filename = tprint("%/%", COMMAND_OUTPUT_FOLDER, base.name);
-    //    case .SOURCE_CODE;
-    //        fully_pathed_filename = tprint("%/%", SOURCE_CODE_FOLDER, base.name);
-    //}
-
-    if #complete geometry_format == {
-        case .UNKNOWN;
-
-            log_warning("Unexpected % geometry format for item '%' in %. Called from %", mesh.geometry_format, name, #procedure_name(), loc);
-
-        case .POINTS;
-
-            display_info.surface_visible = true; // @Cleanup Why is this here??
-            display_info.points_visible = true;
-            display_info.points_size = 2;
-            display_info.points_color = primary_color;
-
-        case .LINES;
-
-            display_info.wireframe_visible = true;
-            display_info.wireframe_width = 1;
-            display_info.wireframe_color = primary_color;
-
-        case .TRIANGLES;
-
-            display_info.surface_visible = true;
-            display_info.surface_color = primary_color;
-    }
+get_entity_source :: (entity : Entity) -> *Entity_Source {
+    return cast(*Entity_Source)entity.source.bytes.data;
 }
 
-set_entity_source_from_preset :: (base : *Entity, name : string, preset_proc : #type ()->*Entity);
-set_entity_source_from_command :: (base : *Entity, name : string, console_command : string);
-//set_entity_source_from_code :: (base : *Entity, entity_name : string, ...);
-set_entity_display_info(base : *Entity, geometry_format : Geometry_Format);
-init_entity_spatial_index :: (entity : *Mesh_Entity);
-
-init :: (using source : *Entity_Source_File, fully_pathed_filename : string, loc := #caller_location) {
-    path = copy_string(get_directory(fully_pathed_filename));
-    modtime, size, ok := file_modtime_and_size(fully_pathed_filename);
-    if ok {
-        creation_time = modtime;
-        creation_size = size;
-    } else {
-        creation_time = current_time_consensus();
-        creation_size = 0;
-        log_error("Function % failed for entity '%' when called in %. Called from %", #procedure_name(file_modtime_and_size), name, #procedure_name(), loc);
-    }
-}
-
-init :: (using source : *Entity_Source_Command, console_command : string) {
-    path = copy_string(console_command);
-}
-
+// nocommit fix the comments here
 Entity_Source :: struct {
-    Source :: enum {...}
-    kind : Source = .UNKNOWN; // TODO make this the first entry!
+    // if kind == .FILE_ON_DISK these are filled using file_modtime_and_size
+    // otherwise these are the current_time_consensus and the mesh vertex count
     creation_time : Apollo_Time;
     creation_size : s64; // Size of the entity, format depends on the subtype
+
+    // This should be used to find entities
+    // If kind == .FILE_ON_DISK   this is the fully pathed filename
+    // If kind == .SELECTION      this is SELECTION_FOLDER/name
+    // If kind == .COMMAND_OUTPUT this is COMMAND_OUTPUT_FOLDER/name
+    // If kind == .PRESET_SHAPE   this is PRESET_SHAPE_FOLDER/name
     path : string; // Format depends on the subtype
 }
 
 Entity_Source_File :: struct {
     using #as base : Entity_Source;
-    kind = .FILE_ON_DISK;
 
-    // set path to directory on disk and creation time to mod time
-
-    // Reloading reads this file
+    // @Refactor use Duplicate_File_Behaviour, default to IGNORE but user can choose OVERWRITE/APPEND reload behavior
     auto_reload : bool;
 }
 
 Entity_Source_Preset :: struct {
     using #as base : Entity_Source;
-    kind = .PRESET_SHAPE;
 
-    // hardcode path and set creation time to current time
-
-    // Reloading runs this procedure
+    // The function that was called to generate the entity, reloading runs this procedure
     preset_proc : #type ()->*Entity;
 }
 
 Entity_Source_Command :: struct {
     using #as base : Entity_Source;
-    kind = .CONSOLE_COMMAND;
 
-    // hardcode path and set creation time to current time
-
-    // Reloading runs this command
+    // The console command the user executed to generate the entity, reloading runs this command
     console_command : string;
-    // generation_index : int; // maybe
 }
 
-Entity_Source_Code :: struct {
+Entity_Source_Selection :: struct {
     using #as base : Entity_Source;
-    kind = .SOURCE_CODE;
-
-    // source code location?
-
-    // set path to source code + line number? set creation time to current time
-
-    // Reloading could run this procedure with the given data (closure)
-    proc : #type (data : *void)->*Entity;
-    data : *void;
-    // generation_index : int; // maybe
 }
-
-init :: (base : *Entity, mesh : Mesh, source : $T/Entity_Source) {
-    // stuff in init_entity_base_parameters (which needs the mesh)
-    // stuff to init the user selection display_info (which needs the source)
-}
-
-// @Cleanup Add a modify to check T
-new_debug_mesh_entity :: (mesh : Mesh) {
-    type : Entity_Type = .UNKNOWN;
-    source : Entity_Source = .UNKNOWN;
-    is_selected := false;
-    is_hovered := false;
-    render_info : Render_Info;
-    display_info : Display_Info;
-    mesh : Mesh;
-    annotations : [..]Annotation;
-
-    using source_info : union {
-        // The fully pathed filename pointing to file on disk that created the entity
-        fully_pathed_filename : string;
-
-        // The console command the user executed to generate the entity
-        console_command : string;
-
-        // The function that was called to generate the entity
-        preset_proc : #type () -> *Entity;
-    }
-
-    auto_reload : bool; // Only really relevant if source == .FILE_ON_DISK
-
-    name : string;
-    fully_pathed_name : string;
-    creation_time : Apollo_Time;
-    creation_size : s64;
-    generation_index : int; // entities with the same 'fully_pathed_name' will increment this
-}
-
-*/
 
 #scope_file
 
