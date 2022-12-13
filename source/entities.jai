@@ -501,13 +501,13 @@ find_closest_vertex_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_
     
     for :VisibleSelectable entity, entity_index : app.entities {
         inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
-        for :WorldPointIterator point_world, point_index : entity.mesh {
+        for :WorldVertexIterator vertex_world, vertex_index : entity.mesh {
 
-            if is_clipped(entity.display_info, point_world) {
+            if is_clipped(entity.display_info, vertex_world) {
                 continue;
             }
 
-            if OutsideScreenDist(point_world) {
+            if OutsideScreenDist(vertex_world) {
                 continue;
             }
 
@@ -515,20 +515,20 @@ find_closest_vertex_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_
             // want to be able to select vertices with 0 normals in all cases
             front_facing_only :: false;
             if front_facing_only && entity.mesh.normals.count {
-                normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
+                normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[vertex_index]);
                 if dot(normal_world, current_look_direction()) > 0 {
                     continue;
                 }
             }
 
-            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
+            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, vertex_world);
 
             if cp_world.sqrDistance < min_dist2 {
 
                 min_dist2 = cp_world.sqrDistance;
                 result.closest_point_element = .POINT;                        
                 result.closest_point.point = cp_world;
-                result.element_index = point_index;
+                result.element_index = vertex_index;
                 result.entity_index = entity_index;
             }
         }
@@ -660,24 +660,24 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
     for :VisibleSelectableMeshVertices entity, entity_index : app.entities {
-        for :WorldPointIterator point_world, point_index : entity.mesh {
+        for :WorldVertexIterator vertex_world, vertex_index : entity.mesh {
 
-            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
+            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, vertex_world);
 
             if cp_world.distance < d_min {
 
-                if is_clipped(entity.display_info, point_world) {
+                if is_clipped(entity.display_info, vertex_world) {
                     continue;
                 }
 
-                if OutsideScreenDist(point_world) {
+                if OutsideScreenDist(vertex_world) {
                     continue;
                 }
 
                 d_min = cp_world.distance;
                 result.closest_point_element = .POINT;                        
                 result.closest_point.point = cp_world;
-                result.element_index = point_index;
+                result.element_index = vertex_index;
                 result.entity_index = entity_index;
             }
         }

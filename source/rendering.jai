@@ -669,7 +669,7 @@ render_entities :: () {
 
             // @Speed this should use the spatial index??
             inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
-            if is_visible(point_theme) for :ModelPointIterator point_model, point_index : entity.mesh {
+            if is_visible(point_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
                 if point_theme.show_backfacing == false && entity.mesh.normals.count {
                     normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
                     if dot_product(normal_world, current_look_direction()) > 0 {

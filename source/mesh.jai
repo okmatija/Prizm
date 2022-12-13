@@ -103,10 +103,8 @@ SegmentIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_s
 ModelSegmentIterator :: #bake_arguments SegmentIterator(world_space=false);
 WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
 
-// nocommit @Cleanup @Refactor Maybe we should make the Point iterator loop over obj p-directive elements, and Vertex iterator which loop over v-directive elements
-
 // Reserve the ambiguous name for this iterator which won't compile if used directly
-PointIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
+VertexIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
 
     for point_model, point_index : mesh.positions {
@@ -116,8 +114,8 @@ PointIterator :: (using mesh : *Mesh, body : Code, flags : For_Flags, $world_spa
     }
 }
 
-ModelPointIterator :: #bake_arguments PointIterator(world_space=false);
-WorldPointIterator :: #bake_arguments PointIterator(world_space=true);
+ModelVertexIterator :: #bake_arguments VertexIterator(world_space=false);
+WorldVertexIterator :: #bake_arguments VertexIterator(world_space=true);
 
 // // @Incomplete see parshapes for a sample implementation
 // weld :: (mesh : Mesh) -> Mesh { }
