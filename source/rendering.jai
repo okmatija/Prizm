@@ -611,16 +611,6 @@ render_entities :: () {
 
         // Caches for glyph quads
         point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        CachePointLabels :: (index : int) #expand {
-            if !is_clipped(`entity.display_info, `point_world) {
-                text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
-                if on_screen_in_disk(text_position_px, `point_theme.visible_radius_px) {
-                    // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
-                    text : string = get_point_text(`point_model, index, `point_theme);
-                    array_add(*`point_labels, make_Label_Info(text_position_px, text));
-                }
-            }
-        }
 
         element_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         CacheElementLabels :: (index : int) #expand {
@@ -634,36 +624,34 @@ render_entities :: () {
         }
 
         annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        CacheAnnotationLabels :: () #expand {
-            if !is_clipped(`entity.display_info, `point_world) {
-                text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
-                if on_screen_in_disk(text_position_px, `annotation_theme.visible_radius_px) {
-                    text : string = to_string(`annotation);
-                    array_add(*`annotation_labels, make_Label_Info(text_position_px, text));
-                }
-            }
-        }
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
         {
-            count := entity.mesh.positions.count;
-
             // @Speed this should use the spatial index?? since annotations are sparse, maybe not
             if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
-                if annotation.kind == {
+                point_world, point_model : Vector3 = ---;
+                if #complete annotation.kind == {
                     case .VERTEX;
-                        point_model : Vector3 = mesh_point_model(entity.mesh, annotation.id);
-                        point_world : Vector3 = mesh_point_world(entity.mesh, annotation.id);
-                        CacheAnnotationLabels();
+                        point_model = mesh_point_model(entity.mesh, annotation.id);
+                        point_world = mesh_point_world(entity.mesh, annotation.id);
                     case .LINE;
-                        point_model : Vector3 = centroid(mesh_segment3_model(entity.mesh, annotation.id));
-                        point_world : Vector3 = centroid(mesh_segment3_world(entity.mesh, annotation.id));
-                        CacheAnnotationLabels();
+                        point_model = centroid(mesh_segment3_model(entity.mesh, annotation.id));
+                        point_world = centroid(mesh_segment3_world(entity.mesh, annotation.id));
                     case .TRIANGLE;
-                        point_model : Vector3 = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
-                        point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                        CacheAnnotationLabels();
+                        point_model = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
+                        point_world = transform_point(entity.mesh.world_from_model, point_model);
+                    case .BLOCK; #through;
+                    case .COMMAND;
+                        continue;
+                }
+
+                if !is_clipped(entity.display_info, point_world) {
+                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                    if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                        text : string = to_string(annotation);
+                        array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                    }
                 }
             }
 
@@ -678,7 +666,14 @@ render_entities :: () {
                 }
 
                 point_world := mesh_point_world(entity.mesh, point_index);
-                CachePointLabels(point_index);
+                if !is_clipped(entity.display_info, point_world) {
+                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
+                        // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
+                        text : string = get_point_text(point_model, point_index, point_theme);
+                        array_add(*point_labels, make_Label_Info(text_position_px, text));
+                    }
+                }
             }
 
             ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
