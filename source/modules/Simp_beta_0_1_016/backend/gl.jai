@@ -20,6 +20,7 @@ backend_init :: (info: *Window_Info) {
         do_first_time_init = true;
         
         #if OS == .WINDOWS {
+            // FIXME On the laptop, and with intel integrated graphics we get into a situation where SetPixelFormat called from here returns 0, which means we can't draw any text! It works using the nvidia gpu though
             hglrc, hdc := wgl_create_context(info.window, null, MINIMUM_GL_MAJOR_VERSION, MINIMUM_GL_MINOR_VERSION);
             the_gl_context = hglrc;
             the_hdc_for_pixel_format_cloning = hdc;
