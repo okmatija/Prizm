@@ -594,10 +594,17 @@ render_entities :: () {
         Simp.ScopeContext();
 
         // @Cleanup We could just do using entity.display_info here
-        point_theme : Label_Theme = entity.display_info.vertex_label_style;
-        element_theme : Label_Theme = entity.display_info.element_label_theme;
+        vertex_theme : Label_Theme = entity.display_info.vertex_label_style;
+        point_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here. Only allow ui for these if there is a non-empty container
+        segment_theme : Label_Theme = entity.display_info.element_label_theme;
+        triangle_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here
         annotation_theme : Annotation_Theme = entity.display_info.annotation_theme;
-        if !is_visible(point_theme) && !is_visible(element_theme) && !is_visible(annotation_theme) {
+
+        if !is_visible(vertex_theme) &&
+           !is_visible(point_theme) &&
+           !is_visible(segment_theme) &&
+           !is_visible(triangle_theme) &&
+           !is_visible(annotation_theme) {
             return;
         }
 
@@ -610,22 +617,19 @@ render_entities :: () {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         // Caches for glyph quads
+        vertex_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-
-        element_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        CacheElementLabels :: (index : int) #expand {
-            if !is_clipped(`entity.display_info, `point_world) {
-                text_position_px : Tuple2i = to_screen_position(`point_world, `projection_from_world);
-                if on_screen_in_disk(text_position_px, `element_theme.visible_radius_px) {
-                    text : string = get_point_text(`point_model, index, `element_theme);
-                    array_add(*`element_labels, make_Label_Info(text_position_px, text));
-                }
-            }
-        }
-
+        segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
+
+        inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
+
+        //
+        // Annotation labels
+        //
 
         {
             // @Speed this should use the spatial index?? since annotations are sparse, maybe not
@@ -654,11 +658,16 @@ render_entities :: () {
                     }
                 }
             }
+        }
 
+        //
+        // Vertex labels
+        //
+
+        {
             // @Speed this should use the spatial index??
-            inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
-            if is_visible(point_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
-                if point_theme.show_backfacing == false && entity.mesh.normals.count {
+            if is_visible(vertex_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
+                if vertex_theme.show_backfacing == false && entity.mesh.normals.count {
                     normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
                     if dot_product(normal_world, current_look_direction()) > 0 {
                         continue;
@@ -668,16 +677,41 @@ render_entities :: () {
                 point_world := mesh_point_world(entity.mesh, point_index);
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, point_theme.visible_radius_px) {
+                    if on_screen_in_disk(text_position_px, vertex_theme.visible_radius_px) {
                         // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
-                        text : string = get_point_text(point_model, point_index, point_theme);
-                        array_add(*point_labels, make_Label_Info(text_position_px, text));
+                        text : string = get_point_text(point_model, point_index, vertex_theme);
+                        array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                     }
                 }
             }
+        }
 
+        //
+        // Segment labels
+        //
+
+        {
+            if is_visible(segment_theme) for :ModelSegmentIterator segment : entity.mesh {
+                point_model : Vector3 = centroid(segment);
+                point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+
+                if !is_clipped(entity.display_info, point_world) {
+                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                    if on_screen_in_disk(text_position_px, segment_theme.visible_radius_px) {
+                        text : string = get_point_text(point_model, it_index, segment_theme);
+                        array_add(*segment_labels, make_Label_Info(text_position_px, text));
+                    }
+                }
+            }
+        }
+
+        //
+        // Triangle labels
+        //
+
+        {
             ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
-                if element_theme.show_backfacing == false {
+                if triangle_theme.show_backfacing == false {
                     normal_world : Vector3 = transform_vector(`inverse_transpose, compute_normal(triangle_model));
                     if dot_product(normal_world, current_look_direction()) > 0 {
                         continue;
@@ -686,20 +720,20 @@ render_entities :: () {
 
                 point_model : Vector3 = compute_centroid(triangle_model);
                 point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                CacheElementLabels(triangle_index);
+                if !is_clipped(entity.display_info, point_world) {
+                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                    if on_screen_in_disk(text_position_px, triangle_theme.visible_radius_px) {
+                        text : string = get_point_text(point_model, triangle_index, triangle_theme);
+                        array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+                    }
+                }
             }
 
             if entity.spatial == null {
                 // log_error("Use brute force");
 
-                if is_visible(element_theme) for :ModelTriangleIterator entity.mesh {
+                if is_visible(triangle_theme) for :ModelTriangleIterator entity.mesh {
                     ProcessTriangle(it, it_index);
-                }
-
-                if is_visible(element_theme) for :ModelSegmentIterator segment : entity.mesh {
-                    point_model : Vector3 = centroid(segment);
-                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                    CacheElementLabels(it_index);
                 }
             } else {
                 // log_error("Use spatial index");
@@ -708,16 +742,19 @@ render_entities :: () {
                 ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
                 // @Incomplete Support perspective projection
-                distance := ((app.camera.right - app.camera.left) / app.current_window_width) * element_theme.visible_radius_px;
+                distance := ((app.camera.right - app.camera.left) / app.current_window_width) * triangle_theme.visible_radius_px;
 
-                if is_visible(element_theme) VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
+                if is_visible(triangle_theme) VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
                     #code ProcessTriangle(primitive, primitive_id)
                 );
             }
         }
 
+        // nocommit Store the pixel->label table per item?
+        draw_label_infos(vertex_labels, vertex_theme);
         draw_label_infos(point_labels, point_theme);
-        draw_label_infos(element_labels, element_theme);
+        draw_label_infos(segment_labels, segment_theme);
+        draw_label_infos(triangle_labels, triangle_theme);
         draw_label_infos(annotation_labels, annotation_theme);
     }
 
@@ -767,11 +804,11 @@ render_selections :: () {
     // annoying in the case of selections
 
     Simp.ScopeContext();
-    point_theme := entity.display_info.vertex_label_style;
+    vertex_theme := entity.display_info.vertex_label_style;
     for mesh.positions {
-        text := get_point_text(it, it_index, point_theme);
+        text := get_point_text(it, it_index, vertex_theme);
         text_position_px : Tuple2i = to_screen_position(it, projection_from_model);
-        Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, point_theme.label_color, scale=point_theme.label_scale);
+        Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, vertex_theme.label_color, scale=vertex_theme.label_scale);
     }
 }
 
