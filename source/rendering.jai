@@ -5,17 +5,16 @@ Label_Theme :: struct {
     show_position := false;
     show_index := false;
 
+    label_scale := .3;
+    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+
     visible_radius_px : int = 50;
-    show_backfacing : bool = true;
 
     // world_space : bool = false; // @Incomplete
     format_float : FormatFloat; // We ignore the `value` field
     format_float.mode = .SHORTEST;
     format_float.trailing_width = 8;
     format_float.zero_removal = .NO;
-
-    label_scale := .3;
-    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
 is_visible :: (theme : Label_Theme) -> bool {
@@ -133,6 +132,11 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     return false;
 }
 
+Label_Visibility_Mode :: enum {
+    OFF;       // Labels are not visible
+    RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
+    SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
+}
 
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
@@ -141,16 +145,33 @@ Display_Info :: struct {
 
     flash_wave_dt : float = 0.; @NoSync
 
+    //
+    // Labeling members
+    //
+
+    // Applies to all themes, cycling it should have a key?
+    labelling_mode : Label_Visibility_Mode = .RAY_CAST;
+
+    // if labelling_mode == .RAY_CAST  this is the distance in pixels used when the labels are shown on nearby elements
+    // if labelling_mode == .SPOTLIGHT this is the radius in pixels around the cursor where labels are visible 
+    labelling_radius_px : int = 50;
+
+    vertex_label_style : Label_Theme;
+    element_label_theme : Label_Theme;
+    element_label_theme.label_color = .{1., 1., 0, 1};
+    // point_label_theme : Element_Label_Theme;
+    // segment_label_theme : Element_Label_Theme;
+    // triangle_label_theme : Element_Label_Theme;
+    annotation_theme : Annotation_Theme;
+    // attribute_theme : [..]Attribute_Theme;
+
+    //
+    // Vertex/Element members
+    //
+
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
     points_size : s32 = 0;
-
-    vertex_label_style : Label_Theme;
-
-    element_label_theme : Label_Theme;
-    element_label_theme.label_color = .{1., 1., 0, 1};
-
-    annotation_theme : Annotation_Theme;
 
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
@@ -625,8 +646,6 @@ render_entities :: () {
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
-        inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
-
         //
         // Annotation labels
         //
@@ -667,13 +686,6 @@ render_entities :: () {
         {
             // @Speed this should use the spatial index??
             if is_visible(vertex_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
-                if vertex_theme.show_backfacing == false && entity.mesh.normals.count {
-                    normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[point_index]);
-                    if dot_product(normal_world, current_look_direction()) > 0 {
-                        continue;
-                    }
-                }
-
                 point_world := mesh_point_world(entity.mesh, point_index);
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
@@ -711,13 +723,6 @@ render_entities :: () {
 
         {
             ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
-                if triangle_theme.show_backfacing == false {
-                    normal_world : Vector3 = transform_vector(`inverse_transpose, compute_normal(triangle_model));
-                    if dot_product(normal_world, current_look_direction()) > 0 {
-                        continue;
-                    }
-                }
-
                 point_model : Vector3 = compute_centroid(triangle_model);
                 point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                 if !is_clipped(entity.display_info, point_world) {
@@ -750,7 +755,7 @@ render_entities :: () {
             }
         }
 
-        // nocommit Store the pixel->label table per item?
+        // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
         draw_label_infos(vertex_labels, vertex_theme);
         draw_label_infos(point_labels, point_theme);
         draw_label_infos(segment_labels, segment_theme);
