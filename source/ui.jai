@@ -428,6 +428,25 @@ show_options :: () {
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
 
+        // nocommit Add tooltip here
+        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(User_Settings.Labelling_Mode));
+
+        {
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.labelling_radius_px;
+            // nocommit Add tooltip here
+            ImGui.DragFloat("Labelling Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            app.settings.labelling_radius_px = cast(int) radius_px;
+        }
+
+        {
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
+            // nocommit Add tooltip here
+            ImGui.DragFloat("CP Query Max Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
+        }
+
         ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
         ImGui.Checkbox("Show World Axes", *app.triad.visible);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
@@ -833,17 +852,14 @@ apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) 
         if set.vertex_label_style_update.format_float      vertex_label_style.format_float      = other.vertex_label_style.format_float;
         if set.vertex_label_style_update.label_scale       vertex_label_style.label_scale       = other.vertex_label_style.label_scale;
         if set.vertex_label_style_update.label_color       vertex_label_style.label_color       = other.vertex_label_style.label_color;
-        if set.vertex_label_style_update.visible_radius_px vertex_label_style.visible_radius_px = other.vertex_label_style.visible_radius_px;
 
         if set.element_label_theme_update.show_position     element_label_theme.show_position     = other.element_label_theme.show_position;
         if set.element_label_theme_update.show_index        element_label_theme.show_index        = other.element_label_theme.show_index;
         if set.element_label_theme_update.format_float      element_label_theme.format_float      = other.element_label_theme.format_float;
         if set.element_label_theme_update.label_scale       element_label_theme.label_scale       = other.element_label_theme.label_scale;
         if set.element_label_theme_update.label_color       element_label_theme.label_color       = other.element_label_theme.label_color;
-        if set.element_label_theme_update.visible_radius_px element_label_theme.visible_radius_px = other.element_label_theme.visible_radius_px;
 
         if set.annotation_theme_update.visible           annotation_theme.visible           = other.annotation_theme.visible;
-        if set.annotation_theme_update.visible_radius_px annotation_theme.visible_radius_px = other.annotation_theme.visible_radius_px;
         if set.annotation_theme_update.label_scale       annotation_theme.label_scale       = other.annotation_theme.label_scale;
         if set.annotation_theme_update.label_color       annotation_theme.label_color       = other.annotation_theme.label_color;
 
@@ -1051,12 +1067,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
                 update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
                 update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-
-                // Visible radius
-                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                radius_px := cast(float) theme.visible_radius_px;
-                update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                theme.visible_radius_px = cast(int) radius_px;
             }
 
             if ImGui.BeginTabItem("Annotations") {
@@ -1091,12 +1101,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
                 update.label_color = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
                 update.label_scale = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-
-                // Visible radius
-                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                radius_px := cast(float) theme.visible_radius_px;
-                update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                theme.visible_radius_px = cast(int) radius_px;
 
                 format_float_ui(*theme.format_float);
                 format_struct_ui(*theme.format_struct);
@@ -1689,13 +1693,10 @@ Label_Theme_Update :: struct {
     format_float : bool;
     label_scale : bool;
     label_color : bool;
-
-    visible_radius_px : bool;
 }
 
 Annotation_Theme_Update :: struct {
     visible : bool;
-    visible_radius_px : bool;
     label_scale : bool;
     label_color : bool;
 }
@@ -1703,7 +1704,6 @@ Annotation_Theme_Update :: struct {
 // @Think Do we even want this? The XXX_Update stucts are used to apply changes to multiple items. We can use it to apply changes to multiple items with the same attribute
 Attribute_Theme_Update :: struct {
     visible : bool;
-    visible_radius_px : bool;
     label_scale : bool;
     label_color : bool;
     format_float : bool;
@@ -1765,12 +1765,6 @@ show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
     theme.format_float.trailing_width = clamp(trailing_width, 0, 12);
     Show_Tooltip("Number of digits following the decimal point");
     update.format_float |= combo_box("Float format", *theme.format_float.mode, type_info(FormatFloat.Mode));
-
-    // Visible radius
-    radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-    radius_px := cast(float) theme.visible_radius_px;
-    update.visible_radius_px  = ImGui.DragFloat("Visible Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-    theme.visible_radius_px = cast(int) radius_px;
 }
 
 display_info_ui :: (

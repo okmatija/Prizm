@@ -8,8 +8,6 @@ Label_Theme :: struct {
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
-    visible_radius_px : int = 50;
-
     // world_space : bool = false; // @Incomplete
     format_float : FormatFloat; // We ignore the `value` field
     format_float.mode = .SHORTEST;
@@ -22,12 +20,7 @@ is_visible :: (theme : Label_Theme) -> bool {
 }
 
 Annotation_Theme :: struct {
-    // // @Incomplete Implement this
-    // show_point_annotation := false;
-    // show_centroid_annotation := false;
-
     visible := false;
-    visible_radius_px : int = 50;
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
@@ -38,7 +31,6 @@ is_visible :: (theme : Annotation_Theme) -> bool {
 
 Attribute_Theme :: struct {
     visible := false;
-    visible_radius_px : int = 50;
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
@@ -132,12 +124,6 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     return false;
 }
 
-Label_Visibility_Mode :: enum {
-    OFF;       // Labels are not visible
-    RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
-    SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
-}
-
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
@@ -148,13 +134,6 @@ Display_Info :: struct {
     //
     // Labeling members
     //
-
-    // Applies to all themes, cycling it should have a key?
-    labelling_mode : Label_Visibility_Mode = .RAY_CAST;
-
-    // if labelling_mode == .RAY_CAST  this is the distance in pixels used when the labels are shown on nearby elements
-    // if labelling_mode == .SPOTLIGHT this is the radius in pixels around the cursor where labels are visible 
-    labelling_radius_px : int = 50;
 
     vertex_label_style : Label_Theme;
     element_label_theme : Label_Theme;
@@ -671,7 +650,7 @@ render_entities :: () {
 
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, annotation_theme.visible_radius_px) {
+                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                         text : string = to_string(annotation);
                         array_add(*annotation_labels, make_Label_Info(text_position_px, text));
                     }
@@ -689,7 +668,7 @@ render_entities :: () {
                 point_world := mesh_point_world(entity.mesh, point_index);
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, vertex_theme.visible_radius_px) {
+                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                         // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
                         text : string = get_point_text(point_model, point_index, vertex_theme);
                         array_add(*vertex_labels, make_Label_Info(text_position_px, text));
@@ -709,7 +688,7 @@ render_entities :: () {
 
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, segment_theme.visible_radius_px) {
+                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                         text : string = get_point_text(point_model, it_index, segment_theme);
                         array_add(*segment_labels, make_Label_Info(text_position_px, text));
                     }
@@ -727,7 +706,7 @@ render_entities :: () {
                 point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, triangle_theme.visible_radius_px) {
+                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                         text : string = get_point_text(point_model, triangle_index, triangle_theme);
                         array_add(*triangle_labels, make_Label_Info(text_position_px, text));
                     }
@@ -747,7 +726,7 @@ render_entities :: () {
                 ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
                 // @Incomplete Support perspective projection
-                distance := ((app.camera.right - app.camera.left) / app.current_window_width) * triangle_theme.visible_radius_px;
+                distance := ((app.camera.right - app.camera.left) / app.current_window_width) * app.settings.labelling_radius_px;
 
                 if is_visible(triangle_theme) VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
                     #code ProcessTriangle(primitive, primitive_id)

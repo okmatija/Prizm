@@ -315,6 +315,16 @@ User_Settings :: struct {
 
     closest_point_query_max_dist_px := 20;
 
+    Labelling_Mode :: enum {
+        RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
+        SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
+    }
+    labelling_mode : Labelling_Mode = .RAY_CAST;
+
+    // if labelling_mode == .RAY_CAST  this is the distance in pixels used when the labels are shown on nearby elements
+    // if labelling_mode == .SPOTLIGHT this is the radius in pixels around the cursor where labels are visible 
+    labelling_radius_px := 50;
+
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
 

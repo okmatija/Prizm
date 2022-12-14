@@ -24,6 +24,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
     - ex2. labels for co-located vertices on different items will still overlap
     - ex3. labels for vertices and annotation/attribute labels on the same verticies will still overlap TODO Fix this one
   - TODO When rotating the scene labels which were visible at the start of the rotation persist, this behaviour can be changed in the Options menu
+  - Added a new ray-casting labelling mode (the new default) in which labels are shown on the intersected/closed labeled element. This can be changed in the Options tab along with the radius in pixels for the closest point case.
   - Removed the option to skip labelling back-facing triangles/oriented points, it was not very useful and less so now that TODO occlusion is supported
 
 - Data-structure changes
