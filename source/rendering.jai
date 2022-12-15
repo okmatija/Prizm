@@ -20,6 +20,20 @@ Label_Theme :: struct {
     format_float.zero_removal = .NO;
 }
 
+// For mesh topology/geometry labels
+Element_Label_Theme :: struct {
+    is_visible := false;
+    scale := .3;
+    color := Vector4.{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+    location := Label_Location.CLOSEST_POINT;
+
+    Label_Location :: enum {
+        CLOSEST_POINT;
+        VIEWPORT; // nocommit Implement me
+        CENTROID; // nocommit Implement me
+    }
+}
+
 is_visible :: (theme : Label_Theme) -> bool {
     return theme.show_position || theme.show_index;
 }
@@ -595,9 +609,7 @@ render_entities :: () {
         render_aabb(*entity.mesh, ri, di);
     }
 
-    render_entity_text :: (entity : *Entity) {
-        Simp.ScopeContext();
-
+    render_entity_text_spotlight :: (entity : *Entity) {
         // @Cleanup We could just do using entity.display_info here
         vertex_theme : Label_Theme = entity.display_info.vertex_label_style;
         point_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here. Only allow ui for these if there is a non-empty container
@@ -613,6 +625,7 @@ render_entities :: () {
             return;
         }
 
+        Simp.ScopeContext();
         glEnable(GL_BLEND);
         defer glDisable(GL_BLEND);
         // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
@@ -747,6 +760,146 @@ render_entities :: () {
         draw_label_infos(annotation_labels, annotation_theme);
     }
 
+    render_entity_text_ray_cast :: (closest_world : Closest_Point_Ray_Entity) {
+
+        if closest_world.entity_index == -1 {
+            return;
+        }
+
+        entity : *Entity = app.entities[closest_world.entity_index];
+        if !entity.display_info.is_visible {
+            return;
+        }
+
+        // @Cleanup We could just do using entity.display_info here
+        vertex_theme : Label_Theme = entity.display_info.vertex_label_style;
+        point_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here. Only allow ui for these if there is a non-empty container
+        segment_theme : Label_Theme = entity.display_info.element_label_theme;
+        triangle_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here
+        annotation_theme : Annotation_Theme = entity.display_info.annotation_theme;
+
+        if !is_visible(vertex_theme) &&
+           !is_visible(point_theme) &&
+           !is_visible(segment_theme) &&
+           !is_visible(triangle_theme) &&
+           !is_visible(annotation_theme) {
+            return;
+        }
+
+        point_world : Vector3 = get_closest_point_on_element(closest_world);
+        if is_clipped(entity.display_info, point_world) {
+            return;
+        }
+
+        point_model : Vector3 = transform_point(inverse(entity.mesh.world_from_model), point_world);
+
+        Simp.ScopeContext();
+        glEnable(GL_BLEND);
+        defer glDisable(GL_BLEND);
+        // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
+        // glDisable(GL_CULL_FACE);
+        // defer glEnable(GL_CULL_FACE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        // Caches for glyph quads
+        vertex_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+
+        projection_from_world : Matrix4 = make_projection_from_world(app.camera);
+
+        //
+        // Annotation labels
+        //
+
+        // @Speed this should use the spatial index?? since annotations are sparse, maybe not
+        if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
+
+            if closest_world.element_index != annotation.id {
+                continue;
+            }
+
+            if #complete annotation.kind == {
+                case .VERTEX;   if closest_world.closest_point_element != .VERTEX   continue;
+                case .LINE;     if closest_world.closest_point_element != .SEGMENT  continue;
+                case .TRIANGLE; if closest_world.closest_point_element != .TRIANGLE continue;
+                case .BLOCK;   continue;
+                case .COMMAND; continue;
+            }
+
+            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+            text : string = to_string(annotation);
+            array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+        }
+
+        //
+        // Vertex labels
+        //
+
+        // nocommit This should be point_theme
+        // @Speed this should use the spatial index??
+        if is_visible(vertex_theme) && closest_world.closest_point_element == .VERTEX {
+            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+            // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
+            text : string = get_point_text(point_model, closest_world.element_index, vertex_theme);
+            array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+        }
+
+        //
+        // Segment labels
+        //
+
+        if is_visible(segment_theme) && closest_world.closest_point_element == .SEGMENT {
+            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+            text : string = get_point_text(point_model, closest_world.element_index, segment_theme);
+            array_add(*segment_labels, make_Label_Info(text_position_px, text));
+
+            if is_visible(vertex_theme) {
+                segment_tuple : Tuple2(u32) = mesh_segment3_tuple(entity.mesh, closest_world.element_index);
+                segment_model : Segment3 = mesh_segment3_model(entity.mesh, closest_world.element_index);
+                segment_world : Segment3 = mesh_segment3_world(entity.mesh, closest_world.element_index);
+                for 0..1 {
+                    point_world, point_model, point_index := segment_world.p[it], segment_model.p[it], segment_tuple.component[it];
+                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                    text : string = get_point_text(point_model, point_index, vertex_theme);
+                    array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+                }
+            }
+        }
+
+        //
+        // Triangle labels
+        //
+
+        if is_visible(triangle_theme) && closest_world.closest_point_element == .TRIANGLE {
+            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+            text : string = get_point_text(point_model, closest_world.element_index, triangle_theme);
+            array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+
+            if is_visible(vertex_theme) {
+                triangle_tuple : Tuple3(u32) = mesh_triangle_tuple(entity.mesh, closest_world.element_index);
+                triangle_model : Triangle3 = mesh_triangle_model(entity.mesh, closest_world.element_index);
+                triangle_world : Triangle3 = mesh_triangle_world(entity.mesh, closest_world.element_index);
+                for 0..2 {
+                    point_world, point_model, point_index := triangle_world.v[it], triangle_model.v[it], triangle_tuple.component[it];
+                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                    text : string = get_point_text(point_model, point_index, vertex_theme);
+                    array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+                }
+            }
+        }
+
+        // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
+        draw_label_infos(vertex_labels, vertex_theme);
+        draw_label_infos(point_labels, point_theme);
+        draw_label_infos(segment_labels, segment_theme);
+        draw_label_infos(triangle_labels, triangle_theme);
+        draw_label_infos(annotation_labels, annotation_theme);
+    }
+
     is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }
     is_visible_transparent :: (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w != 1.; }
     is_visible_hovered ::     (e : *Entity) -> bool { return e.display_info.is_visible &&  e.is_hovered; }
@@ -760,9 +913,18 @@ render_entities :: () {
 
     glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
 
-    for :Visible_Opaque      app.entities render_entity_text(it);
-    for :Visible_Transparent app.entities render_entity_text(it);
-    for :Visible_Hovered     app.entities render_entity_text(it);
+    if #complete app.settings.labelling_mode == {
+        case .RAY_CAST;
+
+            closest_world : Closest_Point_Ray_Entity = find_closest_point_on_visible_entities();
+            render_entity_text_ray_cast(closest_world);
+
+        case .SPOTLIGHT;
+
+            for :Visible app.entities {
+                render_entity_text_spotlight(it);
+            }
+    }
 
     for :Visible_Hovered     app.entities render_entity_geometry(it, it_index);
 }
