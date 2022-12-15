@@ -19,6 +19,7 @@ Non-dogmatic, mostly do what you want but sticking to the following conventions 
 - init(thing : *Thing)/deinit(thing : *Thing) functions should work on stack instances as well as values on the head. Hence they shouldn't call free. Look up what New does (allocate, init, cast?), we want a placement new type thing
 - Consider using `thing_kind` for `enum` variables, `thing_type` for `Type` variables and `thing` otherwise
 - When you rename a function, particularly a console command, search all .jai and .obj files for the name so you can fix all the references, we think good, unambiguous user documentation is important!
+- Don't indent line with the case keyword in a switch, but do indent the case body
 
 
 # Release process

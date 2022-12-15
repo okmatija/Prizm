@@ -823,11 +823,11 @@ render_entities :: () {
             }
 
             if #complete annotation.kind == {
-                case .VERTEX;   if closest_world.closest_point_element != .VERTEX   continue;
-                case .LINE;     if closest_world.closest_point_element != .SEGMENT  continue;
-                case .TRIANGLE; if closest_world.closest_point_element != .TRIANGLE continue;
-                case .BLOCK;   continue;
-                case .COMMAND; continue;
+            case .VERTEX;   if closest_world.closest_point_element != .VERTEX   continue;
+            case .LINE;     if closest_world.closest_point_element != .SEGMENT  continue;
+            case .TRIANGLE; if closest_world.closest_point_element != .TRIANGLE continue;
+            case .BLOCK;    continue;
+            case .COMMAND;  continue;
             }
 
             text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
@@ -835,27 +835,25 @@ render_entities :: () {
             array_add(*annotation_labels, make_Label_Info(text_position_px, text));
         }
 
-        //
-        // Vertex labels
-        //
+        if #complete closest_world.closest_point_element == {
+        case .VERTEX; #through;
+        case .POINT;
 
-        // nocommit This should be point_theme
-        // @Speed this should use the spatial index??
-        if is_visible(vertex_theme) && closest_world.closest_point_element == .VERTEX {
-            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-            // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
-            text : string = get_point_text(point_model, closest_world.element_index, vertex_theme);
-            array_add(*vertex_labels, make_Label_Info(text_position_px, text));
-        }
+            // nocommit @Incomplete Should use point_theme for the vertex index here
 
-        //
-        // Segment labels
-        //
+            if is_visible(vertex_theme) {
+                text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                text : string = get_point_text(point_model, closest_world.element_index, vertex_theme);
+                array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+            }
 
-        if is_visible(segment_theme) && closest_world.closest_point_element == .SEGMENT {
-            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-            text : string = get_point_text(point_model, closest_world.element_index, segment_theme);
-            array_add(*segment_labels, make_Label_Info(text_position_px, text));
+        case .SEGMENT;
+
+            if is_visible(segment_theme) {
+                text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                text : string = get_point_text(point_model, closest_world.element_index, segment_theme);
+                array_add(*segment_labels, make_Label_Info(text_position_px, text));
+            }
 
             if is_visible(vertex_theme) {
                 segment_tuple : Tuple2(u32) = mesh_segment3_tuple(entity.mesh, closest_world.element_index);
@@ -868,16 +866,14 @@ render_entities :: () {
                     array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                 }
             }
-        }
 
-        //
-        // Triangle labels
-        //
+        case .TRIANGLE;
 
-        if is_visible(triangle_theme) && closest_world.closest_point_element == .TRIANGLE {
-            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-            text : string = get_point_text(point_model, closest_world.element_index, triangle_theme);
-            array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+            if is_visible(triangle_theme) {
+                text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                text : string = get_point_text(point_model, closest_world.element_index, triangle_theme);
+                array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+            }
 
             if is_visible(vertex_theme) {
                 triangle_tuple : Tuple3(u32) = mesh_triangle_tuple(entity.mesh, closest_world.element_index);
@@ -890,6 +886,11 @@ render_entities :: () {
                     array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                 }
             }
+
+        case .MESH;
+
+            //  Do nothing
+
         }
 
         // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
@@ -912,6 +913,8 @@ render_entities :: () {
     for :Visible_Transparent app.entities render_entity_geometry(it, it_index);
 
     glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
+
+    // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
