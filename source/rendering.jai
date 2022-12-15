@@ -1,5 +1,10 @@
 // Fixed! ISSUE_004 :: "The text rendering implementation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
 
+Labelling_Mode :: enum {
+    RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
+    SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
+}
+
 // @Refactor rename this Label_Theme, and use it for triangle labels (at centroid, so you can see centroids, too)
 Label_Theme :: struct {
     show_position := false;

@@ -428,22 +428,30 @@ show_options :: () {
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
 
-        // nocommit Add tooltip here
-        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(User_Settings.Labelling_Mode));
+        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
+        Show_Tooltip(tprint(#string DONE
+%: Show labels at the intersection/closest point of a camera ray query
+%: Show labels within some distance of the cursor location
+DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
         {
             radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
             radius_px := cast(float) app.settings.labelling_radius_px;
-            // nocommit Add tooltip here
-            ImGui.DragFloat("Labelling Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            ImGui.DragFloat("Spotlight Labelling Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            Show_Tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
             app.settings.labelling_radius_px = cast(int) radius_px;
         }
 
         {
             radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
             radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
-            // nocommit Add tooltip here
-            ImGui.DragFloat("CP Query Max Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            ImGui.DragFloat("Closest-Point Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            Show_Tooltip(tprint(#string DONE
+Closest-point query radius in pixels affecting:
+- Selection
+- Clipping sphere center seeding
+- Label visibility in % labelling mode
+DONE, Labelling_Mode.RAY_CAST));
             app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
         }
 
