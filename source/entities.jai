@@ -511,16 +511,6 @@ find_closest_vertex_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_
                 continue;
             }
 
-            // Note if the vertex normals are 0 the dot product will be 0 and will _not_ trigger the continue, we
-            // want to be able to select vertices with 0 normals in all cases
-            front_facing_only :: false;
-            if front_facing_only && entity.mesh.normals.count {
-                normal_world : Vector3 = transform_vector(inverse_transpose, entity.mesh.normals[vertex_index]);
-                if dot(normal_world, current_look_direction()) > 0 {
-                    continue;
-                }
-            }
-
             cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, vertex_world);
 
             if cp_world.sqrDistance < min_dist2 {
@@ -552,7 +542,7 @@ OutsideScreenDist :: (point_world : Vector3) -> bool #expand {
 }
 
 // Result positions are in world space
-find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing_only := false) -> Closest_Point_Ray_Entity {
+find_closest_point_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
@@ -562,14 +552,6 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1, front_facing
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
-
-        if `front_facing_only {
-            // Don't skip degenerate triangles, note we check closest point from ray to triangle
-            normal_direction := compute_normal(triangle_model, normalize=false);
-            if dot_product(normal_direction, `ray_model.direction) > 0 {
-                continue;
-            }
-        }
 
         triangle_world : Triangle3 = transform_triangle(`entity.mesh.world_from_model, triangle_model);
     
