@@ -206,8 +206,8 @@ main :: () {
 
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         if app.show_ui {
-            show_main_panel();
-            show_camera_controls();
+            show_left_window();
+            show_right_window();
             show_imgui_demo_window();
             show_item_list_actions_ui();
             console_draw();

@@ -5,6 +5,12 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
   - Multiple attributes are supported, and each will have its own tab in the item context menu
 
+- Reorganisation of UI:
+
+  - Since there are more tools now moved them to a tab in the window with camera controls
+  - Saved some space by renaming item "Remove" button to "x"
+  - Presets shapes are now called Examples, and have been moved into the new "Tools" tab
+
 - Annotations
 
   - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file

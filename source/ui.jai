@@ -3,7 +3,7 @@ WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
-show_main_panel :: () {
+show_left_window :: () {
 
     // Set window border color to match the selection/RMB target item color
     original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
@@ -24,8 +24,6 @@ show_main_panel :: () {
             defer ImGui.EndTabItem();
 
             // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
-            show_tools_ui();
-            if app.entities.count ImGui.Separator();
             show_item_list_ui();
         }
 
@@ -43,147 +41,166 @@ show_main_panel :: () {
     }
 }
 
-show_tools_ui :: () {
-    indent := ImGui.GetTreeNodeToLabelSpacing();
+show_right_window :: () {
+    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
+    window_pivot := make_ImVec2(1, 0);
 
-    if ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
-        defer ImGui.TreePop();
+    using ImGui.WindowFlags;
 
-        indent2 := ImGui.GetTreeNodeToLabelSpacing();
-        ImGui.Unindent(indent2 - indent);
-        defer ImGui.Indent(indent2 - indent);
+    ImGui.PushStyleColor(xx ImGui.Col.Border, app.theme.camera_ui_button_border_color);
+    defer ImGui.PopStyleColor();
 
-        Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
-        ImGui.SameLine();
-        show_add_item_ui();
-        show_selection_ui();
+    // Set window border color to match the selection/RMB target item color
+    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
+
+    ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
+    ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
+    defer ImGui.End();
+
+    ScopedWindowBorderTheme(original_border_color, original_border_size);
+
+    if ImGui.BeginTabBar("##RightWindowTabBar", flags=ImGui.TabBarFlags.None) {
+        defer ImGui.EndTabBar();
+
+        if ImGui.BeginTabItem("Camera") {
+            defer ImGui.EndTabItem();
+
+            show_camera_controls();
+        }
+
+        if ImGui.BeginTabItem("Tools") {
+            defer ImGui.EndTabItem();
+
+            show_select_ui();
+            show_inspect_ui();
+            show_preset_ui();
+        }
     }
 }
-
 
 show_item_list_ui :: () {
 
     indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    { // @Cleanup Remove this scope?
-        entity_to_remove := -1;
-        any_visibility_changed : bool;
-        show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
+    Action_Button("Reload", *RELOAD_ITEMS_ACTION_SET);
+    ImGui.SameLine();
+    Action_Button("Focus", *FOCUS_ITEMS_ACTION_SET);
 
-        for *folder : app.directories {
+    entity_to_remove := -1;
+    any_visibility_changed : bool;
+    show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
 
-            Local_Entity :: struct {
-                entity : *Entity;
-                global_index : int;
+    for *folder : app.directories {
+
+        Local_Entity :: struct {
+            entity : *Entity;
+            global_index : int;
+        }
+
+        // The list clipper works on lots of evenly spaced items, which means we need to group entities by folder before we use it
+        entities_in_folder : [..]Local_Entity;
+        entities_in_folder.allocator = temp;
+        for entity, entity_index : app.entities {
+            if get_directory(get_entity_source(entity).path) == folder.path {
+                local_entity : Local_Entity;
+                local_entity.entity = entity;
+                local_entity.global_index = entity_index;
+                array_add(*entities_in_folder, local_entity);
             }
+        }
 
-            // The list clipper works on lots of evenly spaced items, which means we need to group entities by folder before we use it
-            entities_in_folder : [..]Local_Entity;
-            entities_in_folder.allocator = temp;
-            for entity, entity_index : app.entities {
-                if get_directory(get_entity_source(entity).path) == folder.path {
-                    local_entity : Local_Entity;
-                    local_entity.entity = entity;
-                    local_entity.global_index = entity_index;
-                    array_add(*entities_in_folder, local_entity);
-                }
-            }
+        if entities_in_folder.count == 0 && !folder_exists_on_disk(folder.path) {
+            continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prism and then have files dumped there be autoloaded)
+        }
 
-            if entities_in_folder.count == 0 && !folder_exists_on_disk(folder.path) {
-                continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prism and then have files dumped there be autoloaded)
-            }
+        // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
+        // @Incomplete Abbreviate this name e.g., C:/.../folder etc
+        do_tree : bool = ImGui.TreeNodeEx(imgui_label(folder.path, *folder), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+        show_folder_context_menu(folder.path, *folder.auto_load_new_files);
+        if do_tree {
+            defer ImGui.TreePop();
 
-            // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
-            // @Incomplete Abbreviate this name e.g., C:/.../folder etc
-            do_tree : bool = ImGui.TreeNodeEx(imgui_label(folder.path, *folder), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-            show_folder_context_menu(folder.path, *folder.auto_load_new_files);
-            if do_tree {
-                defer ImGui.TreePop();
-
-                // Use Ctrl LMB to select all items in the folder
-                if ImGui.IsItemClicked() && io().KeyCtrl {
-                    state := false;
-                    if entities_in_folder.count {
-                        state = entities_in_folder[0].entity.is_selected;
-                    }
-                    for entities_in_folder {
-                        it.entity.is_selected = !state;
-                    }
-                }
-
-                indent2 := ImGui.GetTreeNodeToLabelSpacing();
-                ImGui.Unindent(indent2 - indent);
-                defer ImGui.Indent(indent2 - indent);
-
+            // Use Ctrl LMB to select all items in the folder
+            if ImGui.IsItemClicked() && io().KeyCtrl {
+                state := false;
                 if entities_in_folder.count {
-                    table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY;
-                    outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
+                    state = entities_in_folder[0].entity.is_selected;
+                }
+                for entities_in_folder {
+                    it.entity.is_selected = !state;
+                }
+            }
 
-                    show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
-                    if !show_scrollbar {
-                        table_flags &= ~.ScrollY;
-                        outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
+            indent2 := ImGui.GetTreeNodeToLabelSpacing();
+            ImGui.Unindent(indent2 - indent);
+            defer ImGui.Indent(indent2 - indent);
+
+            if entities_in_folder.count {
+                table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY;
+                outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
+
+                show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
+                if !show_scrollbar {
+                    table_flags &= ~.ScrollY;
+                    outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
+                }
+
+                // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
+                if ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size) {
+                    defer ImGui.EndTable();
+
+                    // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
+
+                    folder.last_frame_item_list_height_px = 0.;
+                    for :ListClipperIterator local_entity : entities_in_folder {
+                        folder.last_frame_item_list_height_px = clipper.ItemsHeight;
+                        update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
+                        if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
+                        if update.visibility_changed    any_visibility_changed = true;
                     }
-
-                    // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
-                    if ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size) {
-                        defer ImGui.EndTable();
-
-                        // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
-
-                        folder.last_frame_item_list_height_px = 0.;
-                        for :ListClipperIterator local_entity : entities_in_folder {
-                            folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
-                            if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
-                            if update.visibility_changed    any_visibility_changed = true;
-                        }
-                        folder.last_frame_item_list_height_px *= entities_in_folder.count;
-                    }
-                } else {
-                    ImGui.TextDisabled("(none)");
+                    folder.last_frame_item_list_height_px *= entities_in_folder.count;
                 }
+            } else {
+                ImGui.TextDisabled("(none)");
             }
         }
+    }
 
-        // This block implements the feature where if you toggle visibility, editing colors and cycling/resetting display modes on a selected item it changes it on all selected items
-        // This is similar to how editing the context menu of an item selection changes the corresponding field in all selected items
-        {
-            if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
-                source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
-                for app.entities if it.is_selected {
-                    <<entity_primary_color(it) = <<entity_primary_color(source);
-                }
-            }
-            if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
-                source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
-                for app.entities if it.is_selected {
-                    it.display_info.display_mode = source.display_info.display_mode;
-                }
-            }
-            if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
-                for app.entities if it.is_selected {
-                    it.display_info.display_mode = Display_Info.{}.display_mode;
-                    reset_entity_primary_color(it);
-                }
-            }
-            if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
-                source : *Entity =app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click];
-                for app.entities if it.is_selected {
-                    it.display_info.is_visible = source.display_info.is_visible;
-                }
+    // This block implements the feature where if you toggle visibility, editing colors and cycling/resetting display modes on a selected item it changes it on all selected items
+    // This is similar to how editing the context menu of an item selection changes the corresponding field in all selected items
+    {
+        if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
+            source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
+            for app.entities if it.is_selected {
+                <<entity_primary_color(it) = <<entity_primary_color(source);
             }
         }
-
-        if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
-            remove_entity_by_index(entity_to_remove);
+        if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
+            source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
+            for app.entities if it.is_selected {
+                it.display_info.display_mode = source.display_info.display_mode;
+            }
         }
-
-        if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
-            fit_scene_on_screen();
+        if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
+            for app.entities if it.is_selected {
+                it.display_info.display_mode = Display_Info.{}.display_mode;
+                reset_entity_primary_color(it);
+            }
         }
+        if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
+            source : *Entity =app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click];
+            for app.entities if it.is_selected {
+                it.display_info.is_visible = source.display_info.is_visible;
+            }
+        }
+    }
+
+    if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
+        remove_entity_by_index(entity_to_remove);
+    }
+
+    if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
+        fit_scene_on_screen();
     }
 }
 
@@ -197,7 +214,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
     // Remove button
     ImGui.TableNextColumn();
-    if ImGui.Button(imgui_label("Remove", entity)) {
+    if ImGui.Button(imgui_label("x", entity)) {
         result.entity_to_remove = entity_index;
     }
 
@@ -260,10 +277,10 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         ImGui.TableNextColumn();
         if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
             ImGui.Text("#%", entity_index);
-            Show_Tooltip("Entity index for console commands\nand user selection cursor labels");
+            Show_Tooltip("Entity index for console commands");
         } else {
             ImGui.TextDisabled("#%", entity_index);
-            Show_Tooltip("Entity index for console commands\nand user selection cursor labels\nIncrease max point count to select this entity");
+            Show_Tooltip("Entity index for console commands\nIncrease max point count to select this entity");
         }
     }
 
@@ -376,37 +393,32 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
 
 
-show_add_item_ui :: () {
-    ImGui.Button("Presets");
+show_preset_ui :: () {
 
-    current_pos := ImGui.GetWindowPos();
-    current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
-    ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+    indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    // Set popup border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+    if ImGui.TreeNodeEx("Examples", ImGui.TreeNodeFlags.SpanAvailWidth) {
+        defer ImGui.TreePop();
 
-    if ImGui.BeginPopupContextItem("##Presets", popup_flags=.MouseButtonLeft) {
-        defer ImGui.EndPopup();
-
-        // Undo the previous thing so internals don't have this color
-        ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-        ImGui.Text("Preset Shapes");
-        ImGui.Separator();
+        indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        ImGui.Unindent(indent2 - indent);
+        defer ImGui.Indent(indent2 - indent);
 
         if ImGui.Button("Cube    ") { add_preset_cube(); }
-        Show_Tooltip("A basic cube. Hold Alt to fix position");
-        ImGui.SameLine(); 
+        ImGui.SameLine();
+        ImGui.Text("A basic cube. Hold Alt to fix position");
+
         if ImGui.Button("Widget  ") { add_preset_widget(); }
-        Show_Tooltip("A mesh generated from a CAD file");
+        ImGui.SameLine();
+        ImGui.Text("A mesh generated from a CAD file");
 
         if ImGui.Button("BooleanA") { add_preset_boolean_a(); }
-        Show_Tooltip("A failed mesh boolean");
         ImGui.SameLine();
+        ImGui.Text("A failed mesh boolean");
+
         if ImGui.Button("BooleanB") { add_preset_boolean_b(); }
-        Show_Tooltip("A failed cylinder/cone mesh boolean");
+        ImGui.SameLine();
+        ImGui.Text("A failed cylinder/cone mesh boolean");
     }
 }
 
@@ -473,136 +485,173 @@ DONE, Labelling_Mode.RAY_CAST));
 
 }
 
-show_selection_ui :: () {
-    // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
+show_inspect_ui :: () {
+    indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    // Selection Mode UI
-    if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
-        defer ImGui.EndTable();
+    if ImGui.TreeNodeEx("Inspect", ImGui.TreeNodeFlags.SpanAvailWidth) {
+        defer ImGui.TreePop();
 
-        it := *app.user_selection; // @Cleanup remove this weird alias
+        indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        ImGui.Unindent(indent2 - indent);
+        defer ImGui.Indent(indent2 - indent);
 
-        ImGui.TableNextRow();
+        ImGui.Checkbox("Show Vertex Coord", *app.label_vertex_coord);
 
-        // Remove button
-        ImGui.TableNextColumn();
-        {
-            disable_cache_button := is_empty(app.user_selection);
-            if disable_cache_button       ImGui.BeginDisabled();
-            defer if disable_cache_button ImGui.EndDisabled();
+        ImGui.Checkbox("Show Vertex Index", *app.label_vertex_index);
+        Show_Tooltip("Show index of .obj 'v' directives");
 
-            if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
-                if !is_empty(app.user_selection) {
-                    new_entity : *Entity = New(Entity);
+        ImGui.Checkbox("Show Point Index", *app.label_point_index);
+        Show_Tooltip("Show index of .obj 'p' directives");
 
-                    merge(*new_entity.mesh, app.user_selection.mesh);
-                    counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
-                    set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
-                    set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
-                    counter.count += 1;
+        ImGui.Checkbox("Show Segment Index", *app.label_segment_index);
+        Show_Tooltip("Show index of .obj 'l' directives");
 
-                    add_entity(new_entity, app.settings.duplicate_file_behaviour);
+        ImGui.Checkbox("Show Triangle Index", *app.label_triangle_index);
+        Show_Tooltip("Show index of .obj 'f' directives");
 
-                    deinit(*app.user_selection);
+        // nocommit Add global label color, scale and format settings here, and make these apply to all items regardless of visibility, keep options to override these changes per-item though
+    }
+}
 
-                    log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
-                } else {
-                    log("Point Selection caching omitted: Point Selection is empty");
+show_select_ui :: () {
+
+    indent := ImGui.GetTreeNodeToLabelSpacing();
+
+    if ImGui.TreeNodeEx("Select", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        ImGui.Unindent(indent2 - indent);
+        defer ImGui.Indent(indent2 - indent);
+
+        // Selection Mode UI
+        if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
+            defer ImGui.EndTable();
+
+            it := *app.user_selection; // @Cleanup remove this weird alias
+
+            ImGui.TableNextRow();
+
+            // Remove button
+            ImGui.TableNextColumn();
+            {
+                disable_cache_button := is_empty(app.user_selection);
+                if disable_cache_button       ImGui.BeginDisabled();
+                defer if disable_cache_button ImGui.EndDisabled();
+
+                if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
+                    if !is_empty(app.user_selection) {
+                        new_entity : *Entity = New(Entity);
+
+                        merge(*new_entity.mesh, app.user_selection.mesh);
+                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
+                        set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
+                        set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+                        counter.count += 1;
+
+                        add_entity(new_entity, app.settings.duplicate_file_behaviour);
+
+                        deinit(*app.user_selection);
+
+                        log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
+                    } else {
+                        log("Point Selection caching omitted: Point Selection is empty");
+                    }
+                }
+                Show_Tooltip("Adds a new item based on this selection\nand resets the Point Selection");
+            }
+
+            // Color selection
+            {
+                ImGui.TableNextColumn();
+                if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
+                    // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
+                    it.display_info.vertex_label_style.label_color = darken(it.display_info.points_color, .8);
                 }
             }
-            Show_Tooltip("Adds a new item based on this selection\nand resets the Point Selection");
-        }
 
-        // Color selection
-        {
-            ImGui.TableNextColumn();
-            if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
-                // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
-                it.display_info.vertex_label_style.label_color = darken(it.display_info.points_color, .8);
+            // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
+            {
+                ImGui.TableNextColumn();
+                visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
+                Show_Tooltip("If enabled Ctrl LMB selects points");
+                // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
             }
-        }
 
-        // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
-        {
             ImGui.TableNextColumn();
-            visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
-            Show_Tooltip("If enabled Ctrl LMB selects points");
-            // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
+            ImGui.Text("Point Selection");
+            if it.display_info.is_visible {
+                bindings : [..]Binding_With_Description;
+                bindings.allocator = temp;
+                array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
+                array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
+                array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
+                array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
+                Show_Tooltip_Binding(..bindings);
+            } else {
+                Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
+            }
+            if ImGui.IsItemClicked() && is_empty(it) == false {
+                fit_on_screen(it);
+            }
+            was_hovered := it.is_hovered;
+            it.is_hovered = ImGui.IsItemHovered();
+            if it.is_hovered {
+                it.display_info.flash_wave_dt += io().DeltaTime;
+            } else if was_hovered {
+                it.display_info.flash_wave_dt = 0;
+            }
+
+            current_pos := ImGui.GetWindowPos();
+            current_size := ImGui.GetWindowSize();
+            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
+            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+            
+            // Set popup border color to match the selection/RMB target item color
+            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+
+            if ImGui.BeginPopupContextItem(imgui_label("##selection_context_menu", it)) {
+                defer ImGui.EndPopup();
+
+                // Undo the previous thing so internals don't have this color
+                ScopedPopupBorderTheme(original_border_color, original_border_size);
+
+                // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
+                // ImGui.SameLine();
+                // ImGui.PushItemWidth(70);
+                // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
+                // ImGui.PopItemWidth();
+                // Show_Tooltip("Opacity");
+
+                vertex_label_style := *it.display_info.vertex_label_style;
+
+                ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
+                ImGui.SameLine();
+                ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.InputInt("Point size", *it.display_info.points_size);
+                it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
+
+                format_float_ui(*vertex_label_style.format_float);
+
+                ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
+
+                ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
+                Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
+                ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
+                ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
+
+                ImGui.Separator();
+
+                ImGui.Text("#points = %", it.mesh.positions.count);
+
+                maybe_update_render_info(*it.render_info, *it.mesh);
+                aabb := it.render_info.bounding_aabb;
+                imgui_text_for_aabb(it.render_info.bounding_aabb);
+            }
+
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
         }
-
-        ImGui.TableNextColumn();
-        ImGui.Text("Point Selection");
-        if it.display_info.is_visible {
-            bindings : [..]Binding_With_Description;
-            bindings.allocator = temp;
-            array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
-            array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
-            array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
-            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
-            Show_Tooltip_Binding(..bindings);
-        } else {
-            Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
-        }
-        if ImGui.IsItemClicked() && is_empty(it) == false {
-            fit_on_screen(it);
-        }
-        was_hovered := it.is_hovered;
-        it.is_hovered = ImGui.IsItemHovered();
-        if it.is_hovered {
-            it.display_info.flash_wave_dt += io().DeltaTime;
-        } else if was_hovered {
-            it.display_info.flash_wave_dt = 0;
-        }
-
-        current_pos := ImGui.GetWindowPos();
-        current_size := ImGui.GetWindowSize();
-        window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
-        ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-        
-        // Set popup border color to match the selection/RMB target item color
-        original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-        if ImGui.BeginPopupContextItem(imgui_label("##selection_context_menu", it)) {
-            defer ImGui.EndPopup();
-
-            // Undo the previous thing so internals don't have this color
-            ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-            // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
-            // ImGui.SameLine();
-            // ImGui.PushItemWidth(70);
-            // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
-            // ImGui.PopItemWidth();
-            // Show_Tooltip("Opacity");
-
-            vertex_label_style := *it.display_info.vertex_label_style;
-
-            ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
-            ImGui.SameLine();
-            ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.InputInt("Point size", *it.display_info.points_size);
-            it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
-
-            format_float_ui(*vertex_label_style.format_float);
-
-            ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
-
-            ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
-            Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
-            ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
-            ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
-
-            ImGui.Separator();
-
-            ImGui.Text("#points = %", it.mesh.positions.count);
-
-            maybe_update_render_info(*it.render_info, *it.mesh);
-            aabb := it.render_info.bounding_aabb;
-            imgui_text_for_aabb(it.render_info.bounding_aabb);
-        }
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
     }
 }
 
@@ -1210,27 +1259,11 @@ DONE;
 }
 
 show_camera_controls :: () {
-    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
-    window_pivot := make_ImVec2(1, 0);
-
-    using ImGui.WindowFlags;
-
-    ImGui.PushStyleColor(xx ImGui.Col.Border, app.theme.camera_ui_button_border_color);
-    defer ImGui.PopStyleColor();
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
     defer ImGui.PopStyleVar();
     defer ImGui.PopStyleVar();
-
-    // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
-
-    ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
-    ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
-    defer ImGui.End();
-
-    ScopedWindowBorderTheme(original_border_color, original_border_size);
 
     X_AXIS :: Vector3.{1, 0, 0};
     Y_AXIS :: Vector3.{0, 1, 0};
@@ -2206,7 +2239,7 @@ entity_source_tooltip :: (entity : Entity) {
             Show_Tooltip(tprint("Command: %\nCreated: %", source.console_command, filetime_to_readable_date(source.creation_time)));
         case .Entity_Source_Preset;
             source := isa(entity.source, Entity_Source_Preset); assert(source != null);
-            Show_Tooltip(tprint("Preset shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
+            Show_Tooltip(tprint("Example shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
         case .Entity_Source_Selection;
             source := isa(entity.source, Entity_Source_Selection); assert(source != null);
             Show_Tooltip(tprint("% Selection\nCreated: %", to_nice_string(entity.mesh.geometry_format), filetime_to_readable_date(source.creation_time)));

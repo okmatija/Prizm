@@ -5,7 +5,7 @@ Labelling_Mode :: enum {
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
 }
 
-// @Refactor rename this Label_Theme, and use it for triangle labels (at centroid, so you can see centroids, too)
+// nocommit rename this Vertex_Label_Theme
 Label_Theme :: struct {
     show_position := false;
     show_index := false;

@@ -49,7 +49,7 @@ Entity :: struct {
 }
 
 SELECTION_FOLDER :: "Selections";
-PRESET_SHAPE_FOLDER :: "Preset Shapes";
+PRESET_SHAPE_FOLDER :: "Examples";
 COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
 /*
@@ -300,11 +300,10 @@ entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annota
 }
 
 // nocommit Rename to entity_header_annotation
+// The header annotation is the first block annotation
 find_header_annotation :: (entity : *Entity) -> *Annotation {
-    for *annotation : entity.block_annotations {
-        if annotation.kind == .BLOCK && annotation.id == 1 {
-            return annotation;
-        }
+    if entity.block_annotations.count > 0 {
+        return *entity.block_annotations[0];
     }
     return null;
 }

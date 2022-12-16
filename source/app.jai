@@ -117,8 +117,12 @@ App :: struct {
     console : Console;
     entities : [..]*Entity;
 
-    vertex_label_style : Label_Theme;
-    element_label_style : Label_Theme;
+    // Label visibility should be global but we can allow per-item style
+    label_vertex_coord := false;
+    label_vertex_index := false;   // Index of .obj 'v' directives
+    label_point_index := false;    // Index of .obj 'p' directives
+    label_segment_index := false;  // Index of .obj 'l' directives
+    label_triangle_index := false; // Index of .obj 'f' directives
 
     keymap : Keymap;
     keymap_actions : Keymap;
@@ -314,7 +318,6 @@ User_Settings :: struct {
     camera_zoom_max_limited_by_scene_bounding_sphere := false;
 
     closest_point_query_max_dist_px := 20;
-
     labelling_mode : Labelling_Mode = .RAY_CAST;
 
     // if labelling_mode == .RAY_CAST  this is the distance in pixels used when the labels are shown on nearby elements
