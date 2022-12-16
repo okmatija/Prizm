@@ -22,16 +22,18 @@ Label_Theme :: struct {
 
 // For mesh topology/geometry labels
 Element_Label_Theme :: struct {
-    is_visible := false;
-    scale := .3;
-    color := Vector4.{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-    location := Label_Location.CLOSEST_POINT;
+    show_index := false;
 
-    Label_Location :: enum {
-        CLOSEST_POINT;
-        VIEWPORT; // nocommit Implement me
-        CENTROID; // nocommit Implement me
-    }
+    label_scale := .3;
+    label_color := Vector4.{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+    label_location := Label_Location.CLOSEST_POINT;
+}
+
+Label_Location :: enum {
+    CLOSEST_POINT;
+    VIEWPORT; // nocommit Implement me
+    CONSOLE; // nocommit Implement me
+    CENTROID; // nocommit Implement me
 }
 
 is_visible :: (theme : Label_Theme) -> bool {
@@ -157,9 +159,10 @@ Display_Info :: struct {
     vertex_label_style : Label_Theme;
     element_label_theme : Label_Theme;
     element_label_theme.label_color = .{1., 1., 0, 1};
-    // point_label_theme : Element_Label_Theme;
-    // segment_label_theme : Element_Label_Theme;
-    // triangle_label_theme : Element_Label_Theme;
+    // nocommit hook these up properly
+    point_label_theme : Element_Label_Theme;
+    segment_label_theme : Element_Label_Theme;
+    triangle_label_theme : Element_Label_Theme;
     annotation_theme : Annotation_Theme;
     // attribute_theme : [..]Attribute_Theme;
 

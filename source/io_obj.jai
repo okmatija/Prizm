@@ -281,14 +281,13 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 current_line = tok.line_number;
 
                 remainder : string = string_between_hashes(tok.string_value);
-                if remainder {
-                    if remainder[0] == #char "!" {
-                        // Remove the ! and any space after it
-                        remainder = advance(remainder, 1);
-                        array_add(*commands, trim_left(remainder));
-                    } else {
-                        array_add(*block, remainder);
-                    }
+                if remainder && remainder[0] == #char "!" {
+                    // Remove the ! and any space after it
+                    remainder = advance(remainder, 1);
+                    array_add(*commands, trim_left(remainder));
+                } else {
+                    // Block annotations can be empty, which is handy to preserve formatting
+                    array_add(*block, remainder);
                 }
 
                 eat_token(*parser);

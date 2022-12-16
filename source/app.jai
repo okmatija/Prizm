@@ -118,11 +118,13 @@ App :: struct {
     entities : [..]*Entity;
 
     // Label visibility should be global but we can allow per-item style
-    label_vertex_coord := false;
-    label_vertex_index := false;   // Index of .obj 'v' directives
-    label_point_index := false;    // Index of .obj 'p' directives
-    label_segment_index := false;  // Index of .obj 'l' directives
-    label_triangle_index := false; // Index of .obj 'f' directives
+    // nocommit Hook these up
+    show_vertex_coord := false;
+    show_vertex_index := false;   // Index of .obj 'v' directives
+    show_point_index := false;    // Index of .obj 'p' directives
+    show_segment_index := false;  // Index of .obj 'l' directives
+    show_triangle_index := false; // Index of .obj 'f' directives
+    show_annotations := false;    // String after first # and before second # or first ; in a .obj file
 
     keymap : Keymap;
     keymap_actions : Keymap;

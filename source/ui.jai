@@ -72,7 +72,7 @@ show_right_window :: () {
             defer ImGui.EndTabItem();
 
             show_select_ui();
-            show_inspect_ui();
+            show_labels_ui();
             show_preset_ui();
         }
     }
@@ -485,28 +485,50 @@ DONE, Labelling_Mode.RAY_CAST));
 
 }
 
-show_inspect_ui :: () {
+show_labels_ui :: () {
     indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    if ImGui.TreeNodeEx("Inspect", ImGui.TreeNodeFlags.SpanAvailWidth) {
+    if ImGui.TreeNodeEx("Labels", ImGui.TreeNodeFlags.SpanAvailWidth) {
         defer ImGui.TreePop();
 
         indent2 := ImGui.GetTreeNodeToLabelSpacing();
         ImGui.Unindent(indent2 - indent);
         defer ImGui.Indent(indent2 - indent);
+        
+        ImGui.Text("Changes affect all items");
 
-        ImGui.Checkbox("Show Vertex Coord", *app.label_vertex_coord);
+        if ImGui.Checkbox("Show Vertex Coord", *app.show_vertex_coord) {
+            for app.entities {
+                it.display_info.vertex_label_style.show_position = app.show_vertex_coord; // @CompilerBug Well, not a but a feature request, I had forgotten the = ...; here so the expression just did nothing, can that be caught?
+            }
+        }
 
-        ImGui.Checkbox("Show Vertex Index", *app.label_vertex_index);
+        if ImGui.Checkbox("Show Vertex Index", *app.show_vertex_index) {
+            for app.entities {
+                it.display_info.vertex_label_style.show_index = app.show_vertex_index;
+            }
+        }
         Show_Tooltip("Show index of .obj 'v' directives");
 
-        ImGui.Checkbox("Show Point Index", *app.label_point_index);
+        if ImGui.Checkbox("Show Point Index", *app.show_point_index) {
+            for app.entities {
+                it.display_info.point_label_theme.show_index = app.show_point_index;
+            }
+        }
         Show_Tooltip("Show index of .obj 'p' directives");
 
-        ImGui.Checkbox("Show Segment Index", *app.label_segment_index);
+        if ImGui.Checkbox("Show Segment Index", *app.show_segment_index) {
+            for app.entities {
+                it.display_info.segment_label_theme.show_index = app.show_segment_index;
+            }
+        }
         Show_Tooltip("Show index of .obj 'l' directives");
 
-        ImGui.Checkbox("Show Triangle Index", *app.label_triangle_index);
+        if ImGui.Checkbox("Show Triangle Index", *app.show_triangle_index) {
+            for app.entities {
+                it.display_info.triangle_label_theme.show_index = app.show_triangle_index;
+            }
+        }
         Show_Tooltip("Show index of .obj 'f' directives");
 
         // nocommit Add global label color, scale and format settings here, and make these apply to all items regardless of visibility, keep options to override these changes per-item though

@@ -25,7 +25,8 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
 - Label rendering improvements:
 
-  - TODO Mesh geometry/topology label visibility is now a global rather than per-item setting and collected these under the Inspect section of the Items tab
+  - TODO Mesh geometry/topology and annotation label visibility is now a global rather than per-item setting and collected these under the Inspect section of the Items tab (All items have annotations but attributes vary, so visibility is controlled locally)
+  - TODO Label visibility is globally controlled, but styles can be changed per-item
   - Fixed overlapping text labels of the same type in the same item. This is probably the most common case, more work is needed to fix other cases
     - ex1. labels for co-located vertices in the same item no longer overlap
     - ex2. labels for co-located vertices on different items will still overlap
