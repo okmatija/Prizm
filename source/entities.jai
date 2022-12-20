@@ -49,7 +49,7 @@ Entity :: struct {
 }
 
 SELECTION_FOLDER :: "Selections";
-PRESET_SHAPE_FOLDER :: "Examples";
+PRESET_SHAPE_FOLDER :: "Presets";
 COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
 /*

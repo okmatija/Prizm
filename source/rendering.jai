@@ -7,34 +7,23 @@ Labelling_Mode :: enum {
 
 // nocommit rename this Vertex_Label_Theme
 Label_Theme :: struct {
-    show_position := false;
+    // nocommit replace with a combo box
     show_index := false;
+    show_position := false;
 
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
     // world_space : bool = false; // @Incomplete
-    format_float : FormatFloat; // We ignore the `value` field
-    format_float.mode = .SHORTEST;
-    format_float.trailing_width = 8;
-    format_float.zero_removal = .NO;
 }
 
 // For mesh topology/geometry labels
 Element_Label_Theme :: struct {
     show_index := false;
-
     label_scale := .3;
     label_color := Vector4.{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-    label_location := Label_Location.CLOSEST_POINT;
 }
 
-Label_Location :: enum {
-    CLOSEST_POINT;
-    VIEWPORT; // nocommit Implement me
-    CONSOLE; // nocommit Implement me
-    CENTROID; // nocommit Implement me
-}
 
 is_visible :: (theme : Label_Theme) -> bool {
     return theme.show_position || theme.show_index;
@@ -54,17 +43,6 @@ Attribute_Theme :: struct {
     visible := false;
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-
-    format_float : FormatFloat; // We ignore the `value` field
-    format_float.mode = .SHORTEST;
-    format_float.trailing_width = 8;
-    format_float.zero_removal = .NO;
-
-    format_struct : FormatStruct; // We ignore the `value` field
-}
-
-Attribute_Theme_Update :: struct {
-    // @Incomplete
 }
 
 Display_Mode :: enum #specified {
@@ -149,8 +127,9 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 Display_Info :: struct {
 
     is_visible := true; // Is the item visible overall?
-
-    flash_wave_dt : float = 0.; @NoSync
+    display_mode := Display_Mode.BLINN_PHONG;
+    backface_mode := Backface_Mode.FIXED;
+    flat_shading := true;
 
     //
     // Labeling members
@@ -185,20 +164,26 @@ Display_Info :: struct {
     surface_visible := true;
     surface_color := Vector4.{1., 1., 1., 1.};
 
-    display_mode := Display_Mode.BLINN_PHONG;
-    backface_mode := Backface_Mode.FIXED;
-    flat_shading := true;
-
-    aabb_visible := false; @NoSync
+    //
+    // Clipping
+    //
 
     // These are all in world space
+    clip_mode := Clip_Mode.HIDDEN;
     clip_ranges : [3]Clip_Range;
+    clip_sphere : Clip_Sphere;
+
     clip_ranges[0] = .{normal=.{1,0,0}};
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
-    clip_sphere, clip_sphere_prev : Clip_Sphere;
 
-    clip_mode := Clip_Mode.HIDDEN;
+    //
+    // Transient data
+    //
+
+    flash_wave_dt : float = 0.;
+    aabb_visible := false;
+    clip_sphere_prev : Clip_Sphere;
 }
 
 is_clipped :: (display_info : Display_Info, point : Point3, test_sphere := true, test_ranges := true) -> bool {
@@ -517,8 +502,8 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
     glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
-get_point_text_format_float :: (v : float) -> FormatFloat #expand {
-    f := `theme.format_float;
+get_point_text_format_float :: (v : float) -> FormatFloat {
+    f := app.label_format.format_float;
     f.value = v;
     return f;
 }

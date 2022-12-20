@@ -9,7 +9,10 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
   - Since there are more tools now moved them to a tab in the window with camera controls
   - Saved some space by renaming item "Remove" button to "x"
-  - Presets shapes are now called Examples, and have been moved into the new "Tools" tab
+  - Presets shapes menu has been moved into the new "Preset" tool in the "Tools" tab
+  - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
+  - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
+  - Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable panes and more icons
 
 - Annotations
 
@@ -35,6 +38,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Added a new ray-casting labelling mode (the new default) in which labels are shown on the intersected/closed labeled element. This can be changed in the Options tab along with the radius in pixels for the closest point case.
   - Added an option (enabled by default) to show vertex labels when inspecting triangle/segment/point labels
   - Removed the option to skip labelling back-facing triangles/oriented points, it was not very useful and less so now that TODO occlusion is supported
+  - Moved the label coordinate float formatting into "Options > Labelling"
 
 - Data-structure changes
 

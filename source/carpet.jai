@@ -217,14 +217,14 @@ imgui_label :: (label : string, ptr : *void = null) -> *u8 {
 
 // Combo box to select display mode enum value
 // @Cleanup Deduce the info_enum from the data
-combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
+combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum, flags : ImGui.ComboFlags = .None) -> bool {
     changed := false;
     value := get_enum_value(data, info_enum);
     value_name := "";
     for info_enum.names {
         if value == info_enum.values[it_index]  value_name = it;
     }
-    if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name)) {
+    if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name), flags) {
         for info_enum.names {
             is_selected := value == info_enum.values[it_index];
             if ImGui.Selectable(temp_c_string(it), is_selected) {

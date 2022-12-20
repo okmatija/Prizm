@@ -111,14 +111,13 @@ any_active_clipping :: (target : Target_Items) -> bool {
 
 toggle_clipping :: (target : Target_Items) {
 
-    clip_active := any_active_clipping(target);
+    clip_active := *app.selection_display_info.clip_sphere.is_active;
+    <<clip_active = !<<clip_active;
 
-    // Toggle and apply it to target entities
-    clip_active = !clip_active;
     for app.entities if Is_Target(it) {
-        it.display_info.clip_sphere.is_active = clip_active;
+        it.display_info.clip_sphere.is_active = <<clip_active;
         for * it.display_info.clip_ranges {
-            it.is_active = clip_active;
+            it.is_active = <<clip_active;
         }
     }
 }

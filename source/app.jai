@@ -81,6 +81,7 @@ App :: struct {
     // triad.y_axis.display_info.backface_mode = .FIXED;
     // triad.z_axis.display_info.backface_mode = .FIXED;
 
+//nocommit rename this to edit_display_info
     // Item Context menu UI, Action button UI and Action keybindings edit this value and apply it to all target entities (see Target_Items enum)
     // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
     // element label themes, but rather than pressing the checkboxes, we change the theme with the hotkey
@@ -92,6 +93,27 @@ App :: struct {
     selection_display_info.wireframe_visible = false;
     selection_display_info.surface_visible = false;
     selection_display_info.aabb_visible = false;
+    edit_target := Target_Items.ALL_ITEMS;
+
+    Label_Format :: struct {
+        format_float : FormatFloat;  // We ignore the `value` field
+        format_float.mode = .SHORTEST;
+        format_float.trailing_width = 8;
+        format_float.zero_removal = .NO;
+
+        format_struct : FormatStruct; // We ignore the `value` field
+        format_struct.use_long_form_if_more_than_this_many_members = 99999;
+
+        location : Location = .CLOSEST_POINT;
+
+        Location :: enum {
+            CLOSEST_POINT;
+            VIEWPORT; // nocommit Implement me
+            CONSOLE; // nocommit Implement me
+            CENTROID; // nocommit Implement me
+        }
+    }
+    label_format : Label_Format;
 
     // @Refactor Make this entity 0
     user_selection : Entity;
@@ -116,15 +138,6 @@ App :: struct {
     camera : Camera;
     console : Console;
     entities : [..]*Entity;
-
-    // Label visibility should be global but we can allow per-item style
-    // nocommit Hook these up
-    show_vertex_coord := false;
-    show_vertex_index := false;   // Index of .obj 'v' directives
-    show_point_index := false;    // Index of .obj 'p' directives
-    show_segment_index := false;  // Index of .obj 'l' directives
-    show_triangle_index := false; // Index of .obj 'f' directives
-    show_annotations := false;    // String after first # and before second # or first ; in a .obj file
 
     keymap : Keymap;
     keymap_actions : Keymap;
@@ -446,6 +459,7 @@ Simp :: #import "Simp_beta_0_1_016";
 #load "changelog.jai";
 #load "colors.jai";
 #load "demo_mode.jai";
+#load "updates.jai";
 
 #load "console/console.jai";
 #load "console/commands.jai";

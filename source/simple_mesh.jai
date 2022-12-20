@@ -42,7 +42,6 @@ Simple_Mesh_Attribute :: struct {
     Attribute_Display_Info :: struct {
         // @Incomplete nocommit Only show the relevant parts of the format options depending on the type of the values
         theme : Attribute_Theme;
-        theme.format_struct.use_long_form_if_more_than_this_many_members = 99999;
     }
 
     // Rendering of attributes is @Incomplete

@@ -62,18 +62,18 @@ show_right_window :: () {
     if ImGui.BeginTabBar("##RightWindowTabBar", flags=ImGui.TabBarFlags.None) {
         defer ImGui.EndTabBar();
 
+        if ImGui.BeginTabItem("Tools") {
+            defer ImGui.EndTabItem();
+
+            show_edit_ui();
+            show_select_ui();
+            show_preset_ui();
+        }
+
         if ImGui.BeginTabItem("Camera") {
             defer ImGui.EndTabItem();
 
             show_camera_controls();
-        }
-
-        if ImGui.BeginTabItem("Tools") {
-            defer ImGui.EndTabItem();
-
-            show_select_ui();
-            show_labels_ui();
-            show_preset_ui();
         }
     }
 }
@@ -228,7 +228,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         if entity.display_info.display_mode == .NORMALS {
             ImGui.TextDisabled("NR."); // @Design Replace this with a image with a normal gradient
         } else {
-            color := entity_primary_color(entity);
+            color : *Vector4 = entity_primary_color(entity);
             if color {
                 color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
             }
@@ -395,14 +395,16 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
 show_preset_ui :: () {
 
-    indent := ImGui.GetTreeNodeToLabelSpacing();
+    // indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    if ImGui.TreeNodeEx("Examples", ImGui.TreeNodeFlags.SpanAvailWidth) {
+    do_tree := ImGui.TreeNodeEx("Preset", ImGui.TreeNodeFlags.SpanAvailWidth);
+    Show_Tooltip("Create preset shapes\nSome function as tutorials");
+    if do_tree {
         defer ImGui.TreePop();
 
-        indent2 := ImGui.GetTreeNodeToLabelSpacing();
-        ImGui.Unindent(indent2 - indent);
-        defer ImGui.Indent(indent2 - indent);
+        // indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        // ImGui.Unindent(indent2 - indent);
+        // defer ImGui.Indent(indent2 - indent);
 
         if ImGui.Button("Cube    ") { add_preset_cube(); }
         ImGui.SameLine();
@@ -436,23 +438,9 @@ show_options :: () {
         if app.background_style == .SOLID_COLOR {
             ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
         }
-        ImGui.DragFloat("Font Scale", *io().FontGlobalScale, .001, format="%.3f");
+        ImGui.DragFloat("UI Font Scale", *io().FontGlobalScale, .001, format="%.3f");
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
-
-        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
-        Show_Tooltip(tprint(#string DONE
-%: Show labels at the intersection/closest point of a camera ray query
-%: Show labels within some distance of the cursor location
-DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
-
-        {
-            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-            radius_px := cast(float) app.settings.labelling_radius_px;
-            ImGui.DragFloat("Spotlight Labelling Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-            Show_Tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
-            app.settings.labelling_radius_px = cast(int) radius_px;
-        }
 
         {
             radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
@@ -479,72 +467,87 @@ DONE, Labelling_Mode.RAY_CAST));
         if disable_window_resize_button ImGui.EndDisabled();
     }
 
+    if ImGui.TreeNodeEx("Labelling", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+        defer ImGui.TreePop();
+
+        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
+        Show_Tooltip(tprint(#string DONE
+%: Show labels at the intersection/closest point of a camera ray query
+%: Show labels within some distance of the cursor location
+DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
+
+        ImGui.PushItemWidth(70);
+        combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
+        ImGui.PopItemWidth();
+
+        {
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.labelling_radius_px;
+            ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            Show_Tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
+            app.settings.labelling_radius_px = cast(int) radius_px;
+        }
+
+        format_float_ui(*app.label_format.format_float);
+        format_struct_ui(*app.label_format.format_struct);
+    }
+
     // :UserConfig add a button to overwrite the user settings file with new defaults here?
     inspect("Advanced", *app.settings);
     clamp_user_settings();
 
 }
 
-show_labels_ui :: () {
-    indent := ImGui.GetTreeNodeToLabelSpacing();
+show_edit_ui :: () {
+    // indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    if ImGui.TreeNodeEx("Labels", ImGui.TreeNodeFlags.SpanAvailWidth) {
+    do_tree := ImGui.TreeNodeEx("Edit", ImGui.TreeNodeFlags.SpanAvailWidth);
+    Show_Tooltip("Apply edits to target items");
+    if do_tree {
         defer ImGui.TreePop();
 
-        indent2 := ImGui.GetTreeNodeToLabelSpacing();
-        ImGui.Unindent(indent2 - indent);
-        defer ImGui.Indent(indent2 - indent);
-        
-        ImGui.Text("Changes affect all items");
+        // indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        // ImGui.Unindent(indent2 - indent);
+        // defer ImGui.Indent(indent2 - indent);
 
-        if ImGui.Checkbox("Show Vertex Coord", *app.show_vertex_coord) {
-            for app.entities {
-                it.display_info.vertex_label_style.show_position = app.show_vertex_coord; // @CompilerBug Well, not a but a feature request, I had forgotten the = ...; here so the expression just did nothing, can that be caught?
-            }
+        ImGui.RadioButton("All", xx *app.edit_target, xx Target_Items.ALL_ITEMS);
+        Show_Tooltip("Target all items");
+        ImGui.SameLine();
+        ImGui.RadioButton("Visible", xx *app.edit_target, xx Target_Items.VISIBLE);
+        Show_Tooltip("Target visible items");
+        ImGui.SameLine();
+        ImGui.RadioButton("Selected", xx *app.edit_target, xx Target_Items.SELECTED);
+        Show_Tooltip("Target selected items");
+
+        target : Target_Items = app.edit_target;
+        target_aabb : AxisBox3;
+        for app.entities if Is_Target(it) {
+            maybe_update_render_info(*it.render_info, *it.mesh);
+            // @Volatile @Cleanup only works for a shift
+            aabb := it.render_info.bounding_aabb;
+            aabb.min_point = (it.mesh.world_from_model * make_vector4(aabb.min_point, 1)).xyz;
+            aabb.max_point = (it.mesh.world_from_model * make_vector4(aabb.max_point, 1)).xyz;
+            expand(*target_aabb, aabb);
         }
 
-        if ImGui.Checkbox("Show Vertex Index", *app.show_vertex_index) {
-            for app.entities {
-                it.display_info.vertex_label_style.show_index = app.show_vertex_index;
-            }
-        }
-        Show_Tooltip("Show index of .obj 'v' directives");
-
-        if ImGui.Checkbox("Show Point Index", *app.show_point_index) {
-            for app.entities {
-                it.display_info.point_label_theme.show_index = app.show_point_index;
-            }
-        }
-        Show_Tooltip("Show index of .obj 'p' directives");
-
-        if ImGui.Checkbox("Show Segment Index", *app.show_segment_index) {
-            for app.entities {
-                it.display_info.segment_label_theme.show_index = app.show_segment_index;
-            }
-        }
-        Show_Tooltip("Show index of .obj 'l' directives");
-
-        if ImGui.Checkbox("Show Triangle Index", *app.show_triangle_index) {
-            for app.entities {
-                it.display_info.triangle_label_theme.show_index = app.show_triangle_index;
-            }
-        }
-        Show_Tooltip("Show index of .obj 'f' directives");
-
-        // nocommit Add global label color, scale and format settings here, and make these apply to all items regardless of visibility, keep options to override these changes per-item though
+        display_info : *Display_Info = *app.selection_display_info;
+        update : Display_Info_Update = display_info_ui(display_info, target_aabb);
+        apply_display_info_update(update, app.edit_target);
     }
 }
 
 show_select_ui :: () {
 
-    indent := ImGui.GetTreeNodeToLabelSpacing();
+    // indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    if ImGui.TreeNodeEx("Select", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    do_tree := ImGui.TreeNodeEx("Select", ImGui.TreeNodeFlags.SpanAvailWidth);
+    Show_Tooltip("Create items from mesh point/face selections");
+    if do_tree {
         defer ImGui.TreePop();
 
-        indent2 := ImGui.GetTreeNodeToLabelSpacing();
-        ImGui.Unindent(indent2 - indent);
-        defer ImGui.Indent(indent2 - indent);
+        // indent2 := ImGui.GetTreeNodeToLabelSpacing();
+        // ImGui.Unindent(indent2 - indent);
+        // defer ImGui.Indent(indent2 - indent);
 
         // Selection Mode UI
         if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
@@ -652,8 +655,6 @@ show_select_ui :: () {
                 ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
                 ImGui.InputInt("Point size", *it.display_info.points_size);
                 it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
-
-                format_float_ui(*vertex_label_style.format_float);
 
                 ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
 
@@ -921,54 +922,7 @@ show_item_list_actions_ui :: () {
 
 apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) {
     for app.entities if Is_Target(it) {
-        other := *app.selection_display_info;
-        using it.display_info;
-
-        // @Cleanup Use reflection here
-
-        if set.vertex_label_style_update.show_position     vertex_label_style.show_position     = other.vertex_label_style.show_position;
-        if set.vertex_label_style_update.show_index        vertex_label_style.show_index        = other.vertex_label_style.show_index;
-        if set.vertex_label_style_update.format_float      vertex_label_style.format_float      = other.vertex_label_style.format_float;
-        if set.vertex_label_style_update.label_scale       vertex_label_style.label_scale       = other.vertex_label_style.label_scale;
-        if set.vertex_label_style_update.label_color       vertex_label_style.label_color       = other.vertex_label_style.label_color;
-
-        if set.element_label_theme_update.show_position     element_label_theme.show_position     = other.element_label_theme.show_position;
-        if set.element_label_theme_update.show_index        element_label_theme.show_index        = other.element_label_theme.show_index;
-        if set.element_label_theme_update.format_float      element_label_theme.format_float      = other.element_label_theme.format_float;
-        if set.element_label_theme_update.label_scale       element_label_theme.label_scale       = other.element_label_theme.label_scale;
-        if set.element_label_theme_update.label_color       element_label_theme.label_color       = other.element_label_theme.label_color;
-
-        if set.annotation_theme_update.visible           annotation_theme.visible           = other.annotation_theme.visible;
-        if set.annotation_theme_update.label_scale       annotation_theme.label_scale       = other.annotation_theme.label_scale;
-        if set.annotation_theme_update.label_color       annotation_theme.label_color       = other.annotation_theme.label_color;
-
-        if set.is_visible           is_visible           = other.is_visible;
-        if set.wireframe_visible    wireframe_visible    = other.wireframe_visible;
-        if set.wireframe_width      wireframe_width      = other.wireframe_width;
-        if set.surface_visible      surface_visible      = other.surface_visible;
-        if set.display_mode         display_mode         = other.display_mode;
-        if set.backface_mode        backface_mode        = other.backface_mode;
-        if set.flat_shading         flat_shading         = other.flat_shading;
-        if set.normals_visible      normals_visible      = other.normals_visible;
-        if set.normals_length       normals_length       = other.normals_length;
-        if set.points_visible       points_visible       = other.points_visible;
-        if set.points_size          points_size          = other.points_size;
-
-        for 0..3 {
-            if set.wireframe_color[it]   wireframe_color.component[it]   = other.wireframe_color.component[it];
-            if set.surface_color[it]     surface_color.component[it]     = other.surface_color.component[it];
-            if set.normals_color[it]     normals_color.component[it]     = other.normals_color.component[it];
-            if set.points_color[it]      points_color.component[it]      = other.points_color.component[it];
-        }
-
-        if set.color_reset {
-            reset_entity_primary_color(it);
-        }
-
-        for i : 0..clip_ranges.count-1 {
-            if set.clip_ranges[i] clip_ranges[i] = other.clip_ranges[i];
-        }
-        if set.clip_sphere clip_sphere = other.clip_sphere;
+        apply_update(set, app.selection_display_info, *it.display_info);
     }
 }
 
@@ -1057,9 +1011,12 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                     aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
                     set := display_info_ui(*entity.display_info, aabb_world, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
+                    // nocommit Restore the color reset thing!
+                    /*
                     if set.color_reset {
                         reset_entity_primary_color(entity);
                     }
+                    */
 
                 } else {
                     if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
@@ -1134,18 +1091,17 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                         expand(*selection_aabb, aabb);
                     }
 
-                    set := display_info_ui(*app.selection_display_info, selection_aabb);
+                    update := display_info_ui(*app.selection_display_info, selection_aabb);
 
-                    apply_display_info_update(set, .SELECTED);
+                    apply_display_info_update(update, .SELECTED);
                 }
             }
 
-            annotation_theme_ui :: (theme : *Annotation_Theme, update : *Annotation_Theme_Update) {
-                update.visible = ImGui.Checkbox("Visible", *theme.visible);
-
+            annotation_theme_ui :: (theme : *Annotation_Theme) {
                 // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-                update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
+                ImGui.Checkbox("Visible", *theme.visible);
+                ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
             }
 
             if ImGui.BeginTabItem("Annotations") {
@@ -1160,11 +1116,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 }
                 if ImGui.TreeNodeEx("Annotation Labels", .SpanAvailWidth) {
                     defer ImGui.TreePop();
-
-                    theme :  *Annotation_Theme = *display_info.annotation_theme;
-                    update : *Annotation_Theme_Update = *set.annotation_theme_update;
-
-                    annotation_theme_ui(theme, update);
+                    annotation_theme_ui(*display_info.annotation_theme);
                 }
                 if entity.is_selected {
                     apply_display_info_update(set, .SELECTED);
@@ -1174,15 +1126,11 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 display_annotations(entity, entity_index);
             }
 
-            attribute_theme_ui :: (theme : *Attribute_Theme, update : *Attribute_Theme_Update) {
-                update.visible = ImGui.Checkbox("Visible", *theme.visible);
-
+            attribute_theme_ui :: (theme : *Attribute_Theme) {
                 // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-                update.label_color = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                update.label_scale = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-
-                format_float_ui(*theme.format_float);
-                format_struct_ui(*theme.format_struct);
+                ImGui.Checkbox("Visible", *theme.visible);
+                ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
             }
 
 
@@ -1209,8 +1157,7 @@ DONE;
 
                     if ImGui.TreeNodeEx("Attribute Labels", .SpanAvailWidth) {
                         defer ImGui.TreePop();
-                        update : Attribute_Theme_Update; // nocommit Hook this up
-                        attribute_theme_ui(*base_attribute.display_info.theme, *update);
+                        attribute_theme_ui(*base_attribute.display_info.theme);
                     }
 
                     if base_attribute.type == {
@@ -1261,8 +1208,8 @@ DONE;
 
                                             ImGui.TableNextColumn();
                                             new_context : Context;
-                                            new_context.print_style.default_format_float = attribute.display_info.theme.format_float;
-                                            new_context.print_style.default_format_struct = attribute.display_info.theme.format_struct;
+                                            new_context.print_style.default_format_float = app.label_format.format_float;
+                                            new_context.print_style.default_format_struct = app.label_format.format_struct;
                                             push_context new_context {
                                                 ImGui.Text(tprint("%", value));
                                             }
@@ -1357,7 +1304,7 @@ show_camera_controls :: () {
         }
         // ImGui.TableNextColumn();
         ImGui.SameLine();
-        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)), .NoArrowButton);
         Show_Tooltip_Binding("Camera Rotation Axis", "Alt RMB");
     }
 
@@ -1750,129 +1697,89 @@ show_imgui_demo_window :: () {
 
 #scope_file
 
-Label_Theme_Update :: struct {
-    show_position : bool;
-    show_index : bool;
-    format_float : bool;
-    label_scale : bool;
-    label_color : bool;
+
+show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Label_Theme) {
+    ImGui.Text(name);
+    ImGui.SameLine();
+
+    ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
+    Show_Tooltip(tooltip);
+    ImGui.SameLine();
+
+    ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
+    Show_Tooltip("Show Position (Model Space)");
+    ImGui.SameLine();
+
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    Show_Tooltip("Text Color");
+    ImGui.SameLine();
+
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    Show_Tooltip("Text Scale");
+    ImGui.PopItemWidth();
 }
 
-Annotation_Theme_Update :: struct {
-    visible : bool;
-    label_scale : bool;
-    label_color : bool;
-}
+show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Element_Label_Theme) {
+    ImGui.Text(name);
+    ImGui.SameLine();
 
-// @Think Do we even want this? The XXX_Update stucts are used to apply changes to multiple items. We can use it to apply changes to multiple items with the same attribute
-Attribute_Theme_Update :: struct {
-    visible : bool;
-    label_scale : bool;
-    label_color : bool;
-    format_float : bool;
-    format_struct : bool;
-}
+    ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
+    Show_Tooltip(tooltip);
+    ImGui.SameLine();
 
-// @TODO Implment a compile-time check that the entries here match Display_Mode, use annotations to selectively ignore stuff
-Display_Info_Update :: struct {
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    Show_Tooltip("Text Color");
+    ImGui.SameLine();
 
-    is_visible : bool;
-
-    points_visible : bool;
-    points_color : [4]bool;
-    points_size : bool;
-    vertex_label_style_update : Label_Theme_Update;
-    element_label_theme_update : Label_Theme_Update;
-    annotation_theme_update : Annotation_Theme_Update;
-
-    normals_visible : bool;
-    normals_color : [4]bool;
-    normals_length : bool;
-
-    wireframe_visible : bool;
-    wireframe_color : [4]bool;
-    wireframe_width : bool;
-
-    surface_visible : bool;
-    surface_color : [4]bool;
-
-    display_mode : bool;
-    backface_mode : bool;
-    flat_shading : bool;
-
-    color_reset : bool; @NoSync
-
-    clip_ranges : [3]bool;
-    clip_sphere : bool;
-}
-
-#run {
-    info :   Display_Info;
-    update : Display_Info_Update;
-    if info.clip_ranges.count != update.clip_ranges.count {
-        error_message := tprint("Expected clip_ranges arrays to have equal sizes (% != %)", info.clip_ranges.count, update.clip_ranges.count);
-        compiler_report(#file, #line, 0, error_message);
-    }
-}
-
-show_label_theme_ui :: (update : *Label_Theme_Update, theme : *Label_Theme) {
-    // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-    update.show_index      = ImGui.Checkbox("Label indices", *theme.show_index);
-    update.show_position   = ImGui.Checkbox("Label coordinates (model space)", *theme.show_position);
-    update.label_color     = ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-    update.label_scale     = ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-
-    // Float format options
-    trailing_width : s32 = xx theme.format_float.trailing_width;
-    update.format_float |= ImGui.InputInt("Float decimals", *trailing_width);
-    theme.format_float.trailing_width = clamp(trailing_width, 0, 12);
-    Show_Tooltip("Number of digits following the decimal point");
-    update.format_float |= combo_box("Float format", *theme.format_float.mode, type_info(FormatFloat.Mode));
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    Show_Tooltip("Text Scale");
+    ImGui.PopItemWidth();
 }
 
 display_info_ui :: (
     display_info : *Display_Info,
     aabb :         AxisBox3,
+    // nocommit Remove normals/lines/faces parameters when we use Simple_Mesh because 
     normals_ui :   bool = true,
     lines_ui :     bool = true,
     faces_ui :     bool = true,
     clipping_ui :  bool = true) -> Display_Info_Update {
 
-    set : Display_Info_Update;
+    old_display_info := <<display_info;
 
     if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         ImGui.Text("Visible    ");
         ImGui.SameLine();
-        set.is_visible = ImGui.Checkbox(imgui_label("##item_visible", display_info), *display_info.is_visible);
+        ImGui.Checkbox(imgui_label("##item_visible", display_info), *display_info.is_visible);
         Show_Tooltip("Overall item visibility");
 
         // FIXME FIXME: opacity should control wireframe??
         ImGui.Text("Render Mode");
         ImGui.SameLine();
         ImGui.PushItemWidth(120);
-        set.display_mode = combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
+        combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
         ImGui.PopItemWidth();
 
         // This doesn't seem very useful so I removed it
         //ImGui.SameLine();
-        //set.color_reset = ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+        //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
         //Show_Tooltip("Deduce item primary colors from the file path");
 
         {
             ImGui.Text("Points     ");
             ImGui.SameLine();
-            set.points_visible = ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
+            ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
             Show_Tooltip("Points visibility");
             ImGui.SameLine();
-            old_color := display_info.points_color;
             ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-            for 0..3 set.points_color[it] = old_color.component[it] != display_info.points_color.component[it];
             ImGui.SameLine();
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            set.points_size = ImGui.InputInt("##points_size", *display_info.points_size);
+            ImGui.InputInt("##points_size", *display_info.points_size);
             Show_Tooltip("Size");
             display_info.points_size = clamp(display_info.points_size, 1, 10);
             ImGui.PopItemWidth();
@@ -1881,15 +1788,13 @@ display_info_ui :: (
         if normals_ui {
             ImGui.Text("Normals    ");
             ImGui.SameLine();
-            set.normals_visible = ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
+            ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
             Show_Tooltip("Normals visibility");
             ImGui.SameLine();
-            old_color := display_info.normals_color;
             ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-            for 0..3 set.normals_color[it] = old_color.component[it] != display_info.normals_color.component[it];
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            set.normals_length = ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+            ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
             Show_Tooltip("Length");
             ImGui.PopItemWidth();
         }
@@ -1897,15 +1802,13 @@ display_info_ui :: (
         if lines_ui {
             ImGui.Text("Lines      ");
             ImGui.SameLine();
-            set.wireframe_visible = ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
+            ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
             Show_Tooltip("Lines visibility");
             ImGui.SameLine();
-            old_color := display_info.wireframe_color;
             ImGui.ColorEdit4(imgui_label("##wireframe_color", display_info), *display_info.wireframe_color.component, ImGui.ColorEditFlags.NoInputs);
-            for 0..3 set.wireframe_color[it] = old_color.component[it] != display_info.wireframe_color.component[it];
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            set.wireframe_width = ImGui.DragFloat(imgui_label("##wireframe_width", display_info), *display_info.wireframe_width, .05);
+            ImGui.DragFloat(imgui_label("##wireframe_width", display_info), *display_info.wireframe_width, .05);
             Show_Tooltip("Width");
             display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 5);
             ImGui.PopItemWidth();
@@ -1914,42 +1817,40 @@ display_info_ui :: (
         if faces_ui {
             ImGui.Text("Triangles  ");
             ImGui.SameLine();
-            set.surface_visible = ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
+            ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
             Show_Tooltip("Triangles visibility");
             {
                 ImGui.SameLine();
-                old_color := display_info.surface_color;
                 ImGui.ColorEdit4(imgui_label("##surface_color", display_info), *display_info.surface_color.component, ImGui.ColorEditFlags.NoInputs);
                 Show_Tooltip("Frontface Color");
-                for 0..3 set.surface_color[it] = old_color.component[it] != display_info.surface_color.component[it];
             }
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            set.backface_mode = combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
+            combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
             Show_Tooltip("Backface Render Mode");
             ImGui.PopItemWidth();
             ImGui.SameLine();
-            set.flat_shading = ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
+            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
             Show_Tooltip("Flat Shading");
         }
     }
 
     if clipping_ui {
-        show_clipping_ui(*set, display_info, aabb);
+        show_clipping_ui(display_info, aabb);
     }
 
-    if ImGui.TreeNodeEx("Point Labels", .SpanAvailWidth) {
+    if ImGui.TreeNodeEx("Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
-        show_label_theme_ui(*set.vertex_label_style_update, *display_info.vertex_label_style);
+
+        show_vertex_label_theme_ui( "Vertex  ", "Show index of .obj 'v' directives", *display_info.vertex_label_style);
+        show_element_label_theme_ui("Point   ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
+        show_element_label_theme_ui("Segment ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
+        show_element_label_theme_ui("Triangle", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
+        // show_annotation_theme_ui("Annoation", "Show index of .obj 'p' directives", *set.point_label_theme_update, *display_info.point_label_theme);
     }
 
-    // @TODO Rename element to triangle/segment/segment for meshes/polylines/polygons
-    if ImGui.TreeNodeEx("Element Labels", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-        show_label_theme_ui(*set.element_label_theme_update, *display_info.element_label_theme);
-    }
 
-    return set;
+    return get_update(old_display_info, display_info);
 }
 
 display_information :: (entity : *Entity) {
@@ -2119,7 +2020,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 // This is also used for the attribute tables, so don't be confused by the name..!
 last_frame_annotation_list_height_px : float;
 
-show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_Info, aabb : AxisBox3) {
+show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
     if ImGui.TreeNodeEx("Clipping", .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -2135,49 +2036,52 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
             ImGui.TableSetupColumn("reset", .WidthFixed, user_id=5);
             ImGui.TableSetupColumn("normalize", .WidthFixed, user_id=6);
 
+            // nocommit Swap side of enable checkbox
+            // nocommit Maybe change width of radius/range widgets
+            // nocommit Maybe stack widget and put reset under the shape name, maybe make a single normalize slabs button
+
             {
                 ImGui.TableNextRow();
-                changed := false;
+                old_clip_sphere := clip_sphere;
 
                 ImGui.TableSetColumnIndex(0);
-                changed |= ImGui.Checkbox(imgui_label("Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
+                ImGui.Checkbox(imgui_label("Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
-                changed |= ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
+                ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
                 ImGui.TableSetColumnIndex(3);
                 ImGui.Text("Radius");
                 ImGui.TableSetColumnIndex(4);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
-                changed |= ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
+                ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
                 ImGui.TableSetColumnIndex(5);
                 POSITIVE_INF :: 0h7F800000;
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
                 if ImGui.Button(imgui_label("Reset##sphere", *clip_sphere)) || uninitialized {
                     clip_sphere.center = .{0, 0, 0};
                     clip_sphere.radius = POSITIVE_INF;
-                    changed = true;
                 }
                 Show_Tooltip("Reset sphere to contain the universe");
 
-                set.clip_sphere = changed;
+                get_update(old_clip_sphere, clip_sphere);
             }
 
             {
-                clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3) -> (changed : bool) {
+                clip_range_ui :: (p : *Clip_Range, aabb : AxisBox3, fallback_normal : Vector3) {
                     ImGui.TableNextRow();
-                    changed := false;
 
                     MIN_RANGE :: .1;
 
                     ImGui.TableSetColumnIndex(0);
-                    changed |= ImGui.Checkbox(imgui_label("Slab##clip_plane", p), *p.is_active); Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
+                    ImGui.Checkbox(imgui_label("Slab##clip_plane", p), *p.is_active); Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text("Normal");
                     ImGui.TableSetColumnIndex(2);
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
-                    changed |= ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
+                    ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
+                    if almost_equal(length(*p.normal), 0.) p.normal = fallback_normal;
                     ImGui.TableSetColumnIndex(3);
                     ImGui.Text("Range");
                     ImGui.TableSetColumnIndex(4);
@@ -2187,7 +2091,6 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                         p.min, p.max = range.x, range.y;
                         p.min = min(p.min, p.max - MIN_RANGE);
                         p.max = max(p.min + MIN_RANGE, p.max);
-                        changed = true;
                     }
 
                     NEGATIVE_INF :: 0hFF800000;
@@ -2206,7 +2109,6 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                         }
                         p.min -= .0001;
                         p.max += .0001;
-                        changed = true;
                     }
                     Show_Tooltip("Reset the range min/max to keep the entire aabb");
 
@@ -2218,22 +2120,16 @@ show_clipping_ui :: (set : *Display_Info_Update, using display_info : *Display_I
                             p.max /= normal_length;
                             p.normal /= normal_length;
                         }
-                        changed = true;
                     }
                     Show_Tooltip("Make the normal unit and update the range min/max");
-
-                    return changed;
                 }
 
                 display_info.aabb_visible = true;
 
-                set.clip_ranges[0] = clip_range_ui(*clip_ranges[0], aabb);
-                set.clip_ranges[1] = clip_range_ui(*clip_ranges[1], aabb);
-                set.clip_ranges[2] = clip_range_ui(*clip_ranges[2], aabb);
-
-                if almost_equal(length(clip_ranges[0].normal), 0.) clip_ranges[0].normal = .{1, 0, 0};
-                if almost_equal(length(clip_ranges[1].normal), 0.) clip_ranges[1].normal = .{0, 1, 0};
-                if almost_equal(length(clip_ranges[2].normal), 0.) clip_ranges[2].normal = .{0, 0, 1};
+                // nocommit test that the fallback normal stuff works
+                clip_range_ui(*clip_ranges[0], aabb, .{1, 0, 0});
+                clip_range_ui(*clip_ranges[1], aabb, .{0, 1, 0});
+                clip_range_ui(*clip_ranges[2], aabb, .{0, 0, 1});
             }
         }
     }
