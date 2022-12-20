@@ -1736,6 +1736,24 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     ImGui.PopItemWidth();
 }
 
+show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Theme) {
+    ImGui.Text(name);
+    ImGui.SameLine();
+
+    ImGui.Checkbox(imgui_label("##visible", theme), *theme.visible);
+    Show_Tooltip(tooltip);
+    ImGui.SameLine();
+
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    Show_Tooltip("Text Color");
+    ImGui.SameLine();
+
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    Show_Tooltip("Text Scale");
+    ImGui.PopItemWidth();
+}
+
 display_info_ui :: (
     display_info : *Display_Info,
     aabb :         AxisBox3,
@@ -1839,11 +1857,11 @@ display_info_ui :: (
     if ImGui.TreeNodeEx("Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        show_vertex_label_theme_ui( "Vertex  ", "Show index of .obj 'v' directives", *display_info.vertex_label_style);
-        show_element_label_theme_ui("Point   ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
-        show_element_label_theme_ui("Segment ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
-        show_element_label_theme_ui("Triangle", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
-        // show_annotation_theme_ui("Annoation", "Show index of .obj 'p' directives", *set.point_label_theme_update, *display_info.point_label_theme);
+        show_vertex_label_theme_ui( "Vertex    ", "Show index of .obj 'v' directives", *display_info.vertex_label_style);
+        show_element_label_theme_ui("Point     ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
+        show_element_label_theme_ui("Segment   ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
+        show_element_label_theme_ui("Triangle  ", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
+        show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_theme);
     }
 
 
@@ -2029,10 +2047,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
             ImGui.TableSetupColumn("center/normal|radius/range", .WidthFixed, user_id=1);
             ImGui.TableSetupColumn("center/normal|radius/range value", .WidthFixed, init_width_or_weight=200, user_id=2);
             ImGui.TableSetupColumn("reset/normalize", .WidthFixed, user_id=3);
-
-            // nocommit Swap side of enable checkbox
-            // nocommit Maybe change width of radius/range widgets
-            // nocommit Maybe stack widget and put reset under the shape name, maybe make a single normalize slabs button
 
             {
                 ImGui.TableNextRow();
