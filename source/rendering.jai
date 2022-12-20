@@ -32,13 +32,13 @@ is_visible :: (theme : Element_Label_Theme) -> bool {
     return theme.show_index;
 }
 
-Annotation_Theme :: struct {
+Annotation_Label_Theme :: struct {
     visible := false;
     label_scale := .3;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
-is_visible :: (theme : Annotation_Theme) -> bool {
+is_visible :: (theme : Annotation_Label_Theme) -> bool {
     return theme.visible;
 }
 
@@ -142,7 +142,7 @@ Display_Info :: struct {
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
     triangle_label_theme : Element_Label_Theme;
-    annotation_theme : Annotation_Theme;
+    annotation_label_theme : Annotation_Label_Theme;
     // attribute_theme : [..]Attribute_Theme;
 
     //
@@ -610,7 +610,7 @@ render_entities :: () {
         point_theme : Element_Label_Theme = entity.display_info.point_label_theme;
         segment_theme : Element_Label_Theme = entity.display_info.segment_label_theme;
         triangle_theme : Element_Label_Theme = entity.display_info.triangle_label_theme;
-        annotation_theme : Annotation_Theme = entity.display_info.annotation_theme;
+        annotation_theme : Annotation_Label_Theme = entity.display_info.annotation_label_theme;
 
         if !is_visible(vertex_theme) &&
            !is_visible(point_theme) &&
@@ -771,7 +771,7 @@ render_entities :: () {
         point_theme : Element_Label_Theme = entity.display_info.point_label_theme;
         segment_theme : Element_Label_Theme = entity.display_info.segment_label_theme;
         triangle_theme : Element_Label_Theme = entity.display_info.triangle_label_theme;
-        annotation_theme : Annotation_Theme = entity.display_info.annotation_theme;
+        annotation_theme : Annotation_Label_Theme = entity.display_info.annotation_label_theme;
 
         if !is_visible(vertex_theme) &&
            !is_visible(point_theme) &&

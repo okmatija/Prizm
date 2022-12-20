@@ -1095,7 +1095,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 }
             }
 
-            annotation_theme_ui :: (theme : *Annotation_Theme) {
+            annotation_theme_ui :: (theme : *Annotation_Label_Theme) {
                 // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
                 ImGui.Checkbox("Visible", *theme.visible);
                 ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -1114,7 +1114,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 }
                 if ImGui.TreeNodeEx("Annotation Labels", .SpanAvailWidth) {
                     defer ImGui.TreePop();
-                    annotation_theme_ui(*display_info.annotation_theme);
+                    annotation_theme_ui(*display_info.annotation_label_theme);
                 }
                 if entity.is_selected {
                     apply_display_info_update(set, .SELECTED);
@@ -1736,7 +1736,7 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     ImGui.PopItemWidth();
 }
 
-show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Theme) {
+show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Label_Theme) {
     ImGui.Text(name);
     ImGui.SameLine();
 
@@ -1861,7 +1861,7 @@ display_info_ui :: (
         show_element_label_theme_ui("Point     ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
         show_element_label_theme_ui("Segment   ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
         show_element_label_theme_ui("Triangle  ", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
-        show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_theme);
+        show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_label_theme);
     }
 
 

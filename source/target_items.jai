@@ -543,7 +543,7 @@ CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
 //
 
 
-cycle_annotation_theme :: (theme : *Annotation_Theme) -> Fraction {
+cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
 
     result : Fraction;
     result.denom = 1;
@@ -568,12 +568,12 @@ cycle_annotation_theme :: (theme : *Annotation_Theme) -> Fraction {
 }
 
 cycle_annotation :: (target : Target_Items) {
-    theme := *app.selection_display_info.annotation_theme;
+    theme := *app.selection_display_info.annotation_label_theme;
 
     cycle_annotation_theme(theme);
 
     for app.entities if Is_Target(it) {
-        it.display_info.annotation_theme.visible = theme.visible;
+        it.display_info.annotation_label_theme.visible = theme.visible;
     }
 }
 
@@ -586,7 +586,7 @@ cycle_annotation_proc :: (last_interaction_time : *void, target : Target_Items) 
 
 cycle_annotation_progress_proc :: () -> Fraction {
     app_info_copy := app.selection_display_info;
-    return cycle_annotation_theme(*app_info_copy.annotation_theme);
+    return cycle_annotation_theme(*app_info_copy.annotation_label_theme);
 }
 
 CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
@@ -854,7 +854,7 @@ clear_all_labels :: (unused : *void, target : Target_Items) {
         it.display_info.point_label_theme.show_index = false;
         it.display_info.segment_label_theme.show_index = false;
         it.display_info.triangle_label_theme.show_index = false;
-        it.display_info.annotation_theme.visible = false;
+        it.display_info.annotation_label_theme.visible = false;
     }
 
     // Also clear the display info used to set action button state
@@ -864,7 +864,7 @@ clear_all_labels :: (unused : *void, target : Target_Items) {
     display_info.point_label_theme.show_index = false;
     display_info.segment_label_theme.show_index = false;
     display_info.triangle_label_theme.show_index = false;
-    display_info.annotation_theme.visible = false;
+    display_info.annotation_label_theme.visible = false;
 }
 
 

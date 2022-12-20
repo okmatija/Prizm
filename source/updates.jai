@@ -206,17 +206,17 @@ apply_update :: (update : Element_Label_Theme_Update, source : Element_Label_The
 
 
 //
-// Annotation_Theme
+// Annotation_Label_Theme
 //
 
-Annotation_Theme_Update :: struct {
+Annotation_Label_Theme_Update :: struct {
     visible : bool;
     label_scale : bool;
     label_color : Vector4_Update;
 }
 
-get_update :: (old : Annotation_Theme, new : Annotation_Theme) -> Annotation_Theme_Update {
-    result : Annotation_Theme_Update;
+get_update :: (old : Annotation_Label_Theme, new : Annotation_Label_Theme) -> Annotation_Label_Theme_Update {
+    result : Annotation_Label_Theme_Update;
 
     result.visible = get_update(old.visible, new.visible);
     result.label_scale = get_update(old.label_scale, new.label_scale);
@@ -225,7 +225,7 @@ get_update :: (old : Annotation_Theme, new : Annotation_Theme) -> Annotation_The
     return result;
 }
 
-apply_update :: (update : Annotation_Theme_Update, source : Annotation_Theme, target : *Annotation_Theme) {
+apply_update :: (update : Annotation_Label_Theme_Update, source : Annotation_Label_Theme, target : *Annotation_Label_Theme) {
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.label_scale, source.label_scale, *target.label_scale);
     apply_update(update.label_color, source.label_color, *target.label_color);
@@ -274,7 +274,7 @@ Display_Info_Update :: struct {
     point_label_theme : Element_Label_Theme_Update;
     segment_label_theme : Element_Label_Theme_Update;
     triangle_label_theme : Element_Label_Theme_Update;
-    annotation_theme : Annotation_Theme_Update;
+    annotation_label_theme : Annotation_Label_Theme_Update;
 
     points_visible : bool;
     points_color : Vector4_Update;
@@ -307,7 +307,7 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.point_label_theme = get_update(old.point_label_theme, new.point_label_theme);
     result.segment_label_theme = get_update(old.segment_label_theme, new.segment_label_theme);
     result.triangle_label_theme = get_update(old.triangle_label_theme, new.triangle_label_theme);
-    //result.annotation_label_theme = get_update(old.annotation_label_theme, new.annotation_label_theme);
+    result.annotation_label_theme = get_update(old.annotation_label_theme, new.annotation_label_theme);
 
     result.points_visible = get_update(old.points_visible, new.points_visible);
     result.points_color = get_update(old.points_color, new.points_color);
@@ -342,7 +342,7 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.point_label_theme, source.point_label_theme, *target.point_label_theme);
     apply_update(update.segment_label_theme, source.segment_label_theme, *target.segment_label_theme);
     apply_update(update.triangle_label_theme, source.triangle_label_theme, *target.triangle_label_theme);
-    //apply_update(update.annotation_label_theme, source.annotation_label_theme, *target.annotation_label_theme);
+    apply_update(update.annotation_label_theme, source.annotation_label_theme, *target.annotation_label_theme);
 
     apply_update(update.points_visible, source.points_visible, *target.points_visible);
     apply_update(update.points_color, source.points_color, *target.points_color);
