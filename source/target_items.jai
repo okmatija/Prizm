@@ -376,7 +376,7 @@ TOGGLE_NORMALS_ACTION_SET := Action_Set.{
 // Cycle vertex labels
 //
 
-cycle_vertex_label_theme :: (target : Target_Items, theme : *Label_Theme) -> Fraction {
+cycle_vertex_label_theme :: (target : Target_Items, theme : *Vertex_Label_Theme) -> Fraction {
 
     result : Fraction;
     result.denom = 3;
@@ -462,7 +462,7 @@ CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
 //
 
 
-cycle_element_label_theme :: (theme : *Label_Theme) -> Fraction {
+cycle_element_label_theme :: (theme : *Element_Label_Theme) -> Fraction {
 
     result : Fraction;
     result.denom = 1;
@@ -483,18 +483,19 @@ cycle_element_label_theme :: (theme : *Label_Theme) -> Fraction {
 
     // Set theme from State
     theme.show_index = xx state & 0b01;
-    theme.show_position = false;
     return result;
 }
 
 cycle_element_label :: (target : Target_Items) {
-    theme := *app.selection_display_info.element_label_theme;
+    // All element types are kept in sync with the point one
+    theme := *app.selection_display_info.point_label_theme;
 
     cycle_element_label_theme(theme);
 
     for app.entities if Is_Target(it) {
-        it.display_info.element_label_theme.show_position = theme.show_position;
-        it.display_info.element_label_theme.show_index = theme.show_index;
+        it.display_info.point_label_theme.show_index = theme.show_index;
+        it.display_info.segment_label_theme.show_index = theme.show_index;
+        it.display_info.triangle_label_theme.show_index = theme.show_index;
     }
 }
 
@@ -507,7 +508,7 @@ cycle_element_label_proc :: (last_interaction_time : *void, target : Target_Item
 
 cycle_element_label_progress_proc :: (target : Target_Items) -> Fraction {
     app_info_copy := app.selection_display_info; // We just want to get the fraction, not modify the display info
-    return cycle_element_label_theme(*app_info_copy.element_label_theme);
+    return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
 CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
@@ -850,18 +851,20 @@ clear_all_labels :: (unused : *void, target : Target_Items) {
     for app.entities if Is_Target(it) {
         it.display_info.vertex_label_style.show_index = false;
         it.display_info.vertex_label_style.show_position = false;
-        it.display_info.element_label_theme.show_index = false;
-        it.display_info.element_label_theme.show_position = false;
+        it.display_info.point_label_theme.show_index = false;
+        it.display_info.segment_label_theme.show_index = false;
+        it.display_info.triangle_label_theme.show_index = false;
         it.display_info.annotation_theme.visible = false;
     }
 
     // Also clear the display info used to set action button state
-    app_info : *Display_Info = *app.selection_display_info;
-    app_info.vertex_label_style.show_index = false;
-    app_info.vertex_label_style.show_position = false;
-    app_info.element_label_theme.show_index = false;
-    app_info.element_label_theme.show_position = false;
-    app_info.annotation_theme.visible = false;
+    display_info : *Display_Info = *app.selection_display_info;
+    display_info.vertex_label_style.show_index = false;
+    display_info.vertex_label_style.show_position = false;
+    display_info.point_label_theme.show_index = false;
+    display_info.segment_label_theme.show_index = false;
+    display_info.triangle_label_theme.show_index = false;
+    display_info.annotation_theme.visible = false;
 }
 
 

@@ -896,14 +896,14 @@ set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format)
             entity.display_info.points_visible = true;
             entity.display_info.points_size = 4;
             entity.display_info.points_color = primary_color;
-            entity.display_info.element_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
+            entity.display_info.point_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
 
         case .LINES;
 
             entity.display_info.wireframe_visible = true;
             entity.display_info.wireframe_width = 1;
             entity.display_info.wireframe_color = primary_color;
-            entity.display_info.element_label_theme.label_color = .{.6, .6, 0, 1};
+            entity.display_info.segment_label_theme.label_color = .{.6, .6, 0, 1};
 
         case .TRIANGLES;
 

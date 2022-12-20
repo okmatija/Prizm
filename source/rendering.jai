@@ -5,9 +5,8 @@ Labelling_Mode :: enum {
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
 }
 
-// nocommit rename this Vertex_Label_Theme
-Label_Theme :: struct {
-    // nocommit replace with a combo box
+Vertex_Label_Theme :: struct {
+    // @Cleanup replace with a combo box
     show_index := false;
     show_position := false;
 
@@ -21,12 +20,16 @@ Label_Theme :: struct {
 Element_Label_Theme :: struct {
     show_index := false;
     label_scale := .3;
-    label_color := Vector4.{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+    label_color := Vector4.{1., 1., 0, 1};
 }
 
 
-is_visible :: (theme : Label_Theme) -> bool {
+is_visible :: (theme : Vertex_Label_Theme) -> bool {
     return theme.show_position || theme.show_index;
+}
+
+is_visible :: (theme : Element_Label_Theme) -> bool {
+    return theme.show_index;
 }
 
 Annotation_Theme :: struct {
@@ -135,10 +138,7 @@ Display_Info :: struct {
     // Labeling members
     //
 
-    vertex_label_style : Label_Theme;
-    element_label_theme : Label_Theme;
-    element_label_theme.label_color = .{1., 1., 0, 1};
-    // nocommit hook these up properly
+    vertex_label_style : Vertex_Label_Theme;
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
     triangle_label_theme : Element_Label_Theme;
@@ -502,13 +502,14 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
     glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
-get_point_text_format_float :: (v : float) -> FormatFloat {
+// @Volatile!!! This function MUST be inlined, we do that right now with expand, but we SHOULD be able to use inline but right now that doesn't work @CompilerBug (see the comment about this in the Any how_to) also do ti
+get_point_text_format_float :: (v : float) -> FormatFloat #expand {
     f := app.label_format.format_float;
     f.value = v;
     return f;
 }
 
-get_point_text :: (point : Vector2, point_index : int, theme : Label_Theme, label_index_offset : int = 0) -> string {
+get_point_text :: (point : Vector2, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
     result : string;
     f :: get_point_text_format_float;
     if  theme.show_index &&  theme.show_position result = tprint("% (%, %)", label_index_offset + point_index, f(point.x), f(point.y));
@@ -517,12 +518,18 @@ get_point_text :: (point : Vector2, point_index : int, theme : Label_Theme, labe
     return result;
 }
 
-get_point_text :: (point : Vector3, point_index : int, theme : Label_Theme, label_index_offset : int = 0) -> string {
+get_point_text :: (point : Vector3, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
     result : string;
     f :: get_point_text_format_float;
     if  theme.show_index &&  theme.show_position result = tprint("% (%, %, %)", label_index_offset + point_index, f(point.x), f(point.y), f(point.z));
     if !theme.show_index &&  theme.show_position result = tprint("(%, %, %)", f(point.x), f(point.y), f(point.z));
     if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
+    return result;
+}
+
+get_point_text :: (index : int, theme : Element_Label_Theme, label_index_offset : int = 0) -> string {
+    result : string;
+    if  theme.show_index result = tprint("%", label_index_offset + index);
     return result;
 }
 
@@ -599,10 +606,10 @@ render_entities :: () {
 
     render_entity_text_spotlight :: (entity : *Entity) {
         // @Cleanup We could just do using entity.display_info here
-        vertex_theme : Label_Theme = entity.display_info.vertex_label_style;
-        point_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here. Only allow ui for these if there is a non-empty container
-        segment_theme : Label_Theme = entity.display_info.element_label_theme;
-        triangle_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here
+        vertex_theme : Vertex_Label_Theme = entity.display_info.vertex_label_style;
+        point_theme : Element_Label_Theme = entity.display_info.point_label_theme;
+        segment_theme : Element_Label_Theme = entity.display_info.segment_label_theme;
+        triangle_theme : Element_Label_Theme = entity.display_info.triangle_label_theme;
         annotation_theme : Annotation_Theme = entity.display_info.annotation_theme;
 
         if !is_visible(vertex_theme) &&
@@ -695,7 +702,7 @@ render_entities :: () {
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                     if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                        text : string = get_point_text(point_model, it_index, segment_theme);
+                        text : string = get_point_text(it_index, segment_theme);
                         array_add(*segment_labels, make_Label_Info(text_position_px, text));
                     }
                 }
@@ -713,7 +720,7 @@ render_entities :: () {
                 if !is_clipped(entity.display_info, point_world) {
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                     if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                        text : string = get_point_text(point_model, triangle_index, triangle_theme);
+                        text : string = get_point_text(triangle_index, triangle_theme);
                         array_add(*triangle_labels, make_Label_Info(text_position_px, text));
                     }
                 }
@@ -760,10 +767,10 @@ render_entities :: () {
         }
 
         // @Cleanup We could just do using entity.display_info here
-        vertex_theme : Label_Theme = entity.display_info.vertex_label_style;
-        point_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here. Only allow ui for these if there is a non-empty container
-        segment_theme : Label_Theme = entity.display_info.element_label_theme;
-        triangle_theme : Label_Theme = entity.display_info.element_label_theme; // nocommit: Make a separate one here
+        vertex_theme : Vertex_Label_Theme = entity.display_info.vertex_label_style;
+        point_theme : Element_Label_Theme = entity.display_info.point_label_theme;
+        segment_theme : Element_Label_Theme = entity.display_info.segment_label_theme;
+        triangle_theme : Element_Label_Theme = entity.display_info.triangle_label_theme;
         annotation_theme : Annotation_Theme = entity.display_info.annotation_theme;
 
         if !is_visible(vertex_theme) &&
@@ -774,12 +781,10 @@ render_entities :: () {
             return;
         }
 
-        point_world : Vector3 = get_closest_point_on_element(closest_world);
-        if is_clipped(entity.display_info, point_world) {
+        closest_point_world : Vector3 = get_closest_point_on_element(closest_world);
+        if is_clipped(entity.display_info, closest_point_world) {
             return;
         }
-
-        point_model : Vector3 = transform_point(inverse(entity.mesh.world_from_model), point_world);
 
         Simp.ScopeContext();
         glEnable(GL_BLEND);
@@ -818,7 +823,7 @@ render_entities :: () {
             case .COMMAND;  continue;
             }
 
-            text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+            text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
             text : string = to_string(annotation);
             array_add(*annotation_labels, make_Label_Info(text_position_px, text));
         }
@@ -830,16 +835,17 @@ render_entities :: () {
             // nocommit @Incomplete Should use point_theme for the vertex index here
 
             if is_visible(vertex_theme) {
-                text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                text : string = get_point_text(point_model, closest_world.element_index, vertex_theme);
+                text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
+                closest_point_model : Vector3 = transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
+                text : string = get_point_text(closest_point_model, closest_world.element_index, vertex_theme);
                 array_add(*vertex_labels, make_Label_Info(text_position_px, text));
             }
 
         case .SEGMENT;
 
             if is_visible(segment_theme) {
-                text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                text : string = get_point_text(point_model, closest_world.element_index, segment_theme);
+                text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
+                text : string = get_point_text(closest_world.element_index, segment_theme);
                 array_add(*segment_labels, make_Label_Info(text_position_px, text));
             }
 
@@ -858,8 +864,8 @@ render_entities :: () {
         case .TRIANGLE;
 
             if is_visible(triangle_theme) {
-                text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                text : string = get_point_text(point_model, closest_world.element_index, triangle_theme);
+                text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
+                text : string = get_point_text(closest_world.element_index, triangle_theme);
                 array_add(*triangle_labels, make_Label_Info(text_position_px, text));
             }
 

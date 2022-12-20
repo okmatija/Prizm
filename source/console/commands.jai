@@ -297,7 +297,7 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
     }
 
     if clip_radius >= 0 {
-        entity.display_info.element_label_theme.show_index = true;
+        entity.display_info.segment_label_theme.show_index = true;
     }
 
     apply_focus(clip_radius, sphere, entity);
@@ -345,11 +345,11 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
         sphere.radius *= 2;
     } else {
         sphere.radius = clip_radius;
-        entity.display_info.element_label_theme.show_index = true;
+        entity.display_info.triangle_label_theme.show_index = true;
     }
 
     if clip_radius >= 0 {
-        entity.display_info.element_label_theme.show_index = true;
+        entity.display_info.triangle_label_theme.show_index = true;
     }
 
     apply_focus(clip_radius, sphere, entity);

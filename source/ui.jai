@@ -1698,7 +1698,7 @@ show_imgui_demo_window :: () {
 #scope_file
 
 
-show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Label_Theme) {
+show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme) {
     ImGui.Text(name);
     ImGui.SameLine();
 
@@ -1741,7 +1741,6 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
 display_info_ui :: (
     display_info : *Display_Info,
     aabb :         AxisBox3,
-    // nocommit Remove normals/lines/faces parameters when we use Simple_Mesh because 
     normals_ui :   bool = true,
     lines_ui :     bool = true,
     faces_ui :     bool = true,
@@ -2126,7 +2125,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
                 display_info.aabb_visible = true;
 
-                // nocommit test that the fallback normal stuff works
                 clip_range_ui(*clip_ranges[0], aabb, .{1, 0, 0});
                 clip_range_ui(*clip_ranges[1], aabb, .{0, 1, 0});
                 clip_range_ui(*clip_ranges[2], aabb, .{0, 0, 1});

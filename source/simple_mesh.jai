@@ -40,7 +40,6 @@ Simple_Mesh_Element :: enum {
 
 Simple_Mesh_Attribute :: struct {
     Attribute_Display_Info :: struct {
-        // @Incomplete nocommit Only show the relevant parts of the format options depending on the type of the values
         theme : Attribute_Theme;
     }
 
