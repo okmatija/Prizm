@@ -427,7 +427,7 @@ show_preset_ui :: () {
 
 show_options :: () {
 
-    if ImGui.TreeNodeEx("Basic", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    if ImGui.TreeNodeEx("Basic", ImGui.TreeNodeFlags.SpanAvailWidth) { // | .DefaultOpen) {
         defer ImGui.TreePop();
 
         if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
@@ -467,7 +467,7 @@ DONE, Labelling_Mode.RAY_CAST));
         if disable_window_resize_button ImGui.EndDisabled();
     }
 
-    if ImGui.TreeNodeEx("Labelling", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    if ImGui.TreeNodeEx("Labelling", ImGui.TreeNodeFlags.SpanAvailWidth) { // | .DefaultOpen) {
         defer ImGui.TreePop();
 
         combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
@@ -476,9 +476,7 @@ DONE, Labelling_Mode.RAY_CAST));
 %: Show labels within some distance of the cursor location
 DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
-        ImGui.PushItemWidth(70);
         combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
-        ImGui.PopItemWidth();
 
         {
             radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
@@ -2021,19 +2019,16 @@ last_frame_annotation_list_height_px : float;
 
 show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
-    if ImGui.TreeNodeEx("Clipping", .SpanAvailWidth) {
+    if ImGui.TreeNodeEx(imgui_label("Clipping", display_info), .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        if ImGui.BeginTable("##Clipping UI Table", 7) { // , flags=ImGui.TableFlags.SizingFixedFit) {
+        if ImGui.BeginTable("##Clipping UI Table", 4, flags=ImGui.TableFlags.RowBg) { // , flags=ImGui.TableFlags.SizingFixedFit) {
             defer ImGui.EndTable();
 
             ImGui.TableSetupColumn("checkbox", .WidthFixed, user_id=0);
-            ImGui.TableSetupColumn("center/normal", .WidthFixed, user_id=1);
-            ImGui.TableSetupColumn("center/normal value", .WidthFixed, init_width_or_weight=200, user_id=2);
-            ImGui.TableSetupColumn("radius/range", .WidthFixed, user_id=3);
-            ImGui.TableSetupColumn("radius/range value", .WidthFixed, init_width_or_weight=200, user_id=4);
-            ImGui.TableSetupColumn("reset", .WidthFixed, user_id=5);
-            ImGui.TableSetupColumn("normalize", .WidthFixed, user_id=6);
+            ImGui.TableSetupColumn("center/normal|radius/range", .WidthFixed, user_id=1);
+            ImGui.TableSetupColumn("center/normal|radius/range value", .WidthFixed, init_width_or_weight=200, user_id=2);
+            ImGui.TableSetupColumn("reset/normalize", .WidthFixed, user_id=3);
 
             // nocommit Swap side of enable checkbox
             // nocommit Maybe change width of radius/range widgets
@@ -2044,21 +2039,22 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 old_clip_sphere := clip_sphere;
 
                 ImGui.TableSetColumnIndex(0);
-                ImGui.Checkbox(imgui_label("Sphere##clip_sphere", *clip_sphere), *clip_sphere.is_active); Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
+                ImGui.Text("Sphere");
+                ImGui.SameLine();
+                ImGui.Checkbox(imgui_label("##clip_sphere", *clip_sphere), *clip_sphere.is_active);
+                Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
+                ImGui.Text("Radius");
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
-                ImGui.TableSetColumnIndex(3);
-                ImGui.Text("Radius");
-                ImGui.TableSetColumnIndex(4);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
-                ImGui.TableSetColumnIndex(5);
+                ImGui.TableSetColumnIndex(3);
                 POSITIVE_INF :: 0h7F800000;
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
-                if ImGui.Button(imgui_label("Reset##sphere", *clip_sphere)) || uninitialized {
+                if ImGui.Button(imgui_label("Reset    ##sphere", *clip_sphere)) || uninitialized {
                     clip_sphere.center = .{0, 0, 0};
                     clip_sphere.radius = POSITIVE_INF;
                 }
@@ -2074,16 +2070,17 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     MIN_RANGE :: .1;
 
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.Checkbox(imgui_label("Slab##clip_plane", p), *p.is_active); Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
+                    ImGui.Text("Slab  ");
+                    ImGui.SameLine();
+                    ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
+                    Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text("Normal");
+                    ImGui.Text("Range");
                     ImGui.TableSetColumnIndex(2);
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
                     if almost_equal(length(*p.normal), 0.) p.normal = fallback_normal;
-                    ImGui.TableSetColumnIndex(3);
-                    ImGui.Text("Range");
-                    ImGui.TableSetColumnIndex(4);
                     range := make_vector2(p.min, p.max);
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {
@@ -2092,12 +2089,11 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                         p.max = max(p.min + MIN_RANGE, p.max);
                     }
 
+                    ImGui.TableSetColumnIndex(3);
                     NEGATIVE_INF :: 0hFF800000;
                     POSITIVE_INF :: 0h7F800000;
-
-                    ImGui.TableSetColumnIndex(5);
                     uninitialized := (p.min == NEGATIVE_INF) || (p.max == POSITIVE_INF);
-                    if ImGui.Button(imgui_label("Reset", p)) || uninitialized {
+                    if ImGui.Button(imgui_label("Reset    ", p)) || uninitialized {
                         p.min = POSITIVE_INF;
                         p.max = NEGATIVE_INF;
                         for :CornersIterator aabb {
@@ -2111,7 +2107,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     }
                     Show_Tooltip("Reset the range min/max to keep the entire aabb");
 
-                    ImGui.TableSetColumnIndex(6);
                     if ImGui.Button(imgui_label("Normalize", p)) {
                         normal_length := length(p.normal);
                         if normal_length != 0 {
