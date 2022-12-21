@@ -52,22 +52,6 @@ SELECTION_FOLDER :: "Selections";
 PRESET_SHAPE_FOLDER :: "Presets";
 COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
-/*
-
-// Annotate these with the entity and source index
-// When we have arrays in annotations, also add the original annotation
-point_selection : Mesh_Entity;
-segment_selection : Mesh_Entity;
-triangle_selection : Mesh_Entity;
-
-How do I add annotations to the points/segments/triangles
-Selection_Entity :: struct {
-    points : Mesh;
-    segments : Mesh;
-    triangles : Mesh;
-}
-*/
-
 update_entity_transform :: (entity : *Entity, shift : Vector3) {
     {
         using entity.mesh.world_from_model;

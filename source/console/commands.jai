@@ -612,9 +612,9 @@ item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : 
     // @cleanup generate this code
     if value_type == {
         case string;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(string, .TRIANGLE));
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(string, .TRIANGLE));
         case Matrix3;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE));
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(Matrix3, .TRIANGLE));
         case;
             // nocommit Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);
@@ -633,9 +633,9 @@ item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Ty
     // @cleanup generate this code
     if value_type == {
         case string;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(string, .VERTEX));
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(string, .VERTEX));
         case float;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Dense_Attribute(float, .VERTEX));
+            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(float, .VERTEX));
         case;
             // nocommit Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);

@@ -1139,7 +1139,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     value_type : Type;
                     element_kind : Simple_Mesh_Element;
                     if base_attribute.type == {
-                        case Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
+                        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
                             ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
                             Show_Tooltip(TOOLTIP);
                             TOOLTIP :: #string DONE
@@ -1159,9 +1159,9 @@ DONE;
                     }
 
                     if base_attribute.type == {
-                        case Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
+                        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
 
-                            attribute := cast(*Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE))base_attribute;
+                            attribute := cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))base_attribute;
                             if ImGui.TreeNodeEx(imgui_label(tprint("Attributes (%)", attribute.values.count), base_attribute), .SpanAvailWidth) {
                                 defer ImGui.TreePop();
 

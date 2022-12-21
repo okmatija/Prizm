@@ -17,7 +17,7 @@ Simple_Mesh :: struct {
     // - vectors e.g., Vector2 for UVs, Vector3 for normals/tangents/displacements
     // - tensors e.g., Matrix4 for stresses
     // - string  e.g., debug comments
-    attributes : [..]*Simple_Mesh_Attribute;
+    attributes : [..]*Simple_Mesh_Attribute_Base;
 
     // We still don't support f i//a j//b k//c with i/j/k != a/b/c 
     // Normals should be dense attributes on faces, not verticies
@@ -31,14 +31,14 @@ Simple_Mesh :: struct {
 }
 
 Simple_Mesh_Element :: enum {
-    VERTEX; // Set via the v-directive
-    POINT; // Set via the p-directive
-    SEGMENT;
-    TRIANGLE;
+    VERTEX;   // Set via the v-directive (not really an element, just position data) nocommit Maybe we don't need this here since its not an element??
+    POINT;    // Set via the p-directive
+    SEGMENT;  // Set via the l-directive
+    TRIANGLE; // Set via the f-directive
     MESH; // For attributes for the whole file, probably only sparse make sense, and value index would be line number in the file
 }
 
-Simple_Mesh_Attribute :: struct {
+Simple_Mesh_Attribute_Base :: struct {
     Attribute_Display_Info :: struct {
         theme : Attribute_Theme;
     }
@@ -54,30 +54,17 @@ Simple_Mesh_Attribute :: struct {
     render_info : Attribute_Render_Info;
 }
 
-Simple_Mesh_Normals :: Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE);
-Simple_Mesh_UVs :: Simple_Mesh_Dense_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
+Simple_Mesh_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Element) {
+    using #as base : Simple_Mesh_Attribute_Base;
+    base.type = Simple_Mesh_Attribute(Value_Type, Element_Kind);
 
-// Dense attributes have values array with the same count as the corresponding element container in the mesh
-Simple_Mesh_Dense_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Element) {
-    using #as base : Simple_Mesh_Attribute;
-    base.type = Simple_Mesh_Dense_Attribute(Value_Type, Element_Kind);
-
+    // count matches the element container in the mesh
     values : [..]Value_Type;
 }
 
-// nocommit Remove these entirely! Annotations will be the sparse version of attributes, and they will only be string types!
-// Sparse attributes are only attached to a few elements of the mesh
-Simple_Mesh_Sparse_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Element) {
-    using #as base : Simple_Mesh_Attribute;
-    base.type = Simple_Mesh_Sparse_Attribute(Value_Type, Element_Kind);
+Simple_Mesh_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
+Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
 
-    Indexed_Value :: struct {
-        index : int; // Index in the Simple_Mesh base.element array
-        value : Value_Type;
-    }
-
-    indexed_values : [..]Indexed_Value;
-}
 
 // string  - renders as text near cursor, so build up text quads which is already supported
 // float   - renders as colors on point/segment/face
@@ -104,7 +91,7 @@ add_mesh_attribute :: (entity : *Entity, attribute_name : string, $attribute_typ
     attribute := New(attribute_type);
     array_add(*entity.mesh.attributes, attribute);
 
-    result : *Simple_Mesh_Attribute = entity.mesh.attributes[entity.mesh.attributes.count - 1];
+    result : *Simple_Mesh_Attribute_Base = entity.mesh.attributes[entity.mesh.attributes.count - 1];
     result.name = attribute_name;
     result.display_info = .{};
 
@@ -119,39 +106,3 @@ find_or_add_mesh_attribute :: (entity : *Entity, attribute_name : string, $attri
     }
     return found;
 }
-
-
-// nocommit remove this
-/*
-get_simple_mesh_attribute_type :: (base : *Simple_Mesh_Attribute) -> Type {
-    // @Cleanup Auto-generate this code
-    if base.is_dense {
-        if base.value_type == {
-            case string;
-                attribute := cast(*Simple_Mesh_Dense_Attribute(string))base;
-                #insert body; 
-            case float;
-                return Simple_Mesh_Dense_Attribute(float);
-            case Vector2;
-                return Simple_Mesh_Dense_Attribute(Vector2);
-            case Vector3;
-                return Simple_Mesh_Dense_Attribute(Vector3);
-            case Vector4;
-                return Simple_Mesh_Dense_Attribute(Vector4);
-        }
-    } else {
-        if base.value_type == {
-            case string;
-                return Simple_Mesh_Sparse_Attribute(string);
-            case float;
-                return Simple_Mesh_Sparse_Attribute(float);
-            case Vector2;
-                return Simple_Mesh_Sparse_Attribute(Vector2);
-            case Vector3;
-                return Simple_Mesh_Sparse_Attribute(Vector3);
-            case Vector4;
-                return Simple_Mesh_Sparse_Attribute(Vector4);
-        }
-    }
-}
-*/
