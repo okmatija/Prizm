@@ -1,6 +1,6 @@
 Simple_Mesh :: struct {
     // Position
-    vertices : [..]Vector3;
+    positions : [..]Vector3;
 
     // Elements
     // .obj loading will fill these in from p, l and f directives respectively

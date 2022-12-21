@@ -214,7 +214,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
     // Remove button
     ImGui.TableNextColumn();
-    if ImGui.Button(imgui_label("x", entity)) {
+    if ImGui.Button(imgui_label("Remove", entity)) {
         result.entity_to_remove = entity_index;
     }
 
@@ -528,7 +528,7 @@ show_edit_ui :: () {
             expand(*target_aabb, aabb);
         }
 
-        display_info : *Display_Info = *app.selection_display_info;
+        display_info : *Display_Info = *app.edit_display_info;
         update : Display_Info_Update = display_info_ui(display_info, target_aabb);
         apply_display_info_update(update, app.edit_target);
     }
@@ -920,7 +920,7 @@ show_item_list_actions_ui :: () {
 
 apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) {
     for app.entities if Is_Target(it) {
-        apply_update(set, app.selection_display_info, *it.display_info);
+        apply_update(set, app.edit_display_info, *it.display_info);
     }
 }
 
@@ -1089,7 +1089,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                         expand(*selection_aabb, aabb);
                     }
 
-                    update := display_info_ui(*app.selection_display_info, selection_aabb);
+                    update := display_info_ui(*app.edit_display_info, selection_aabb);
 
                     apply_display_info_update(update, .SELECTED);
                 }
@@ -1108,7 +1108,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 set : Display_Info_Update;
                 display_info : *Display_Info;
                 if entity.is_selected {
-                    display_info = *app.selection_display_info;
+                    display_info = *app.edit_display_info;
                 } else {
                     display_info = *entity.display_info;
                 }

@@ -8,7 +8,6 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 - Reorganisation of UI:
 
   - Since there are more tools now moved them to a tab in the window with camera controls
-  - Saved some space by renaming item "Remove" button to "x"
   - Presets shapes menu has been moved into the new "Preset" tool in the "Tools" tab
   - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
   - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
