@@ -199,7 +199,7 @@ preset_build_modes : Table(string, Build_Mode);
 
 // @Refactor
 // - Make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
-// - Rename to Add_Line
+// - Rename to AddLine and make it automatically add a newline
 Print :: (format_string : string, args : ..Any) #expand {
     print_to_builder(*`builder, format_string, ..args);
 }
@@ -229,9 +229,8 @@ registered_console_commands : [..]*Code_Procedure_Header;
 
 generate_code_to_register_console_commands :: (w : Workspace) {
 
-    // @Cleanup
     #if OS == .WINDOWS {
-        SEPARATOR :: "\r\n";
+        SEPARATOR :: "\n"; // Prior to beta 0.1.049 (and I think before beta 0.1.047?) this was \r\n. If this separator is wrong then the split call below breaks too
     } else {
         SEPARATOR :: "\n";
     }
