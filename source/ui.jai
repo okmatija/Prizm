@@ -333,7 +333,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
 
     // No tooltip for this behaviour since we reserve the tooltip for annotations
     if ImGui.IsItemClicked() {
-        if is_empty(entity) == false {
+        if is_empty(entity.mesh) == false {
             if io().KeyCtrl {
                 // Do nothing, this selects the item
             } else if io().KeyShift {
@@ -558,18 +558,18 @@ show_select_ui :: () {
             // Remove button
             ImGui.TableNextColumn();
             {
-                disable_cache_button := is_empty(app.user_selection);
+                disable_cache_button := is_empty(app.user_selection.mesh);
                 if disable_cache_button       ImGui.BeginDisabled();
                 defer if disable_cache_button ImGui.EndDisabled();
 
                 if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
-                    if !is_empty(app.user_selection) {
+                    if !is_empty(app.user_selection.mesh) {
                         new_entity : *Entity = New(Entity);
 
                         merge(*new_entity.mesh, app.user_selection.mesh);
-                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Point Selection");
-                        set_entity_source_from_selection(new_entity, tprint("% %", "Point Selection", counter.count), point_count(new_entity.mesh));
-                        set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Selection");
+                        set_entity_source_from_selection(new_entity, tprint("Selection %", counter.count), new_entity.mesh.positions.count);
+                        set_entity_display_info(new_entity);
                         counter.count += 1;
 
                         add_entity(new_entity, app.settings.duplicate_file_behaviour);
@@ -614,7 +614,7 @@ show_select_ui :: () {
             } else {
                 Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
             }
-            if ImGui.IsItemClicked() && is_empty(it) == false {
+            if ImGui.IsItemClicked() && is_empty(it.mesh) == false {
                 fit_on_screen(it);
             }
             was_hovered := it.is_hovered;
@@ -1002,13 +1002,10 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     display_information(entity);
                     display_transform(entity);
 
-                    normals_ui := true;
-                    lines_ui   := entity.mesh.geometry_format != .POINTS;
-                    faces_ui   := entity.mesh.geometry_format == .TRIANGLES;
                     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
                     aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
-                    set := display_info_ui(*entity.display_info, aabb_world, normals_ui=normals_ui, lines_ui=lines_ui, faces_ui=faces_ui);
+                    set := display_info_ui(*entity.display_info, aabb_world);
                     // nocommit Restore the color reset thing!
                     /*
                     if set.color_reset {
@@ -1754,6 +1751,7 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     ImGui.PopItemWidth();
 }
 
+// @Think Consider disabling the ui for empty element containers
 display_info_ui :: (
     display_info : *Display_Info,
     aabb :         AxisBox3,
@@ -1874,15 +1872,15 @@ display_information :: (entity : *Entity) {
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
 
-        if #complete entity.mesh.geometry_format == {
-            case .UNKNOWN; #through;
-            case .POINTS;
-                ImGui.Text("Mesh #points = %", entity.mesh.positions.count);
-            case .LINES;
-                ImGui.Text("Mesh #points, #lines = %, %", entity.mesh.positions.count, entity.mesh.indices.count / 2);
-            case .TRIANGLES;
-                ImGui.Text("Mesh #points, #triangles = %, %", entity.mesh.positions.count, entity.mesh.indices.count / 3);
-        }
+        ImGui.Text("#positions = %", entity.mesh.positions.count);
+        Show_Tooltip("Number of vertex positions");
+        ImGui.Text("#points = %", entity.mesh.points.count);
+        Show_Tooltip("Number of point elements");
+        ImGui.Text("#segments = %", entity.mesh.segments.count);
+        Show_Tooltip("Number of line segment elements");
+        ImGui.Text("#triangles = %", entity.mesh.triangles.count);
+        Show_Tooltip("Number of triangle elements");
+
         maybe_update_render_info(*entity.render_info, *entity.mesh);
 
         imgui_text_for_aabb(entity.render_info.bounding_aabb);
@@ -2167,7 +2165,7 @@ entity_source_tooltip :: (entity : Entity) {
             Show_Tooltip(tprint("Example shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
         case .Entity_Source_Selection;
             source := isa(entity.source, Entity_Source_Selection); assert(source != null);
-            Show_Tooltip(tprint("% Selection\nCreated: %", to_nice_string(entity.mesh.geometry_format), filetime_to_readable_date(source.creation_time)));
+            Show_Tooltip(tprint("Selection\nCreated: %", filetime_to_readable_date(source.creation_time)));
     }
 }
 

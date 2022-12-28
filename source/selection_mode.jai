@@ -3,7 +3,7 @@ do_selection_mode :: () {
         return;
     }
 
-    closest : Closest_Point_Ray_Entity = find_closest_vertex_on_visible_entities();
+    closest : Closest_Point_Ray_Entity = find_closest_vertex();
     if closest.element_index == -1 {
         return;
     }
@@ -22,7 +22,6 @@ do_selection_mode :: () {
         array_add(*app.user_selection.mesh.positions, position);
     }
 
-    app.user_selection.mesh.geometry_format = .POINTS; // We added a point, we'll probably want to remove this
     app.user_selection.render_info.is_dirty = true;
 }
 
@@ -31,7 +30,7 @@ do_closest_point_mode :: () {
         return;
     }
 
-    closest : Closest_Point_Ray_Entity = find_closest_vertex_on_visible_entities();
+    closest : Closest_Point_Ray_Entity = find_closest_vertex();
     if closest.element_index == -1 {
         return;
     }

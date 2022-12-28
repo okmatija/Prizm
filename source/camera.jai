@@ -118,7 +118,7 @@ update_camera :: (delta_time : float) {
     if mouse_reposition_camera() {
 
         // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
-        closest : Closest_Point_Ray_Entity = find_closest_point_on_visible_entities();
+        closest : Closest_Point_Ray_Entity = find_closest_point();
         if closest.entity_index != -1 {
             position := get_closest_point_on_element(closest);
             sphere : Sphere = entities_bounding_sphere_fast((e)=>(e.display_info.is_visible), fixed_center=*position);
@@ -429,7 +429,7 @@ entities_bounding_sphere :: ($filter : (*Entity)->bool = (e)=>(true), accurate :
 // Returns a bounding sphere of the visible items in the scene in world space, considers clipping sphere/planes
 entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true), fixed_center : *Vector3 = null) -> Sphere
 {
-    expand_sphere :: (result : *Sphere, mesh : *Mesh, info : *Render_Info, display_info : Display_Info, first : bool, keep_center : bool) {
+    expand_sphere :: (result : *Sphere, mesh : *Simple_Mesh, info : *Render_Info, display_info : Display_Info, first : bool, keep_center : bool) {
         if mesh.positions.count == 0 return;
 
         maybe_update_render_info(info, mesh);

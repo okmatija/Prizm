@@ -41,7 +41,7 @@ debug_fake_annotations :: (id : int) {
     array_reset_keeping_memory(*item.vertex_annotations);
     array_reset_keeping_memory(*item.face_annotations);
 
-    {
+    if item.mesh.positions.count > 0 {
         for item.mesh.positions {
             annotation : Annotation;
             annotation.kind = .VERTEX;
@@ -53,7 +53,7 @@ debug_fake_annotations :: (id : int) {
         log("# Cleared vertex annotations and added fake ones");
     }
 
-    if item.mesh.geometry_format == .TRIANGLES {
+    if item.mesh.triangles.count > 0 {
         for :TriangleTupleIterator item.mesh {
             annotation : Annotation;
             annotation.kind = .TRIANGLE;
@@ -102,7 +102,7 @@ select_if_visible :: (invert : int = 0) {
 
 // Add items with/without position data to the selection, if `invert` is true/false
 select_if_empty :: (invert : int = 0) {
-    select_if((e)=>(is_empty(e)), invert);
+    select_if((e)=>(is_empty(e.mesh)), invert);
 } @RegisterCommand
 
 // @CompilerBug By passing *void data to the should_select procedure we could use the generic version above
@@ -209,18 +209,17 @@ item_flip_normals :: (id : int) {
 
     entity := app.entities[id];
 
-    if entity.mesh.geometry_format != .TRIANGLES {
-        log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
-        return;
-    }
-
+    // nocommit Transform attributes
+    /*
     for * entity.mesh.normals {
         <<it *= -1;
     }
+    */
 
-    for i : 0..(entity.mesh.indices.count/3)-1 {
+    for i : 0..entity.mesh.triangles.count-1 {
         using entity.mesh;
-        indices[3 * i + 1], indices[3 * i + 2] = swap(indices[3 * i + 1], indices[3 * i + 2]);
+        tuple : *Tuple3(u32) = *triangles[i];
+        tuple.y, tuple.z = swap(tuple.y, tuple.z);
     }
 
     entity.render_info.is_dirty = true;
@@ -274,8 +273,13 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
 
     sphere : Sphere;
 
-    if entity.mesh.geometry_format == .LINES {
-        sid_max := element_count(entity.mesh) - 1;
+    if entity.mesh.segments.count == 0 {
+        log("# Mesh contains no segments.");
+        return;
+    }
+
+    {
+        sid_max := entity.mesh.segments.count - 1;
         if segment_index < 0 || segment_index > sid_max {
             log_error("Expected a segment index in the range [0, %], got %.", sid_max, segment_index);
             return;
@@ -284,10 +288,6 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
         segment := mesh_segment3_model(entity.mesh, segment_index);
         sphere.center = (segment.start + segment.end) / 2;
         sphere.radius = 2 * distance(segment.start, segment.end);
-
-    } else {
-        log_error("Expected segment soup type item, got %.", entity.mesh.geometry_format);
-        return;
     }
 
     sphere.center = transform_point(entity.mesh.world_from_model, sphere.center);
@@ -322,12 +322,12 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
 
     entity := app.entities[id];
 
-    if entity.mesh.geometry_format != .TRIANGLES {
-        log_error("Expected mesh with % geometry format, got %.", Geometry_Format.TRIANGLES, entity.mesh.geometry_format);
+    if entity.mesh.triangles.count == 0 {
+        log("# Mesh contains no triangles.");
         return;
     }
 
-    tid_max := element_count(entity.mesh) - 1;
+    tid_max := entity.mesh.triangles.count - 1;
     if triangle_index < 0 || triangle_index > tid_max {
         log_error("Expected a triangle index in the range [0, %], got %.", tid_max, triangle_index);
         return;
@@ -440,8 +440,8 @@ item_find_open_edges :: (id : int) {
     defer uninit(*edge_to_origin);
 
     mesh := app.entities[id].mesh;
-    if mesh.geometry_format != .TRIANGLES {
-        log("# Expected a mesh with TRIANGLES geometry format, got %.", mesh.geometry_format);
+    if mesh.triangles.count == 0 {
+        log("# Mesh contains no triangles.");
         return;
     }
 
@@ -475,7 +475,7 @@ item_find_open_edges :: (id : int) {
         array_add(*segment.points, mesh_point_model(mesh, edge.x));
         array_add(*segment.points, mesh_point_model(mesh, edge.y));
     }
-    new_mesh : Mesh = to_Mesh(polyline_soup);
+    new_mesh : Simple_Mesh = to_Mesh(polyline_soup);
     new_mesh.world_from_model = mesh.world_from_model;
 
     assert(app.console.history.count > 0);
@@ -484,7 +484,7 @@ item_find_open_edges :: (id : int) {
     new_entity := New(Entity);
     new_entity.mesh = new_mesh;
     set_entity_source_from_command(new_entity, tprint("%_open_edges", entity_name(app.entities[id])), app.console.history[app.console.history.count - 1], mesh.positions.count);
-    set_entity_display_info(new_entity, new_mesh.geometry_format);
+    set_entity_display_info(new_entity);
 
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
     new_entity.display_info.wireframe_width = 3;
@@ -505,8 +505,8 @@ item_find_zero_area_triangles :: (id : int) {
 
     target : *Entity = app.entities[id];
 
-    if target.mesh.geometry_format != .TRIANGLES {
-        log("# Expected a mesh with TRIANGLES geometry format, got %.", target.mesh.geometry_format);
+    if target.mesh.triangles.count == 0 {
+        log("# Mesh contains no triangles.");
         return;
     }
 
@@ -519,22 +519,21 @@ item_find_zero_area_triangles :: (id : int) {
     }
 
     if zero_area_triangles.count == 0 {
-        log("# No zero area triangles detected");
+        log("# Mesh contains % triangles, but none of them have zero area.", target.mesh.triangles.count);
         return;
     }
 
-    log("# Found % zero area triangles", zero_area_triangles.count);
+    log("# Mesh contains % triangles, found % zero area triangles", target.mesh.triangles.count, zero_area_triangles.count);
 
     assert(app.console.history.count > 0);
 
     result := New(Entity);
-    result.mesh.geometry_format = .TRIANGLES;
     result.mesh.world_from_model = target.mesh.world_from_model;
     for zero_area_triangles {
         add_triangle(*result.mesh, it);
     }
     set_entity_source_from_command(result, tprint("%_zero_area", entity_name(target)), app.console.history[app.console.history.count - 1], result.mesh.positions.count);
-    set_entity_display_info(result, result.mesh.geometry_format);
+    set_entity_display_info(result);
 
     maybe_update_render_info(*result.render_info, *result.mesh); // @Cleanup fishy, why do we do this
     result.display_info.wireframe_width = 3;
@@ -652,6 +651,47 @@ reorient_triangles_012_to_021 :: (id : int) {
     // @Incomplete Some triangles have flipped face,
 } @RegisterCommand
 */
+
+// Find and cache indices of positions which are not reference by any element in the mesh. 
+// This is useful to optimize ray-casting against the mesh since we won't need to revisit positions referenced by elements.
+item_cache_unreferenced_positions :: (id : int) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    using entity : *Entity = app.entities[id];
+
+    // Init with all possible position indices
+    array_resize(*mesh.unreferenced_positions, mesh.positions.count);
+    for * mesh.unreferenced_positions { <<it = xx it_index; }
+
+    // Remove the indices which are reference by an element
+    for position, position_index : mesh.unreferenced_positions {
+        for index : mesh.points {
+            if index == position_index {
+                remove position_index;   // This position is not unreferenced
+                continue position_index; // We don't need to keep checking this position_index
+            }
+        }
+
+        for tuple : mesh.segments {
+            for index : tuple.component if index == position_index {
+                remove position_index;   // This position is not unreferenced
+                continue position_index; // We don't need to keep checking this position_index
+            }
+        }
+
+        for tuple : mesh.triangles {
+            for index : tuple.component if index == position_index {
+                remove position_index;   // This position is not unreferenced
+                continue position_index; // We don't need to keep checking this position_index
+            }
+        }
+    }
+
+    log("# Found and cached % unreferenced positions", mesh.unreferenced_positions.count);
+
+} @RegisterCommand
 
 #scope_file
 

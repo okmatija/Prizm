@@ -71,10 +71,10 @@ render_axes_triad :: () {
     render_mesh_triangles(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info);
 
     // Bug Screws up the background shader!!?
-    // render_mesh_lines(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
-    // render_mesh_lines(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info);
-    // render_mesh_lines(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info);
-    // render_mesh_lines(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info);
+    // render_mesh_triangles_as_lines(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
+    // render_mesh_triangles_as_lines(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info);
+    // render_mesh_triangles_as_lines(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info);
+    // render_mesh_triangles_as_lines(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info);
 }
 
 #if 0 #run {

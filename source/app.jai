@@ -41,6 +41,7 @@ App :: struct {
     INITIAL_WINDOW_WIDTH  : s32 : 1440;
     INITIAL_WINDOW_HEIGHT : s32 : 900;
 
+    // nocommit Rename these to have _px suffix
     current_window_width := INITIAL_WINDOW_WIDTH;
     current_window_height := INITIAL_WINDOW_HEIGHT;
     fullscreen := false;
@@ -293,24 +294,6 @@ VisibleSelectable :: #bake_arguments Entities_Iterator(should_visit = (e) => (
         e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
     ));
 
-VisibleSelectableMeshTriangles :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-        e.display_info.is_visible &&
-        e.mesh.geometry_format == .TRIANGLES &&
-        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-    ));
-
-VisibleSelectableMeshSegments :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-        e.display_info.is_visible &&
-        e.mesh.geometry_format == .LINES &&
-        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-    ));
-
-VisibleSelectableMeshVertices :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-        e.display_info.is_visible &&
-        e.mesh.geometry_format == .POINTS &&
-        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-    ));
-
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
     item_list_max_size_before_scroll_px := 300.;
@@ -428,7 +411,6 @@ Simp :: #import "Simp_beta_0_1_016";
 #load "polyline.jai";
 #load "polygon.jai";
 #load "edge.jai";
-#load "mesh.jai";
 #load "mesh_utils.jai";
 #load "simple_mesh.jai";
 #load "aabb_tree.jai";

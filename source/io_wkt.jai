@@ -26,8 +26,7 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
         if eat_possible_identifier(*parser, "POINT") {
 
-            mesh : Mesh;
-            mesh.geometry_format = .POINTS;
+            mesh : Simple_Mesh;
 
             expect_and_eat(*parser, xx #char "(");
             point2 : Vector2 = ---;
@@ -39,6 +38,7 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 break;
             } else if dim == 2 {
                 array_add(*mesh.positions, make_vector3(point2, 0));
+                array_add(*mesh.points, xx mesh.points.count);
             } else if dim == 3 {
                 array_add(*mesh.positions, point3);
             } else {
@@ -48,7 +48,7 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
-            set_entity_display_info(entity, mesh.geometry_format);
+            set_entity_display_info(entity);
             init_entity_spatial_index(entity);
 
         } else if eat_possible_identifier(*parser, "MULTIPOINT") {
@@ -57,15 +57,17 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             points3 : [..]Vector3;
             dim := parse_points(*parser, *points2, *points3);
 
-            mesh : Mesh;
-            mesh.geometry_format = .POINTS;
+            mesh : Simple_Mesh;
 
             if parser.failed {
                 break;
             } else if dim == 0 {
                 break; // empty point cloud
             } else if dim == 2 {
-                for points2 array_add(*mesh.positions, make_vector3(it, 0));
+                for points2 {
+                    array_add(*mesh.positions, make_vector3(it, 0));
+                    array_add(*mesh.points, xx mesh.points.count);
+                }
             } else if dim == 3 {
                 mesh.positions = points3;
             } else {
@@ -75,7 +77,7 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
-            set_entity_display_info(entity, mesh.geometry_format);
+            set_entity_display_info(entity);
             init_entity_spatial_index(entity);
 
         } else if eat_possible_identifier(*parser, "LINESTRING") {
@@ -92,24 +94,24 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
                 shape : Polyline_Soup2;
                 array_add(*shape.polylines).points = points2;
-                mesh : Mesh = to_Mesh(shape);
+                mesh : Simple_Mesh = to_Mesh(shape);
 
                 entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
-                set_entity_display_info(entity, mesh.geometry_format);
+                set_entity_display_info(entity);
                 init_entity_spatial_index(entity);
 
             } else if dim == 3 {
 
                 shape : Polyline_Soup3;
                 array_add(*shape.polylines).points = points3;
-                mesh : Mesh = to_Mesh(shape);
+                mesh : Simple_Mesh = to_Mesh(shape);
 
                 entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
-                set_entity_display_info(entity, mesh.geometry_format);
+                set_entity_display_info(entity);
                 init_entity_spatial_index(entity);
 
             } else {
@@ -129,22 +131,22 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
                 break; // empty polyline soup
             } else if dim == 2 {
 
-                mesh : Mesh = to_Mesh(polyline_soup2);
+                mesh : Simple_Mesh = to_Mesh(polyline_soup2);
 
                 entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
-                set_entity_display_info(entity, mesh.geometry_format);
+                set_entity_display_info(entity);
                 init_entity_spatial_index(entity);
 
             } else if dim == 3 {
 
-                mesh : Mesh = to_Mesh(polyline_soup3);
+                mesh : Simple_Mesh = to_Mesh(polyline_soup3);
 
                 entity = New(Entity);
                 entity.mesh = mesh;
                 set_entity_source_from_file(entity, filename);
-                set_entity_display_info(entity, mesh.geometry_format);
+                set_entity_display_info(entity);
                 init_entity_spatial_index(entity);
 
             } else {
@@ -155,12 +157,12 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
 
             shape : Polygon_Soup;
             array_add(*shape.polygons, parse_polygon(*parser));
-            mesh : Mesh = to_Mesh(shape);
+            mesh : Simple_Mesh = to_Mesh(shape);
 
             entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
-            set_entity_display_info(entity, mesh.geometry_format);
+            set_entity_display_info(entity);
             init_entity_spatial_index(entity);
 
             if entity.mesh.positions.count == 0 {
@@ -171,12 +173,12 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
         } else if eat_possible_identifier(*parser, "MULTIPOLYGON") {
 
             shape : Polygon_Soup = parse_polygon_soup(*parser);
-            mesh : Mesh = to_Mesh(shape);
+            mesh : Simple_Mesh = to_Mesh(shape);
 
             entity = New(Entity);
             entity.mesh = mesh;
             set_entity_source_from_file(entity, filename);
-            set_entity_display_info(entity, mesh.geometry_format);
+            set_entity_display_info(entity);
             init_entity_spatial_index(entity);
 
             if entity.mesh.positions.count == 0 {

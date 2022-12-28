@@ -125,8 +125,6 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             }
 
             array_add(*scratch_vn, normal);
-            // nocommit remove this
-            array_add(*mesh.normals, normal);
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
@@ -153,15 +151,9 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         } else if eat_possible_identifier(*parser, "p") {
 
             missing, index := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
-            array_add(*mesh.indices, index);
+            array_add(*mesh.points, index);
             if missing {
                 missing_vertices_count += 1;
-            }
-
-            if mesh.geometry_format == .UNKNOWN {
-                mesh.geometry_format = .POINTS;
-            } else if mesh.geometry_format != .POINTS {
-                error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.POINTS, mesh.geometry_format);
             }
 
             tok := peek_token(*parser);
@@ -172,26 +164,20 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
-            missing, index := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
-            if missing missing_vertices_count += 1;
-            array_add(*mesh.indices, index);
+            missing1, index1 := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            if missing1 missing_vertices_count += 1;
 
-            missing, index = obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
-            if missing missing_vertices_count += 1;
-            array_add(*mesh.indices, index);
+            missing2, index2 := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            if missing2 missing_vertices_count += 1;
 
-            if mesh.geometry_format == .UNKNOWN {
-                mesh.geometry_format = .LINES;
-            } else if mesh.geometry_format != .LINES {
-                error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.LINES, mesh.geometry_format);
-            }
+            array_add(*mesh.segments, make_Tuple2(index1, index2));
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
                 annotation : Annotation;
 
                 annotation.kind = .LINE;
-                annotation.id = mesh.indices.count / 2 - 1;
+                annotation.id = mesh.segments.count - 1;
                 if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
                     array_add(*line_annotations, annotation);
                 }
@@ -207,7 +193,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                 // Do not error here! 
             } else {
 
-                AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Mesh) #expand {
+                AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Simple_Mesh) #expand {
                     if face.has_normals {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         // nocommit Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
@@ -222,13 +208,15 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                         }
                     }
 
+                    triangle_tuple : Tuple3(u32) = ---;
                     for i : 0..2 {
                         missing, index := obj_index(mesh.positions.count, face.indices[vids[i]], MISSING_VERTEX_INDEX);
-                        array_add(*mesh.indices, index);
+                        triangle_tuple.component[i] = index;
                         if missing {
                             `missing_vertices_count += 1;
                         }
                     }
+                    array_add(*mesh.triangles, triangle_tuple);
                 }
 
                 AddFace(.[0, 1, 2], face, *mesh);
@@ -236,18 +224,12 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
                     AddFace(.[0, 2, 3], face, *mesh);
                 }
 
-                if mesh.geometry_format == .UNKNOWN {
-                    mesh.geometry_format = .TRIANGLES;
-                } else if mesh.geometry_format != .TRIANGLES {
-                    error(*parser, peek_token(*parser), "Expected consistent geometry format, got %, wanted %.\n", Geometry_Format.TRIANGLES, mesh.geometry_format);
-                }
-
                 tok := peek_token(*parser);
                 if tok.type == .COMMENT && tok.line_number == current_line {
                     annotation : Annotation;
 
                     annotation.kind = .TRIANGLE;
-                    annotation.id = mesh.indices.count / 3 - 1;
+                    annotation.id = mesh.triangles.count - 1;
 
                     if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
                         array_add(*face_annotations, annotation);
@@ -336,29 +318,31 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     // Check obj indices
     if missing_vertices_count {
         log_warning("Detected % missing points in the mesh file '%'. These will be positioned at %", missing_vertices_count, filename, app.invalid_point);
-        for * mesh.indices if <<it == MISSING_VERTEX_INDEX {
-            <<it = xx mesh.positions.count; // Point to the missing/invalid point location
+
+        // Direct any elements with missing vertex indices to the missing/invalid position
+        for *point : mesh.points {
+            if <<point == MISSING_VERTEX_INDEX {
+                <<point = xx mesh.positions.count;
+            }
         }
+        for *segment : mesh.segments {
+            for 0..1 if segment.component[it] == MISSING_VERTEX_INDEX {
+                segment.component[it] = xx mesh.positions.count;
+            }
+        }
+        for *triangle : mesh.triangles {
+            for 0..2 if triangle.component[it] == MISSING_VERTEX_INDEX {
+                triangle.component[it] = xx mesh.positions.count;
+            }
+        }
+
+        // Append the missing/invalid position
         array_add(*mesh.positions, app.invalid_point);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
     } else if missing_normals_count {
         log_warning("Detected % missing normals in the mesh file '%'. These will be set to %.", missing_normals_count, filename, MISSING_NORMAL_FALLBACK);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
     }
-
-    // Check inferred geometry format
-    if mesh.geometry_format == .UNKNOWN {
-        // @Incomplete Improve this message to suggest user may have missed p commands for a point cloud if they had vertices in the mesh
-        log_warning("Skipped (Could not detect mesh geometry format)\n");
-        parser.failed = true;
-    }
-
-    // nocommit why was this here???
-    // if mesh.geometry_format != .TRIANGLES {
-    //     // @Incomplete Improve this message to suggest user may have missed p commands for a point cloud if they had vertices in the mesh
-    //     log_warning("@Incomplete Currently only triangle meshes are supported!\n");
-    //     parser.failed = true;
-    // }
 
     if parser.failed {
         deinit(result);
@@ -368,6 +352,13 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     // Sort annotations by kind then by id
     entity_sort_annotations(result, (a,b)=>(compare_annotation_ids(a, b)));
 
+    // Initialize unreferenced positions array in the simple case where there are no elements so all positions are unreferenced
+    // In more general cases users can call the item_cache_unreferenced_positions command, from the console or as a command annotation in the file
+    if no_elements(mesh) {
+        array_resize(*mesh.unreferenced_positions, mesh.positions.count);
+        for * mesh.unreferenced_positions { <<it = xx it_index; }
+    }
+
     // nocommit remove this, and replace with something to deduce annotation_info?
     set_entity_annotations(result, 
         result.command_annotations,
@@ -376,7 +367,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         result.face_annotations,
         result.line_annotations);
     set_entity_source_from_file(result, filename);
-    set_entity_display_info(result, mesh.geometry_format);
+    set_entity_display_info(result);
     init_entity_spatial_index(result);
 
     // nocommit
@@ -392,45 +383,15 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     return result;
 }
 
-save_obj :: (filename : string, mesh : Mesh) -> bool
+save_obj :: (filename : string, mesh : Simple_Mesh) -> bool
 {
-    // @Cleanup Are we calling file_close in the right places?
-
     objfile, success :=  file_open(filename, for_writing=true, keep_existing_content=false);
     if !success {
         return false;
     }
 
-    if mesh.geometry_format == .TRIANGLES {
-        if mesh.normals.count {
-            for i : 0..mesh.positions.count-1 {
-                px, py, pz := mesh.positions[i].x, mesh.positions[i].y, mesh.positions[i].z;
-                nx, ny, nz := mesh.normals[i].x, mesh.normals[i].y, mesh.normals[i].z;
-                file_write(*objfile, tprint("v % % %\n", px, py, pz));
-                file_write(*objfile, tprint("vn % % %\n", nx, ny, nz));
-            }
-            for i : 0..(mesh.indices.count/3)-1 {
-                a := 1 + mesh.indices[3 * i + 0];
-                b := 1 + mesh.indices[3 * i + 1];
-                c := 1 + mesh.indices[3 * i + 2];
-                file_write(*objfile, tprint("f %//% %//% %//%\n", a, a, b, b, c, c));
-            }
-        } else {
-            for i : 0..mesh.positions.count-1 {
-                file_write(*objfile, tprint("v % % %\n", mesh.positions[i].x, mesh.positions[i].y, mesh.positions[i].z));
-            }
-            for i : 0..(mesh.indices.count/3)-1 {
-                a := 1 + mesh.indices[3 * i + 0];
-                b := 1 + mesh.indices[3 * i + 1];
-                c := 1 + mesh.indices[3 * i + 2];
-                file_write(*objfile, tprint("f % % %\n", a, b, c));
-            }
-        }
-    } else {
-        log_warning("@Incomplete save_obj only supports TRIANGLE geometry format, got %\n", mesh.geometry_format);
-        return false;
-    }
+    log_error("@Incomplete save_obj is not implemented");
 
     file_close(*objfile);
-    return true;
+    return false;
 }

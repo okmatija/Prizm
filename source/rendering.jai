@@ -78,13 +78,18 @@ Clip_Mode :: enum #specified {
 }
 
 // Things that needs updating when the geometry changes
+// @Cleanup Consider moving the is_dirty flag and bounding geometry data into the entity or mesh
 Render_Info :: struct {
     is_dirty := true;
 
     vbo : GLuint;
-    ibo : GLuint;
 
-    // Important: In the entity (a.k.a., entity.mesh) model space
+    points_ibo : GLuint;
+    segments_ibo : GLuint;
+    triangles_ibo : GLuint;
+
+    // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
+    // @Cleanup Use a Box_Sphere here
     bounding_sphere : Sphere;
     bounding_aabb : AxisBox3;
 }
@@ -138,7 +143,7 @@ Display_Info :: struct {
     // Labeling members
     //
 
-    vertex_label_style : Vertex_Label_Theme;
+    vertex_label_style : Vertex_Label_Theme; // nocommit rename to vertex_label_theme
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
     triangle_label_theme : Element_Label_Theme;
@@ -148,6 +153,10 @@ Display_Info :: struct {
     //
     // Vertex/Element members
     //
+
+    //positions_visible := false;
+    //positions_color := Vector4.{.5, .5, .5, 1.};
+    //positions_size : s32 = 0;
 
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
@@ -186,6 +195,14 @@ Display_Info :: struct {
     clip_sphere_prev : Clip_Sphere;
 }
 
+is_any_label_theme_visible :: (using,except.["is_visible"] display_info : Display_Info) -> bool {
+    return is_visible(vertex_label_style) ||
+           is_visible(point_label_theme) ||
+           is_visible(segment_label_theme) ||
+           is_visible(triangle_label_theme) ||
+           is_visible(annotation_label_theme);
+}
+
 is_clipped :: (display_info : Display_Info, point : Point3, test_sphere := true, test_ranges := true) -> bool {
     if test_sphere && is_clipped(display_info.clip_sphere, point) {
         return true;
@@ -198,8 +215,10 @@ is_clipped :: (display_info : Display_Info, point : Point3, test_sphere := true,
     return false;
 }
 
-maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
+maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
+        // nocommit Handle this case
+        /*
         if mesh.geometry_format == .TRIANGLES && !mesh.normals.count {
             // log("Computing and assigning triangle normals to vertices\n");
             success, failure_reason := compute_vertex_normals_from_triangles(mesh);
@@ -207,6 +226,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
                 log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
             }
         }
+        */
 
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
         // stored separately to the raw position data so it can be changed efficiently
@@ -215,27 +235,40 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Mesh) {
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
         NP := size_of(Vector3) * mesh.positions.count;
-        NN := size_of(Vector3) * mesh.normals.count;
-        NI := size_of(u32) * mesh.indices.count;
+        NN := 0; // size_of(Vector3) * mesh.normals.count;
 
         if !info.vbo glGenBuffers(1, *info.vbo);
 
         glBindBuffer(GL_ARRAY_BUFFER, info.vbo);
         glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
-        glBufferSubData(GL_ARRAY_BUFFER, NP, NN, mesh.normals.data);
+        // glBufferSubData(GL_ARRAY_BUFFER, NP, NN, mesh.normals.data);
 
-        if !info.ibo glGenBuffers(1, *info.ibo);
+        if !info.points_ibo glGenBuffers(1, *info.points_ibo);
+        if !info.segments_ibo glGenBuffers(1, *info.segments_ibo);
+        if !info.triangles_ibo glGenBuffers(1, *info.triangles_ibo);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, NI, mesh.indices.data, GL_STATIC_DRAW);
+        // @Cleanup consider doing something like, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
+        // point_type : Type = get_type(type_info(mesh.points).element_type);
+
+        size_points := size_of(u32) * mesh.points.count;
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.points_ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_points, mesh.points.data, GL_STATIC_DRAW);
+
+        size_segments := size_of(Tuple2(u32)) * mesh.segments.count;
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.segments_ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_segments, mesh.segments.data, GL_STATIC_DRAW);
+
+        size_triangles := size_of(Tuple3(u32)) * mesh.triangles.count;
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.triangles_ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_triangles, mesh.triangles.data, GL_STATIC_DRAW);
 
         info.is_dirty = false;
     }
 }
 
 // @Cleanup consolidate this
-render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !normals_visible return;
 
     maybe_update_render_info(render_info, mesh);
@@ -264,7 +297,6 @@ render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display
 
     glBindVertexArray(app.normals_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
     ATTRIB_POSITION  :: 0;
     ATTRIB_NORMAL    :: 1;
@@ -286,7 +318,7 @@ render_normals :: (mesh : *Mesh, using render_info : *Render_Info, using display
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
-render_aabb :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_aabb :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !aabb_visible {
         return;
     }
@@ -306,8 +338,11 @@ render_aabb :: (mesh : *Mesh, using render_info : *Render_Info, using display_in
     glDrawArrays(GL_LINES, 0, 24);
 }
 
-render_mesh_points :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !points_visible return;
+render_mesh_positions :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+    if !points_visible || mesh.positions.count == 0 {
+        return;
+    }
+
     render_simple_mesh_common(mesh, render_info, display_info);
 
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), points_color.x, points_color.y, points_color.z, points_color.w);
@@ -315,23 +350,47 @@ render_mesh_points :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
-render_mesh_lines :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
-    if !wireframe_visible return;
+render_mesh_points :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+    if !wireframe_visible || mesh.segments.count == 0 {
+        return;
+    }
+
+    assert(false); // nocommit @Incomplete implement this function
+    //glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null);
+}
+
+render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
+    if !wireframe_visible || mesh.segments.count == 0 {
+        return;
+    }
+
     render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
 
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
 
-    if mesh.geometry_format == .LINES {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesn this affect a GL_LINES call?
-        glDrawElements(GL_LINES, xx mesh.indices.count, GL_UNSIGNED_INT, null);
-    } else if mesh.geometry_format == .TRIANGLES {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glDrawElements(GL_TRIANGLES, xx mesh.indices.count, GL_UNSIGNED_INT, null);
-    }
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, segments_ibo);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
+    glDrawElements(GL_LINES, cast(GLsizei)(2 * mesh.segments.count), GL_UNSIGNED_INT, null);
 }
 
-render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
-    if !surface_visible return;
+render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
+    if !wireframe_visible || mesh.triangles.count == 0 {
+        return;
+    }
+
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
+
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLES, cast(GLsizei)(3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
+}
+
+render_mesh_triangles :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
+    if !surface_visible || mesh.triangles.count == 0 {
+        return;
+    }
 
     render_mesh_common(mesh, render_info, display_info, clip_radius_mode);
 
@@ -343,13 +402,12 @@ render_mesh_triangles :: (mesh : *Mesh, using render_info : *Render_Info, using 
     glUniform1f(glGetUniformLocation(app.mesh_program, "wireframe_width"), ifx wireframe_visible then wireframe_width else 0);
     glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
 
-    if mesh.geometry_format == .TRIANGLES {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glDrawElements(GL_TRIANGLES, xx mesh.indices.count, GL_UNSIGNED_INT, null);
-    }
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawElements(GL_TRIANGLES, cast(GLsizei) (3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
 }
 
-set_model_view_projection_uniforms :: (program : GLuint, mesh : Mesh) {
+set_model_view_projection_uniforms :: (program : GLuint, mesh : Simple_Mesh) {
     {
         loc := glGetUniformLocation(program, "world_from_model");
         glUniformMatrix4fv(loc, 1, true, *mesh.world_from_model._11);
@@ -368,7 +426,8 @@ set_model_view_projection_uniforms :: (program : GLuint, mesh : Mesh) {
     }
 }
 
-render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
+// @Cleanup
+render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
 
     maybe_update_render_info(render_info, mesh);
 
@@ -406,7 +465,6 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
 
     glBindVertexArray(app.mesh_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
     ATTRIB_POSITION  :: 0;
     ATTRIB_NORMAL    :: 1;
@@ -437,7 +495,7 @@ render_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using dis
     glBlendEquation(GL_FUNC_ADD);
 }
 
-render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
+render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
 
     maybe_update_render_info(render_info, mesh);
 
@@ -469,7 +527,6 @@ render_simple_mesh_common :: (mesh : *Mesh, using render_info : *Render_Info, us
 
     glBindVertexArray(app.simple_mesh_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
     ATTRIB_POSITION  :: 0;
     ATTRIB_NORMAL    :: 1;
@@ -587,7 +644,7 @@ render_entities :: () {
         clip_radius_mode := entity_in_clip_radius_mode(entity_index);
         clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
-        render_mesh_points(*entity.mesh, ri, di);
+        render_mesh_positions(*entity.mesh, ri, di);
         if clip_radius_mode_show_wireframe {
             di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
         }
@@ -595,30 +652,17 @@ render_entities :: () {
         if clip_radius_mode_show_wireframe {
             di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
         } else if di.surface_visible && di.wireframe_width >= 1 {
-            // Always draw the wireframe with GL_LINES in render_mesh_lines but make it thinner than the
+            // Always draw the wireframe with GL_LINES in render_mesh_triangles_as_lines but make it thinner than the
             // smooth version drawn in the render_mesh_triangles call
             di.wireframe_width = max(di.wireframe_width - 1, 1);
         }
-        render_mesh_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_normals(*entity.mesh, ri, di);
         render_aabb(*entity.mesh, ri, di);
     }
 
-    render_entity_text_spotlight :: (entity : *Entity) {
-        // @Cleanup We could just do using entity.display_info here
-        vertex_theme : Vertex_Label_Theme = entity.display_info.vertex_label_style;
-        point_theme : Element_Label_Theme = entity.display_info.point_label_theme;
-        segment_theme : Element_Label_Theme = entity.display_info.segment_label_theme;
-        triangle_theme : Element_Label_Theme = entity.display_info.triangle_label_theme;
-        annotation_theme : Annotation_Label_Theme = entity.display_info.annotation_label_theme;
-
-        if !is_visible(vertex_theme) &&
-           !is_visible(point_theme) &&
-           !is_visible(segment_theme) &&
-           !is_visible(triangle_theme) &&
-           !is_visible(annotation_theme) {
-            return;
-        }
+    render_entity_text_spotlight :: ($filter : (*Entity) -> bool) {
 
         Simp.ScopeContext();
         glEnable(GL_BLEND);
@@ -629,133 +673,144 @@ render_entities :: () {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        // Caches for glyph quads
-        vertex_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
-        //
-        // Annotation labels
-        //
+        FilterIterator :: #bake_arguments Entities_Iterator(should_visit = filter);
 
-        {
-            // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-            if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
-                point_world, point_model : Vector3 = ---;
-                if #complete annotation.kind == {
-                    case .VERTEX;
-                        point_model = mesh_point_model(entity.mesh, annotation.id);
-                        point_world = mesh_point_world(entity.mesh, annotation.id);
-                    case .LINE;
-                        point_model = centroid(mesh_segment3_model(entity.mesh, annotation.id));
-                        point_world = centroid(mesh_segment3_world(entity.mesh, annotation.id));
-                    case .TRIANGLE;
-                        point_model = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
-                        point_world = transform_point(entity.mesh.world_from_model, point_model);
-                    case .BLOCK; #through;
-                    case .COMMAND;
-                        continue;
-                }
+        for :FilterIterator entity, entity_index : app.entities {
 
-                if !is_clipped(entity.display_info, point_world) {
-                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                        text : string = to_string(annotation);
-                        array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+            // Caches for glyph quads @TODO pull these arrays out of the entity loop so that label overlapping can be fixed across entities e.g., if mesh A and B have a coincident vertex we'd like the text labels for that vertex not to overlap
+            vertex_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+
+            using,except.["is_visible"] entity.display_info;
+
+            //
+            // Annotation labels
+            //
+
+            {
+                // @Speed this should use the spatial index?? since annotations are sparse, maybe not
+                if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+                    point_world, point_model : Vector3 = ---;
+                    if #complete annotation.kind == {
+                        case .VERTEX;
+                            point_model = mesh_point_model(entity.mesh, annotation.id);
+                            point_world = mesh_point_world(entity.mesh, annotation.id);
+                        case .LINE;
+                            point_model = centroid(mesh_segment3_model(entity.mesh, annotation.id));
+                            point_world = centroid(mesh_segment3_world(entity.mesh, annotation.id));
+                        case .TRIANGLE;
+                            point_model = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
+                            point_world = transform_point(entity.mesh.world_from_model, point_model);
+                        case .BLOCK; #through;
+                        case .COMMAND;
+                            continue;
                     }
-                }
-            }
-        }
 
-        //
-        // Vertex labels
-        //
-
-        {
-            // @Speed this should use the spatial index??
-            if is_visible(vertex_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
-                point_world := mesh_point_world(entity.mesh, point_index);
-                if !is_clipped(entity.display_info, point_world) {
-                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                        // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
-                        text : string = get_point_text(point_model, point_index, vertex_theme);
-                        array_add(*vertex_labels, make_Label_Info(text_position_px, text));
-                    }
-                }
-            }
-        }
-
-        //
-        // Segment labels
-        //
-
-        {
-            if is_visible(segment_theme) for :ModelSegmentIterator segment : entity.mesh {
-                point_model : Vector3 = centroid(segment);
-                point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-
-                if !is_clipped(entity.display_info, point_world) {
-                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                        text : string = get_point_text(it_index, segment_theme);
-                        array_add(*segment_labels, make_Label_Info(text_position_px, text));
-                    }
-                }
-            }
-        }
-
-        //
-        // Triangle labels
-        //
-
-        {
-            ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
-                point_model : Vector3 = compute_centroid(triangle_model);
-                point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
-                if !is_clipped(entity.display_info, point_world) {
-                    text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                        text : string = get_point_text(triangle_index, triangle_theme);
-                        array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+                    if !is_clipped(entity.display_info, point_world) {
+                        text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                        if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
+                            text : string = to_string(annotation);
+                            array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                        }
                     }
                 }
             }
 
-            if entity.spatial == null {
-                // log_error("Use brute force");
+            //
+            // Vertex labels
+            //
 
-                if is_visible(triangle_theme) for :ModelTriangleIterator entity.mesh {
-                    ProcessTriangle(it, it_index);
+            {
+                // @Speed this should use the spatial index??
+                if is_visible(vertex_label_style) for :ModelVertexIterator point_model, point_index : entity.mesh {
+                    point_world := mesh_point_world(entity.mesh, point_index);
+                    if !is_clipped(entity.display_info, point_world) {
+                        text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                        if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
+                            // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
+                            text : string = get_point_text(point_model, point_index, vertex_label_style);
+                            array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+                        }
+                    }
                 }
-            } else {
-                // log_error("Use spatial index");
-
-                ray_world : Ray3 = make_camera_ray();
-                ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
-
-                // @Incomplete Support perspective projection
-                distance := ((app.camera.right - app.camera.left) / app.current_window_width) * app.settings.labelling_radius_px;
-
-                if is_visible(triangle_theme) VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
-                    #code ProcessTriangle(primitive, primitive_id)
-                );
             }
-        }
 
-        // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
-        draw_label_infos(vertex_labels, vertex_theme);
-        draw_label_infos(point_labels, point_theme);
-        draw_label_infos(segment_labels, segment_theme);
-        draw_label_infos(triangle_labels, triangle_theme);
-        draw_label_infos(annotation_labels, annotation_theme);
+            //
+            // Segment labels
+            //
+
+            {
+                if is_visible(segment_label_theme) for :ModelSegmentIterator segment : entity.mesh {
+                    point_model : Vector3 = centroid(segment);
+                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+
+                    if !is_clipped(entity.display_info, point_world) {
+                        text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                        if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
+                            text : string = get_point_text(it_index, segment_label_theme);
+                            array_add(*segment_labels, make_Label_Info(text_position_px, text));
+                        }
+                    }
+                }
+            }
+
+            //
+            // Triangle labels
+            //
+
+            {
+                ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
+                    point_model : Vector3 = compute_centroid(triangle_model);
+                    point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
+                    if !is_clipped(entity.display_info, point_world) {
+                        text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                        if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
+                            text : string = get_point_text(triangle_index, triangle_label_theme);
+                            array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+                        }
+                    }
+                }
+
+                if entity.spatial == null {
+                    // log_error("Use brute force");
+
+                    if is_visible(triangle_label_theme) {
+                        for :ModelTriangleIterator entity.mesh {
+                            ProcessTriangle(it, it_index);
+                        }
+                    }
+                } else {
+                    // log_error("Use spatial index");
+
+                    if is_visible(triangle_label_theme) {
+                        ray_world : Ray3 = make_camera_ray();
+                        ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+                        distance : float = get_model_space_query_radius(entity.render_info.bounding_aabb, app.settings.labelling_radius_px);
+
+                        VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
+                            #code ProcessTriangle(primitive, primitive_id)
+                        );
+                    }
+                }
+            }
+
+            // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
+            draw_label_infos(vertex_labels, vertex_label_style);
+            draw_label_infos(point_labels, point_label_theme);
+            draw_label_infos(segment_labels, segment_label_theme);
+            draw_label_infos(triangle_labels, triangle_label_theme);
+            draw_label_infos(annotation_labels, annotation_label_theme);
+        }
     }
 
-    render_entity_text_ray_cast :: (closest_world : Closest_Point_Ray_Entity) {
+    render_entity_text_ray_cast :: ($filter : (*Entity) -> bool) {
+
+        closest_world : Closest_Point_Ray_Entity = find_closest_point(filter);
 
         if closest_world.entity_index == -1 {
             return;
@@ -763,21 +818,6 @@ render_entities :: () {
 
         entity : *Entity = app.entities[closest_world.entity_index];
         if !entity.display_info.is_visible {
-            return;
-        }
-
-        // @Cleanup We could just do using entity.display_info here
-        vertex_theme : Vertex_Label_Theme = entity.display_info.vertex_label_style;
-        point_theme : Element_Label_Theme = entity.display_info.point_label_theme;
-        segment_theme : Element_Label_Theme = entity.display_info.segment_label_theme;
-        triangle_theme : Element_Label_Theme = entity.display_info.triangle_label_theme;
-        annotation_theme : Annotation_Label_Theme = entity.display_info.annotation_label_theme;
-
-        if !is_visible(vertex_theme) &&
-           !is_visible(point_theme) &&
-           !is_visible(segment_theme) &&
-           !is_visible(triangle_theme) &&
-           !is_visible(annotation_theme) {
             return;
         }
 
@@ -804,12 +844,14 @@ render_entities :: () {
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
+        using,except.["is_visible"] entity.display_info;
+
         //
         // Annotation labels
         //
 
         // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-        if is_visible(annotation_theme) for :AnnotationIterator annotation : entity {
+        if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
 
             if closest_world.element_index != annotation.id {
                 continue;
@@ -834,49 +876,49 @@ render_entities :: () {
 
             // nocommit @Incomplete Should use point_theme for the vertex index here
 
-            if is_visible(vertex_theme) {
+            if is_visible(vertex_label_style) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 closest_point_model : Vector3 = transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
-                text : string = get_point_text(closest_point_model, closest_world.element_index, vertex_theme);
+                text : string = get_point_text(closest_point_model, closest_world.element_index, vertex_label_style);
                 array_add(*vertex_labels, make_Label_Info(text_position_px, text));
             }
 
         case .SEGMENT;
 
-            if is_visible(segment_theme) {
+            if is_visible(segment_label_theme) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
-                text : string = get_point_text(closest_world.element_index, segment_theme);
+                text : string = get_point_text(closest_world.element_index, segment_label_theme);
                 array_add(*segment_labels, make_Label_Info(text_position_px, text));
             }
 
-            if is_visible(vertex_theme) {
+            if is_visible(vertex_label_style) {
                 segment_tuple : Tuple2(u32) = mesh_segment3_tuple(entity.mesh, closest_world.element_index);
                 segment_model : Segment3 = mesh_segment3_model(entity.mesh, closest_world.element_index);
                 segment_world : Segment3 = mesh_segment3_world(entity.mesh, closest_world.element_index);
                 for 0..1 {
                     point_world, point_model, point_index := segment_world.p[it], segment_model.p[it], segment_tuple.component[it];
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    text : string = get_point_text(point_model, point_index, vertex_theme);
+                    text : string = get_point_text(point_model, point_index, vertex_label_style);
                     array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                 }
             }
 
         case .TRIANGLE;
 
-            if is_visible(triangle_theme) {
+            if is_visible(triangle_label_theme) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
-                text : string = get_point_text(closest_world.element_index, triangle_theme);
+                text : string = get_point_text(closest_world.element_index, triangle_label_theme);
                 array_add(*triangle_labels, make_Label_Info(text_position_px, text));
             }
 
-            if is_visible(vertex_theme) {
+            if is_visible(vertex_label_style) {
                 triangle_tuple : Tuple3(u32) = mesh_triangle_tuple(entity.mesh, closest_world.element_index);
                 triangle_model : Triangle3 = mesh_triangle_model(entity.mesh, closest_world.element_index);
                 triangle_world : Triangle3 = mesh_triangle_world(entity.mesh, closest_world.element_index);
                 for 0..2 {
                     point_world, point_model, point_index := triangle_world.v[it], triangle_model.v[it], triangle_tuple.component[it];
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    text : string = get_point_text(point_model, point_index, vertex_theme);
+                    text : string = get_point_text(point_model, point_index, vertex_label_style);
                     array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                 }
             }
@@ -888,11 +930,11 @@ render_entities :: () {
         }
 
         // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
-        draw_label_infos(vertex_labels, vertex_theme);
-        draw_label_infos(point_labels, point_theme);
-        draw_label_infos(segment_labels, segment_theme);
-        draw_label_infos(triangle_labels, triangle_theme);
-        draw_label_infos(annotation_labels, annotation_theme);
+        draw_label_infos(vertex_labels, vertex_label_style);
+        draw_label_infos(point_labels, point_label_theme);
+        draw_label_infos(segment_labels, segment_label_theme);
+        draw_label_infos(triangle_labels, triangle_label_theme);
+        draw_label_infos(annotation_labels, annotation_label_theme);
     }
 
     is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }
@@ -910,17 +952,19 @@ render_entities :: () {
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
+
+    entity_filter :: (entity : *Entity) -> bool {
+        return visible_selectable(entity) && is_any_label_theme_visible(entity.display_info);
+    }
+
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
-            closest_world : Closest_Point_Ray_Entity = find_closest_point_on_visible_entities();
-            render_entity_text_ray_cast(closest_world);
+            render_entity_text_ray_cast(entity_filter);
 
         case .SPOTLIGHT;
 
-            for :Visible app.entities {
-                render_entity_text_spotlight(it);
-            }
+            render_entity_text_spotlight(entity_filter);
     }
 
     for :Visible_Hovered     app.entities render_entity_geometry(it, it_index);
@@ -939,8 +983,10 @@ render_selections :: () {
 
     dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
 
-    render_mesh_points(mesh, *entity.render_info, entity.display_info);
-    render_mesh_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    // @Cleanup use ri and di aliases here
+    render_mesh_positions(mesh, *entity.render_info, entity.display_info);
+    render_mesh_segments(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_triangles_as_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_normals(mesh, *entity.render_info, entity.display_info);
 

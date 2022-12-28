@@ -137,12 +137,12 @@ make_Grid_Entity :: (grid : Grid, extents : Tuple3(u32), name : string, color : 
     assert(app.console.history.count > 0);
 
     shape : Polyline_Soup3 = to_Polyline_Soup3(grid, extents); 
-    mesh : Mesh = to_Mesh(shape);
+    mesh : Simple_Mesh = to_Mesh(shape);
 
     new_entity := New(Entity);
     new_entity.mesh = mesh;
     set_entity_source_from_command(new_entity, name, app.console.history[app.console.history.count - 1], new_entity.mesh.positions.count);
-    set_entity_display_info(new_entity, new_entity.mesh.geometry_format);
+    set_entity_display_info(new_entity);
 
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why?
 

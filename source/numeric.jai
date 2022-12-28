@@ -89,6 +89,8 @@ Tuple3 :: struct (T : Type) {
 #place z; k : T = ---;
 }
 
+// @Cleanup: Replace these make_* functions with struct literals with non-const elements
+
 make_Tuple2 :: (x : $T, y : T) -> Tuple2(T) {
     result : Tuple2(T) = ---;
     result.x = x;

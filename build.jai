@@ -114,6 +114,7 @@ build :: () {
             for plugins if it.message it.message(it, message);
 
             if message.kind == .COMPLETE {
+                // @Cleanup If this fails (why does it fail?) we need to sit through the entire compilation again, can it be made to fail sooner?
                 if build_mode.set_icon {
                     print("[Prism] Setting application icon\n");
                     set_icon_and_manifest(build_mode.build_options);

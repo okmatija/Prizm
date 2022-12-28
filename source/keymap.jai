@@ -287,9 +287,9 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
 
     // Set a null preset_proc, which we'll initialize properly later
     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, NAME);
-    set_entity_source_from_preset(result, tprint("% %", NAME, counter.count), null, point_count(result.mesh));
+    set_entity_source_from_preset(result, tprint("% %", NAME, counter.count), null, result.mesh.positions.count);
     counter.count += 1;
-    set_entity_display_info(result, result.mesh.geometry_format);
+    set_entity_display_info(result);
 
     // If we're not holding control then we apply a random tranformation in 10x the preset bounding box
     if RANDOMIZE() {

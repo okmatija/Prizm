@@ -25,8 +25,8 @@ Entity :: struct {
     // Note the transform stored in this mesh also applies to:
     // - Shape geometry in the specialized types
     // - Bounding shapes in render_info
-    mesh : Mesh;
-    spatial : *AABB_Tree(Mesh);
+    mesh : Simple_Mesh;
+    spatial : *AABB_Tree(Simple_Mesh);
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
     command_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
@@ -82,8 +82,10 @@ clear :: (using entity : *Entity) {
     clear(*mesh);
 
     // Remove data from gpu memory as well
-    if render_info.vbo glDeleteBuffers(1, *render_info.vbo);
-    if render_info.ibo glDeleteBuffers(1, *render_info.ibo);
+    if render_info.vbo           glDeleteBuffers(1, *render_info.vbo);
+    if render_info.points_ibo    glDeleteBuffers(1, *render_info.points_ibo);
+    if render_info.segments_ibo  glDeleteBuffers(1, *render_info.segments_ibo);
+    if render_info.triangles_ibo glDeleteBuffers(1, *render_info.triangles_ibo);
     render_info = .{};
 }
 
@@ -134,8 +136,10 @@ deinit :: (using entity : *Entity) {
     }
 
     // Remove data from gpu memory as well
-    if render_info.vbo glDeleteBuffers(1, *render_info.vbo);
-    if render_info.ibo glDeleteBuffers(1, *render_info.ibo);
+    if render_info.vbo           glDeleteBuffers(1, *render_info.vbo);
+    if render_info.points_ibo    glDeleteBuffers(1, *render_info.points_ibo);
+    if render_info.segments_ibo  glDeleteBuffers(1, *render_info.segments_ibo);
+    if render_info.triangles_ibo glDeleteBuffers(1, *render_info.triangles_ibo);
     render_info = .{};
 }
 
@@ -193,12 +197,6 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
     }
 }
 
-is_empty :: (entity : Entity) -> bool {
-    count : int = inline point_count(entity.mesh);
-    return count == 0;
-    // return inline point_count(entity.mesh) == 0; // @CompilerBug? Error: Attempted use of keyword 'inline' on a non-procedure-call.
-}
-
 is_changed_on_disk :: (entity : Entity) -> bool {
     changed := false;
     if entity.source.kind == .Entity_Source_File {
@@ -214,13 +212,19 @@ is_changed_on_disk :: (entity : Entity) -> bool {
 
 
 entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
-    if #complete mesh.geometry_format == {
-        case .UNKNOWN;   #through;
-        case .POINTS;    return *display_info.points_color,    *display_info.points_visible;
-        case .LINES;     return *display_info.wireframe_color, *display_info.wireframe_visible;
-        case .TRIANGLES; return *display_info.surface_color,   *display_info.surface_visible;
+    if mesh.triangles.count != 0 {
+        return *display_info.surface_color, *display_info.surface_visible;
     }
-    return null, null;
+
+    if mesh.segments.count != 0 {
+        return *display_info.wireframe_color, *display_info.wireframe_visible;
+    }
+
+    if mesh.points.count != 0 {
+        return *display_info.points_color, *display_info.points_visible;
+    }
+
+    return *display_info.surface_color, *display_info.surface_visible;
 }
 
 reset_entity_primary_color :: (entity : *Entity) {
@@ -456,33 +460,44 @@ Closest_Point_Ray_Entity :: struct {
 }
 
 get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Vector3 {
-    if closest_point_element == {
+    if #complete closest_point_element == {
+        case .VERTEX; #through;
         case .POINT;
             return point.point;
         case .SEGMENT;
             return segment.closest[1];
         case .TRIANGLE;
             return triangle.closestPoint[1];
+        case .MESH;
+            log_error("Unexpected enum value in get_closest_point_on_element");
     }
     return .{};
 }
 
 
+visible_selectable :: (e : *Entity) -> bool {
+    // nocommit Test the point count only if the entity does not have a spatial index
+    return e.display_info.is_visible && e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity;
+}
+
 // @Refactor Use spatial lookups on triangles/segments/points
-find_closest_vertex_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_Point_Ray_Entity {
+find_closest_vertex :: ($filter : (*Entity)->bool = visible_selectable) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
 
-    max_dist_px : int = ifx _max_dist_px < 0 then app.settings.closest_point_query_max_dist_px else _max_dist_px;
+    // nocommit Consider clamping this based on a max model space distance, see get_model_space_query_radius
+    max_dist_px : int = app.settings.closest_point_query_max_dist_px;
 
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
     result : Closest_Point_Ray_Entity;
 
     min_dist2 := FLOAT32_INFINITY;
+
+    FilterIterator :: #bake_arguments Entities_Iterator(should_visit = filter);
     
-    for :VisibleSelectable entity, entity_index : app.entities {
+    for :FilterIterator entity, entity_index : app.entities {
         inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
         for :WorldVertexIterator vertex_world, vertex_index : entity.mesh {
 
@@ -524,13 +539,21 @@ OutsideScreenDist :: (point_world : Vector3) -> bool #expand {
     return distance(mouse_px, point_px) > xx `max_dist_px;
 }
 
+// Return the model space query radius for a given bounding box and query radius in pixels
+get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> float {
+    // @Incomplete Support perspective projection
+    distance_1 : float = ((app.camera.right - app.camera.left) / app.current_window_width) * query_radius_px;
+    distance_2 : float = length(diagonal(bbox)) / 20.;
+    return min(distance_1, distance_2);
+}
+
 // Result positions are in world space
-find_closest_point_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_Point_Ray_Entity {
+find_closest_point :: ($filter : (*Entity)->bool = visible_selectable) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
 
-    max_dist_px : int = ifx _max_dist_px < 0 then app.settings.closest_point_query_max_dist_px else _max_dist_px;
+    max_dist_px : int = app.settings.closest_point_query_max_dist_px;
 
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
@@ -565,7 +588,9 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_P
 
     d_min := FLOAT32_INFINITY;
 
-    for :VisibleSelectableMeshTriangles entity, entity_index : app.entities {
+    FilterIterator :: #bake_arguments Entities_Iterator(should_visit = filter);
+
+    for :FilterIterator entity, entity_index : app.entities {
         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // Keep track of the best candidates (closest to the camera/ray origin) for intersected/hit triangles and missed ones
@@ -586,9 +611,7 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_P
 
         } else {
 
-            // @Incomplete Support perspective projection
-            max_dist : float = ((app.camera.right - app.camera.left) / app.current_window_width) * max_dist_px;
-
+            max_dist : float = get_model_space_query_radius(entity.render_info.bounding_aabb, max_dist_px);
             VisitPrimitivesNearRay(entity.spatial, ray_model, max_dist,
                  #code ProcessTriangle(primitive, primitive_id)
             );
@@ -621,34 +644,34 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_P
         return result;
     }
 
+    // nocommit Merge the loops over entities and also early out if the ray misses the entity AABB
     // @Incomplete When available, use the spatial index
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
-    for :VisibleSelectableMeshVertices entity, entity_index : app.entities {
-        for :WorldVertexIterator vertex_world, vertex_index : entity.mesh {
+    for :FilterIterator entity, entity_index : app.entities {
+        
+        for :WorldPointIterator point_world, point_index : entity.mesh {
 
-            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, vertex_world);
+            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
 
             if cp_world.distance < d_min {
 
-                if is_clipped(entity.display_info, vertex_world) {
+                if is_clipped(entity.display_info, point_world) {
                     continue;
                 }
 
-                if OutsideScreenDist(vertex_world) {
+                if OutsideScreenDist(point_world) {
                     continue;
                 }
 
                 d_min = cp_world.distance;
                 result.closest_point_element = .POINT;                        
                 result.closest_point.point = cp_world;
-                result.element_index = vertex_index;
+                result.element_index = point_index;
                 result.entity_index = entity_index;
             }
         }
-    }
 
-    for :VisibleSelectableMeshSegments entity, entity_index : app.entities {
         for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
             cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
 
@@ -666,6 +689,28 @@ find_closest_point_on_visible_entities :: (_max_dist_px : int = -1) -> Closest_P
                 result.closest_point_element = .SEGMENT;
                 result.closest_point.segment = cp_world;
                 result.element_index = segment_index;
+                result.entity_index = entity_index;
+            }
+        }
+
+        for :WorldUnreferencedVertexIterator vertex_world, vertex_index : entity.mesh {
+        
+            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, vertex_world);
+
+            if cp_world.distance < d_min {
+            
+                if is_clipped(entity.display_info, vertex_world) {
+                    continue;
+                }
+
+                if OutsideScreenDist(vertex_world) {
+                    continue;
+                }
+
+                d_min = cp_world.distance;
+                result.closest_point_element = .VERTEX; // nocommit Check that this works as expected, perhaps its not handled everywhere...?                        
+                result.closest_point.point = cp_world;
+                result.element_index = vertex_index;
                 result.entity_index = entity_index;
             }
         }
@@ -820,89 +865,86 @@ set_entity_source_from_file :: (entity : *Entity, fully_pathed_filename : string
     set(*entity.source, source);
 }
 
-set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc : #type ()->*Entity, point_count : s64) {
+set_entity_source_from_preset :: (entity : *Entity, name : string, preset_proc : #type ()->*Entity, vertex_count : s64) {
     assert(entity != null);
 
     source : Entity_Source_Preset;
     source.path = sprint("%/%", PRESET_SHAPE_FOLDER, name);
     source.creation_time = current_time_consensus();
-    source.creation_size = point_count;
+    source.creation_size = vertex_count;
     source.preset_proc = preset_proc;
 
     set(*entity.source, source);
 }
 
-set_entity_source_from_selection :: (entity : *Entity, name : string, point_count : s64) {
+set_entity_source_from_selection :: (entity : *Entity, name : string, vertex_count : s64) {
     assert(entity != null);
 
     source : Entity_Source_Selection;
     source.path = sprint("%/%", SELECTION_FOLDER, name);
     source.creation_time = current_time_consensus();
-    source.creation_size = point_count;
+    source.creation_size = vertex_count;
 
     set(*entity.source, source);
 }
 
-set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
+set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, vertex_count : s64) {
     assert(entity != null);
 
     source : Entity_Source_Command;
     source.path = sprint("%/%", COMMAND_OUTPUT_FOLDER, name);
     source.creation_time = current_time_consensus();
-    source.creation_size = point_count;
+    source.creation_size = vertex_count;
     source.console_command = copy_string(console_command);
 
     set(*entity.source, source);
 }
 
-// set_entity_source_from_code :: (entity : *Entity, name : string, console_command : string, point_count : s64) {
+// set_entity_source_from_code :: (entity : *Entity, name : string, console_command : string, vertex_count : s64) {
 //     assert(entity != null);
 //     entity.fully_pathed_name = copy_string(tprint("%/%", SOURCE_CODE_FOLDER, name));
 //
 //     entity.source = .SOURCE_CODE;
 //     entity.creation_time = current_time_consensus();
-//     entity.creation_size = point_count;
+//     entity.creation_size = vertex_count;
 // }
 
 // Preconditions: entity.source->path has been set
-set_entity_display_info :: (entity : *Entity, geometry_format : Geometry_Format) {
+set_entity_display_info :: (entity : *Entity) {
     assert(entity != null);
 
     primary_color := color_from_path(get_entity_source(entity).path);
-    if #complete geometry_format == {
-        case .UNKNOWN;
 
-            log_error("Unexpected % geometry format", geometry_format);
+    if entity.mesh.triangles.count != 0 {
 
-        case .POINTS;
+        entity.display_info.surface_visible = true;
+        entity.display_info.surface_color = primary_color;
 
-            entity.display_info.surface_visible = true; // @Cleanup What the heck??
-            entity.display_info.points_visible = true;
-            entity.display_info.points_size = 4;
-            entity.display_info.points_color = primary_color;
-            entity.display_info.point_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
+    } else if entity.mesh.segments.count != 0 {
 
-        case .LINES;
+        entity.display_info.wireframe_visible = true;
+        entity.display_info.wireframe_width = 1;
+        entity.display_info.wireframe_color = primary_color;
+        entity.display_info.segment_label_theme.label_color = .{.6, .6, 0, 1};
 
-            entity.display_info.wireframe_visible = true;
-            entity.display_info.wireframe_width = 1;
-            entity.display_info.wireframe_color = primary_color;
-            entity.display_info.segment_label_theme.label_color = .{.6, .6, 0, 1};
+    } else if entity.mesh.points.count != 0 {
 
-        case .TRIANGLES;
+        entity.display_info.surface_visible = true; // @Cleanup What the heck??
+        entity.display_info.points_visible = true;
+        entity.display_info.points_size = 4;
+        entity.display_info.points_color = primary_color;
+        entity.display_info.point_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
 
-            entity.display_info.surface_visible = true;
-            entity.display_info.surface_color = primary_color;
     }
 }
 
 init_entity_spatial_index :: (using entity : *Entity) {
     assert(entity != null);
-    if mesh.geometry_format == .TRIANGLES {
-        spatial = New(AABB_Tree(Mesh));
+    if mesh.points.count == 0 && mesh.segments.count == 0 { // @Incomplete: Support points/segments in AABB tree
+        spatial = New(AABB_Tree(Simple_Mesh));
         init(spatial, *mesh);
     } else {
-        log_warning("@Incomplete Accelerated spatial queries only supported for triangle meshes, got %!\n", mesh.geometry_format);
+        log_warning("@Incomplete Accelerated spatial queries only supported for triangle-only meshes");
     }
 }
 

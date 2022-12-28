@@ -23,8 +23,10 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
 - .obj file loading
 
+  - Significant refactor of the interal mesh datastructure so that items can support more than one geometry type. Previously items could be point clouds, segment soups or triangle soups but now points/segments/triangles can all appear in the same item.
   - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
   - Note: Negative indices are useful if you don't want to keep a running count of how many vertices have been written or if you're writing a triangle soup with duplicate vertices where it can reduce file size. It seems not to be a well supported feature in other obj views TODO check paraview, meshlab and vscode
+  - Added `item_cache_unreferenced_positions` command which is useful to ensure that ray-mesh queries work correctly for obj files which contained positions (v-directives) which were not referenced by element directives (p, l or f). This function is called automatically when loading the .obj if there are no elements in the file (then all positions unreferenced), but since its somewhat expensive in the general case, the user has to call it from the console, or add it as a command annotation to the file in other case (you probably only need to this is if you notice some strange behaviour e.g., can't select visible points near the cursor---if these are unreferenced they need to be detected and cached with this function first)
 
 - Label rendering improvements:
 

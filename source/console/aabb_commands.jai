@@ -35,7 +35,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         entity := New(Entity);
         entity.mesh = mesh;
         set_entity_source_from_command(entity, tprint("%_debug_spatial_aabbs", entity_name(mesh_entity)), app.console.history[app.console.history.count - 1], mesh.positions.count);
-        set_entity_display_info(entity, mesh.geometry_format);
+        set_entity_display_info(entity);
 
         add_entity(entity, .OVERWRITE);
 
@@ -61,16 +61,14 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     entity := New(Entity);
                     entity.mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     set_entity_source_from_command(entity,  tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count);  // @Incomplete pad depth integer?
-                    set_entity_display_info(entity, entity.mesh.geometry_format);
+                    set_entity_display_info(entity);
 
                     {
-                        using primitives : Mesh;
+                        using primitives : Simple_Mesh;
                         defer deinit(*primitives);
                         for :spatial.Primitive_Info_Iterator info : node.range {
                             tri := get_primitive(tree, info.primitive_id);
-                            array_add(*indices, xx indices.count); array_add(*positions, tri.a);
-                            array_add(*indices, xx indices.count); array_add(*positions, tri.b);
-                            array_add(*indices, xx indices.count); array_add(*positions, tri.c);
+                            add_triangle(*primitives, tri);
                         }
                         primitives.world_from_model = tree.shape.world_from_model;
                         merge(*entity.mesh, primitives);
@@ -85,20 +83,18 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     entity.display_info.wireframe_width = 2;
 
                     {
-                        using primitives : Mesh;
+                        using primitives : Simple_Mesh;
                         defer deinit(*primitives);
                         for :spatial.Primitive_Info_Iterator info : node.range {
                             tri := get_primitive(tree, info.primitive_id);
-                            array_add(*indices, xx indices.count); array_add(*positions, tri.a);
-                            array_add(*indices, xx indices.count); array_add(*positions, tri.b);
-                            array_add(*indices, xx indices.count); array_add(*positions, tri.c);
+                            add_triangle(*primitives, tri);
                         }
                         primitives.world_from_model = tree.shape.world_from_model;
                         merge(*entity.mesh, primitives);
                     }
 
                     {
-                        using edges : Mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
+                        using edges : Simple_Mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                         defer deinit(*edges);
                         merge(*entity.mesh, edges);
                     }
@@ -117,7 +113,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     entity := New(Entity);
                     entity.mesh = to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     set_entity_source_from_command(entity, tprint("%_debug_spatial_%", data.name, depth), app.console.history[app.console.history.count - 1], entity.mesh.positions.count); // @Incomplete pad depth integer?
-                    set_entity_display_info(entity, entity.mesh.geometry_format);
+                    set_entity_display_info(entity);
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
@@ -137,7 +133,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         Visitor_Data :: struct {
             entity_at_depth : *Table(int, *Entity);
             name : string;
-            tree : *AABB_Tree(Mesh); // Needed so iterator can work
+            tree : *AABB_Tree(Simple_Mesh); // Needed so iterator can work
         }
         visitor_data : Visitor_Data;
         visitor_data.entity_at_depth = *entity_at_depth;
@@ -186,39 +182,35 @@ debug_delete_spatial_index :: (id : int) {
 
 #scope_file
 
-// nocommit Use actual edges for this when we switch to Simple_Mesh
-to_edge_Mesh :: (using box : AxisBox3, world_from_model : Matrix4) -> Mesh #must {
-    mesh : Mesh;
-    mesh.geometry_format = .TRIANGLES;
+to_edge_Mesh :: (using box : AxisBox3, world_from_model : Matrix4) -> Simple_Mesh #must {
+    mesh : Simple_Mesh;
     mesh.world_from_model = world_from_model;
 
-    AddEdgeAsDegenerateTriangle :: (a : Corner3, b : Corner3) #expand {
+    AddEdge :: (a : Corner3, b : Corner3) #expand {
         offset : u32 = xx mesh.positions.count;
         array_add(*mesh.positions, corner(box, a));
-        array_add(*mesh.indices, offset);
         array_add(*mesh.positions, corner(box, b));
-        array_add(*mesh.indices, offset + 1);
-        array_add(*mesh.positions, corner(box, a));
-        array_add(*mesh.indices, offset + 2);
+        tuple : *Tuple2(u32) = array_add(*mesh.segments);
+        tuple.x, tuple.y = offset, offset + 1;
     }
 
     // Edges starting in the XY plane extending from Z=0 to Z=1
-    AddEdgeAsDegenerateTriangle(.XYZ_000, .XYZ_001);
-    AddEdgeAsDegenerateTriangle(.XYZ_010, .XYZ_011);
-    AddEdgeAsDegenerateTriangle(.XYZ_100, .XYZ_101);
-    AddEdgeAsDegenerateTriangle(.XYZ_110, .XYZ_111);
+    AddEdge(.XYZ_000, .XYZ_001);
+    AddEdge(.XYZ_010, .XYZ_011);
+    AddEdge(.XYZ_100, .XYZ_101);
+    AddEdge(.XYZ_110, .XYZ_111);
 
     // Edges starting in the XZ plane extending from Y=0 to Y=1
-    AddEdgeAsDegenerateTriangle(.XYZ_000, .XYZ_010);
-    AddEdgeAsDegenerateTriangle(.XYZ_001, .XYZ_011);
-    AddEdgeAsDegenerateTriangle(.XYZ_100, .XYZ_110);
-    AddEdgeAsDegenerateTriangle(.XYZ_101, .XYZ_111);
+    AddEdge(.XYZ_000, .XYZ_010);
+    AddEdge(.XYZ_001, .XYZ_011);
+    AddEdge(.XYZ_100, .XYZ_110);
+    AddEdge(.XYZ_101, .XYZ_111);
 
     // Edges starting in the YZ plane extending from X=0 to X=1
-    AddEdgeAsDegenerateTriangle(.XYZ_000, .XYZ_100);
-    AddEdgeAsDegenerateTriangle(.XYZ_001, .XYZ_101);
-    AddEdgeAsDegenerateTriangle(.XYZ_010, .XYZ_110);
-    AddEdgeAsDegenerateTriangle(.XYZ_011, .XYZ_111);
+    AddEdge(.XYZ_000, .XYZ_100);
+    AddEdge(.XYZ_001, .XYZ_101);
+    AddEdge(.XYZ_010, .XYZ_110);
+    AddEdge(.XYZ_011, .XYZ_111);
 
     return mesh;
 }

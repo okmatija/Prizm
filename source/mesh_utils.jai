@@ -1,8 +1,7 @@
-to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh {
+to_Mesh :: (shape : $T/Polyline_Soup) -> Simple_Mesh {
     #assert(T == Polyline_Soup2 || T == Polyline_Soup3);
 
-    mesh : Mesh;
-    mesh.geometry_format = .LINES;
+    mesh : Simple_Mesh;
 
     index_offset := 0;
     for polyline : shape.polylines {
@@ -24,8 +23,7 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Mesh {
 } else {
             array_add(*mesh.positions, point);
 }
-            array_add(*mesh.indices, xx (index_offset + edge_index));
-            array_add(*mesh.indices, xx (index_offset + edge_index  + 1));
+            array_add(*mesh.segments, make_Tuple2(cast(u32) (index_offset + edge_index), xx (index_offset + edge_index  + 1)));
         }
 
         index_offset += polyline.points.count;
@@ -38,28 +36,23 @@ to_Polyline_Soup2 :: #bake_arguments to_Polyline_Soup(Point = Vector2);
 to_Polyline_Soup3 :: #bake_arguments to_Polyline_Soup(Point = Vector3);
 
 // @Cleanup @Refactor This should assert some pre-conditions and then never fail, it should not be called (in the obj loading function if the preconditions aren't met)
-to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #must {
+to_Polyline_Soup :: (mesh : Simple_Mesh, Point : $Type) -> Polyline_Soup(Point), bool #must {
     result : Polyline_Soup(Point);
     ok : bool;
 
-    if mesh.geometry_format != .LINES {
-        return result, false;
-    }
-
-    if mesh.indices.count < 2 || mesh.positions.count == 0 {
+    if mesh.segments.count == 0 || mesh.positions.count == 0 {
         return result, true;
     }
 
-    get_edge :: (mesh : Mesh, edge_index : int) -> Indexed_Edge3, bool #must {
+    get_edge :: (mesh : Simple_Mesh, edge_index : int) -> Indexed_Edge3, bool #must {
         edge : Indexed_Edge3;
 
-        NI := mesh.indices.count;
-        if 2 * edge_index >= NI {
+        if edge_index >= mesh.segments.count {
             return edge, false;
         }
 
-        edge.from_index = mesh.indices[2 * edge_index];
-        edge.to_index   = mesh.indices[2 * edge_index + 1];
+        edge.from_index = mesh.segments[2 * edge_index].x;
+        edge.to_index   = mesh.segments[2 * edge_index].y;
 
         NP := mesh.positions.count;
         if (edge.from_index >= NP) || (edge.to_index >= NP) {
@@ -80,7 +73,7 @@ to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #
         }
     }
 
-    edge_count := mesh.indices.count / 2;
+    edge_count := mesh.segments.count;
 
     edge_index := 0;
     edge : Indexed_Edge3;
@@ -122,24 +115,22 @@ to_Polyline_Soup :: (mesh : Mesh, Point : $Type) -> Polyline_Soup(Point), bool #
     return result, true;
 }
 
-to_Mesh :: (shape : Polygon_Soup) -> Mesh {
+to_Mesh :: (shape : Polygon_Soup) -> Simple_Mesh {
     // @Incomplete
-    using result : Mesh;
-    geometry_format = .TRIANGLES;
+    using result : Simple_Mesh;
     return result;
 }
 
 
-to_Mesh :: (m : par_shapes_mesh) -> Mesh {
-    using result : Mesh;
+to_Mesh :: (m : par_shapes_mesh) -> Simple_Mesh {
+    using result : Simple_Mesh;
 
-    geometry_format = .TRIANGLES;
     array_copy(*positions, m.points);
-    array_copy(*normals, m.normals);
+    // array_copy(*normals, m.normals); // nocommit Copy normals into a mesh attribute
 
-    array_reserve(*indices, m.triangles.count * 3);
-    memcpy(indices.data, m.triangles.data, m.triangles.count * size_of(m.Triangle));
-    indices.count = m.triangles.count * 3;
+    array_reserve(*triangles, m.triangles.count);
+    memcpy(triangles.data, m.triangles.data, m.triangles.count * size_of(m.Triangle));
+    triangles.count = m.triangles.count;
 
     // @Incomplete tcoords
 

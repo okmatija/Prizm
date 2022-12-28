@@ -30,8 +30,7 @@ AABB_Tree :: struct(Shape : Type) {
         if Shape == {
             case; compiler_report(tprint("AABB_Tree unsupported for shape with type '%'.", Shape));
             #through; // So all control paths return a value
-
-            case Mesh;           return Triangle3, Vector3, AxisBox3;
+            case Simple_Mesh; return Triangle3, Vector3, AxisBox3;
         }
     }();
 
@@ -90,11 +89,6 @@ AABB_Tree :: struct(Shape : Type) {
 }
 
 init :: (tree : *AABB_Tree, target : *tree.Shape) {
-    if tree.Shape != Mesh {
-        // log("@Incomplete Building AABB not yet implemented for % primitives, queries will be brute force", T.Primitive);
-        return;
-    }
-
     tree.shape = target;
 
     // @Cleanup Implement this via an iterator over `target` rather than allocating primitive_ids array?
@@ -125,7 +119,7 @@ deinit :: (tree : *AABB_Tree) {
 }
 
 // @CompilerBug We need to pass a pointer to the tree here due to a bug??
-VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
+VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 {
         return;
     }
@@ -180,23 +174,14 @@ VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, $V
     }
 }
 
-// @Cleanup Remove this
-VisitPrimitivesBruteForce :: (using tree : *AABB_Tree(Mesh), $VISIT_PRIMITIVE : Code) #expand {
-    // Use distance from all corners to ray as maximum distance of box to ray, so you can just visit all primitives in the box rather than test them all
-
-    if tree.nodes.count == 0 {
-        return;
-    }
-
-    for 0..tree.nodes[0].range.count-1 {
-        `primitive_id := tree.primitive_info[tree.nodes[0].range.first + it].primitive_id;
-        `primitive := get_primitive(tree, primitive_id);
-        #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
-    }
-}
-
 // Note: the ray is expected to be in the model space of the mesh, since the tree is constructed from the model space mesh
-VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
+// @Cleanup Look into refactoring this macro so it works like an iterator i.e., we'd like to write something like this instead:
+//
+// for :VisitPrimitivesNearRay tree {
+//     VISIT_PRIMITIVE(it, it_index);
+// }
+// 
+VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
     if tree.nodes.count == 0 || !is_finite(distance) {
         return;
     }
@@ -309,9 +294,9 @@ depth_first_visit :: (using tree : AABB_Tree, visitor : tree.Node_Visitor) {
 
 
 
-// AABB_Tree(Mesh) implementation
+// AABB_Tree(Simple_Mesh) implementation
 
-get_primitive :: (tree : AABB_Tree(Mesh), triangle_index : int) -> Triangle3 {
+get_primitive :: (tree : AABB_Tree(Simple_Mesh), triangle_index : int) -> Triangle3 {
     return inline mesh_triangle_model(tree.shape, triangle_index);
 }
 
@@ -325,13 +310,10 @@ get_primitive_aabb :: (triangle : Triangle3) -> AxisBox3 {
     return result;
 }
 
-get_primitive_index_array :: (mesh : Mesh) -> [..]int {
-    assert(mesh.geometry_format == .TRIANGLES, "Wanted % geometry format, got %", Geometry_Format.TRIANGLES, mesh.geometry_format);
-    assert(mesh.indices.count % 3 == 0);
-
+get_primitive_index_array :: (mesh : Simple_Mesh) -> [..]int {
     result : [..]int;
 
-    triangle_count := element_count(mesh);
+    triangle_count := mesh.triangles.count;
     array_reserve(*result, triangle_count);
     for 0..triangle_count-1 {
         array_add(*result, it);
