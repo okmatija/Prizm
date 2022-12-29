@@ -270,7 +270,7 @@ Display_Info_Update :: struct {
     backface_mode : bool;
     flat_shading : bool;
 
-    vertex_label_style : Vertex_Label_Theme_Update;
+    vertex_label_theme : Vertex_Label_Theme_Update;
     point_label_theme : Element_Label_Theme_Update;
     segment_label_theme : Element_Label_Theme_Update;
     triangle_label_theme : Element_Label_Theme_Update;
@@ -307,7 +307,7 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.backface_mode = get_update(old.backface_mode, new.backface_mode);
     result.flat_shading = get_update(old.flat_shading, new.flat_shading);
 
-    result.vertex_label_style = get_update(old.vertex_label_style, new.vertex_label_style);
+    result.vertex_label_theme = get_update(old.vertex_label_theme, new.vertex_label_theme);
     result.point_label_theme = get_update(old.point_label_theme, new.point_label_theme);
     result.segment_label_theme = get_update(old.segment_label_theme, new.segment_label_theme);
     result.triangle_label_theme = get_update(old.triangle_label_theme, new.triangle_label_theme);
@@ -346,7 +346,7 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.backface_mode, source.backface_mode, *target.backface_mode);
     apply_update(update.flat_shading, source.flat_shading, *target.flat_shading);
 
-    apply_update(update.vertex_label_style, source.vertex_label_style, *target.vertex_label_style);
+    apply_update(update.vertex_label_theme, source.vertex_label_theme, *target.vertex_label_theme);
     apply_update(update.point_label_theme, source.point_label_theme, *target.point_label_theme);
     apply_update(update.segment_label_theme, source.segment_label_theme, *target.segment_label_theme);
     apply_update(update.triangle_label_theme, source.triangle_label_theme, *target.triangle_label_theme);

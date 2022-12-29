@@ -88,7 +88,6 @@ show_item_list_ui :: () {
 
     entity_to_remove := -1;
     any_visibility_changed : bool;
-    show_entity_index := app.console.visible || app.user_selection.display_info.is_visible;
 
     for *folder : app.directories {
 
@@ -146,7 +145,7 @@ show_item_list_ui :: () {
                 }
 
                 // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
-                if ImGui.BeginTable(imgui_label("Item List Table", xx folder), xx (ifx show_entity_index then 6 else 5), flags=table_flags, outer_size=outer_size) {
+                if ImGui.BeginTable(imgui_label("Item List Table", xx folder), 6, flags=table_flags, outer_size=outer_size) {
                     defer ImGui.EndTable();
 
                     // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
@@ -154,7 +153,7 @@ show_item_list_ui :: () {
                     folder.last_frame_item_list_height_px = 0.;
                     for :ListClipperIterator local_entity : entities_in_folder {
                         folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                        update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_entity_index, show_scrollbar);
+                        update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_scrollbar);
                         if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
                         if update.visibility_changed    any_visibility_changed = true;
                     }
@@ -213,7 +212,7 @@ Item_Entry_Update :: struct {
     entity_to_remove := -1;
 }
 
-show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index : bool, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
+show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
     // Remove button
@@ -279,16 +278,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
     // Toggle clipping checkbox?
 
     // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
-    if show_entity_index {
-        ImGui.TableNextColumn();
-        if entity.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity {
-            ImGui.Text("#%", entity_index);
-            Show_Tooltip("Entity index for console commands");
-        } else {
-            ImGui.TextDisabled("#%", entity_index);
-            Show_Tooltip("Entity index for console commands\nIncrease max point count to select this entity");
-        }
-    }
+    ImGui.TableNextColumn();
+    ImGui.Text("#%", entity_index);
+    Show_Tooltip("Entity index for console commands");
 
     // Write filename
     ImGui.TableNextColumn();
@@ -359,7 +351,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         entity.display_info.flash_wave_dt = 0;
     }
 
-    header_annotation : *Annotation = find_header_annotation(entity);
+    header_annotation : *Annotation = entity_header_annotation(entity);
     if app.settings.show_header_annotation_tooltips && header_annotation {
         Show_Tooltip(to_string(header_annotation));
     }
@@ -595,7 +587,7 @@ show_select_ui :: () {
                 ImGui.TableNextColumn();
                 if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
                     // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
-                    it.display_info.vertex_label_style.label_color = darken(it.display_info.points_color, .8);
+                    it.display_info.vertex_label_theme.label_color = darken(it.display_info.points_color, .8);
                 }
             }
 
@@ -652,20 +644,19 @@ show_select_ui :: () {
                 // ImGui.PopItemWidth();
                 // Show_Tooltip("Opacity");
 
-                vertex_label_style := *it.display_info.vertex_label_style;
+                vertex_label_theme := *it.display_info.vertex_label_theme;
 
-                ImGui.Checkbox("Position labels", *vertex_label_style.show_position);
+                ImGui.Checkbox("Position labels", *vertex_label_theme.show_position);
                 ImGui.SameLine();
-                ImGui.ColorEdit4("Label color", *vertex_label_style.label_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.ColorEdit4("Label color", *vertex_label_theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
                 ImGui.InputInt("Point size", *it.display_info.points_size);
                 it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
 
-                ImGui.DragFloat("Label scale", *vertex_label_style.label_scale, .005, .2, 1., format="%.3f");
+                ImGui.DragFloat("Label scale", *vertex_label_theme.label_scale, .005, .2, 1., format="%.3f");
 
                 ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
                 Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
                 ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
-                ImGui.InputInt("Max #points for selectable entities", xx *app.user_selection_max_point_count_for_selectable_entity);
 
                 ImGui.Separator();
 
@@ -1012,12 +1003,6 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
 
                     aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
                     set := display_info_ui(*entity.display_info, aabb_world);
-                    // nocommit Restore the color reset thing!
-                    /*
-                    if set.color_reset {
-                        set_entity_primary_color(entity);
-                    }
-                    */
 
                 } else {
                     if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
@@ -1867,7 +1852,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_In
     if ImGui.TreeNodeEx("Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        show_vertex_label_theme_ui( "Vertex    ", "Show index of .obj 'v' directives", *display_info.vertex_label_style);
+        show_vertex_label_theme_ui( "Vertex    ", "Show index of .obj 'v' directives", *display_info.vertex_label_theme);
         show_element_label_theme_ui("Point     ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
         show_element_label_theme_ui("Segment   ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
         show_element_label_theme_ui("Triangle  ", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
@@ -1932,14 +1917,14 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             if !annotations.count ImGui.EndDisabled();
         }
 
-        // nocommit Make this work with reflection!
+        // @Cleanup Make this work with reflection!
         DoRadioButton("Vertex", .VERTEX, entity.vertex_annotations);
         ImGui.SameLine();
         DoRadioButton("Edge", .LINE, entity.line_annotations);
         ImGui.SameLine();
         DoRadioButton("Face", .TRIANGLE, entity.face_annotations);
         ImGui.SameLine();
-        DoRadioButton("Block", .BLOCK, entity.block_annotations); // nocommit a better name is FILE annotation
+        DoRadioButton("Block", .BLOCK, entity.block_annotations); // @Think Maybe better name is FILE annotation
         ImGui.SameLine();
         DoRadioButton("Command", .COMMAND, entity.command_annotations);
 

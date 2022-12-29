@@ -41,7 +41,7 @@ App :: struct {
     INITIAL_WINDOW_WIDTH  : s32 : 1440;
     INITIAL_WINDOW_HEIGHT : s32 : 900;
 
-    // nocommit Rename these to have _px suffix
+    // @Cleanup Rename these to have _px suffix
     current_window_width := INITIAL_WINDOW_WIDTH;
     current_window_height := INITIAL_WINDOW_HEIGHT;
     fullscreen := false;
@@ -112,15 +112,14 @@ App :: struct {
     user_selection : Entity;
     user_selection_cursor_text_shown := false; // @Refactor This isn't really related to selection anymore
     user_selection_cursor_text_scale := .4;
-    user_selection_max_point_count_for_selectable_entity := 5_000_000; // @Cleanup remove this? and make it only apply to entities without a spatial index 
 
     // Set the defaults for the user selection display
     user_selection.display_info.is_visible = true;
     user_selection.display_info.points_visible = true;
     user_selection.display_info.points_size = 6;
     user_selection.display_info.points_color = .{1, 0, .8, 1}; // @Volatile Used for the dynamic label text too
-    user_selection.display_info.vertex_label_style.show_position = true;
-    user_selection.display_info.vertex_label_style.label_color = .{0, 0, 0, 1};
+    user_selection.display_info.vertex_label_theme.show_position = true;
+    user_selection.display_info.vertex_label_theme.label_color = .{0, 0, 0, 1};
 
     // The entity which set the clipping sphere center
     clipping_sphere_mode_entity_index : int = -1;
@@ -283,11 +282,6 @@ Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, s
 
 Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.display_info.is_visible));
 Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected));
-
-VisibleSelectable :: #bake_arguments Entities_Iterator(should_visit = (e) => (
-        e.display_info.is_visible &&
-        e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity
-    ));
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {

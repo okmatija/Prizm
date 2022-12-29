@@ -413,13 +413,13 @@ cycle_vertex_label_theme :: (target : Target_Items, theme : *Vertex_Label_Theme)
 }
 
 cycle_vertex_label :: (target : Target_Items) {
-    theme := *app.edit_display_info.vertex_label_style;
+    theme := *app.edit_display_info.vertex_label_theme;
 
     cycle_vertex_label_theme(target, theme);
 
     for app.entities if Is_Target(it) {
-        it.display_info.vertex_label_style.show_position = theme.show_position;
-        it.display_info.vertex_label_style.show_index = theme.show_index;
+        it.display_info.vertex_label_theme.show_position = theme.show_position;
+        it.display_info.vertex_label_theme.show_index = theme.show_index;
     }
 }
 
@@ -434,7 +434,7 @@ cycle_vertex_label_proc :: (last_interaction_time : *void, target : Target_Items
 
 cycle_vertex_label_progress_proc :: (target : Target_Items) -> Fraction {
     app_info_copy := app.edit_display_info; // We just want to get the fraction, not modify the display info
-    return cycle_vertex_label_theme(target, *app_info_copy.vertex_label_style);
+    return cycle_vertex_label_theme(target, *app_info_copy.vertex_label_theme);
 }
 
 // @Cleanup decapitalize non-constant action sets
@@ -857,8 +857,8 @@ FOCUS_ITEMS_ACTION_SET := Action_Set.{
 
 clear_all_labels :: (unused : *void, target : Target_Items) {
     for app.entities if Is_Target(it) {
-        it.display_info.vertex_label_style.show_index = false;
-        it.display_info.vertex_label_style.show_position = false;
+        it.display_info.vertex_label_theme.show_index = false;
+        it.display_info.vertex_label_theme.show_position = false;
         it.display_info.point_label_theme.show_index = false;
         it.display_info.segment_label_theme.show_index = false;
         it.display_info.triangle_label_theme.show_index = false;
@@ -867,8 +867,8 @@ clear_all_labels :: (unused : *void, target : Target_Items) {
 
     // Also clear the display info used to set action button state
     display_info : *Display_Info = *app.edit_display_info;
-    display_info.vertex_label_style.show_index = false;
-    display_info.vertex_label_style.show_position = false;
+    display_info.vertex_label_theme.show_index = false;
+    display_info.vertex_label_theme.show_position = false;
     display_info.point_label_theme.show_index = false;
     display_info.segment_label_theme.show_index = false;
     display_info.triangle_label_theme.show_index = false;

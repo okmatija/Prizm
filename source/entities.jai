@@ -299,9 +299,8 @@ entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annota
     quick_sort(line_annotations,   compare);
 }
 
-// nocommit Rename to entity_header_annotation
 // The header annotation is the first block annotation
-find_header_annotation :: (entity : *Entity) -> *Annotation {
+entity_header_annotation :: (entity : *Entity) -> *Annotation {
     if entity.block_annotations.count > 0 {
         return *entity.block_annotations[0];
     }
@@ -487,13 +486,13 @@ get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Ve
 }
 
 
-visible_selectable :: (e : *Entity) -> bool {
-    // nocommit Test the point count only if the entity does not have a spatial index
-    return e.display_info.is_visible && e.mesh.positions.count <= app.user_selection_max_point_count_for_selectable_entity;
+is_entity_visible :: (e : *Entity) -> bool {
+    return e.display_info.is_visible;
 }
 
 // @Refactor Use spatial lookups on triangles/segments/points
-find_closest_vertex :: ($filter : (*Entity)->bool = visible_selectable) -> Closest_Point_Ray_Entity {
+// @Refactor Maybe pass entity index into the filter as well
+find_closest_vertex :: ($filter : (*Entity)->bool = is_entity_visible) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
@@ -560,7 +559,8 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 }
 
 // Result positions are in world space
-find_closest_point :: ($filter : (*Entity)->bool = visible_selectable) -> Closest_Point_Ray_Entity {
+// @Refactor Maybe pass entity index into the filter as well
+find_closest_point :: ($filter : (*Entity)->bool = is_entity_visible) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
@@ -720,7 +720,7 @@ find_closest_point :: ($filter : (*Entity)->bool = visible_selectable) -> Closes
                 }
 
                 d_min = cp_world.distance;
-                result.closest_point_element = .VERTEX; // nocommit Check that this works as expected, perhaps its not handled everywhere...?                        
+                result.closest_point_element = .VERTEX;
                 result.closest_point.point = cp_world;
                 result.element_index = vertex_index;
                 result.entity_index = entity_index;

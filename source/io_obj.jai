@@ -150,7 +150,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
         } else if eat_possible_identifier(*parser, "p") {
 
-            missing, index := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            missing, index := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
             array_add(*mesh.points, index);
             if missing {
                 missing_vertices_count += 1;
@@ -164,10 +164,10 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
-            missing1, index1 := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            missing1, index1 := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
             if missing1 missing_vertices_count += 1;
 
-            missing2, index2 := obj_index(mesh.positions.count, obj_parse_index(*parser), MISSING_VERTEX_INDEX);
+            missing2, index2 := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
             if missing2 missing_vertices_count += 1;
 
             array_add(*mesh.segments, make_Tuple2(index1, index2));
@@ -375,7 +375,6 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     set_entity_display_info(result);
     init_entity_spatial_index(result);
 
-    // nocommit
     //print("result = %\n", formatStruct(<<result, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));
     //for result.mesh_attributes {
     //    if it.type == {

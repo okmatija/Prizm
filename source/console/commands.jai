@@ -394,7 +394,7 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
     }
 
     if clip_radius >= 0 {
-        entity.display_info.vertex_label_style.show_index = true;
+        entity.display_info.vertex_label_theme.show_index = true;
     }
 
     apply_focus(clip_radius, sphere, entity);

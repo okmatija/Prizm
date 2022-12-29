@@ -30,8 +30,7 @@ obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, b
 // 1-based indices
 Obj_Index :: #type,distinct int;
 
-// nocommit rename to parse_obj_index
-obj_parse_index :: (p : *Parser) -> Obj_Index {
+parse_obj_index :: (p : *Parser) -> Obj_Index {
     index : Obj_Index = xx parse_integer(p);
     if index == 0 {
         error(p, peek_token(p), "Unexpected 0 index, the OBJ file format uses 1-based indices\n");
@@ -86,20 +85,20 @@ parse_face :: (p : *Parser) -> Obj_Face {
     for i : 0..3 {
         if peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
 
-            face.indices[i] = obj_parse_index(p);
+            face.indices[i] = parse_obj_index(p);
             slash := eat_possible_token(p, #char "/");
             if slash {
                 slash = eat_possible_token(p, #char "/");
                 if slash {
                     // case v//vn
-                    face.normal[i] = obj_parse_index(p);
+                    face.normal[i] = parse_obj_index(p);
                     face.has_normals = true;
                 } else {
-                    face.texture[i] = obj_parse_index(p);
+                    face.texture[i] = parse_obj_index(p);
                     slash = eat_possible_token(p, #char "/");
                     if slash {
                         // case v/vt/vn
-                        face.normal[i] = obj_parse_index(p);
+                        face.normal[i] = parse_obj_index(p);
                         face.has_normals = true;
                         face.has_textures = true;
                     } else {

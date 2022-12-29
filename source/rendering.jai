@@ -143,7 +143,7 @@ Display_Info :: struct {
     // Labeling members
     //
 
-    vertex_label_style : Vertex_Label_Theme; // nocommit rename to vertex_label_theme
+    vertex_label_theme : Vertex_Label_Theme;
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
     triangle_label_theme : Element_Label_Theme;
@@ -206,7 +206,7 @@ Display_Info :: struct {
 }
 
 is_any_label_theme_visible :: (using,except(is_visible) display_info : Display_Info) -> bool {
-    return is_visible(vertex_label_style) ||
+    return is_visible(vertex_label_theme) ||
            is_visible(point_label_theme) ||
            is_visible(segment_label_theme) ||
            is_visible(triangle_label_theme) ||
@@ -758,13 +758,13 @@ render_entities :: () {
 
             {
                 // @Speed this should use the spatial index??
-                if is_visible(vertex_label_style) for :ModelVertexIterator point_model, point_index : entity.mesh {
+                if is_visible(vertex_label_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
                     point_world := mesh_point_world(entity.mesh, point_index);
                     if !is_clipped(entity.display_info, point_world) {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
-                            text : string = get_point_text(point_model, point_index, vertex_label_style);
+                            text : string = get_point_text(point_model, point_index, vertex_label_theme);
                             array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                         }
                     }
@@ -831,7 +831,7 @@ render_entities :: () {
             }
 
             // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
-            draw_label_infos(vertex_labels, vertex_label_style);
+            draw_label_infos(vertex_labels, vertex_label_theme);
             draw_label_infos(point_labels, point_label_theme);
             draw_label_infos(segment_labels, segment_label_theme);
             draw_label_infos(triangle_labels, triangle_label_theme);
@@ -907,10 +907,10 @@ render_entities :: () {
 
             // nocommit @Incomplete Should use point_theme for the vertex index here
 
-            if is_visible(vertex_label_style) {
+            if is_visible(vertex_label_theme) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 closest_point_model : Vector3 = transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
-                text : string = get_point_text(closest_point_model, closest_world.element_index, vertex_label_style);
+                text : string = get_point_text(closest_point_model, closest_world.element_index, vertex_label_theme);
                 array_add(*vertex_labels, make_Label_Info(text_position_px, text));
             }
 
@@ -922,14 +922,14 @@ render_entities :: () {
                 array_add(*segment_labels, make_Label_Info(text_position_px, text));
             }
 
-            if is_visible(vertex_label_style) {
+            if is_visible(vertex_label_theme) {
                 segment_tuple : Tuple2(u32) = mesh_segment3_tuple(entity.mesh, closest_world.element_index);
                 segment_model : Segment3 = mesh_segment3_model(entity.mesh, closest_world.element_index);
                 segment_world : Segment3 = mesh_segment3_world(entity.mesh, closest_world.element_index);
                 for 0..1 {
                     point_world, point_model, point_index := segment_world.p[it], segment_model.p[it], segment_tuple.component[it];
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    text : string = get_point_text(point_model, point_index, vertex_label_style);
+                    text : string = get_point_text(point_model, point_index, vertex_label_theme);
                     array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                 }
             }
@@ -942,14 +942,14 @@ render_entities :: () {
                 array_add(*triangle_labels, make_Label_Info(text_position_px, text));
             }
 
-            if is_visible(vertex_label_style) {
+            if is_visible(vertex_label_theme) {
                 triangle_tuple : Tuple3(u32) = mesh_triangle_tuple(entity.mesh, closest_world.element_index);
                 triangle_model : Triangle3 = mesh_triangle_model(entity.mesh, closest_world.element_index);
                 triangle_world : Triangle3 = mesh_triangle_world(entity.mesh, closest_world.element_index);
                 for 0..2 {
                     point_world, point_model, point_index := triangle_world.v[it], triangle_model.v[it], triangle_tuple.component[it];
                     text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
-                    text : string = get_point_text(point_model, point_index, vertex_label_style);
+                    text : string = get_point_text(point_model, point_index, vertex_label_theme);
                     array_add(*vertex_labels, make_Label_Info(text_position_px, text));
                 }
             }
@@ -961,7 +961,7 @@ render_entities :: () {
         }
 
         // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
-        draw_label_infos(vertex_labels, vertex_label_style);
+        draw_label_infos(vertex_labels, vertex_label_theme);
         draw_label_infos(point_labels, point_label_theme);
         draw_label_infos(segment_labels, segment_label_theme);
         draw_label_infos(triangle_labels, triangle_label_theme);
@@ -985,7 +985,7 @@ render_entities :: () {
 
 
     entity_filter :: (entity : *Entity) -> bool {
-        return visible_selectable(entity) && is_any_label_theme_visible(entity.display_info);
+        return is_entity_visible(entity) && is_any_label_theme_visible(entity.display_info);
     }
 
     if #complete app.settings.labelling_mode == {
@@ -1030,7 +1030,7 @@ render_selections :: () {
     // annoying in the case of selections
 
     Simp.ScopeContext();
-    vertex_theme := entity.display_info.vertex_label_style;
+    vertex_theme := entity.display_info.vertex_label_theme;
     for mesh.positions {
         text := get_point_text(it, it_index, vertex_theme);
         text_position_px : Tuple2i = to_screen_position(it, projection_from_model);
