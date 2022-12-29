@@ -5,7 +5,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
   - Multiple attributes are supported, and each will have its own tab in the item context menu
 
-- Reorganisation of UI:
+- Changes and reorganisation of UI:
 
   - Since there are more tools now moved them to a tab in the window with camera controls
   - Presets shapes menu has been moved into the new "Preset" tool in the "Tools" tab
@@ -21,9 +21,9 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
   - TODO Remove the display of annotations for the RMB'd item when more than one item is selected, its confusing, also do the same for attributes
 
-- .obj file loading
+- .obj file loading/mesh data-structure changes
 
-  - Significant refactor of the interal mesh datastructure so that items can support more than one geometry type. Previously items could be point clouds, segment soups or triangle soups but now points/segments/triangles can all appear in the same item.
+  - Enabled support for multiple element types in the same item, previously Prism could only load meshes which were entirely triangles, segments or points.  TODO Removed select_if_XXX commands since they no longer make sense.
   - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
   - Note: Negative indices are useful if you don't want to keep a running count of how many vertices have been written or if you're writing a triangle soup with duplicate vertices where it can reduce file size. It seems not to be a well supported feature in other obj views TODO check paraview, meshlab and vscode
   - Added `item_cache_unreferenced_positions` command which is useful to ensure that ray-mesh queries work correctly for obj files which contained positions (v-directives) which were not referenced by element directives (p, l or f). This function is called automatically when loading the .obj if there are no elements in the file (then all positions unreferenced), but since its somewhat expensive in the general case, the user has to call it from the console, or add it as a command annotation to the file in other case (you probably only need to this is if you notice some strange behaviour e.g., can't select visible points near the cursor---if these are unreferenced they need to be detected and cached with this function first)
@@ -42,11 +42,6 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Removed the option to skip labelling back-facing triangles/oriented points, it was not very useful and less so now that TODO occlusion is supported
   - Moved the label coordinate float formatting into "Options > Labelling"
 
-- Data-structure changes
-
-  - TODO Enabled support for multiple element types in the same item, previously Prism could only load meshes which were entirely triangles, segments or points 
-  - Removed Polygon_Soup, Polyline_Soup, Segment_Soup item types and TODO corresponding select_if_XXX commands
-
 - Console commands
 
   - Added a `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles of the given item
@@ -63,6 +58,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 - Renamed "Add" button in "Items" tab to "Presets"
 - Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
 - Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
+- Added feature to clipping sphere mode where engaging the mode (Shift LMB) while the cursor is far from the shape being clipped the entire shape is shown in a wireframe/point rendering so you can easily see the original unclipped shape
 DONE
 };
 

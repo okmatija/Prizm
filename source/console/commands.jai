@@ -248,7 +248,7 @@ item_copy_clipping_sphere :: (source_id : int, target_id : int) {
 // Sets the edge/wireframe color to the face/surface color for all items
 set_edge_color_to_face_color :: () {
     for app.entities {
-        it.display_info.wireframe_color = it.display_info.surface_color;
+        it.display_info.segments_color = it.display_info.triangles_color;
     }
 } @RegisterCommand
 
@@ -487,7 +487,7 @@ item_find_open_edges :: (id : int) {
     set_entity_display_info(new_entity);
 
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
-    new_entity.display_info.wireframe_width = 3;
+    new_entity.display_info.segments_width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     new_entity.generation_index = app.entities[id].generation_index;
@@ -536,7 +536,7 @@ item_find_zero_area_triangles :: (id : int) {
     set_entity_display_info(result);
 
     maybe_update_render_info(*result.render_info, *result.mesh); // @Cleanup fishy, why do we do this
-    result.display_info.wireframe_width = 3;
+    result.display_info.segments_width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     result.generation_index = target.generation_index;

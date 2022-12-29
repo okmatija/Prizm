@@ -357,6 +357,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     if no_elements(mesh) {
         array_resize(*mesh.unreferenced_positions, mesh.positions.count);
         for * mesh.unreferenced_positions { <<it = xx it_index; }
+
+        log_warning("File '%' contains % position% but has no element directives, if you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex",
+            filename,
+            mesh.positions.count,
+            ifx mesh.positions.count > 1 then "s" else "");
     }
 
     // nocommit remove this, and replace with something to deduce annotation_info?
@@ -375,7 +380,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     //for result.mesh_attributes {
     //    if it.type == {
     //        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
-    //            attr := <<cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it;
+    //            attr := <<cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it;0
     //            printv(attr);
     //    }
     //}

@@ -18,12 +18,10 @@ make_axes_triad :: (axis_length : float) -> Axes_Triad
     z_axis.mesh = to_Mesh(par_shapes_triad.z_axis);
     origin.mesh = to_Mesh(par_shapes_triad.origin);
 
-    // @CompilerBug Can set the same field more than once here!?
-
-    x_axis.display_info = .{backface_mode=.NONE,surface_color=.{1, 0, 0, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
-    y_axis.display_info = .{backface_mode=.NONE,surface_color=.{0, 1, 0, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
-    z_axis.display_info = .{backface_mode=.NONE,surface_color=.{0, 0, 1, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
-    origin.display_info = .{backface_mode=.NONE,surface_color=.{.3, .3, .3, 1}, display_mode=.BLINN_PHONG, points_size=0, wireframe_width=0};
+    x_axis.display_info = .{backface_mode=.NONE, triangles_visible=true, triangles_color=.{1., 0., 0., 1.}};
+    y_axis.display_info = .{backface_mode=.NONE, triangles_visible=true, triangles_color=.{0., 1., 0., 1.}};
+    z_axis.display_info = .{backface_mode=.NONE, triangles_visible=true, triangles_color=.{0., 0., 1., 1.}};
+    origin.display_info = .{backface_mode=.NONE, triangles_visible=true, triangles_color=.{.3, .3, .3, 1.}};
 
     return result;
 }
@@ -65,10 +63,10 @@ render_axes_triad :: () {
 
     Scope_GL_State();
 
-    render_mesh_triangles(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
-    render_mesh_triangles(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info);
-    render_mesh_triangles(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info);
-    render_mesh_triangles(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info);
+    render_mesh_triangles(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info, false, false);
+    render_mesh_triangles(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info, false, false);
+    render_mesh_triangles(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info, false, false);
+    render_mesh_triangles(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info, false, false);
 
     // Bug Screws up the background shader!!?
     // render_mesh_triangles_as_lines(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);

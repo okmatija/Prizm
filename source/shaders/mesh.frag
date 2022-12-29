@@ -36,8 +36,8 @@ uniform int backface_mode = Backface_Mode_FIXED;
 uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
 uniform vec4 color; // rgba
 uniform bool flat_shading = true;
-uniform vec4 wireframe_color; // rgba
-uniform float wireframe_width;
+uniform vec4 edges_color; // rgba
+uniform float edges_width;
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
 uniform Clip_Sphere clip_sphere_prev;
@@ -266,11 +266,11 @@ void main() {
         }
     }
 
-    if (wireframe_width > 0.) {
+    if (edges_width > 0.) {
         float d = min(dist[0], min(dist[1], dist[2]));
-        d /= max(1., wireframe_width);
+        d /= max(1., edges_width);
         float I = exp2(-2*d*d);
-        vec4 line_color = mix(wireframe_color, vec4(1.f), wave * .5f + .5f);
+        vec4 line_color = mix(edges_color, vec4(1.f), wave * .5f + .5f);
         out_color = I*line_color + (1. - I)*fill_color;
     } else {
         out_color = fill_color;

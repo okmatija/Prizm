@@ -249,8 +249,10 @@ cycle_wireframe_width :: (target : Target_Items) {
     cycle_wireframe_width_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
-        it.display_info.wireframe_visible = app_info.wireframe_visible;
-        it.display_info.wireframe_width   = app_info.wireframe_width;
+        it.display_info.segments_visible = app_info.segments_visible;
+        it.display_info.segments_width   = app_info.segments_width;
+        it.display_info.edges_visible = app_info.edges_visible;
+        it.display_info.edges_width   = app_info.edges_width;
     }
 }
 
@@ -264,19 +266,25 @@ cycle_wireframe_width_proc :: (last_interaction_time : *void, target : Target_It
 
 cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 
-    // Handle full range of wireframe_width
-    if !wireframe_visible {
-        wireframe_visible = true;
-        wireframe_width = 1;
+    // We need to use edges_* rather than segments_* in the if conditions because segment visibility doesn't change in the else so the cycling would get stuck after we reach the else for first time
+    if !edges_visible {
+        segments_visible = true;
+        segments_width = 1;
+        edges_visible = true; // May as well let the cycling shortcut turn this on
+        edges_width = 1;
         return .{0,3};
-    } else if wireframe_width <= 1 {
-        wireframe_width = 2;
+    } else if edges_width <= 1 {
+        segments_width = 2;
+        edges_width = 2;
         return .{1,3};
-    } else if wireframe_width <= 2 {
-        wireframe_width = 3;
+    } else if edges_width <= 2 {
+        segments_width = 3;
+        edges_width = 3;
         return .{2,3};
     } else {
-        wireframe_visible = false;
+        // segments_visible = false; // Intentionally leave segments visible, we don't want the cycling shortcut to affect visiblity of segments
+        segments_width = 1; // Duplicate the default state, it just feels better doing this
+        edges_visible = false;
         return .{3,3};
     }
 }
@@ -625,7 +633,7 @@ cycle_opacity :: (target : Target_Items) {
     cycle_opacity_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
-        it.display_info.surface_color.w = app_info.surface_color.w;
+        it.display_info.triangles_color.w = app_info.triangles_color.w;
     }
 }
 
@@ -637,14 +645,14 @@ cycle_opacity_proc :: (last_interaction_time : *void, target : Target_Items) {
 }
 
 cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
-    if surface_color.w == 1.  {
-        surface_color.w = .5;
+    if triangles_color.w == 1.  {
+        triangles_color.w = .5;
         return .{0, 2};
-    } else if surface_color.w >= .5 {
-        surface_color.w = .2;
+    } else if triangles_color.w >= .5 {
+        triangles_color.w = .2;
         return .{1, 2};
     } else {
-        surface_color.w = 1.;
+        triangles_color.w = 1.;
         return .{2, 2};
     }
 }

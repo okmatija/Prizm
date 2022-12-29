@@ -284,12 +284,16 @@ Display_Info_Update :: struct {
     normals_color : Vector4_Update;
     normals_length : bool;
 
-    wireframe_visible : bool;
-    wireframe_color : Vector4_Update;
-    wireframe_width : bool;
+    segments_visible : bool;
+    segments_color : Vector4_Update;
+    segments_width : bool;
 
-    surface_visible : bool;
-    surface_color : Vector4_Update;
+    triangles_visible : bool;
+    triangles_color : Vector4_Update;
+
+    edges_visible : bool;
+    edges_color : Vector4_Update;
+    edges_width : bool;
 
     clip_ranges : [3]Clip_Range_Update;
     clip_sphere : Clip_Sphere_Update;
@@ -317,12 +321,16 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.normals_color = get_update(old.normals_color, new.normals_color);
     result.normals_length = get_update(old.normals_length, new.normals_length);
 
-    result.wireframe_visible = get_update(old.wireframe_visible, new.wireframe_visible);
-    result.wireframe_color = get_update(old.wireframe_color, new.wireframe_color);
-    result.wireframe_width = get_update(old.wireframe_width, new.wireframe_width);
+    result.segments_visible = get_update(old.segments_visible, new.segments_visible);
+    result.segments_color = get_update(old.segments_color, new.segments_color);
+    result.segments_width = get_update(old.segments_width, new.segments_width);
 
-    result.surface_visible = get_update(old.surface_visible, new.surface_visible);
-    result.surface_color = get_update(old.surface_color, new.surface_color);
+    result.triangles_visible = get_update(old.triangles_visible, new.triangles_visible);
+    result.triangles_color = get_update(old.triangles_color, new.triangles_color);
+
+    result.edges_visible = get_update(old.edges_visible, new.edges_visible);
+    result.edges_color = get_update(old.edges_color, new.edges_color);
+    result.edges_width = get_update(old.edges_width, new.edges_width);
 
     result.clip_ranges[0] = get_update(old.clip_ranges[0], new.clip_ranges[0]);
     result.clip_ranges[1] = get_update(old.clip_ranges[1], new.clip_ranges[1]);
@@ -352,12 +360,16 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.normals_color, source.normals_color, *target.normals_color);
     apply_update(update.normals_length, source.normals_length, *target.normals_length);
 
-    apply_update(update.wireframe_visible, source.wireframe_visible, *target.wireframe_visible);
-    apply_update(update.wireframe_color, source.wireframe_color, *target.wireframe_color);
-    apply_update(update.wireframe_width, source.wireframe_width, *target.wireframe_width);
+    apply_update(update.segments_visible, source.segments_visible, *target.segments_visible);
+    apply_update(update.segments_color, source.segments_color, *target.segments_color);
+    apply_update(update.segments_width, source.segments_width, *target.segments_width);
 
-    apply_update(update.surface_visible, source.surface_visible, *target.surface_visible);
-    apply_update(update.surface_color, source.surface_color, *target.surface_color);
+    apply_update(update.triangles_visible, source.triangles_visible, *target.triangles_visible);
+    apply_update(update.triangles_color, source.triangles_color, *target.triangles_color);
+
+    apply_update(update.edges_visible, source.edges_visible, *target.edges_visible);
+    apply_update(update.edges_color, source.edges_color, *target.edges_color);
+    apply_update(update.edges_width, source.edges_width, *target.edges_width);
 
     apply_update(update.clip_ranges[0], source.clip_ranges[0], *target.clip_ranges[0]);
     apply_update(update.clip_ranges[1], source.clip_ranges[1], *target.clip_ranges[1]);

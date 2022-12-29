@@ -172,7 +172,11 @@ show_item_list_ui :: () {
         if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
             source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
             for app.entities if it.is_selected {
-                <<entity_primary_color(it) = <<entity_primary_color(source);
+                it_primary_color : *Vector4 = get_entity_primary_color(it);
+                source_primary_color : *Vector4 = get_entity_primary_color(source);
+                if it_primary_color && source_primary_color {
+                    <<it_primary_color = <<source_primary_color;
+                }
             }
         }
         if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
@@ -184,7 +188,7 @@ show_item_list_ui :: () {
         if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
             for app.entities if it.is_selected {
                 it.display_info.display_mode = Display_Info.{}.display_mode;
-                reset_entity_primary_color(it);
+                set_entity_primary_color(it);
             }
         }
         if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
@@ -228,14 +232,14 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         if entity.display_info.display_mode == .NORMALS {
             ImGui.TextDisabled("NR."); // @Design Replace this with a image with a normal gradient
         } else {
-            color : *Vector4 = entity_primary_color(entity);
+            color : *Vector4 = get_entity_primary_color(entity);
             if color {
                 color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
             }
         }
         if ImGui.IsItemClicked(.Middle) {
             entity.display_info.display_mode = Display_Info.{}.display_mode; // Reset to default
-            reset_entity_primary_color(entity);
+            set_entity_primary_color(entity);
             color_reset = true;
         }
         if ImGui.IsItemClicked(.Right) {
@@ -261,8 +265,10 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, show_entity_index
         if !was_visible && entity.display_info.is_visible {
             // @Think We should probably have some kind of function list/hook/delegate feature so we can add code to be executed when visibility changes etc
             // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
-            color, element_visibility := entity_primary_color(entity);
-            <<element_visibility = true;
+            color, element_visibility := get_entity_primary_color(entity);
+            if element_visibility {
+                <<element_visibility = true;
+            }
         }
 
         if entity.is_selected {
@@ -1009,7 +1015,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                     // nocommit Restore the color reset thing!
                     /*
                     if set.color_reset {
-                        reset_entity_primary_color(entity);
+                        set_entity_primary_color(entity);
                     }
                     */
 
@@ -1751,14 +1757,7 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     ImGui.PopItemWidth();
 }
 
-// @Think Consider disabling the ui for empty element containers
-display_info_ui :: (
-    display_info : *Display_Info,
-    aabb :         AxisBox3,
-    normals_ui :   bool = true,
-    lines_ui :     bool = true,
-    faces_ui :     bool = true,
-    clipping_ui :  bool = true) -> Display_Info_Update {
+display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_Info_Update {
 
     old_display_info := <<display_info;
 
@@ -1786,7 +1785,7 @@ display_info_ui :: (
             ImGui.Text("Points     ");
             ImGui.SameLine();
             ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-            Show_Tooltip("Points visibility");
+            Show_Tooltip("Point visibility");
             ImGui.SameLine();
             ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
             ImGui.SameLine();
@@ -1798,11 +1797,11 @@ display_info_ui :: (
             ImGui.PopItemWidth();
         }
 
-        if normals_ui {
+        {
             ImGui.Text("Normals    ");
             ImGui.SameLine();
             ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-            Show_Tooltip("Normals visibility");
+            Show_Tooltip("Normal visibility");
             ImGui.SameLine();
             ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
             ImGui.SameLine();
@@ -1812,29 +1811,29 @@ display_info_ui :: (
             ImGui.PopItemWidth();
         }
 
-        if lines_ui {
-            ImGui.Text("Lines      ");
+        {
+            ImGui.Text("Segments   ");
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##wireframe_visible", display_info), *display_info.wireframe_visible);
-            Show_Tooltip("Lines visibility");
+            ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
+            Show_Tooltip("Segment visibility");
             ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##wireframe_color", display_info), *display_info.wireframe_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##wireframe_width", display_info), *display_info.wireframe_width, .05);
+            ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
             Show_Tooltip("Width");
-            display_info.wireframe_width = clamp(display_info.wireframe_width, 1, 5);
+            display_info.segments_width = clamp(display_info.segments_width, 1, 5);
             ImGui.PopItemWidth();
         }
 
-        if faces_ui {
+        {
             ImGui.Text("Triangles  ");
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##surface_visible", display_info), *display_info.surface_visible);
-            Show_Tooltip("Triangles visibility");
+            ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
+            Show_Tooltip("Triangle visibility");
             {
                 ImGui.SameLine();
-                ImGui.ColorEdit4(imgui_label("##surface_color", display_info), *display_info.surface_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
                 Show_Tooltip("Frontface Color");
             }
             ImGui.SameLine();
@@ -1846,11 +1845,24 @@ display_info_ui :: (
             ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
             Show_Tooltip("Flat Shading");
         }
+
+        {
+            ImGui.Text("Edges      ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
+            Show_Tooltip("Triangle edges visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
+            Show_Tooltip("Width");
+            display_info.edges_width = clamp(display_info.edges_width, 1., 5);
+            ImGui.PopItemWidth();
+        }
     }
 
-    if clipping_ui {
-        show_clipping_ui(display_info, aabb);
-    }
+    show_clipping_ui(display_info, aabb);
 
     if ImGui.TreeNodeEx("Labels", .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -1861,7 +1873,6 @@ display_info_ui :: (
         show_element_label_theme_ui("Triangle  ", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
         show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_label_theme);
     }
-
 
     return get_update(old_display_info, display_info);
 }

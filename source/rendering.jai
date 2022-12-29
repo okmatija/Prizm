@@ -150,28 +150,38 @@ Display_Info :: struct {
     annotation_label_theme : Annotation_Label_Theme;
     // attribute_theme : [..]Attribute_Theme;
 
+    point_label_theme.label_color = .{1., 1., 0, 1};
+    segment_label_theme.label_color = .{.6, .6, 0, 1};
+
     //
     // Vertex/Element members
     //
 
-    //positions_visible := false;
-    //positions_color := Vector4.{.5, .5, .5, 1.};
-    //positions_size : s32 = 0;
+    // nocommit :PositionDisplayParams Separate position display parameters from point display parameters. Make the position color black by default
+    //unreferenced_positions_visible := true;
+    //unreferenced_positions_color := Vector4.{.5, .5, .5, 1.};
+    //unreferenced_positions_size : s32 = 4;
 
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
-    points_size : s32 = 0;
+    points_size : s32 = 4;
 
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
 
-    wireframe_visible := false;
-    wireframe_color := Vector4.{0., 0., 0., 1.};
-    wireframe_width : float = 0.;
+    // nocommit Separate triangle edge display parameters from segment display parameters. Make the triangle edges black by default
+    segments_visible := false;
+    segments_color : Vector4 = BLACK;
+    segments_width : float = 1.;
 
-    surface_visible := true;
-    surface_color := Vector4.{1., 1., 1., 1.};
+    triangles_visible := false;
+    triangles_color := Vector4.{1., 1., 1., 1.};
+
+    // These can be used for tetrahedra edges when those are supported
+    edges_visible := false;
+    edges_color : Vector4 = BLACK;
+    edges_width : float = 1.;
 
     //
     // Clipping
@@ -195,7 +205,7 @@ Display_Info :: struct {
     clip_sphere_prev : Clip_Sphere;
 }
 
-is_any_label_theme_visible :: (using,except.["is_visible"] display_info : Display_Info) -> bool {
+is_any_label_theme_visible :: (using,except(is_visible) display_info : Display_Info) -> bool {
     return is_visible(vertex_label_style) ||
            is_visible(point_label_theme) ||
            is_visible(segment_label_theme) ||
@@ -338,57 +348,97 @@ render_aabb :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using dis
     glDrawArrays(GL_LINES, 0, 24);
 }
 
-render_mesh_positions :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !points_visible || mesh.positions.count == 0 {
+render_mesh_positions :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
+    if !mesh.positions.count {
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info);
+    if !points_visible && !clip_radius_mode_show_wireframe {
+        return;
+    }
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), points_color.x, points_color.y, points_color.z, points_color.w);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+
+    used_points_size := ifx clip_radius_mode_show_wireframe then 2 else points_size;
+    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx used_points_size);
+
+    used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else points_color;
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
 
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
-render_mesh_points :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !wireframe_visible || mesh.segments.count == 0 {
-        return;
-    }
-
+render_mesh_points :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
     assert(false); // nocommit @Incomplete implement this function
-    //glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null);
+    //glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null); // Reminder to use glDrawElements here
 }
 
 render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
-    if !wireframe_visible || mesh.segments.count == 0 {
+    if mesh.segments.count == 0 {
+        return;
+    }
+
+    if !segments_visible && !clip_radius_mode {
         return;
     }
 
     render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
+    used_segments_width := ifx clip_radius_mode then 1. else segments_width; // ifx ensures that the min width is chosen for clip_radius_mode
+    if (used_segments_width > 0) {
+        // See also glEnable(GL_LINE_SMOOTH);
+        glLineWidth(xx used_segments_width);
+    }
+
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), segments_color.x, segments_color.y, segments_color.z, segments_color.w);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, segments_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
     glDrawElements(GL_LINES, cast(GLsizei)(2 * mesh.segments.count), GL_UNSIGNED_INT, null);
 }
 
-render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
-    if !wireframe_visible || mesh.triangles.count == 0 {
+
+// :NiceTriangleEdgesRendering
+// We render triangle edges are rendered by rendering the triangle data twice using different polygon modes:
+// 1. With mode GL_FILL to achieve smooth/with anti-aliased edges within the triangle face (supports floating point edges_width)
+// 2. With mode GL_LINE to ensure that degenerate triangles with no area are visible when edges are rendered (requires integral edges_width)
+// In order not to spoil the smoothness of the edges within a triangle face we ensure a smaller width is used in the GL_LINE call
+MIN_EDGES_WIDTH_GL_LINE :: 1.;
+MIN_EDGES_WIDTH_GL_FILL :: 1.2;
+
+// Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
+render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
+    if mesh.triangles.count == 0 {
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
+    if !edges_visible && !clip_radius_mode_show_wireframe {
+        return;
+    }
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+
+    used_edges_width := max(edges_width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
+    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
+
+    // See also glEnable(GL_LINE_SMOOTH);
+    glLineWidth(xx used_edges_width);
+
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, cast(GLsizei)(3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
 }
 
-render_mesh_triangles :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
-    if !surface_visible || mesh.triangles.count == 0 {
+render_mesh_triangles :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info,
+    clip_radius_mode : bool,
+    clip_radius_mode_show_wireframe : bool) {
+ 
+    if !triangles_visible || mesh.triangles.count == 0 {
         return;
     }
 
@@ -397,10 +447,15 @@ render_mesh_triangles :: (mesh : *Simple_Mesh, using render_info : *Render_Info,
     glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
     glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
     glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), surface_color.x, surface_color.y, surface_color.z, surface_color.w);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "wireframe_color"), wireframe_color.x, wireframe_color.y, wireframe_color.z, wireframe_color.w);
-    glUniform1f(glGetUniformLocation(app.mesh_program, "wireframe_width"), ifx wireframe_visible then wireframe_width else 0);
+    // @Cleanup Maybe colors should be passed to the shader program as vertex attributes rather than uniforms to make rendering triangle attributes using colors a bit easier
+    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
+    glUniform4f(glGetUniformLocation(app.mesh_program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
     glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
+
+    used_edges_width := max(edges_width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
+    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
+    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
+    glUniform1f(glGetUniformLocation(app.mesh_program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -480,13 +535,6 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
     glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
 
-    // @Cleanup only set when mode==.LINE
-    last_line_width: float;
-    glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
-    if (wireframe_width > 0) {
-        glLineWidth(xx wireframe_width); // See also glEnable(GL_LINE_SMOOTH);
-    }
-
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
@@ -495,7 +543,8 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     glBlendEquation(GL_FUNC_ADD);
 }
 
-render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
+// nocommit Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
+render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
 
     maybe_update_render_info(render_info, mesh);
 
@@ -541,13 +590,6 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_I
 
     glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
     glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
-
-    // @Cleanup only set when mode==.LINE
-    last_line_width: float;
-    glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
-    if (wireframe_width > 0) {
-        glLineWidth(xx wireframe_width); // See also glEnable(GL_LINE_SMOOTH);
-    }
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -638,27 +680,16 @@ render_entities :: () {
     render_entity_geometry :: (entity : *Entity, entity_index : int) {
         ri := *entity.render_info;
         di :=  entity.display_info;
-        old_display_info := entity.display_info;
-        defer entity.display_info = old_display_info;
 
         clip_radius_mode := entity_in_clip_radius_mode(entity_index);
         clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
-        render_mesh_positions(*entity.mesh, ri, di);
-        if clip_radius_mode_show_wireframe {
-            di.wireframe_visible, di.wireframe_width = true, 1.5; // @Incomplete make this optional in settings
-        }
-        render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode);
-        if clip_radius_mode_show_wireframe {
-            di.wireframe_visible, di.wireframe_width = true, 1.0; // @Incomplete make this optional in settings
-        } else if di.surface_visible && di.wireframe_width >= 1 {
-            // Always draw the wireframe with GL_LINES in render_mesh_triangles_as_lines but make it thinner than the
-            // smooth version drawn in the render_mesh_triangles call
-            di.wireframe_width = max(di.wireframe_width - 1, 1);
-        }
-        render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
         render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_normals(*entity.mesh, ri, di);
+        render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+
         render_aabb(*entity.mesh, ri, di);
     }
 
@@ -686,7 +717,7 @@ render_entities :: () {
             triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
             annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
-            using,except.["is_visible"] entity.display_info;
+            using,except(is_visible) entity.display_info;
 
             //
             // Annotation labels
@@ -844,7 +875,7 @@ render_entities :: () {
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
-        using,except.["is_visible"] entity.display_info;
+        using,except(is_visible) entity.display_info;
 
         //
         // Annotation labels
@@ -937,8 +968,8 @@ render_entities :: () {
         draw_label_infos(annotation_labels, annotation_label_theme);
     }
 
-    is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w == 1.; }
-    is_visible_transparent :: (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.surface_color.w != 1.; }
+    is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.triangles_color.w == 1.; }
+    is_visible_transparent :: (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.triangles_color.w != 1.; }
     is_visible_hovered ::     (e : *Entity) -> bool { return e.display_info.is_visible &&  e.is_hovered; }
 
     Visible_Opaque ::      #bake_arguments Entities_Iterator(should_visit = is_visible_opaque);
@@ -982,12 +1013,13 @@ render_selections :: () {
     mesh := *app.user_selection.mesh;
 
     dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
+    dummy_clip_radius_mode_show_wireframe := false; // @Incomplete Support this for the selection item when its the 0-th item?
 
     // @Cleanup use ri and di aliases here
-    render_mesh_positions(mesh, *entity.render_info, entity.display_info);
+    render_mesh_positions(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_segments(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_triangles_as_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
-    render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
     render_normals(mesh, *entity.render_info, entity.display_info);
 
     projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
@@ -1036,6 +1068,9 @@ Scope_GL_State :: () #expand {
     last_enable_stencil_test := glIsEnabled(GL_STENCIL_TEST);
     last_enable_scissor_test := glIsEnabled(GL_SCISSOR_TEST);
 
+    // @Incomplete Get and set relevant/all float variables too e.g., :
+    last_line_width : GLfloat; glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
+
     `defer {
         // Restore modified GL state
         glUseProgram(last_program);
@@ -1075,6 +1110,7 @@ render_background :: () {
             glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 }

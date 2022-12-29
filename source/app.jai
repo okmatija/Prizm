@@ -86,11 +86,6 @@ App :: struct {
     // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
     // element label themes, but rather than pressing the checkboxes, we change the theme with the hotkey
     edit_display_info : Display_Info;
-    edit_display_info.points_visible = false;
-    edit_display_info.normals_visible = false;
-    edit_display_info.wireframe_visible = false;
-    edit_display_info.surface_visible = false;
-    edit_display_info.aabb_visible = false;
     edit_target := Target_Items.ALL_ITEMS;
 
     Label_Format :: struct {

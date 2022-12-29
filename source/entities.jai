@@ -210,27 +210,39 @@ is_changed_on_disk :: (entity : Entity) -> bool {
     return changed;
 }
 
+compute_entity_primary_color :: (using entity : Entity) -> Vector4 {
+    return color_from_path(get_entity_source(entity).path);
+}
 
-entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
-    if mesh.triangles.count != 0 {
-        return *display_info.surface_color, *display_info.surface_visible;
+get_entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
+    assert(entity != null);
+
+    if mesh.triangles.count {
+        return *display_info.triangles_color, *display_info.triangles_visible;
     }
 
-    if mesh.segments.count != 0 {
-        return *display_info.wireframe_color, *display_info.wireframe_visible;
+    if mesh.segments.count {
+        return *display_info.segments_color, *display_info.segments_visible;
     }
 
-    if mesh.points.count != 0 {
+    if mesh.points.count {
         return *display_info.points_color, *display_info.points_visible;
     }
 
-    return *display_info.surface_color, *display_info.surface_visible;
+    // If the entity mesh has no elements return the point color/visibility, this seems to make the most sense because the mesh may still have (unreferenced) positions
+    // :PositionDisplayParams Return the display info for positions
+    return *display_info.points_color, *display_info.points_visible;
 }
 
-reset_entity_primary_color :: (entity : *Entity) {
-    color : *Vector4 = entity_primary_color(entity);
-    if color {
-        <<color = color_from_path(get_entity_source(entity).path);
+set_entity_primary_color :: (using entity : *Entity) {
+    assert(entity != null);
+
+    // @CompilerBug? Error: We parsed a declaration, so we expected a semicolon after it, but saw this instead
+    // primary_color, is_visible : *Vector4, *bool;
+
+    primary_color : *Vector4 = get_entity_primary_color(entity);
+    if primary_color {
+        <<primary_color = compute_entity_primary_color(entity);
     }
 }
 
@@ -910,31 +922,30 @@ set_entity_source_from_command :: (entity : *Entity, name : string, console_comm
 // }
 
 // Preconditions: entity.source->path has been set
-set_entity_display_info :: (entity : *Entity) {
+set_entity_display_info :: (using entity : *Entity) {
     assert(entity != null);
 
-    primary_color := color_from_path(get_entity_source(entity).path);
+    primary_color : Vector4 = compute_entity_primary_color(entity); 
 
-    if entity.mesh.triangles.count != 0 {
+    if mesh.triangles.count {
+        display_info.triangles_visible = true;
+        display_info.triangles_color = primary_color;
+    }
 
-        entity.display_info.surface_visible = true;
-        entity.display_info.surface_color = primary_color;
+    if mesh.segments.count {
+        display_info.segments_visible = true;
+        display_info.segments_color = primary_color;
+    }
 
-    } else if entity.mesh.segments.count != 0 {
+    if mesh.points.count {
+        display_info.points_color = primary_color;
+        display_info.points_visible = true;
+    }
 
-        entity.display_info.wireframe_visible = true;
-        entity.display_info.wireframe_width = 1;
-        entity.display_info.wireframe_color = primary_color;
-        entity.display_info.segment_label_theme.label_color = .{.6, .6, 0, 1};
-
-    } else if entity.mesh.points.count != 0 {
-
-        entity.display_info.surface_visible = true; // @Cleanup What the heck??
-        entity.display_info.points_visible = true;
-        entity.display_info.points_size = 4;
-        entity.display_info.points_color = primary_color;
-        entity.display_info.point_label_theme.label_color = .{1., 1., 0, 1}; // @Cleanup put colors in app.jai
-
+    if mesh.unreferenced_positions.count {
+        // :PositionDisplayParams Use the position display info data here
+        display_info.points_color = primary_color;
+        display_info.points_visible = true;
     }
 }
 
