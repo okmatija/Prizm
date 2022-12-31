@@ -82,15 +82,7 @@ App :: struct {
     // triad.y_axis.display_info.backface_mode = .FIXED;
     // triad.z_axis.display_info.backface_mode = .FIXED;
 
-    // Item Context menu UI, Action button UI and Action keybindings edit this value and apply it to all target entities (see Target_Items enum)
-    // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
-    // element label themes, but rather than pressing the checkboxes, we change the theme with the hotkey
-    edit_tool : Edit_Tool;
-    Edit_Tool :: struct {
-        target := Target_Items.ALL_ITEMS;
-        display_info : Display_Info;
-    }
-
+    label_format : Label_Format;
     Label_Format :: struct {
         format_float : FormatFloat;  // We ignore the `value` field
         format_float.mode = .SHORTEST;
@@ -109,20 +101,23 @@ App :: struct {
             CENTROID; // nocommit Implement me
         }
     }
-    label_format : Label_Format;
 
-    // @Refactor Make this entity 0
-    user_selection : Entity;
-    user_selection_cursor_text_shown := false; // @Refactor This isn't really related to selection anymore
-    user_selection_cursor_text_scale := .4;
+    edit_tool : Edit_Tool;
+    Edit_Tool :: struct {
+        target := Target_Items.ALL_ITEMS;
+        display_info : Display_Info;
+    }
 
-    // Set the defaults for the user selection display
-    user_selection.display_info.is_visible = true;
-    user_selection.display_info.points_visible = true;
-    user_selection.display_info.points_size = 6;
-    user_selection.display_info.points_color = .{1, 0, .8, 1}; // @Volatile Used for the dynamic label text too
-    user_selection.display_info.vertex_label_theme.show_position = true;
-    user_selection.display_info.vertex_label_theme.label_color = .{0, 0, 0, 1};
+    select_tool : Select_Tool;
+    Select_Tool :: struct {
+        entity : Entity; // @Refactor Make this a pointer to entity 0?
+        entity.display_info.is_visible = true;
+        entity.display_info.points_visible = true;
+        entity.display_info.points_size = 6;
+        entity.display_info.points_color = .{1, 0, .8, 1}; // @Volatile Used for the dynamic label text too
+        entity.display_info.vertex_label_theme.show_position = true;
+        entity.display_info.vertex_label_theme.label_color = .{0, 0, 0, 1};
+    }
 
     // The entity which set the clipping sphere center
     clipping_sphere_mode_entity_index : int = -1;

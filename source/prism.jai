@@ -229,7 +229,6 @@ main :: () {
 
         // These functions all do a ray cast on all visible entities, but usually its only one function per frame, we could make this clear by having them return booleans saying if they executed and putting them in an if-else-if chain
         // Also, these functions determine what is rendered so its important they are called before the rendering functions
-        do_closest_point_mode();
         do_clipping_sphere_mode();
         do_selection_mode();
         do_demo_mode();

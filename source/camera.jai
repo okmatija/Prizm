@@ -488,8 +488,8 @@ entities_bounding_sphere_fast :: ($filter : (*Entity)->bool = (e)=>(true), fixed
         first = false;
     }
 
-    if app.user_selection.display_info.is_visible {
-        expand_sphere(*result, *app.user_selection.mesh, *app.user_selection.render_info, app.user_selection.display_info, first, keep_center);
+    if app.select_tool.entity.display_info.is_visible {
+        expand_sphere(*result, *app.select_tool.entity.mesh, *app.select_tool.entity.render_info, app.select_tool.entity.display_info, first, keep_center);
         first = false;
     }
 
@@ -519,8 +519,8 @@ entities_bounding_sphere_accurate :: ($filter : (*Entity)->bool = (e)=>(true)) -
         }
     }
 
-    if app.user_selection.display_info.is_visible {
-        mesh := *app.user_selection.mesh;
+    if app.select_tool.entity.display_info.is_visible {
+        mesh := *app.select_tool.entity.mesh;
         for * mesh.positions {
             p := (mesh.world_from_model * make_vector4(it, 1.)).xyz;
             array_add(*points_vs, p);

@@ -110,7 +110,7 @@ mouse_add_to_selection :: () -> bool {
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return false;
     }
-    return ImGui.IsMouseClicked(.Left) && io().KeyCtrl && app.user_selection.display_info.is_visible;
+    return ImGui.IsMouseClicked(.Left) && io().KeyCtrl && app.select_tool.entity.display_info.is_visible;
 }
 
 mouse_reposition_camera :: () -> bool {
@@ -142,7 +142,7 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, (unused)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap, (unused)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
-    add_key(*app.keymap, (unused)=>{toggle_current_selection_if_visible();}, "Toggle/complement visible item selection", xx #char "a", .{shift_pressed=true});
+    add_key(*app.keymap, (unused)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, (unused)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
     add_key(*app.keymap, (unused)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
     // @FIXME Make these presets work with the alt key like the button
@@ -242,10 +242,20 @@ select_or_deselect_all :: () {
     for app.entities    it.is_selected = !mode;
 }
 
-toggle_current_selection_if_visible :: () {
+// Deselects items which are not visible and toggles selection of visible items
+select_or_deselect_visible :: () {
+    select := false;
+    for app.entities if it.display_info.is_visible {
+        if !it.is_selected {
+            select = true;
+        }
+    }
+
     for app.entities {
         if it.display_info.is_visible {
-            it.is_selected = !it.is_selected;
+            it.is_selected = select;
+        } else {
+            it.is_selected = false;
         }
     }
 }

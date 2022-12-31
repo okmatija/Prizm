@@ -1005,12 +1005,12 @@ render_entities :: () {
 render_selections :: () {
     Scope_GL_State();
 
-    if app.user_selection.is_hovered {
+    if app.select_tool.entity.is_hovered {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
-    entity := *app.user_selection;
-    mesh := *app.user_selection.mesh;
+    entity := *app.select_tool.entity;
+    mesh := *app.select_tool.entity.mesh;
 
     dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
     dummy_clip_radius_mode_show_wireframe := false; // @Incomplete Support this for the selection item when its the 0-th item?

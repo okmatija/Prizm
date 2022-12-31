@@ -69,9 +69,9 @@ get_action_description :: (action_set : Action_Set, action_target : Target_Items
     return desc;
 }
 
-ALL_ITEMS_MOD :: Modifier_Flags.{shift_pressed=true};
-SELECTED_MOD :: Modifier_Flags.{control_pressed=true};
-VISIBLE_MOD :: Modifier_Flags.{};
+ALL_ITEMS_MOD :: Modifier_Flags.{control_pressed=true};
+SELECTED_MOD :: Modifier_Flags.{alt_pressed=true};
+VISIBLE_MOD :: Modifier_Flags.{}; // To be super consistent with the modifiers for the select item key binds, this should have shift_pressed=true, but this case is very common and we want it to be maximally discoverable so we trade off some consistency in favour of discoverability
 
 modifier_to_target :: (mod : Modifier_Flags) -> bool, Target_Items {
     if mod == VISIBLE_MOD   return true, .VISIBLE;

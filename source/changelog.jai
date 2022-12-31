@@ -14,6 +14,11 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Made the clipping sphere and clipping slab more compact to take up less space in the viewport
   - Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable panes and more icons
 
+- Changes to key-bindings:
+
+  - Changed Shift-a to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful.
+  - Changed "Update" buttons along the bottom edge of the viewport so that Alt is the modifier which applies the update to selected items and Ctrl is the modfier which applies the update to all items. This is now consistent with how those modifiers are used in item selection
+
 - Annotations
 
   - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file

@@ -343,13 +343,8 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             }
         }
     }
-    was_hovered := entity.is_hovered;
-    entity.is_hovered = ImGui.IsItemHovered();
-    if ImGui.IsItemHovered() {
-        entity.display_info.flash_wave_dt += io().DeltaTime;
-    } else if was_hovered {
-        entity.display_info.flash_wave_dt = 0;
-    }
+
+    entity_tick_flash_hover(entity);
 
     header_annotation : *Annotation = entity_header_annotation(entity);
     if app.settings.show_header_annotation_tooltips && header_annotation {
@@ -533,6 +528,8 @@ show_edit_ui :: () {
 }
 
 show_select_ui :: () {
+    // nocommit:
+    // - Could add options to the select tool e.g., should we copy over annotations/attributes? should we prefix annotations with the item index of the source? (latter is a way of adding the source entity to the elements in the selection)
 
     // indent := ImGui.GetTreeNodeToLabelSpacing();
 
@@ -549,22 +546,22 @@ show_select_ui :: () {
         if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
             defer ImGui.EndTable();
 
-            it := *app.user_selection; // @Cleanup remove this weird alias
+            it := *app.select_tool.entity; // @Cleanup remove this weird alias
 
             ImGui.TableNextRow();
 
             // Remove button
             ImGui.TableNextColumn();
             {
-                disable_cache_button := is_empty(app.user_selection.mesh);
+                disable_cache_button := is_empty(app.select_tool.entity.mesh);
                 if disable_cache_button       ImGui.BeginDisabled();
                 defer if disable_cache_button ImGui.EndDisabled();
 
-                if ImGui.Button(imgui_label("Cache ", *app.user_selection)) {
-                    if !is_empty(app.user_selection.mesh) {
+                if ImGui.Button(imgui_label("Cache ", *app.select_tool.entity)) {
+                    if !is_empty(app.select_tool.entity.mesh) {
                         new_entity : *Entity = New(Entity);
 
-                        merge(*new_entity.mesh, app.user_selection.mesh);
+                        merge(*new_entity.mesh, app.select_tool.entity.mesh);
                         counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Selection");
                         set_entity_source_from_selection(new_entity, tprint("Selection %", counter.count), new_entity.mesh.positions.count);
                         set_entity_display_info(new_entity);
@@ -572,7 +569,7 @@ show_select_ui :: () {
 
                         add_entity(new_entity, app.settings.duplicate_file_behaviour);
 
-                        deinit(*app.user_selection);
+                        deinit(*app.select_tool.entity);
 
                         log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
                     } else {
@@ -600,10 +597,12 @@ show_select_ui :: () {
             }
 
             ImGui.TableNextColumn();
+
             ImGui.Text("Point Selection");
             if it.display_info.is_visible {
                 bindings : [..]Binding_With_Description;
                 bindings.allocator = temp;
+                // nocommit Fix this tooltip
                 array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
                 array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
                 array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
@@ -615,57 +614,10 @@ show_select_ui :: () {
             if ImGui.IsItemClicked() && is_empty(it.mesh) == false {
                 fit_on_screen(it);
             }
-            was_hovered := it.is_hovered;
-            it.is_hovered = ImGui.IsItemHovered();
-            if it.is_hovered {
-                it.display_info.flash_wave_dt += io().DeltaTime;
-            } else if was_hovered {
-                it.display_info.flash_wave_dt = 0;
-            }
-
-            current_pos := ImGui.GetWindowPos();
-            current_size := ImGui.GetWindowSize();
-            window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
-            ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
+            entity_tick_flash_hover(it);
             
-            // Set popup border color to match the selection/RMB target item color
-            original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-            if ImGui.BeginPopupContextItem(imgui_label("##selection_context_menu", it)) {
-                defer ImGui.EndPopup();
-
-                // Undo the previous thing so internals don't have this color
-                ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-                // combo_box("", *it.display_info.display_mode, type_info(type_of(it.display_info.display_mode)));
-                // ImGui.SameLine();
-                // ImGui.PushItemWidth(70);
-                // ImGui.DragFloat(imgui_label("##Opacity", it), *it.display_info.color.w, v_speed=.005, v_min=0., v_max=1.);
-                // ImGui.PopItemWidth();
-                // Show_Tooltip("Opacity");
-
-                vertex_label_theme := *it.display_info.vertex_label_theme;
-
-                ImGui.Checkbox("Position labels", *vertex_label_theme.show_position);
-                ImGui.SameLine();
-                ImGui.ColorEdit4("Label color", *vertex_label_theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                ImGui.InputInt("Point size", *it.display_info.points_size);
-                it.display_info.points_size = clamp(it.display_info.points_size, 2, 10);
-
-                ImGui.DragFloat("Label scale", *vertex_label_theme.label_scale, .005, .2, 1., format="%.3f");
-
-                ImGui.Checkbox("Dynamic closest vertex result at cursor", *app.user_selection_cursor_text_shown);
-                Show_Tooltip("Format is '#E,I {X,Y,Z}'\n E is entity index to which it belongs\n I is the vertex index within the entity\n X,Y,Z are the coordinates of the closest vertex");
-                ImGui.DragFloat("Cursor text scale", *app.user_selection_cursor_text_scale, .005, .2, 1., format="%.3f");
-
-                ImGui.Separator();
-
-                ImGui.Text("#points = %", it.mesh.positions.count);
-
-                maybe_update_render_info(*it.render_info, *it.mesh);
-                aabb := it.render_info.bounding_aabb;
-                imgui_text_for_aabb(it.render_info.bounding_aabb);
-            }
+            // Note: The select_tool entity should not have a context menu, this is just a bit confusing and weird, its simpler if the user just caches the selection to make it a proper item and then access the menu
+            //show_item_context_menu(*app.select_tool.entity, -1);
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -2164,6 +2116,17 @@ entity_source_tooltip :: (entity : Entity) {
             Show_Tooltip(tprint("Selection\nCreated: %", filetime_to_readable_date(source.creation_time)));
     }
 }
+
+entity_tick_flash_hover :: (entity : *Entity) {
+    was_hovered := entity.is_hovered;
+    entity.is_hovered = ImGui.IsItemHovered();
+    if ImGui.IsItemHovered() {
+        entity.display_info.flash_wave_dt += io().DeltaTime;
+    } else if was_hovered {
+        entity.display_info.flash_wave_dt = 0;
+    }
+}
+
 
 pending_directories_sweep_state : Checkbox_Sweep_Mode_State;
 
