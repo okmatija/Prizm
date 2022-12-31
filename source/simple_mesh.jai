@@ -469,8 +469,8 @@ WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
 PointIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
 
-    for p : mesh.points {
-        `it_index := mesh.points[p];
+    for point : mesh.points {
+        `it_index := point;
         `it : Vector3 = mesh_point_hack(mesh, it_index, world_space);
         #insert (remove=#assert(false)) body;
     }
