@@ -68,14 +68,14 @@ build :: () {
     build_mode : Build_Mode;
     build_mode_found : bool;
     if Has_Argument("custom") {
-        print("[Prism] Compiling with custom build options.\n");
+        print("[%] Compiling with custom build options.\n", OUTPUT_EXE_NAME);
         build_mode, build_mode_found = table_find(*preset_build_modes, "debug"); // Start from debug options
         build_gui(preset_build_modes, chosen_build_mode=*build_mode);
     } else if Has_Argument("release") {
-        print("[Prism] Compiling with release build options.\n");
+        print("[%] Compiling with release build options.\n", OUTPUT_EXE_NAME);
         build_mode, build_mode_found = table_find(*preset_build_modes, "release");
     } else {
-        print("[Prism] Compiling with debug build options.\n");
+        print("[%] Compiling with debug build options.\n", OUTPUT_EXE_NAME);
         build_mode, build_mode_found = table_find(*preset_build_modes, "debug");
     }
     assert(build_mode_found);
@@ -116,7 +116,7 @@ build :: () {
             if message.kind == .COMPLETE {
                 // @Cleanup If this fails (why does it fail?) we need to sit through the entire compilation again, can it be made to fail sooner?
                 if build_mode.set_icon {
-                    print("[Prism] Setting application icon\n");
+                    print("[%] Setting application icon\n", OUTPUT_EXE_NAME);
                     set_icon_and_manifest(build_mode.build_options);
                 }
                 break;

@@ -5,7 +5,7 @@ main :: () {
     SDL_Init(SDL_INIT_VIDEO);
 
     init_changelog();
-    app.window = SDL_CreateWindow(tprint("Prism %", app.changelog[0].name).data,
+    app.window = SDL_CreateWindow(tprint("% %", OUTPUT_EXE_NAME, app.changelog[0].name).data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
@@ -321,10 +321,12 @@ handle_events :: () {
         ImGui_ImplSDL2_ProcessEvent(*event);
 
         if event.type == {
-            case SDL_QUIT; {
+            case SDL_QUIT;
+
                 app.closing_application = true;
-            }
+
             case SDL_WINDOWEVENT;
+
                 if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
 
                     width_scale  := cast(float) event.window.data1 / app.current_window_width;
@@ -340,7 +342,8 @@ handle_events :: () {
                     app.current_window_width  = event.window.data1;
                     app.current_window_height = event.window.data2;
                 }
-            case SDL_KEYDOWN; {
+
+            case SDL_KEYDOWN;
 
                 for app.keymap_keydown.mappings {
                     maybe_run_binding(event.key.keysym.sym, it, app.keymap_keydown);
@@ -350,8 +353,8 @@ handle_events :: () {
                 if event.key.keysym.sym == .SDLK_ESCAPE {
                     app.console.visible = false;
                 }
-            }
-            case SDL_KEYUP; {
+
+            case SDL_KEYUP;
 
                 for app.keymap.mappings {
                     maybe_run_binding(event.key.keysym.sym, it, app.keymap);
@@ -360,8 +363,8 @@ handle_events :: () {
                 for app.keymap_actions.mappings {
                     maybe_run_binding(event.key.keysym.sym, it, app.keymap_actions);
                 }
-            }
-            case SDL_DROPFILE; {
+
+            case SDL_DROPFILE;
 
                 // @Leak event.drop.file should be free'd using SDL_free
                 dropped := canonically_formatted_path_string(to_string(event.drop.file));
@@ -378,7 +381,6 @@ handle_events :: () {
                         fit_scene_on_screen();
                     }
                 }
-            }
         }
     }
 }
