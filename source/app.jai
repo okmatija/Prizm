@@ -85,8 +85,11 @@ App :: struct {
     // Item Context menu UI, Action button UI and Action keybindings edit this value and apply it to all target entities (see Target_Items enum)
     // We want to update this value in all these contexts so that things are consistent when e.g., we have the item context menu up and can see
     // element label themes, but rather than pressing the checkboxes, we change the theme with the hotkey
-    edit_display_info : Display_Info;
-    edit_target := Target_Items.ALL_ITEMS;
+    edit_tool : Edit_Tool;
+    Edit_Tool :: struct {
+        target := Target_Items.ALL_ITEMS;
+        display_info : Display_Info;
+    }
 
     Label_Format :: struct {
         format_float : FormatFloat;  // We ignore the `value` field

@@ -506,16 +506,16 @@ show_edit_ui :: () {
         // ImGui.Unindent(indent2 - indent);
         // defer ImGui.Indent(indent2 - indent);
 
-        ImGui.RadioButton("All", xx *app.edit_target, xx Target_Items.ALL_ITEMS);
+        ImGui.RadioButton("All", xx *app.edit_tool.target, xx Target_Items.ALL_ITEMS);
         Show_Tooltip("Target all items");
         ImGui.SameLine();
-        ImGui.RadioButton("Visible", xx *app.edit_target, xx Target_Items.VISIBLE);
+        ImGui.RadioButton("Visible", xx *app.edit_tool.target, xx Target_Items.VISIBLE);
         Show_Tooltip("Target visible items");
         ImGui.SameLine();
-        ImGui.RadioButton("Selected", xx *app.edit_target, xx Target_Items.SELECTED);
+        ImGui.RadioButton("Selected", xx *app.edit_tool.target, xx Target_Items.SELECTED);
         Show_Tooltip("Target selected items");
 
-        target : Target_Items = app.edit_target;
+        target : Target_Items = app.edit_tool.target;
         target_aabb : AxisBox3;
         for app.entities if Is_Target(it) {
             maybe_update_render_info(*it.render_info, *it.mesh);
@@ -526,9 +526,9 @@ show_edit_ui :: () {
             expand(*target_aabb, aabb);
         }
 
-        display_info : *Display_Info = *app.edit_display_info;
+        display_info : *Display_Info = *app.edit_tool.display_info;
         update : Display_Info_Update = display_info_ui(display_info, target_aabb);
-        apply_display_info_update(update, app.edit_target);
+        apply_display_info_update(update, app.edit_tool.target);
     }
 }
 
@@ -917,7 +917,7 @@ show_item_list_actions_ui :: () {
 
 apply_display_info_update :: (set : Display_Info_Update, target : Target_Items) {
     for app.entities if Is_Target(it) {
-        apply_update(set, app.edit_display_info, *it.display_info);
+        apply_update(set, app.edit_tool.display_info, *it.display_info);
     }
 }
 
@@ -1077,7 +1077,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                         expand(*selection_aabb, aabb);
                     }
 
-                    update := display_info_ui(*app.edit_display_info, selection_aabb);
+                    update := display_info_ui(*app.edit_tool.display_info, selection_aabb);
 
                     apply_display_info_update(update, .SELECTED);
                 }
@@ -1096,7 +1096,7 @@ show_item_context_menu :: (entity : *Entity, entity_index : s64) {
                 set : Display_Info_Update;
                 display_info : *Display_Info;
                 if entity.is_selected {
-                    display_info = *app.edit_display_info;
+                    display_info = *app.edit_tool.display_info;
                 } else {
                     display_info = *entity.display_info;
                 }

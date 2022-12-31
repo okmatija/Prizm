@@ -111,7 +111,7 @@ any_active_clipping :: (target : Target_Items) -> bool {
 
 toggle_clipping :: (target : Target_Items) {
 
-    clip_active := *app.edit_display_info.clip_sphere.is_active;
+    clip_active := *app.edit_tool.display_info.clip_sphere.is_active;
     <<clip_active = !<<clip_active;
 
     for app.entities if Is_Target(it) {
@@ -171,7 +171,7 @@ TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
 
 cycle_point_size :: (target : Target_Items) {
 
-    app_info := *app.edit_display_info;
+    app_info := *app.edit_tool.display_info;
     cycle_point_size_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
@@ -207,7 +207,7 @@ cycle_point_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 }
 
 cycle_point_size_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.edit_display_info;
+    app_info_copy := app.edit_tool.display_info;
     return cycle_point_size_progress_proc(*app_info_copy);
 }
 
@@ -245,7 +245,7 @@ CYCLE_POINT_SIZE_ACTION_SET := Action_Set.{
 
 cycle_wireframe_width :: (target : Target_Items) {
 
-    app_info := *app.edit_display_info;
+    app_info := *app.edit_tool.display_info;
     cycle_wireframe_width_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
@@ -290,7 +290,7 @@ cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fract
 }
 
 cycle_wireframe_width_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.edit_display_info;
+    app_info_copy := app.edit_tool.display_info;
     return cycle_wireframe_width_progress_proc(*app_info_copy);
 }
 
@@ -325,7 +325,7 @@ CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
 
 toggle_normals_visibility :: (target : Target_Items) {
 
-    app_info := *app.edit_display_info;
+    app_info := *app.edit_tool.display_info;
     toggle_normals_visibility_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
@@ -350,7 +350,7 @@ toggle_normals_visibility_progress_proc :: (using app_info : *Display_Info) -> F
 
 
 toggle_normals_visibility_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.edit_display_info;
+    app_info_copy := app.edit_tool.display_info;
     return toggle_normals_visibility_progress_proc(*app_info_copy);
 }
 
@@ -413,7 +413,7 @@ cycle_vertex_label_theme :: (target : Target_Items, theme : *Vertex_Label_Theme)
 }
 
 cycle_vertex_label :: (target : Target_Items) {
-    theme := *app.edit_display_info.vertex_label_theme;
+    theme := *app.edit_tool.display_info.vertex_label_theme;
 
     cycle_vertex_label_theme(target, theme);
 
@@ -433,7 +433,7 @@ cycle_vertex_label_proc :: (last_interaction_time : *void, target : Target_Items
 
 
 cycle_vertex_label_progress_proc :: (target : Target_Items) -> Fraction {
-    app_info_copy := app.edit_display_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app.edit_tool.display_info; // We just want to get the fraction, not modify the display info
     return cycle_vertex_label_theme(target, *app_info_copy.vertex_label_theme);
 }
 
@@ -496,7 +496,7 @@ cycle_element_label_theme :: (theme : *Element_Label_Theme) -> Fraction {
 
 cycle_element_label :: (target : Target_Items) {
     // All element types are kept in sync with the point one
-    theme := *app.edit_display_info.point_label_theme;
+    theme := *app.edit_tool.display_info.point_label_theme;
 
     cycle_element_label_theme(theme);
 
@@ -515,7 +515,7 @@ cycle_element_label_proc :: (last_interaction_time : *void, target : Target_Item
 }
 
 cycle_element_label_progress_proc :: (target : Target_Items) -> Fraction {
-    app_info_copy := app.edit_display_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app.edit_tool.display_info; // We just want to get the fraction, not modify the display info
     return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
@@ -576,7 +576,7 @@ cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
 }
 
 cycle_annotation :: (target : Target_Items) {
-    theme := *app.edit_display_info.annotation_label_theme;
+    theme := *app.edit_tool.display_info.annotation_label_theme;
 
     cycle_annotation_theme(theme);
 
@@ -593,7 +593,7 @@ cycle_annotation_proc :: (last_interaction_time : *void, target : Target_Items) 
 }
 
 cycle_annotation_progress_proc :: () -> Fraction {
-    app_info_copy := app.edit_display_info;
+    app_info_copy := app.edit_tool.display_info;
     return cycle_annotation_theme(*app_info_copy.annotation_label_theme);
 }
 
@@ -629,7 +629,7 @@ CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
 
 cycle_opacity :: (target : Target_Items) {
 
-    app_info := *app.edit_display_info;
+    app_info := *app.edit_tool.display_info;
     cycle_opacity_progress_proc(app_info);
 
     for app.entities if Is_Target(it) {
@@ -658,7 +658,7 @@ cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 }
 
 cycle_opacity_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.edit_display_info;
+    app_info_copy := app.edit_tool.display_info;
     return cycle_opacity_progress_proc(*app_info_copy);
 }
 
@@ -694,7 +694,7 @@ CYCLE_OPACITY_ACTION_SET := Action_Set.{
 
 cycle_backface_mode :: (target : Target_Items) {
 
-    mode := *app.edit_display_info.backface_mode;
+    mode := *app.edit_tool.display_info.backface_mode;
     cycle_backface_mode_progress_proc(mode);
 
     for app.entities if Is_Target(it) {
@@ -724,7 +724,7 @@ cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
 }
 
 cycle_backface_mode_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.edit_display_info;
+    app_info_copy := app.edit_tool.display_info;
     return cycle_backface_mode_progress_proc(*app_info_copy.backface_mode);
 }
 
@@ -866,7 +866,7 @@ clear_all_labels :: (unused : *void, target : Target_Items) {
     }
 
     // Also clear the display info used to set action button state
-    display_info : *Display_Info = *app.edit_display_info;
+    display_info : *Display_Info = *app.edit_tool.display_info;
     display_info.vertex_label_theme.show_index = false;
     display_info.vertex_label_theme.show_position = false;
     display_info.point_label_theme.show_index = false;
