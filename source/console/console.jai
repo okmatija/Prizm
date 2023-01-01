@@ -17,10 +17,11 @@ Console :: struct {
         TRANSPARENT;
     }
 
-    visible := false;
     log_mode := Log_Mode.TRANSPARENT;
     scroll_to_bottom := true;
     scroll_to_bottom_frame_count := SCROLL_TO_BOTTOM_FRAME_INIT;
+
+    show_ui := false;
 }
 
 // @Incomplete If the message is already present in the log don't add it again... in all cases?
@@ -28,7 +29,7 @@ console_logger :: (message: string, data: *void, info: Log_Info) {
     console_log := cast(*[..]string) data;
     if info.common_flags & .ERROR {
         array_add(console_log, join("[error] ", message));
-        app.console.visible = true;
+        app.console.show_ui = true;
     } else if info.common_flags & .WARNING {
         array_add(console_log, join("[warning] ", message));
     } else {
@@ -170,7 +171,9 @@ console_execute_command :: (_command : string) -> success : bool {
 }
 
 console_draw :: () {
-    if app.console.visible == false return;
+    if !app.console.show_ui {
+        return;
+    }
 
     window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
     input_window_height : float = -1;

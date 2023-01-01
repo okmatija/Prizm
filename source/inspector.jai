@@ -4,13 +4,13 @@ show_inspector := false;
 
 inspect :: (name: *u8, t : *$T, new_window : bool = false) {
     if new_window ImGui.Begin(name, *show_inspector);
-    inspect(name, t, type_info(T));
+    inspect(name, t, type_info(T), 0);
     if new_window ImGui.End();
 }
 
 #scope_file
 
-inspect :: (name: *u8, data: *void, info:*Type_Info) {
+inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
 
     if #complete info.type == {
         case .INTEGER;
@@ -49,15 +49,21 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
         case .STRUCT;
 
             info_struct := cast(*Type_Info_Struct) info;
-            do_tree := ImGui.TreeNode(data, "%", to_string(name));
-            Show_Tooltip("Auto-generated and messy right now");
+            flags := ImGui.TreeNodeFlags.SpanAvailWidth;
+            if depth == 0 {
+                flags |= .Framed;
+            }
+            do_tree := ImGui.TreeNodeEx(imgui_label(to_string(name), data), flags);
+            if depth == 0 {
+                Show_Tooltip("Auto-generated and messy right now");
+            }
             if do_tree {
                 defer ImGui.TreePop();
                 // ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
                 // defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
 
                 for member : info_struct.members {
-                    inspect(temp_c_string(member.name), data + member.offset_in_bytes, member.type);
+                    inspect(temp_c_string(member.name), data + member.offset_in_bytes, member.type, depth + 1);
                 }
             }
 
@@ -74,7 +80,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info) {
 
                 for 0..array_count-1 {
                     item_name := temp_c_string(tprint("%[%]", array_name, it));
-                    inspect(item_name, array_data + it * element_size, info_array.element_type);
+                    inspect(item_name, array_data + it * element_size, info_array.element_type, depth + 1);
                 }
             }
 

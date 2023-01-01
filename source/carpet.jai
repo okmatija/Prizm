@@ -1,5 +1,16 @@
 // Things with no clear file to go in just get shoved under the carpet.jai
 
+// @Incomplete If the message is already present in the log don't add it again... in all cases?
+do_nothing_logger :: (message: string, data: *void, info: Log_Info) {}
+
+// WithDoNothingLogger :: (code : Code) #expand {
+//     new_context := context;
+//     new_context.logger = do_nothing_logger; 
+//     push_context new_context {
+//         // ???
+//     }
+// }
+
 // Returns a string in temporary storage
 filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> string {
     lt : Calendar_Time = to_calendar(filetime, time_zone=.LOCAL);

@@ -7,6 +7,14 @@ Target_Items :: enum int #specified {
 }
 TARGET_ITEMS_COUNT :: #run get_enum_count(Target_Items);
 
+Is_Target :: (e : *Entity) -> bool #expand {
+    if #complete `target == {
+        case .SELECTED;  return (e.is_selected == true);
+        case .VISIBLE;   return (e.display_info.is_visible  == true);
+        case .ALL_ITEMS; return true;
+    }
+}
+
 show_action_target_text :: (target_items : Target_Items) {
     ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
     defer ImGui.PopStyleColor();
@@ -24,14 +32,6 @@ show_action_target_text :: (target_items : Target_Items) {
         }
     } else {
         ImGui.Text("No items to target");
-    }
-}
-
-Is_Target :: (e : *Entity) -> bool #expand {
-    if #complete `target == {
-        case .SELECTED;  return (e.is_selected == true);
-        case .VISIBLE;   return (e.display_info.is_visible  == true);
-        case .ALL_ITEMS; return true;
     }
 }
 
@@ -817,9 +817,11 @@ focus_items :: (unused : *void, target : Target_Items) {
         case .ALL_ITEMS;
             sphere = entities_bounding_sphere();
         case .VISIBLE;
-            sphere = entities_bounding_sphere((e)=>(e.display_info.is_visible));
+            filter :: #code !it.display_info.is_visible;
+            sphere = entities_bounding_sphere(filter);
         case .SELECTED;
-            sphere = entities_bounding_sphere((e)=>(e.is_selected));
+            filter :: #code !it.is_selected;
+            sphere = entities_bounding_sphere(filter);
     }
 
     if sphere.radius > 0 {

@@ -5,17 +5,18 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
   - Multiple attributes are supported, and each will have its own tab in the item context menu
 
-- Changes and reorganisation of UI:
+- FIXME Changes and reorganisation of UI:
 
+  - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
   - Since there are more tools now moved them to a tab in the window with camera controls
   - Presets shapes menu has been moved into the new "Preset" tool in the "Tools" tab
   - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
-  - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
   - Made the clipping sphere and clipping slab more compact to take up less space in the viewport
-  - Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable panes and more icons
+  - TODO Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable panes and more icons
 
-- Changes to key-bindings:
+- Changes to shortcuts:
 
+  - TODO Changed item focussing from clicking the name to require a double click, a single click with make the item the Details panel target but not adjust the camera
   - Changed Shift-a to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful.
   - Changed "Update" buttons along the bottom edge of the viewport so that Alt is the modifier which applies the update to selected items and Ctrl is the modfier which applies the update to all items. This is now consistent with how those modifiers are used in item selection
 
@@ -46,6 +47,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Added an option (enabled by default) to show vertex labels when inspecting triangle/segment/point labels
   - Removed the option to skip labelling back-facing triangles/oriented points, it was not very useful and less so now that TODO occlusion is supported
   - Moved the label coordinate float formatting into "Options > Labelling"
+  - Increased the default label scale from .3 to .4
 
 - Console commands
 

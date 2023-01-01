@@ -210,6 +210,12 @@ is_changed_on_disk :: (entity : Entity) -> bool {
     return changed;
 }
 
+count_selected_entities :: () -> int {
+    selected_count := 0;
+    for :Selected app.entities selected_count += 1;
+    return selected_count;
+}
+
 compute_entity_primary_color :: (using entity : Entity) -> Vector4 {
     return color_from_path(get_entity_source(entity).path);
 }
@@ -384,6 +390,19 @@ AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flag
     }
 }
 
+entity_selection_aabb :: () -> AxisBox3 {
+    result : AxisBox3;
+    for :Selected app.entities {
+        maybe_update_render_info(*it.render_info, *it.mesh);
+        // @Volatile @Cleanup only works for a shift
+        aabb := it.render_info.bounding_aabb;
+        aabb.min_point = (it.mesh.world_from_model * make_vector4(aabb.min_point, 1)).xyz;
+        aabb.max_point = (it.mesh.world_from_model * make_vector4(aabb.max_point, 1)).xyz;
+        expand(*result, aabb);
+    }
+    return result;
+}
+
 
 color_from_path :: (path : string) -> Vector4 {
     if path.count == 0 {
@@ -486,13 +505,13 @@ get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Ve
 }
 
 
-is_entity_visible :: (e : *Entity) -> bool {
+is_visible :: (e : *Entity) -> bool {
     return e.display_info.is_visible;
 }
 
 // @Refactor Use spatial lookups on triangles/segments/points
 // @Refactor Maybe pass entity index into the filter as well
-find_closest_vertex :: ($filter : (*Entity)->bool = is_entity_visible) -> Closest_Point_Ray_Entity {
+find_closest_vertex :: ($filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
@@ -506,7 +525,7 @@ find_closest_vertex :: ($filter : (*Entity)->bool = is_entity_visible) -> Closes
 
     min_dist2 := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments Entities_Iterator(should_visit = filter);
+    FilterIterator :: #bake_arguments Entities_Iterator(filter=filter);
     
     for :FilterIterator entity, entity_index : app.entities {
         inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
@@ -559,8 +578,7 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 }
 
 // Result positions are in world space
-// @Refactor Maybe pass entity index into the filter as well
-find_closest_point :: ($filter : (*Entity)->bool = is_entity_visible) -> Closest_Point_Ray_Entity {
+find_closest_point :: ($filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
@@ -600,7 +618,7 @@ find_closest_point :: ($filter : (*Entity)->bool = is_entity_visible) -> Closest
 
     d_min := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments Entities_Iterator(should_visit = filter);
+    FilterIterator :: #bake_arguments Entities_Iterator(filter=filter);
 
     for :FilterIterator entity, entity_index : app.entities {
         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);

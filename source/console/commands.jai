@@ -13,9 +13,18 @@
 //
 // Maybe we should do that for commands which have proven to be useful for a long time, for example
 
+// @Think Check if @RegisterCommand procedures are using this function, and not valid_geometry_index
 check_geometry_index :: (index : int) -> bool #must {
     if index < 0 || index >= app.entities.count {
         log_error("Invalid/Out-of-range geometry index, expected integer in range [0, %]", app.entities.count - 1);
+        return false;
+    }
+    return true;
+}
+
+// Like check_geometry_index but with no logging
+valid_geometry_index :: (index : int) -> bool #must {
+    if index < 0 || index >= app.entities.count {
         return false;
     }
     return true;

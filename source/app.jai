@@ -102,6 +102,12 @@ App :: struct {
         }
     }
 
+    details_pane : Details_Pane;
+    Details_Pane :: struct {
+        entity_index : int;
+        display_info : Display_Info;
+    }
+
     edit_tool : Edit_Tool;
     Edit_Tool :: struct {
         target := Target_Items.ALL_ITEMS;
@@ -264,22 +270,23 @@ current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;
 }
 
-// nocommit Also pass the index to the predicate!
 // nocommit Rename this to something less generic and use this name for a basic iterator over entities
-Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, should_visit : (*Entity)->bool) #expand {
+Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $filter : Code) #expand {
     #assert(flags == 0); // No options are supported
 
     for entity, entity_index : <<entities {
-        if !should_visit(entity) continue;
-
         `it_index := entity_index;
         `it := entity;
+        if #insert,scope() filter {
+            continue;
+        }
+
         #insert (remove=#assert(false), break=break entity) body;
     }
 }
 
-Visible ::  #bake_arguments Entities_Iterator(should_visit = (e)=>(e.display_info.is_visible));
-Selected :: #bake_arguments Entities_Iterator(should_visit = (e)=>(e.is_selected));
+Visible ::  #bake_arguments Entities_Iterator(filter = #code !it.display_info.is_visible);
+Selected :: #bake_arguments Entities_Iterator(filter = #code !it.is_selected);
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {

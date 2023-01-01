@@ -231,13 +231,14 @@ main :: () {
         // Also, these functions determine what is rendered so its important they are called before the rendering functions
         do_clipping_sphere_mode();
         do_selection_mode();
-        do_demo_mode();
 
         // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
         render_background();
         render_entities();
         render_axes_triad();
         render_selections();
+
+        do_demo_mode(); // nocommit Why do we need this here---some opengl weirdness is going on!
 
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
@@ -350,7 +351,7 @@ handle_events :: () {
 
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
-                    app.console.visible = false;
+                    app.console.show_ui = false;
                 }
 
             case SDL_KEYUP;

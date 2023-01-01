@@ -227,7 +227,7 @@ rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axi
 rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
 toggle_show_console_ui :: () {
-    app.show_ui, app.console.visible = true, !app.console.visible;
+    app.show_ui, app.console.show_ui = true, !app.console.show_ui;
 }
 
 toggle_fullscreen :: () {

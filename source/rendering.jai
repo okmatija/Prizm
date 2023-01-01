@@ -1,5 +1,7 @@
 // Fixed! ISSUE_004 :: "The text rendering implementation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
 
+DEFAULT_LABEL_SCALE :: .4;
+
 Labelling_Mode :: enum {
     RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
@@ -10,7 +12,7 @@ Vertex_Label_Theme :: struct {
     show_index := false;
     show_position := false;
 
-    label_scale := .3;
+    label_scale := DEFAULT_LABEL_SCALE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
     // world_space : bool = false; // @Incomplete
@@ -19,7 +21,7 @@ Vertex_Label_Theme :: struct {
 // For mesh topology/geometry labels
 Element_Label_Theme :: struct {
     show_index := false;
-    label_scale := .3;
+    label_scale := DEFAULT_LABEL_SCALE;
     label_color := Vector4.{1., 1., 0, 1};
 }
 
@@ -34,7 +36,7 @@ is_visible :: (theme : Element_Label_Theme) -> bool {
 
 Annotation_Label_Theme :: struct {
     visible := false;
-    label_scale := .3;
+    label_scale := DEFAULT_LABEL_SCALE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
@@ -44,7 +46,7 @@ is_visible :: (theme : Annotation_Label_Theme) -> bool {
 
 Attribute_Theme :: struct {
     visible := false;
-    label_scale := .3;
+    label_scale := DEFAULT_LABEL_SCALE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
@@ -693,7 +695,7 @@ render_entities :: () {
         render_aabb(*entity.mesh, ri, di);
     }
 
-    render_entity_text_spotlight :: ($filter : (*Entity) -> bool) {
+    render_entity_text_spotlight :: ($filter : Code) {
 
         Simp.ScopeContext();
         glEnable(GL_BLEND);
@@ -706,7 +708,7 @@ render_entities :: () {
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
-        FilterIterator :: #bake_arguments Entities_Iterator(should_visit = filter);
+        FilterIterator :: #bake_arguments Entities_Iterator(filter=filter);
 
         for :FilterIterator entity, entity_index : app.entities {
 
@@ -839,7 +841,7 @@ render_entities :: () {
         }
     }
 
-    render_entity_text_ray_cast :: ($filter : (*Entity) -> bool) {
+    render_entity_text_ray_cast :: ($filter : Code) {
 
         closest_world : Closest_Point_Ray_Entity = find_closest_point(filter);
 
@@ -968,13 +970,13 @@ render_entities :: () {
         draw_label_infos(annotation_labels, annotation_label_theme);
     }
 
-    is_visible_opaque ::      (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.triangles_color.w == 1.; }
-    is_visible_transparent :: (e : *Entity) -> bool { return e.display_info.is_visible && !e.is_hovered && e.display_info.triangles_color.w != 1.; }
-    is_visible_hovered ::     (e : *Entity) -> bool { return e.display_info.is_visible &&  e.is_hovered; }
+    not_visible_opaque ::      #code !(it.display_info.is_visible && !it.is_hovered && it.display_info.triangles_color.w == 1.);
+    not_visible_transparent :: #code !(it.display_info.is_visible && !it.is_hovered && it.display_info.triangles_color.w != 1.);
+    not_visible_hovered ::     #code !(it.display_info.is_visible &&  it.is_hovered);
 
-    Visible_Opaque ::      #bake_arguments Entities_Iterator(should_visit = is_visible_opaque);
-    Visible_Transparent :: #bake_arguments Entities_Iterator(should_visit = is_visible_transparent);
-    Visible_Hovered ::     #bake_arguments Entities_Iterator(should_visit = is_visible_hovered);
+    Visible_Opaque ::      #bake_arguments Entities_Iterator(filter=not_visible_opaque);
+    Visible_Transparent :: #bake_arguments Entities_Iterator(filter=not_visible_transparent);
+    Visible_Hovered ::     #bake_arguments Entities_Iterator(filter=not_visible_hovered);
 
     for :Visible_Opaque      app.entities render_entity_geometry(it, it_index);
     for :Visible_Transparent app.entities render_entity_geometry(it, it_index);
@@ -984,18 +986,16 @@ render_entities :: () {
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
 
-    entity_filter :: (entity : *Entity) -> bool {
-        return is_entity_visible(entity) && is_any_label_theme_visible(entity.display_info);
-    }
+    no_labels :: #code !it.display_info.is_visible || !is_any_label_theme_visible(it.display_info);
 
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
-            render_entity_text_ray_cast(entity_filter);
+            render_entity_text_ray_cast(filter=no_labels);
 
         case .SPOTLIGHT;
 
-            render_entity_text_spotlight(entity_filter);
+            render_entity_text_spotlight(filter=no_labels);
     }
 
     for :Visible_Hovered     app.entities render_entity_geometry(it, it_index);
@@ -1135,12 +1135,12 @@ make_Label_Info :: (position_px : Tuple2i, label : string) -> Label_Info {
     return result;
 }
 
-Label_Theme_Base :: struct {
+Label_Theme_Interface :: struct {
     label_color : Vector4;
     label_scale : float;
 }
 
-draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Theme_Base) {
+draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Theme_Interface) {
 
     if !label_infos.count return;
 
