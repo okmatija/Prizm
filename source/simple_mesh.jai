@@ -7,7 +7,7 @@ Simple_Mesh :: struct {
 
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
     // .obj loading will fill these in from p, l and f directives respectively
-    points : [..]u32; // p's
+    points : [..]u32; // Filled in by parsing p-directives, or with the nocommit item_find_unreferenced_points
     segments : [..]Tuple2(u32); // l's OR construct if we contruct special edge data
     triangles : [..]Tuple3(u32); // f's with 3 indices
     //tetrahedra : [..]Tuple4(u32); // f's with 4 indices?
@@ -440,10 +440,10 @@ WorldTriangleIterator :: #bake_arguments TriangleIterator(world_space=true);
 TriangleEdgeIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
 
-    for i : 0..mesh.triangles.count-1 {
-        edges : Tuple3(Segment3) = inline mesh_triangle_edges_hack(mesh, i, world_space);
+    for triangle_index : 0..mesh.triangles.count-1 {
+        edges : Tuple3(Segment3) = inline mesh_triangle_edges_hack(mesh, triangle_index, world_space);
         for e : 0..2 {
-            `it_index := 3 * i + e;
+            `it_index := 3 * triangle_index + e;
             `it : Segment3 = edges.component[e]; 
             #insert (remove=#assert(false), break=break i) body;
         }
@@ -458,9 +458,9 @@ WorldTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=tr
 SegmentIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
 
-    for i : 0..mesh.segments.count-1 {
-        `it_index := i;
-        `it : Segment3 = inline mesh_segment3_hack(mesh, i, world_space);
+    for segment_index : 0..mesh.segments.count-1 {
+        `it_index := segment_index;
+        `it : Segment3 = inline mesh_segment3_hack(mesh, segment_index, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
@@ -473,9 +473,10 @@ WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
 PointIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
 
-    for point : mesh.points {
-        `it_index := point;
-        `it : Vector3 = mesh_point_hack(mesh, it_index, world_space);
+    for point_index : 0..mesh.points.count-1 {
+        position_index := mesh.points[point_index]; 
+        `it_index := point_index;
+        `it : Vector3 = mesh_point_hack(mesh, position_index, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
@@ -488,9 +489,9 @@ WorldPointIterator :: #bake_arguments PointIterator(world_space=true);
 VertexIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
 
-    for point_model, point_index : mesh.positions {
-        `it_index := point_index;
-        `it : Vector3 = mesh_point_hack(mesh, point_index, world_space);
+    for position_model, position_index : mesh.positions {
+        `it_index := position_index;
+        `it : Vector3 = mesh_point_hack(mesh, position_index, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
