@@ -352,16 +352,13 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     // Sort annotations by kind then by id
     entity_sort_annotations(result, (a,b)=>(compare_annotation_ids(a, b)));
 
-    // Initialize unreferenced positions array in the simple case where there are no elements so all positions are unreferenced
-    // In more general cases users can call the item_cache_unreferenced_positions command, from the console or as a command annotation in the file
+    // Initialize points array in the simple case where there are no elements so all positions are unreferenced
+    // In more general cases users can call the item_find_unreferenced_positions command, from the console or as a command annotation in the file
     if no_elements(mesh) {
-        array_resize(*mesh.unreferenced_positions, mesh.positions.count);
-        for * mesh.unreferenced_positions { <<it = xx it_index; }
-
-        log_warning("File '%' contains % position% but has no element directives, if you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex",
-            filename,
-            mesh.positions.count,
-            ifx mesh.positions.count > 1 then "s" else "");
+        array_resize(*mesh.points, mesh.positions.count);
+        for * mesh.points { <<it = xx it_index; }
+        log_warning("File '%' contains % position% but has no element directives (p-, l- or f-directives) so we auto-assigned p-directives", filename, mesh.positions.count, plural_suffix(mesh.positions.count > 1));
+        log("If you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex (v-directive)");
     }
 
     // nocommit remove this, and replace with something to deduce annotation_info?

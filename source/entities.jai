@@ -235,9 +235,7 @@ get_entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
         return *display_info.points_color, *display_info.points_visible;
     }
 
-    // If the entity mesh has no elements return the point color/visibility, this seems to make the most sense because the mesh may still have (unreferenced) positions
-    // :PositionDisplayParams Return the display info for positions
-    return *display_info.points_color, *display_info.points_visible;
+    return *display_info.positions_color, *display_info.positions_visible;
 }
 
 set_entity_primary_color :: (using entity : *Entity) {
@@ -722,28 +720,6 @@ find_closest_point :: ($entity_filter : Code = #code !is_visible(it)) -> Closest
                 result.entity_index = entity_index;
             }
         }
-
-        for :WorldUnreferencedVertexIterator vertex_world, vertex_index : entity.mesh {
-        
-            cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, vertex_world);
-
-            if cp_world.distance < d_min {
-            
-                if is_clipped(entity.display_info, vertex_world) {
-                    continue;
-                }
-
-                if OutsideScreenDist(vertex_world) {
-                    continue;
-                }
-
-                d_min = cp_world.distance;
-                result.closest_point_element = .VERTEX;
-                result.closest_point.point = cp_world;
-                result.element_index = vertex_index;
-                result.entity_index = entity_index;
-            }
-        }
     }
 
     return result;
@@ -947,6 +923,8 @@ set_entity_display_info :: (using entity : *Entity) {
 
     primary_color : Vector4 = compute_entity_primary_color(entity); 
 
+    // nocommit Why are checking counts here? We could just remove all those ifs
+
     if mesh.triangles.count {
         display_info.triangles_visible = true;
         display_info.triangles_color = primary_color;
@@ -958,14 +936,13 @@ set_entity_display_info :: (using entity : *Entity) {
     }
 
     if mesh.points.count {
-        display_info.points_color = primary_color;
         display_info.points_visible = true;
+        display_info.points_color = primary_color;
     }
 
-    if mesh.unreferenced_positions.count {
-        // :PositionDisplayParams Use the position display info data here
-        display_info.points_color = primary_color;
-        display_info.points_visible = true;
+    if mesh.positions.count {
+        display_info.positions_color = primary_color;
+        //display_info.positions_visible = true; // All meshes have positions, and we don't want to show them always
     }
 }
 

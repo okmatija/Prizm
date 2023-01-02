@@ -276,6 +276,10 @@ Display_Info_Update :: struct {
     triangle_label_theme : Element_Label_Theme_Update;
     annotation_label_theme : Annotation_Label_Theme_Update;
 
+    positions_visible : bool;
+    positions_color : Vector4_Update;
+    positions_size : bool;
+
     points_visible : bool;
     points_color : Vector4_Update;
     points_size : bool;
@@ -312,6 +316,10 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.segment_label_theme = get_update(old.segment_label_theme, new.segment_label_theme);
     result.triangle_label_theme = get_update(old.triangle_label_theme, new.triangle_label_theme);
     result.annotation_label_theme = get_update(old.annotation_label_theme, new.annotation_label_theme);
+
+    result.positions_visible = get_update(old.positions_visible, new.positions_visible);
+    result.positions_color = get_update(old.positions_color, new.positions_color);
+    result.positions_size = get_update(old.positions_size, new.positions_size);
 
     result.points_visible = get_update(old.points_visible, new.points_visible);
     result.points_color = get_update(old.points_color, new.points_color);
@@ -351,6 +359,10 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.segment_label_theme, source.segment_label_theme, *target.segment_label_theme);
     apply_update(update.triangle_label_theme, source.triangle_label_theme, *target.triangle_label_theme);
     apply_update(update.annotation_label_theme, source.annotation_label_theme, *target.annotation_label_theme);
+
+    apply_update(update.positions_visible, source.positions_visible, *target.positions_visible);
+    apply_update(update.positions_color, source.positions_color, *target.positions_color);
+    apply_update(update.positions_size, source.positions_size, *target.positions_size);
 
     apply_update(update.points_visible, source.points_visible, *target.points_visible);
     apply_update(update.points_color, source.points_color, *target.points_color);

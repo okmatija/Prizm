@@ -2,12 +2,9 @@ Simple_Mesh :: struct {
     // Position
     positions : [..]Vector3;
 
-    // @continue nocommit Get rid of this, just explicity add unreferenced positions as points and log a warning
-    unreferenced_positions : [..]u32; // Indices of positions which are not referenced by any element. Useful to know when ray-casting against the mesh so test against all positions without revisiting we don't
-
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
     // .obj loading will fill these in from p, l and f directives respectively
-    points : [..]u32; // Filled in by parsing p-directives, or with the nocommit item_find_unreferenced_points
+    points : [..]u32; // Filled in by parsing p-directives, or with the item_find_unreferenced_positions
     segments : [..]Tuple2(u32); // l's OR construct if we contruct special edge data
     triangles : [..]Tuple3(u32); // f's with 3 indices
     //tetrahedra : [..]Tuple4(u32); // f's with 4 indices?
@@ -498,19 +495,3 @@ VertexIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $w
 
 ModelVertexIterator :: #bake_arguments VertexIterator(world_space=false);
 WorldVertexIterator :: #bake_arguments VertexIterator(world_space=true);
-
-
-// Reserve the ambiguous name for this iterator which won't compile if used directly
-UnreferencedVertexIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
-    #assert(flags == 0); // No options are supported
-
-    for p : mesh.unreferenced_positions {
-        `it_index := mesh.unreferenced_positions[p];
-        `it : Vector3 = mesh_point_hack(mesh, it_index, world_space);
-        #insert (remove=#assert(false)) body;
-    }
-}
-
-ModelUnreferencedVertexIterator :: #bake_arguments UnreferencedVertexIterator(world_space=false);
-WorldUnreferencedVertexIterator :: #bake_arguments UnreferencedVertexIterator(world_space=true);
-

@@ -108,6 +108,7 @@ App :: struct {
         display_info : Display_Info;
     }
 
+    // @continue Remove this
     edit_tool : Edit_Tool;
     Edit_Tool :: struct {
         target := Target_Items.ALL_ITEMS;

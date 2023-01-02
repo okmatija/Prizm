@@ -504,8 +504,6 @@ DONE);
 
 }
 
-// nocommit Fix the focus shortcut when there is an item with just one point
-
 // If entity == null then show the details for the template
 show_details_pane_ui :: () {
 
@@ -593,7 +591,7 @@ show_details_pane_ui_for_item :: () {
             maybe_update_render_info(*entity.render_info, *entity.mesh);
 
             aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
-            set := display_info_ui(*entity.display_info, aabb_world);
+            display_info_ui(*entity.display_info, aabb_world, entity_index);
         }
 
         if ImGui.BeginTabItem("Annotations") {
@@ -1621,7 +1619,7 @@ show_imgui_demo_window :: () {
 #scope_file
 
 
-show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme) {
+show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme, entity_index : int) {
     ImGui.Text(name);
     ImGui.SameLine();
 
@@ -1640,7 +1638,14 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     ImGui.SameLine();
 
     ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
-    Show_Tooltip("Show Position (Model Space)");
+    Show_Tooltip("Show value of .obj v-directives (model space positions)\nWhich are referenced by elements");
+
+    if valid_geometry_index(entity_index) {
+        if ImGui.Button("Find Unreferenced Positions") {
+            item_find_unreferenced_positions(entity_index, new_item=0);
+        }
+        Show_Tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
+    }
 }
 
 show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Element_Label_Theme) {
@@ -1698,7 +1703,7 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
 }
 
 
-display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_Info_Update {
+display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index : int = -1) -> Display_Info_Update {
 
     old_display_info := <<display_info;
 
@@ -1723,6 +1728,22 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_In
         //Show_Tooltip("Deduce item primary colors from the file path");
 
         {
+            ImGui.Text("Positions  ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
+            Show_Tooltip("Positions visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.InputInt("##positions_size", *display_info.positions_size);
+            Show_Tooltip("Size");
+            display_info.positions_size = clamp(display_info.positions_size, 1, 10);
+            ImGui.PopItemWidth();
+        }
+
+        {
             ImGui.Text("Points     ");
             ImGui.SameLine();
             ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
@@ -1735,20 +1756,6 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_In
             ImGui.InputInt("##points_size", *display_info.points_size);
             Show_Tooltip("Size");
             display_info.points_size = clamp(display_info.points_size, 1, 10);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Normals    ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-            Show_Tooltip("Normal visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
-            Show_Tooltip("Length");
             ImGui.PopItemWidth();
         }
 
@@ -1801,6 +1808,20 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_In
             display_info.edges_width = clamp(display_info.edges_width, 1., 5);
             ImGui.PopItemWidth();
         }
+
+        {
+            ImGui.Text("Normals    ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
+            Show_Tooltip("Normal visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+            Show_Tooltip("Length");
+            ImGui.PopItemWidth();
+        }
     }
 
     show_clipping_ui(display_info, aabb);
@@ -1808,11 +1829,11 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_In
     if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        show_vertex_label_theme_ui( "Vertex    ", "Show index of .obj 'v' directives", *display_info.vertex_label_theme);
-        show_element_label_theme_ui("Point     ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
-        show_element_label_theme_ui("Segment   ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
-        show_element_label_theme_ui("Triangle  ", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
-        show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
+        show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
+        show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
+        show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
+        show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
+        show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nWhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
     }
 
     return get_update(old_display_info, display_info);
@@ -1864,7 +1885,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
     }
     defer if annotation_count == 0 then ImGui.EndDisabled();
 
-    show_annotation_theme_ui("Annotation", "Show annotations", *entity.display_info.annotation_label_theme);
+    show_annotation_theme_ui("Annotations", "Show annotations", *entity.display_info.annotation_label_theme);
 
     if ImGui.TreeNodeEx(imgui_label(header, entity), .SpanAvailWidth) {
         defer ImGui.TreePop();

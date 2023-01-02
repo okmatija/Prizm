@@ -209,6 +209,45 @@ item_clear :: (id : int) {
     log("# Cleared item #% which had % points", id, point_count);
 } @RegisterCommand
 
+// Clears the point element container (e.g., p-directive in .obj files), for then item with the given `id`
+item_clear_points :: (id : int) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    item := app.entities[id];
+    count := item.mesh.points.count;
+    array_reset(*item.mesh.points);
+
+    log("# Cleared item #% which had % points", id, count);
+} @RegisterCommand
+
+// Clears the segments (e.g., l-directive in .obj files) from the item with the given `id`
+item_clear_segments :: (id : int) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    item := app.entities[id];
+    count := item.mesh.segments.count;
+    array_reset(*item.mesh.segments);
+
+    log("# Cleared item #% which had % segments", id, count);
+} @RegisterCommand
+
+// Clears the triangles (e.g., l-directive in .obj files) from the item with the given `id`
+item_clear_triangles :: (id : int) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    item := app.entities[id];
+    count := item.mesh.triangles.count;
+    array_reset(*item.mesh.triangles);
+
+    log("# Cleared item #% which had % triangles", id, count);
+} @RegisterCommand
+
 // Flip normals in the mesh item with the given `id`
 // Reverses the winding of triangles and multiplies vertex normals by -1
 item_flip_normals :: (id : int) {
@@ -424,8 +463,10 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
 // } @RegisterCommand
 
-// Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `id`
-item_find_open_edges :: (id : int) {
+// Finds triangle edges which are not shared by two triangles in the item with the given `id`
+// If `new_item` is 0 the edges are added to the target item segments container
+// If `new_item` is 1 adds an item containing a segment soup with the given `id`
+item_find_open_edges :: (id : int, new_item : int = 0) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
         return;
@@ -448,7 +489,8 @@ item_find_open_edges :: (id : int) {
     edge_to_origin : Table(Tuple2(u32), s64, edge_hash, edge_comp);
     defer uninit(*edge_to_origin);
 
-    mesh := app.entities[id].mesh;
+    entity : *Entity = app.entities[id];
+    mesh : *Simple_Mesh = *entity.mesh;
     if mesh.triangles.count == 0 {
         log("# Mesh contains no triangles.");
         return;
@@ -487,22 +529,93 @@ item_find_open_edges :: (id : int) {
     new_mesh : Simple_Mesh = to_Mesh(polyline_soup);
     new_mesh.world_from_model = mesh.world_from_model;
 
-    assert(app.console.history.count > 0);
+    if new_item {
+        assert(app.console.history.count > 0);
 
-    // Add a new item
-    new_entity := New(Entity);
-    new_entity.mesh = new_mesh;
-    set_entity_source_from_command(new_entity, tprint("%_open_edges", entity_name(app.entities[id])), app.console.history[app.console.history.count - 1], mesh.positions.count);
-    set_entity_display_info(new_entity);
+        // Add a new item
+        new_entity := New(Entity);
+        new_entity.mesh = new_mesh;
+        set_entity_source_from_command(new_entity, tprint("%_open_edges", entity_name(entity)), app.console.history[app.console.history.count - 1], mesh.positions.count);
+        set_entity_display_info(new_entity);
 
-    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
-    new_entity.display_info.segments_width = 3;
+        maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
+        new_entity.display_info.segments_width = 3;
 
-    // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
-    new_entity.generation_index = app.entities[id].generation_index;
-    add_entity(new_entity, .OVERWRITE);
+        // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
+        new_entity.generation_index = entity.generation_index;
+        add_entity(new_entity, .OVERWRITE);
 
-    log("# Added item '%'", entity_name(new_entity));
+        log("# Added % edge% to the new item '%'",
+            new_mesh.segments.count,
+            plural_suffix(new_mesh.segments.count > 1),
+            entity_name(new_entity));
+    } else {
+
+        merge(mesh, new_mesh);
+
+        entity.render_info.is_dirty = true;
+        entity.display_info.segments_visible = true;
+
+        log("# Added % edge% to the target item '%'",
+            new_mesh.segments.count,
+            plural_suffix(new_mesh.segments.count > 1),
+            entity_name(entity));
+    }
+
+} @RegisterCommand
+
+
+// Finds any positions (eg obj file v-directives) which are not referenced by any element (eg p-, l- or f-directives) and explicitly add them as point elements.
+// This is useful when inspecting position/element labels because for efficiency the ray-cast queries involved only visit elements
+item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    using entity : *Entity = app.entities[id];
+
+    // Init with all possible position indices
+    unreferenced_positions : [..]u32;
+    defer array_free(unreferenced_positions);
+    array_resize(*unreferenced_positions, mesh.positions.count);
+    for * unreferenced_positions { <<it = xx it_index; }
+
+    // Remove the indices which are reference by an element
+    for position_index : unreferenced_positions {
+        for index : mesh.points {
+            if index == position_index {
+                remove position_index;   // This position is not unreferenced
+                continue position_index; // We don't need to keep checking this position_index
+            }
+        }
+
+        for tuple : mesh.segments {
+            for index : tuple.component if index == position_index {
+                remove position_index;   // This position is not unreferenced
+                continue position_index; // We don't need to keep checking this position_index
+            }
+        }
+
+        for tuple : mesh.triangles {
+            for index : tuple.component if index == position_index {
+                remove position_index;   // This position is not unreferenced
+                continue position_index; // We don't need to keep checking this position_index
+            }
+        }
+    }
+
+    for position_index : unreferenced_positions {
+        point_index : *u32 = array_add(*entity.mesh.points);
+        <<point_index = position_index;
+    }
+
+    if unreferenced_positions.count {
+        log("# Found % unreferenced positions, which were added to the meshes point element array", unreferenced_positions.count);
+        entity.render_info.is_dirty = true;
+        entity.display_info.points_visible = true;
+    } else {
+        log("# No unreferenced positions found");
+    }
 
 } @RegisterCommand
 
@@ -661,46 +774,6 @@ reorient_triangles_012_to_021 :: (id : int) {
 } @RegisterCommand
 */
 
-// Find and cache indices of positions which are not reference by any element in the mesh. 
-// This is useful to optimize ray-casting against the mesh since we won't need to revisit positions referenced by elements.
-item_cache_unreferenced_positions :: (id : int) {
-    if !check_geometry_index(id) {
-        return;
-    }
-
-    using entity : *Entity = app.entities[id];
-
-    // Init with all possible position indices
-    array_resize(*mesh.unreferenced_positions, mesh.positions.count);
-    for * mesh.unreferenced_positions { <<it = xx it_index; }
-
-    // Remove the indices which are reference by an element
-    for position, position_index : mesh.unreferenced_positions {
-        for index : mesh.points {
-            if index == position_index {
-                remove position_index;   // This position is not unreferenced
-                continue position_index; // We don't need to keep checking this position_index
-            }
-        }
-
-        for tuple : mesh.segments {
-            for index : tuple.component if index == position_index {
-                remove position_index;   // This position is not unreferenced
-                continue position_index; // We don't need to keep checking this position_index
-            }
-        }
-
-        for tuple : mesh.triangles {
-            for index : tuple.component if index == position_index {
-                remove position_index;   // This position is not unreferenced
-                continue position_index; // We don't need to keep checking this position_index
-            }
-        }
-    }
-
-    log("# Found and cached % unreferenced positions", mesh.unreferenced_positions.count);
-
-} @RegisterCommand
 
 #scope_file
 

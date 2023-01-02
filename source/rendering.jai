@@ -159,10 +159,10 @@ Display_Info :: struct {
     // Vertex/Element members
     //
 
-    // nocommit :PositionDisplayParams Separate position display parameters from point display parameters. Make the position color black by default
-    //unreferenced_positions_visible := true;
-    //unreferenced_positions_color := Vector4.{.5, .5, .5, 1.};
-    //unreferenced_positions_size : s32 = 4;
+    // Separate position display parameters from point display parameters. Make the position color black by default
+    positions_visible := false;
+    positions_color : Vector4 = BLACK;
+    positions_size : s32 = 4;
 
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
@@ -172,7 +172,6 @@ Display_Info :: struct {
     normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
 
-    // nocommit Separate triangle edge display parameters from segment display parameters. Make the triangle edges black by default
     segments_visible := false;
     segments_color : Vector4 = BLACK;
     segments_width : float = 1.;
@@ -350,8 +349,37 @@ render_aabb :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using dis
     glDrawArrays(GL_LINES, 0, 24);
 }
 
-render_mesh_positions :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
+render_mesh_positions :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using,except(points_visible, points_color, points_size) display_info : Display_Info,
+    clip_radius_mode_show_wireframe : bool) {
+
     if !mesh.positions.count {
+        return;
+    }
+
+    if !positions_visible && !clip_radius_mode_show_wireframe {
+        return;
+    }
+
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+
+    size := ifx clip_radius_mode_show_wireframe then 2 else positions_size;
+    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx size);
+
+    color := ifx clip_radius_mode_show_wireframe then BLACK else positions_color;
+    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), color.x, color.y, color.z, color.w);
+
+    glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
+}
+
+render_mesh_points :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using,except(positions_visible, positions_color, positions_size) display_info : Display_Info,
+    clip_radius_mode_show_wireframe : bool) {
+    if !mesh.points.count {
         return;
     }
 
@@ -367,12 +395,8 @@ render_mesh_positions :: (mesh : *Simple_Mesh, using render_info : *Render_Info,
     used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else points_color;
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
 
-    glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
-}
-
-render_mesh_points :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
-    assert(false); // nocommit @Incomplete implement this function
-    //glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null); // Reminder to use glDrawElements here
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, points_ibo);
+    glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null);
 }
 
 render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
@@ -689,6 +713,7 @@ render_entities :: () {
         render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
         render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
 
@@ -757,16 +782,35 @@ render_entities :: () {
             // Vertex labels
             //
 
+// @continue Remove this and instead show the position data for vertices connected to displayed elements
             {
                 // @Speed this should use the spatial index??
-                if is_visible(vertex_label_theme) for :ModelVertexIterator point_model, point_index : entity.mesh {
-                    point_world := mesh_point_world(entity.mesh, point_index);
-                    if !is_clipped(entity.display_info, point_world) {
-                        text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
+                if is_visible(vertex_label_theme) for :ModelVertexIterator position_model, position_index : entity.mesh {
+                    position_world := mesh_point_world(entity.mesh, position_index);
+                    if !is_clipped(entity.display_info, position_world) {
+                        text_position_px : Tuple2i = to_screen_position(position_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
-                            text : string = get_point_text(point_model, point_index, vertex_label_theme);
+                            text : string = get_point_text(position_model, position_index, vertex_label_theme);
                             array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+                        }
+                    }
+                }
+            }
+
+            //
+            // Point labels
+            //
+
+            {
+                if is_visible(point_label_theme) for :ModelPointIterator position_model, point_index : entity.mesh {
+                    position_world : Vector3 = transform_point(entity.mesh.world_from_model, position_model);
+
+                    if !is_clipped(entity.display_info, position_world) {
+                        text_position_px : Tuple2i = to_screen_position(position_world, projection_from_world);
+                        if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
+                            text : string = get_point_text(point_index, point_label_theme);
+                            array_add(*point_labels, make_Label_Info(text_position_px, text));
                         }
                     }
                 }
@@ -920,10 +964,10 @@ render_entities :: () {
             if is_visible(point_label_theme) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, point_label_theme);
-                array_add(*segment_labels, make_Label_Info(text_position_px, text));
+                array_add(*point_labels, make_Label_Info(text_position_px, text));
             }
 
-            // nocommit Enable this when we add .POINT to Annotation.Kind
+            // nocommit @continue Enable this when we add .POINT to Annotation.Kind
             //// Point annotation label
             //if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
             //    if annotation.kind == .POINT && annotation.id == index {
@@ -1062,6 +1106,7 @@ render_selections :: () {
 
     // @Cleanup use ri and di aliases here
     render_mesh_positions(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_points(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_segments(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_triangles_as_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);

@@ -32,7 +32,6 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Enabled support for multiple element types in the same item, previously Prism could only load meshes which were entirely triangles, segments or points.  TODO Removed select_if_XXX commands since they no longer make sense.
   - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
   - Note: Negative indices are useful if you don't want to keep a running count of how many vertices have been written or if you're writing a triangle soup with duplicate vertices where it can reduce file size. It seems not to be a well supported feature in other obj views TODO check paraview, meshlab and vscode
-  - Added `item_cache_unreferenced_positions` command which is useful to ensure that ray-mesh queries work correctly for obj files which contained positions (v-directives) which were not referenced by element directives (p, l or f). This function is called automatically when loading the .obj if there are no elements in the file (then all positions unreferenced), but since its somewhat expensive in the general case, the user has to call it from the console, or add it as a command annotation to the file in other case (you probably only need to this is if you notice some strange behaviour e.g., can't select visible points near the cursor---if these are unreferenced they need to be detected and cached with this function first)
 
 - Label rendering improvements:
 
@@ -51,7 +50,10 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
 - Console commands
 
-  - Added a `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles of the given item
+  - Added `item_clear_points`, `item_clear_segments` and `item_clear_triangles` commands
+  - Added a parameter to `item_find_open_edges` which can be used to add the edges as segments in the target item rather than creating a new item. By default this new parameter modifies the target item, the previous behaviour can be recovered by passing 1 (true) for the new parameter.
+  - Added an `item_find_unreferenced_positions` function which finds any positions (v-directives) which are not referenced by any element (p-, l- or f-directives) and then explicitly adds them as point elements. Similarly to `item_find_open_edges`, this function can create a new item but by default it modifies the target item.
+  - Added an `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles of the given item
   - Added a `select_if_visible` command which adds visible items to the current selection
   - Added an invert option to the `select_if_XXX` commands
   - Improved error reporting when a console command was not found
