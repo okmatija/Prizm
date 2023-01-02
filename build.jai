@@ -295,7 +295,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
     // Generate boiler plate for registered console commands so they are callable from console input strings
     for command, command_index : registered_console_commands {
         path   := command.enclosing_load.fully_pathed_filename;
-        plural := ifx command.arguments.count == 1 then "" else "s";
+        plural := plural_suffix(command.arguments.count == 1);
 
         max_arg_count : int = command.arguments.count;
         min_arg_count : int = max_arg_count;

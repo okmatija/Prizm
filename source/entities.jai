@@ -49,7 +49,7 @@ Entity :: struct {
 }
 
 SELECTION_FOLDER :: "Selections";
-PRESET_SHAPE_FOLDER :: "Presets";
+PRESET_SHAPE_FOLDER :: "Examples";
 COMMAND_OUTPUT_FOLDER :: "Command Outputs";
 
 update_entity_transform :: (entity : *Entity, shift : Vector3) {
@@ -272,9 +272,9 @@ entity_name :: (entity : Entity) -> string {
 
 entity_description :: (using entity : Entity, with_creation_time : bool) -> string {
 
-    index_text := "";
+    generation_index_text := "";
     if generation_index != 0 {
-        index_text = tprint(" <%>", generation_index);
+        generation_index_text = tprint(" <%>", generation_index);
     }
 
     time_text := "";
@@ -284,7 +284,7 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
         time_separator = " @ ";
     }
 
-    return tprint("%1%2%3%4", entity_name(entity), index_text, time_separator, time_text);
+    return tprint("%1%2%3%4", entity_name(entity), generation_index_text, time_separator, time_text);
 }
 
 entity_annotation_count :: (using entity : Entity) -> int {
@@ -510,8 +510,8 @@ is_visible :: (e : *Entity) -> bool {
 }
 
 // @Refactor Use spatial lookups on triangles/segments/points
-// @Refactor Maybe pass entity index into the filter as well
-find_closest_vertex :: ($filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
+// nocommit Remove this function, replace it with a version find_closest_point which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
+find_closest_vertex :: ($entity_filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
@@ -525,7 +525,7 @@ find_closest_vertex :: ($filter : Code = #code !is_visible(it)) -> Closest_Point
 
     min_dist2 := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments Entities_Iterator(filter=filter);
+    FilterIterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
     
     for :FilterIterator entity, entity_index : app.entities {
         inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
@@ -544,7 +544,7 @@ find_closest_vertex :: ($filter : Code = #code !is_visible(it)) -> Closest_Point
             if cp_world.sqrDistance < min_dist2 {
 
                 min_dist2 = cp_world.sqrDistance;
-                result.closest_point_element = .POINT;                        
+                result.closest_point_element = .VERTEX;
                 result.closest_point.point = cp_world;
                 result.element_index = vertex_index;
                 result.entity_index = entity_index;
@@ -578,7 +578,8 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 }
 
 // Result positions are in world space
-find_closest_point :: ($filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
+// nocommit Rename to find_closest_element and have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
+find_closest_point :: ($entity_filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
@@ -618,8 +619,7 @@ find_closest_point :: ($filter : Code = #code !is_visible(it)) -> Closest_Point_
 
     d_min := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments Entities_Iterator(filter=filter);
-
+    FilterIterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
     for :FilterIterator entity, entity_index : app.entities {
         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
@@ -810,6 +810,8 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
 // @Incomplete pass Duplicate_File_Behaviour 
 // Reload the entity using it's fully_pathed_filename, if loading fails clear the entity
 reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload : bool {
+
+    // @Volatile Keep this in sync with the auto_reload checkboxes in the item Display tab
     if #complete entity.source.kind == {
         case .Entity_Source_Selection;
 
@@ -980,6 +982,16 @@ init_entity_spatial_index :: (using entity : *Entity) {
 
 get_entity_source :: (entity : Entity) -> *Entity_Source {
     return cast(*Entity_Source)entity.source.bytes.data;
+}
+
+get_entity_source_description :: (entity : Entity) -> string {
+    if #complete entity.source.kind == {
+        case .Entity_Source_File; return "file";
+        case .Entity_Source_Preset; return "preset/example shape";
+        case .Entity_Source_Command; return "console command";
+        case .Entity_Source_Selection; return "selection";
+    }
+    return "";
 }
 
 // nocommit fix the comments here

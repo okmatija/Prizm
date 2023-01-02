@@ -9,7 +9,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
   - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
   - Since there are more tools now moved them to a tab in the window with camera controls
-  - Presets shapes menu has been moved into the new "Preset" tool in the "Tools" tab
+  - Presets shapes menu has been moved into the new "Examples" tool in the "Tools" tab
   - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
   - Made the clipping sphere and clipping slab more compact to take up less space in the viewport
   - TODO Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable panes and more icons

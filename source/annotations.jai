@@ -1,16 +1,17 @@
 Annotation :: struct {
     // @Cleanup Remove kind because we sort this out by storing annotations in separate containers
     Kind :: enum_flags {
-        VERTEX;
-        LINE;
-        TRIANGLE;
-        BLOCK; // e.g., a header at the top of an .obj file
+        VERTEX;   // v-directive
+        // POINT;    // p-directive // nocommit
+        LINE;     // l-directive
+        TRIANGLE; // f-directive
+        BLOCK;    // e.g., a header at the top of an .obj file
         COMMAND;
     }
     kind : Kind; // Should only have ONE flag set
 
-    // if kind == .BLOCK then 1-based line number starting block comment
-    // if kind != .BLOCK then 0-based index for vertex/line/triangle
+    // if kind == .BLOCK or .COMMAND then 1-based line number starting block comment
+    // if kind != .BLOCK or .COMMAND then 0-based index for vertex/line/triangle
     id : int;
 
     // strings are owned @Cleanup This sucks, we should use a pool for the annotations
@@ -29,6 +30,7 @@ deinit :: (annotation : Annotation) {
 
 // In temporary storage... @Cleanup, this should use the contextual allocator
 to_string :: (annotation : Annotation) -> string {
+    // nocommit maybe prefix with directive that was annotated??
     if #complete annotation.value.kind == {
         case .string;
             pointer := cast(*string) annotation.value.bytes.data;

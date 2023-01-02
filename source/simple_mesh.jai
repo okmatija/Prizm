@@ -1,6 +1,8 @@
 Simple_Mesh :: struct {
     // Position
     positions : [..]Vector3;
+
+    // @continue nocommit Get rid of this, just explicity add unreferenced positions as points and log a warning
     unreferenced_positions : [..]u32; // Indices of positions which are not referenced by any element. Useful to know when ray-casting against the mesh so test against all positions without revisiting we don't
 
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
@@ -214,10 +216,12 @@ compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh) -> bool, string {
 
 
 Simple_Mesh_Element :: enum {
-    VERTEX;   // Set via the v-directive (not really an element, just position data) nocommit Maybe we don't need this here since its not an element??
+    VERTEX;   // a.k.a "position". Set via the v-directive (not really an element, just position data) nocommit Maybe we don't need this here since its not an element??
+
     POINT;    // Set via the p-directive
     SEGMENT;  // Set via the l-directive
     TRIANGLE; // Set via the f-directive
+
     MESH; // For attributes for the whole file, probably only sparse make sense, and value index would be line number in the file
 }
 

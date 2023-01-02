@@ -817,11 +817,11 @@ focus_items :: (unused : *void, target : Target_Items) {
         case .ALL_ITEMS;
             sphere = entities_bounding_sphere();
         case .VISIBLE;
-            filter :: #code !it.display_info.is_visible;
-            sphere = entities_bounding_sphere(filter);
+            entity_filter :: #code !is_visible(it);
+            sphere = entities_bounding_sphere(entity_filter);
         case .SELECTED;
-            filter :: #code !it.is_selected;
-            sphere = entities_bounding_sphere(filter);
+            entity_filter :: #code !it.is_selected;
+            sphere = entities_bounding_sphere(entity_filter);
     }
 
     if sphere.radius > 0 {

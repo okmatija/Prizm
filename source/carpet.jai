@@ -11,6 +11,11 @@ do_nothing_logger :: (message: string, data: *void, info: Log_Info) {}
 //     }
 // }
 
+plural_suffix :: (is_plural : bool) -> string {
+    if is_plural return "s";
+    return "";
+}
+
 // Returns a string in temporary storage
 filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> string {
     lt : Calendar_Time = to_calendar(filetime, time_zone=.LOCAL);

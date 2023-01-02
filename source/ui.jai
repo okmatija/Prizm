@@ -307,38 +307,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         // Note that the ImGui.Selectable widget has this line to set the colors:
         //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 
-        // Indicate that the popup will be opened for this item if its hovered with RMB down
-        if io_mouse_right_down() ImGui.PushStyleColor(xx ImGui.Col.HeaderHovered, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-        defer if io_mouse_right_down() ImGui.PopStyleColor();
-
-        if g_this_frame_state.index_of_context_menu_popup_item == -1 { // No context menu popup
-            // Use the default Selectable widget
-            if ImGui.Selectable(label, *entity.is_selected) {
-                if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-            }
-        } else { // Have context menu popup: set colors to indicate what the popup will be editing
-            if app.entities[g_this_frame_state.index_of_context_menu_popup_item].is_selected {
-                // Use the default Selectable widget, but customize the selected color
-                ImGui.PushStyleColor(xx ImGui.Col.Header, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                ImGui.PushStyleColor(xx ImGui.Col.HeaderActive, CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR);
-                if ImGui.Selectable(label, *entity.is_selected) {
-                    if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                }
-                ImGui.PopStyleColor();
-                ImGui.PopStyleColor();
-            } else {
-                if g_this_frame_state.index_of_context_menu_popup_item == entity_index {
-                    // Use a custom Selectable widget, so we can change the background color even though as of 1.87 imgui does not expose a ImGuiCol enum for this
-                    if selectable_with_bg_color(text, *entity.is_selected, ImGui.GetColorU32(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR)) {
-                        if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                    }
-                } else {
-                    // Use the default Selectable widget
-                    if ImGui.Selectable(label, *entity.is_selected) {
-                        if !io().KeyCtrl entity.is_selected = !entity.is_selected;
-                    }
-                }
-            }
+        // Use the default Selectable widget
+        if ImGui.Selectable(label, *entity.is_selected) {
+            if !io().KeyCtrl entity.is_selected = !entity.is_selected;
         }
     } else {
         ImGui.Selectable("---", *entity.is_selected); // This should never happen
@@ -389,8 +360,6 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
     // @Cleanup This is a horrible way to do this...
     entity.display_info.aabb_visible = false; // Turned on only while context menu > clipping is on
 
-    show_item_context_menu(entity, entity_index);
-
     // @Hack Write empty padding column so filename is not truncated
     ImGui.TableNextColumn();
     if hack_pad_last_column_to_fix_truncation {
@@ -406,7 +375,7 @@ show_preset_ui :: () {
 
     // indent := ImGui.GetTreeNodeToLabelSpacing();
 
-    do_tree := ImGui.TreeNodeEx("Presets", ImGui.TreeNodeFlags.SpanAvailWidth);
+    do_tree := ImGui.TreeNodeEx("Examples", ImGui.TreeNodeFlags.SpanAvailWidth);
     Show_Tooltip("Create preset shapes\nSome function as tutorials");
     if do_tree {
         defer ImGui.TreePop();
@@ -540,26 +509,35 @@ DONE);
 // If entity == null then show the details for the template
 show_details_pane_ui :: () {
 
-    header, tooltip : string;
+    selection_ui : bool;
     selection_count := count_selected_entities();
-    if selection_count {
-        header = "Details (Template)";
-        tooltip = #string DONE
-The details pane is displaying the template state.
-Any edits will be applied to all selected items.
-DONE;
+    if selection_count == 0 {
+        selection_ui = false;
+    } else if selection_count == 1 {
+        selection_ui = false;
+        for :Selected app.entities {
+            app.details_pane.entity_index = it_index;
+            break;
+        }
+    } else {
+        selection_ui = true;
+    }
+
+    tooltip : string;
+    if selection_ui {
+        tooltip = tprint("Displaying a template state.\nAny edits will be applied to % selected item%.", selection_count, plural_suffix(selection_count > 1));
     } else if valid_geometry_index(app.details_pane.entity_index) {
-        header = tprint("Details (Item #%)", app.details_pane.entity_index);
+        tooltip = tprint("Displaying state for item #%.", app.details_pane.entity_index);
     } else {
         return;
     }
 
-    do_tree := ImGui.TreeNodeEx(imgui_label(header), ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen | .Framed);
+    do_tree := ImGui.TreeNodeEx("Details", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     if tooltip Show_Tooltip(tooltip);
     if do_tree {
         defer ImGui.TreePop();
 
-        if selection_count {
+        if selection_ui {
             show_details_pane_ui_for_item_selection();
         } else {
             show_details_pane_ui_for_item();
@@ -568,33 +546,225 @@ DONE;
 }
 
 show_details_pane_ui_for_item :: () {
-    using entity : *Entity = app.entities[app.details_pane.entity_index];
+    entity_index := app.details_pane.entity_index;
+    using entity : *Entity = app.entities[entity_index];
 
-    if ImGui.Button("Reload Item") {
-        reload_entity(entity);
+    if ImGui.BeginTabBar("##DetailsTabBar", flags=ImGui.TabBarFlags.None) {
+        defer ImGui.EndTabBar();
+
+        if ImGui.BeginTabItem("Display") {
+            defer ImGui.EndTabItem();
+
+            if entity_name(entity).count {
+
+                if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
+                if is_changed_on_disk(entity) == false {
+                    Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
+                }
+
+                source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
+                if source {
+                    ImGui.SameLine();
+                    ImGui.Checkbox(imgui_label("", entity), *source.auto_reload);
+                    Show_Tooltip("Auto-reload if file changes on disk");
+                } else {
+                    dummy := true;
+                    ImGui.SameLine();
+                    ImGui.Checkbox(imgui_label("", entity), *dummy);
+                    Show_Tooltip(tprint("Auto-reload only makes sense for files loaded from disk.\nThis entity was sourced from a %", get_entity_source_description(entity)));
+                }
+
+                ImGui.SameLine();
+                ImGui.Text("#%", entity_index);
+                Show_Tooltip("Entity index for console commands");
+                ImGui.SameLine();
+                text := entity_description(entity, with_creation_time=true);
+                ImGui.TextUnformatted(text);
+                entity_source_tooltip(entity);
+            }
+
+            display_information(entity);
+            display_transform(entity);
+
+            maybe_update_render_info(*entity.render_info, *entity.mesh);
+
+            aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
+            set := display_info_ui(*entity.display_info, aabb_world);
+        }
+
+        if ImGui.BeginTabItem("Annotations") {
+            defer ImGui.EndTabItem();
+
+            display_annotations(entity, entity_index);
+        }
+
+        for base_attribute : entity.mesh.attributes {
+            if ImGui.BeginTabItem(imgui_label(base_attribute.name, base_attribute)) {
+                defer ImGui.EndTabItem();
+
+                value_type : Type;
+                element_kind : Simple_Mesh_Element;
+                if base_attribute.type == {
+                    case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
+                        ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
+                        Show_Tooltip(TOOLTIP);
+                        TOOLTIP :: #string DONE
+Matrix3 :: struct {
+    _11, _12, _13 : float;
+    _21, _22, _23 : float;
+    _31, _32, _33 : float;
+    #place _11; row: [3]Vector3 = ---;
+}
+DONE;
+                }
+
+                if base_attribute.type == {
+                    case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
+
+                        show_attribute_theme_ui("Attribute", "Show attribute labels", *base_attribute.display_info.theme);
+
+                        attribute := cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))base_attribute;
+                        if ImGui.TreeNodeEx(imgui_label(tprint("Attributes Table (%)", attribute.values.count), base_attribute), .SpanAvailWidth) {
+                            defer ImGui.TreePop();
+
+                            if attribute.values.count {
+
+                                table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable; // | .Sortable;
+                                outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+
+                                if last_frame_annotation_list_height_px < outer_size.y {
+                                    table_flags &= ~.ScrollY;
+                                    outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
+                                }
+
+                                column_count : s32 = 3;
+                                if ImGui.BeginTable(imgui_label("##Attribute_Table", attribute), column_count, flags=table_flags, outer_size=outer_size) {
+                                    defer ImGui.EndTable();
+
+                                    ImGui.TableSetupColumn("UI",    ImGui.TableColumnFlags.WidthFixed | .NoSort);
+                                    ImGui.TableSetupColumn("Index", ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
+                                    ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthStretch);
+                                    ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+                                    ImGui.TableHeadersRow();
+
+                                    last_frame_annotation_list_height_px = 0.;
+                                    for :ListClipperIterator value, index : attribute.values {
+                                        last_frame_annotation_list_height_px = clipper.ItemsHeight;
+
+                                        ImGui.TableNextRow();
+
+                                        ImGui.TableNextColumn();
+                                        if ImGui.Button(imgui_label("Focus", xx index)) {
+                                            item_focus_triangle(entity_index, index, ifx io().KeyShift then 0. else -1.);
+                                        }
+                                        bindings : [..]Binding_With_Description;
+                                        bindings.allocator = temp;
+                                        array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
+                                        array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
+                                        Show_Tooltip_Binding(..bindings);
+
+                                        ImGui.TableNextColumn();
+                                        ImGui.Text(tprint("%", index));
+
+                                        ImGui.TableNextColumn();
+                                        new_context : Context;
+                                        new_context.print_style.default_format_float = app.label_format.format_float;
+                                        new_context.print_style.default_format_struct = app.label_format.format_struct;
+                                        push_context new_context {
+                                            ImGui.Text(tprint("%", value));
+                                        }
+                                    }
+                                    last_frame_annotation_list_height_px *= attribute.values.count; // FIXME This is wrong if string annotations have different numbers of lines
+                                }
+                            }
+                        }
+                    case;
+                        log_warning("@Incomplete attribute table UI for attribute type '%'", base_attribute.type);
+                }
+            }
+        }
     }
-
-    if ImGui.Button("Focus Item ") {
-        filter :: #code entity_index != app.details_pane.entity_index;
-        sphere := entities_bounding_sphere(filter);
-        fit_sphere_on_screen(sphere, sphere.radius);
-    }
-
-    display_info_ui(*display_info, render_info.bounding_aabb);
 }
 
 show_details_pane_ui_for_item_selection :: () {
-    if ImGui.Button("Reload Selection") {
-        reload_items(null, .SELECTED);
-    }
+    if ImGui.BeginTabBar("##DetailsTabBar", flags=ImGui.TabBarFlags.None) {
+        defer ImGui.EndTabBar();
 
-    if ImGui.Button("Focus Selection ") {
-        focus_items(null, .SELECTED);
-    }
+        if ImGui.BeginTabItem("Display") {
+            defer ImGui.EndTabItem();
 
-    display_info : *Display_Info = *app.edit_tool.display_info;
-    update : Display_Info_Update = display_info_ui(display_info, entity_selection_aabb());
-    apply_display_info_update(update, .SELECTED);
+            if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
+                defer ImGui.TreePop();
+
+                for :Selected entity : app.entities {
+                    if entity_name(entity).count {
+
+                        if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
+                        if is_changed_on_disk(entity) == false {
+                            Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
+                        }
+
+                        entity_source_file := isa(entity.source, Entity_Source_File);
+                        if entity_source_file {
+                            ImGui.SameLine();
+                            ImGui.Checkbox(imgui_label("", entity), *entity_source_file.auto_reload);
+                            Show_Tooltip("Auto-reload if file changes on disk");
+                        }
+
+                        ImGui.SameLine();
+                        ImGui.Text("#%", it_index);
+                        Show_Tooltip("Entity index for console commands");
+                        ImGui.SameLine();
+                        text := entity_description(entity, with_creation_time=true);
+                        ImGui.TextUnformatted(text);
+                        entity_source_tooltip(entity);
+                    }
+                }
+
+                if ImGui.Button("Reload Selection  ") {
+                    for :Selected entity : app.entities {
+                        reload_entity(entity, triggered_by_button=true);
+                    }
+                }
+                ImGui.SameLine();
+                if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
+                    // Find the state to toggle
+                    state := false;
+                    for :Selected app.entities {
+                        source := isa(it.source, Entity_Source_File);
+                        if source {
+                            state = !source.auto_reload;
+                            break;
+                        }
+                    }
+
+                    for :Selected app.entities {
+                        source := isa(it.source, Entity_Source_File);
+                        if source {
+                            source.auto_reload = state;
+                        }
+                    }
+                }
+                Show_Tooltip("Toggle auto-reload state on selected items");
+
+                if ImGui.Button("Focus Selection   ") {
+                    focus_items(null, .SELECTED);
+                }
+
+                // This isn't actually very useful, user should use the Ctrl-a binding instead
+                //ImGui.SameLine();
+                //if ImGui.Button("Deselect All") {
+                //    for :Selected entity : app.entities {
+                //        entity.is_selected = false;
+                //    }
+                //    ImGui.CloseCurrentPopup();
+                //}
+            }
+
+            update := display_info_ui(*app.edit_tool.display_info, entity_selection_aabb());
+            apply_display_info_update(update, .SELECTED);
+        }
+    }
 }
 
 show_select_ui :: () {
@@ -971,256 +1141,6 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
                 remove it;
             }
             remove_directory(path);
-        }
-    }
-}
-
-show_item_context_menu :: (entity : *Entity, entity_index : s64) {
-    current_pos := ImGui.GetWindowPos();
-    current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
-    ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
-
-    // Set popup border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
-
-    if ImGui.BeginPopupContextItem(imgui_label("##context_menu", xx entity_index)) {
-        defer ImGui.EndPopup();
-
-        g_next_frame_state.index_of_context_menu_popup_item = entity_index;
-
-        // Undo the previous thing so internals don't have this color
-        ScopedPopupBorderTheme(original_border_color, original_border_size);
-
-        if ImGui.BeginTabBar("##DetailsTabBar", flags=ImGui.TabBarFlags.None) {
-            defer ImGui.EndTabBar();
-
-            if ImGui.BeginTabItem("Display") {
-                defer ImGui.EndTabItem();
-                if !entity.is_selected {
-                    if entity_name(entity).count {
-
-                        if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
-                        if is_changed_on_disk(entity) == false {
-                            Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
-                        }
-
-                        source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
-                        if source {
-                            ImGui.SameLine();
-                            ImGui.Checkbox(imgui_label("", entity), *source.auto_reload);
-                            Show_Tooltip("Auto-reload if file changes on disk");
-                        }
-
-                        ImGui.SameLine();
-                        text := entity_description(entity, with_creation_time=true);
-                        ImGui.TextUnformatted(text);
-                        entity_source_tooltip(entity);
-                    }
-
-                    display_information(entity);
-                    display_transform(entity);
-
-                    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-                    aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
-                    set := display_info_ui(*entity.display_info, aabb_world);
-
-                } else {
-                    if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
-                        defer ImGui.TreePop();
-
-                        for :Selected entity : app.entities {
-                            if entity_name(entity).count {
-
-                                if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
-                                if is_changed_on_disk(entity) == false {
-                                    Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
-                                }
-
-                                entity_source_file := isa(entity.source, Entity_Source_File);
-                                if entity_source_file {
-                                    ImGui.SameLine();
-                                    ImGui.Checkbox(imgui_label("", entity), *entity_source_file.auto_reload);
-                                    Show_Tooltip("Auto-reload if file changes on disk");
-                                }
-
-                                ImGui.SameLine();
-                                text := entity_description(entity, with_creation_time=true);
-                                ImGui.TextUnformatted(text);
-                                entity_source_tooltip(entity);
-                            }
-                        }
-
-                        if ImGui.Button("Reload Selection  ") {
-                            for :Selected entity : app.entities {
-                                reload_entity(entity, triggered_by_button=true);
-                            }
-                            // ImGui.CloseCurrentPopup();
-                        }
-
-                        if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
-                            // Find the state to toggle
-                            state := false;
-                            for :Selected app.entities {
-                                source := isa(it.source, Entity_Source_File);
-                                if source {
-                                    state = !source.auto_reload;
-                                    break;
-                                }
-                            }
-
-                            for :Selected app.entities {
-                                source := isa(it.source, Entity_Source_File);
-                                if source {
-                                    source.auto_reload = state;
-                                }
-                            }
-                        }
-                        Show_Tooltip("Toggle auto-reload state on selected items");
-
-                        // This isn't actually very useful, user should use the Ctrl-a binding instead
-                        //ImGui.SameLine();
-                        //if ImGui.Button("Deselect All") {
-                        //    for :Selected entity : app.entities {
-                        //        entity.is_selected = false;
-                        //    }
-                        //    ImGui.CloseCurrentPopup();
-                        //}
-                    }
-
-                    update := display_info_ui(*app.edit_tool.display_info, entity_selection_aabb());
-
-                    apply_display_info_update(update, .SELECTED);
-                }
-            }
-
-            annotation_theme_ui :: (theme : *Annotation_Label_Theme) {
-                // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-                ImGui.Checkbox("Visible", *theme.visible);
-                ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-            }
-
-            if ImGui.BeginTabItem("Annotations") {
-                defer ImGui.EndTabItem();
-
-                set : Display_Info_Update;
-                display_info : *Display_Info;
-                if entity.is_selected {
-                    display_info = *app.edit_tool.display_info;
-                } else {
-                    display_info = *entity.display_info;
-                }
-                if ImGui.TreeNodeEx("Annotation Labels", .SpanAvailWidth) {
-                    defer ImGui.TreePop();
-                    annotation_theme_ui(*display_info.annotation_label_theme);
-                }
-                if entity.is_selected {
-                    apply_display_info_update(set, .SELECTED);
-                }
-
-                // Only display the annotations for the RMB'd entity, even if its selected. @Think Maybe this is just confusing?
-                display_annotations(entity, entity_index);
-            }
-
-            attribute_theme_ui :: (theme : *Attribute_Theme) {
-                // @Cleanup consider the checkbox next to a color idiom here, with separate colors for index and position labels
-                ImGui.Checkbox("Visible", *theme.visible);
-                ImGui.ColorEdit4("Label color", *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-                ImGui.DragFloat("Label scale", *theme.label_scale, .005, .2, 1., format="%.3f");
-            }
-
-
-            for base_attribute : entity.mesh.attributes {
-                if ImGui.BeginTabItem(imgui_label(base_attribute.name, base_attribute)) {
-                    defer ImGui.EndTabItem();
-
-                    value_type : Type;
-                    element_kind : Simple_Mesh_Element;
-                    if base_attribute.type == {
-                        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
-                            ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
-                            Show_Tooltip(TOOLTIP);
-                            TOOLTIP :: #string DONE
-Matrix3 :: struct {
-    _11, _12, _13 : float;
-    _21, _22, _23 : float;
-    _31, _32, _33 : float;
-    #place _11; row: [3]Vector3 = ---;
-}
-DONE;
-                    }
-
-
-                    if ImGui.TreeNodeEx("Attribute Labels", .SpanAvailWidth) {
-                        defer ImGui.TreePop();
-                        attribute_theme_ui(*base_attribute.display_info.theme);
-                    }
-
-                    if base_attribute.type == {
-                        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
-
-                            attribute := cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))base_attribute;
-                            if ImGui.TreeNodeEx(imgui_label(tprint("Attributes (%)", attribute.values.count), base_attribute), .SpanAvailWidth) {
-                                defer ImGui.TreePop();
-
-                                if attribute.values.count {
-
-                                    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable; // | .Sortable;
-                                    outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
-
-                                    if last_frame_annotation_list_height_px < outer_size.y {
-                                        table_flags &= ~.ScrollY;
-                                        outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
-                                    }
-
-                                    column_count : s32 = 3;
-                                    if ImGui.BeginTable(imgui_label("##Attribute_Table", attribute), column_count, flags=table_flags, outer_size=outer_size) {
-                                        defer ImGui.EndTable();
-
-                                        ImGui.TableSetupColumn("UI",    ImGui.TableColumnFlags.WidthFixed | .NoSort);
-                                        ImGui.TableSetupColumn("Index", ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
-                                        ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthStretch);
-                                        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
-                                        ImGui.TableHeadersRow();
-
-                                        last_frame_annotation_list_height_px = 0.;
-                                        for :ListClipperIterator value, index : attribute.values {
-                                            last_frame_annotation_list_height_px = clipper.ItemsHeight;
-
-                                            ImGui.TableNextRow();
-
-                                            ImGui.TableNextColumn();
-                                            if ImGui.Button(imgui_label("Focus", xx index)) {
-                                                item_focus_triangle(entity_index, index, ifx io().KeyShift then 0. else -1.);
-                                            }
-                                            bindings : [..]Binding_With_Description;
-                                            bindings.allocator = temp;
-                                            array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
-                                            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
-                                            Show_Tooltip_Binding(..bindings);
-
-                                            ImGui.TableNextColumn();
-                                            ImGui.Text(tprint("%", index));
-
-                                            ImGui.TableNextColumn();
-                                            new_context : Context;
-                                            new_context.print_style.default_format_float = app.label_format.format_float;
-                                            new_context.print_style.default_format_struct = app.label_format.format_struct;
-                                            push_context new_context {
-                                                ImGui.Text(tprint("%", value));
-                                            }
-                                        }
-                                        last_frame_annotation_list_height_px *= attribute.values.count; // FIXME This is wrong if string annotations have different numbers of lines
-                                    }
-                                }
-                            }
-                        case;
-                            log_warning("@Incomplete attribute table UI for attribute type '%'", base_attribute.type);
-                    }
-                }
-            }
         }
     }
 }
@@ -1704,10 +1624,6 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     Show_Tooltip(tooltip);
     ImGui.SameLine();
 
-    ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
-    Show_Tooltip("Show Position (Model Space)");
-    ImGui.SameLine();
-
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
     Show_Tooltip("Text Color");
     ImGui.SameLine();
@@ -1716,6 +1632,10 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
     Show_Tooltip("Text Scale");
     ImGui.PopItemWidth();
+    ImGui.SameLine();
+
+    ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
+    Show_Tooltip("Show Position (Model Space)");
 }
 
 show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Element_Label_Theme) {
@@ -1753,6 +1673,25 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     Show_Tooltip("Text Scale");
     ImGui.PopItemWidth();
 }
+
+show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_Theme) {
+    ImGui.Text(name);
+    ImGui.SameLine();
+
+    ImGui.Checkbox(imgui_label("##visible", theme), *theme.visible);
+    Show_Tooltip(tooltip);
+    ImGui.SameLine();
+
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    Show_Tooltip("Text Color");
+    ImGui.SameLine();
+
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    Show_Tooltip("Text Scale");
+    ImGui.PopItemWidth();
+}
+
 
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_Info_Update {
 
@@ -1868,7 +1807,7 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3) -> Display_In
         show_element_label_theme_ui("Point     ", "Show index of .obj 'p' directives", *display_info.point_label_theme);
         show_element_label_theme_ui("Segment   ", "Show index of .obj 'l' directives", *display_info.segment_label_theme);
         show_element_label_theme_ui("Triangle  ", "Show index of .obj 'f' directives", *display_info.triangle_label_theme);
-        show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_label_theme);
+        show_annotation_theme_ui("Annotation", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
     }
 
     return get_update(old_display_info, display_info);
@@ -1911,14 +1850,16 @@ display_transform :: (entity : *Entity) {
 
 display_annotations :: (entity : *Entity, entity_index : int) {
 
-    header := "Annotations (none)";
+    header := "Annotation Table (none)";
     annotation_count := entity_annotation_count(entity);
     if annotation_count {
-        header = tprint("Annotations (%)", annotation_count);
+        header = tprint("Annotation Table (%)", annotation_count);
     } else {
         ImGui.BeginDisabled();
     }
     defer if annotation_count == 0 then ImGui.EndDisabled();
+
+    show_annotation_theme_ui("Annotation", "Show annotations", *entity.display_info.annotation_label_theme);
 
     if ImGui.TreeNodeEx(imgui_label(header, entity), .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -2203,7 +2144,6 @@ ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
 // ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
 // This stuct stores stuff we need to remember to use in the next render frame
 ImGui_Frame_State :: struct {
-    index_of_context_menu_popup_item : int = -1; // This is used to update the background color of item names which are being edited by the context menu popup
     index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to implement show/hiding a selection using a selected checkbox
     index_of_selected_item_where_color_was_changed : int = -1;
     index_of_selected_item_where_color_was_reset : int = -1;

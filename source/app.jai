@@ -271,13 +271,13 @@ current_window_aspect_ratio_width_over_height :: () -> float {
 }
 
 // nocommit Rename this to something less generic and use this name for a basic iterator over entities
-Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $filter : Code) #expand {
+Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
     #assert(flags == 0); // No options are supported
 
     for entity, entity_index : <<entities {
         `it_index := entity_index;
         `it := entity;
-        if #insert,scope() filter {
+        if #insert,scope() entity_filter {
             continue;
         }
 
@@ -285,8 +285,8 @@ Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $
     }
 }
 
-Visible ::  #bake_arguments Entities_Iterator(filter = #code !it.display_info.is_visible);
-Selected :: #bake_arguments Entities_Iterator(filter = #code !it.is_selected);
+Visible ::  #bake_arguments Entities_Iterator(entity_filter=#code !it.display_info.is_visible);
+Selected :: #bake_arguments Entities_Iterator(entity_filter=#code !it.is_selected);
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
