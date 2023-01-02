@@ -25,10 +25,10 @@ show_action_target_text :: (target_items : Target_Items) {
                 ImGui.Text("Target all items (%)", count);
             case .VISIBLE;
                 count := 0; for :Visible app.entities count += 1;
-                ImGui.Text("Target % visible item%", count, ifx count == 1 then "" else "s");
+                ImGui.Text("Target % visible item%", count, plural_suffix(count != 1));
             case .SELECTED;
                 count := 0; for :Selected app.entities count += 1;
-                ImGui.Text("Target % selected item%", count, ifx count == 1 then "" else "s");
+                ImGui.Text("Target % selected item%", count, plural_suffix(count != 1));
         }
     } else {
         ImGui.Text("No items to target");

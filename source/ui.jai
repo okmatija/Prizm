@@ -504,7 +504,7 @@ DONE);
 
 }
 
-// @continue Fix the focus shortcut when there is an item with just one point
+// nocommit Fix the focus shortcut when there is an item with just one point
 
 // If entity == null then show the details for the template
 show_details_pane_ui :: () {
@@ -581,6 +581,10 @@ show_details_pane_ui_for_item :: () {
                 text := entity_description(entity, with_creation_time=true);
                 ImGui.TextUnformatted(text);
                 entity_source_tooltip(entity);
+            }
+            if ImGui.Button("Focus ") {
+                // Fit all visible items on the screen
+                fit_on_screen(entity);
             }
 
             display_information(entity);
@@ -693,7 +697,7 @@ show_details_pane_ui_for_item_selection :: () {
         if ImGui.BeginTabItem("Display") {
             defer ImGui.EndTabItem();
 
-            if ImGui.TreeNodeEx(to_c_string(tprint("Selection (% item%)", num_selected_entities(), ifx num_selected_entities() == 1 then "" else "s")), .SpanAvailWidth) {
+            if ImGui.TreeNodeEx("Selection", .SpanAvailWidth) {
                 defer ImGui.TreePop();
 
                 for :Selected entity : app.entities {
@@ -704,6 +708,7 @@ show_details_pane_ui_for_item_selection :: () {
                             Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                         }
 
+                        // nocommit consolidate code with the single item case
                         entity_source_file := isa(entity.source, Entity_Source_File);
                         if entity_source_file {
                             ImGui.SameLine();
