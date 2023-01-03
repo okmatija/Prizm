@@ -849,7 +849,6 @@ show_select_ui :: () {
                 array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
                 array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
                 array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
-                array_add(*bindings, make_Binding_With_Description( "Shift LMB", "Click-drag to set clipping sphere on selected items"));
                 Show_Tooltip_Binding(..bindings);
             } else {
                 Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
@@ -1728,18 +1727,38 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
         //Show_Tooltip("Deduce item primary colors from the file path");
 
         {
-            ImGui.Text("Positions  ");
+            ImGui.Text("Triangles  ");
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
-            Show_Tooltip("Positions visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
+            Show_Tooltip("Triangle visibility");
+            {
+                ImGui.SameLine();
+                ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
+                Show_Tooltip("Frontface Color");
+            }
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            ImGui.InputInt("##positions_size", *display_info.positions_size);
-            Show_Tooltip("Size");
-            display_info.positions_size = clamp(display_info.positions_size, 1, 10);
+            combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
+            Show_Tooltip("Backface Render Mode");
+            ImGui.PopItemWidth();
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
+            Show_Tooltip("Flat Shading");
+        }
+
+
+        {
+            ImGui.Text("Segments   ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
+            Show_Tooltip("Segment visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
+            Show_Tooltip("Width");
+            display_info.segments_width = clamp(display_info.segments_width, 1, 5);
             ImGui.PopItemWidth();
         }
 
@@ -1760,38 +1779,19 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
         }
 
         {
-            ImGui.Text("Segments   ");
+            ImGui.Text("Positions  ");
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
-            Show_Tooltip("Segment visibility");
+            ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
+            Show_Tooltip("Positions visibility");
             ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
             ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
-            Show_Tooltip("Width");
-            display_info.segments_width = clamp(display_info.segments_width, 1, 5);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Triangles  ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
-            Show_Tooltip("Triangle visibility");
-            {
-                ImGui.SameLine();
-                ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
-                Show_Tooltip("Frontface Color");
-            }
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-            Show_Tooltip("Backface Render Mode");
+            ImGui.InputInt("##positions_size", *display_info.positions_size);
+            Show_Tooltip("Size");
+            display_info.positions_size = clamp(display_info.positions_size, 1, 10);
             ImGui.PopItemWidth();
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
-            Show_Tooltip("Flat Shading");
         }
 
         {
@@ -2024,9 +2024,13 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
             {
                 ImGui.TableNextRow();
                 old_clip_sphere := clip_sphere;
+                
+                BINDING :: "Shift LMB";
+                DESCRIBE :: "Click-drag to set clipping sphere on selected items";
 
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Sphere");
+                Show_Tooltip_Binding(DESCRIBE, BINDING);
                 ImGui.SameLine();
                 ImGui.Checkbox(imgui_label("##clip_sphere", *clip_sphere), *clip_sphere.is_active);
                 Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
@@ -2036,8 +2040,10 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
+                Show_Tooltip_Binding(DESCRIBE, BINDING);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
+                Show_Tooltip_Binding(DESCRIBE, BINDING);
                 ImGui.TableSetColumnIndex(3);
                 POSITIVE_INF :: 0h7F800000;
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
