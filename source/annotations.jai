@@ -2,7 +2,7 @@ Annotation :: struct {
     // @Cleanup Remove kind because we sort this out by storing annotations in separate containers
     Kind :: enum_flags {
         VERTEX;   // v-directive
-        // POINT;    // p-directive // nocommit
+        // POINT;    // p-directive // nocommit look carefully at all the places where this change needs to propogate!
         LINE;     // l-directive
         TRIANGLE; // f-directive
         BLOCK;    // e.g., a header at the top of an .obj file

@@ -287,7 +287,7 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     glUseProgram(app.normals_program);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(app.normals_program, mesh);
+    set_model_view_projection_uniforms(app.normals_program, mesh.world_from_model);
     glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
     glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
 
@@ -329,20 +329,15 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
-render_aabb :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !aabb_visible {
-        return;
-    }
-
-    maybe_update_render_info(render_info, mesh);
-
+render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glUseProgram(app.aabb_program);
-    set_model_view_projection_uniforms(app.aabb_program, mesh);
+    set_model_view_projection_uniforms(app.aabb_program, world_from_model);
 
     r, g, b, a : float = 0, 0, 1, 1;
+    min := aabb_model.min_point;
+    max := aabb_model.max_point;
+
     glUniform4f(glGetUniformLocation(app.aabb_program, "color"), r, g, b, a);
-    min := bounding_aabb.min_point;
-    max := bounding_aabb.max_point;
     glUniform3f(glGetUniformLocation(app.aabb_program, "min"), min.x, min.y, min.z);
     glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
 
@@ -488,10 +483,10 @@ render_mesh_triangles :: (
     glDrawElements(GL_TRIANGLES, cast(GLsizei) (3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
 }
 
-set_model_view_projection_uniforms :: (program : GLuint, mesh : Simple_Mesh) {
+set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
     {
         loc := glGetUniformLocation(program, "world_from_model");
-        glUniformMatrix4fv(loc, 1, true, *mesh.world_from_model._11);
+        glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
     }
 
     {
@@ -514,7 +509,7 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
 
     glUseProgram(app.mesh_program);
 
-    set_model_view_projection_uniforms(app.mesh_program, mesh);
+    set_model_view_projection_uniforms(app.mesh_program, mesh.world_from_model);
 
     wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
     glUniform1f(glGetUniformLocation(app.mesh_program, "wave"), wave);
@@ -576,7 +571,7 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_I
 
     glUseProgram(app.simple_mesh_program);
 
-    set_model_view_projection_uniforms(app.simple_mesh_program, mesh);
+    set_model_view_projection_uniforms(app.simple_mesh_program, mesh.world_from_model);
 
     wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
     glUniform1f(glGetUniformLocation(app.simple_mesh_program, "wave"), wave);
@@ -717,7 +712,9 @@ render_entities :: () {
         render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
 
-        render_aabb(*entity.mesh, ri, di);
+        if di.aabb_visible {
+            render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
+        }
     }
 
     render_entity_text_spotlight :: ($entity_filter : Code) {
@@ -1070,6 +1067,11 @@ render_entities :: () {
 
     for :Visible_Opaque      app.entities render_entity_geometry(it, it_index);
     for :Visible_Transparent app.entities render_entity_geometry(it, it_index);
+
+    // :RenderingSelectionAABB Here we also render the AABB for a selection of entities, which is a bit of a hack
+    if app.template_display_info.aabb_visible {
+        render_aabb(app.template_aabb_world, Matrix4_Identity);
+    }
 
     glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
 

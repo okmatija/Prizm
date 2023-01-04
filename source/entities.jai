@@ -210,10 +210,10 @@ is_changed_on_disk :: (entity : Entity) -> bool {
     return changed;
 }
 
-count_selected_entities :: () -> int {
-    selected_count := 0;
-    for :Selected app.entities selected_count += 1;
-    return selected_count;
+temp_selected_entities :: () -> [..]*Entity {
+    selected : [..]*Entity = temp_array(*Entity);
+    for :Selected app.entities array_add(*selected, it);
+    return selected;
 }
 
 compute_entity_primary_color :: (using entity : Entity) -> Vector4 {
@@ -388,6 +388,9 @@ AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flag
     }
 }
 
+// @continue Fix the selection bounding boxes and make item name selection widgets behave properly
+
+// Returns a result in world space
 entity_selection_aabb :: () -> AxisBox3 {
     result : AxisBox3;
     for :Selected app.entities {
@@ -956,6 +959,14 @@ init_entity_spatial_index :: (using entity : *Entity) {
     }
 }
 
+get_entity_index :: (entity : *Entity) -> int {
+    for app.entities {
+        if it == entity {
+            return it_index;
+        }
+    }
+    return -1;
+}
 
 get_entity_source :: (entity : Entity) -> *Entity_Source {
     return cast(*Entity_Source)entity.source.bytes.data;

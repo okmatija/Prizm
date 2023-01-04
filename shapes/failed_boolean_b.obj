@@ -2,7 +2,7 @@
 # This example shows a failed cylinder/cone boolean. Find the missing sliver triangle as follows:
 #
 # 1. Open the console by pressing backtick
-# 2. Run the command 'item_find_open_edges n', where #n is the index of this item
+# 2. Run the command 'item_find_open_edges n 1', where #n is the index of this item
 # 3. Hover the mouse over the generated item in the "Command Outputs" folder, the sliver will flash
 # 4. Scroll in until you can clearly see the sliver. You can also try:
 #    - Hiding other items using their visibility checkboxes

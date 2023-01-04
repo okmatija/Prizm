@@ -102,18 +102,9 @@ App :: struct {
         }
     }
 
-    details_pane : Details_Pane;
-    Details_Pane :: struct {
-        entity_index : int;
-        display_info : Display_Info;
-    }
-
-    // @continue Remove this
-    edit_tool : Edit_Tool;
-    Edit_Tool :: struct {
-        target := Target_Items.ALL_ITEMS;
-        display_info : Display_Info;
-    }
+    // Used when more than one item is selected/edited via shortcuts
+    template_display_info : Display_Info;
+    template_aabb_world : AxisBox3;
 
     select_tool : Select_Tool;
     Select_Tool :: struct {
