@@ -132,7 +132,7 @@ show_item_list_ui :: () {
                 // defer ImGui.Indent(indent2 - indent);
 
                 if entities_in_folder.count {
-                    table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY;
+                    table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY | .RowBg;
                     outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
 
                     show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
@@ -141,8 +141,11 @@ show_item_list_ui :: () {
                         outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
                     }
 
+                    ImGui.PushItemWidth(ImGui.GetFontSize() * -12);
+                    defer ImGui.PopItemWidth();
+
                     // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
-                    if ImGui.BeginTable(imgui_label("Item List Table", xx folder), 6, flags=table_flags, outer_size=outer_size) {
+                    if ImGui.BeginTable(imgui_label("Item List Table", xx folder), 5, flags=table_flags, outer_size=outer_size) {
                         defer ImGui.EndTable();
 
                         // @Volatile Using ListClipperIterator here is important since we'll issue checkbox_press_or_sweep_to_toggle commands in this loop, see the comment for that function
@@ -231,10 +234,26 @@ Item_Entry_Update :: struct {
 show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
-    // Remove button
+    // Toggle visibility checkbox
     ImGui.TableNextColumn();
-    if ImGui.Button(imgui_label("Remove", entity)) {
-        result.entity_to_remove = entity_index;
+    {
+        was_visible := entity.display_info.is_visible;
+        visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
+        result.visibility_changed = visibility_changed;
+        Show_Tooltip("Visible");
+
+        if !was_visible && entity.display_info.is_visible {
+            // @Think We should probably have some kind of function list/hook/delegate feature so we can add code to be executed when visibility changes etc
+            // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
+            color, element_visibility := get_entity_primary_color(entity);
+            if element_visibility {
+                <<element_visibility = true;
+            }
+        }
+
+        if entity.is_selected {
+            if changed_by_click g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
+        }
     }
 
     // Color selection
@@ -269,99 +288,65 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         }
     }
 
-    // Toggle visibility checkbox
-    ImGui.TableNextColumn();
-    {
-        was_visible := entity.display_info.is_visible;
-        visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
-        result.visibility_changed = visibility_changed;
-        Show_Tooltip("Visible");
-
-        if !was_visible && entity.display_info.is_visible {
-            // @Think We should probably have some kind of function list/hook/delegate feature so we can add code to be executed when visibility changes etc
-            // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
-            color, element_visibility := get_entity_primary_color(entity);
-            if element_visibility {
-                <<element_visibility = true;
-            }
-        }
-
-        if entity.is_selected {
-            if changed_by_click g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
-        }
-    }
-
-    // Toggle clipping checkbox?
-
     // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
     ImGui.TableNextColumn();
-    ImGui.Text("#%", entity_index);
-    Show_Tooltip("Entity index for console commands");
+    {
+        ImGui.Text("#%", entity_index);
+        Show_Tooltip("Entity index for console commands");
+    }
 
-    // Write filename
+    // Entity name
     ImGui.TableNextColumn();
-    // ImGui.SetNextItemWidth(-FLOAT32_MIN);
-    if entity_name(entity).count {
-        text : string = tprint("%1%2", entity_description(entity, with_creation_time=false), ifx is_changed_on_disk(entity) then "*" else "");
-        label : *u8 =   imgui_label(text, entity);
+    {
+        // ImGui.SetNextItemWidth(-FLOAT32_MIN);
+        {
+            text : string = tprint("%1%2", entity_description(entity, with_creation_time=false), ifx is_changed_on_disk(entity) then "*" else "");
+            label : *u8 =   imgui_label(text, entity);
 
-        // Note that the ImGui.Selectable widget has this line to set the colors:
-        //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+            // Note that the ImGui.Selectable widget has this line to set the colors:
+            //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 
-        // Use the default Selectable widget
-        if ImGui.Selectable(label, *entity.is_selected) {
-            if !io().KeyCtrl {
-                for :Selected app.entities {
-                    it.is_selected = false;
+            // Use the default Selectable widget
+            if ImGui.Selectable(label, *entity.is_selected) {
+                if !io().KeyCtrl {
+                    for :Selected app.entities {
+                        it.is_selected = false;
+                    }
+                    entity.is_selected = true;
                 }
-                entity.is_selected = true;
             }
         }
-    } else {
-        ImGui.Selectable("---", *entity.is_selected); // This should never happen
-    }
 
-    // nocommit this should work just like Unreal, where you focus the selection with f
-    // No tooltip for this behaviour since we reserve the tooltip for annotations
-    if ImGui.IsItemClicked() {
-        if is_empty(entity.mesh) == false {
-            if io().KeyCtrl {
-                // Do nothing, this selects the item
-            } else if io().KeyShift {
-                // This is similar but a bit different to the behaviour when sweeping visibility checkboxes but its fine, I think that that code should not know about entities..?
-                fit_on_screen_filled(entity);
-            } else {
-                // Fit all visible items on the screen
-                fit_on_screen(entity);
+        // nocommit this should work just like Unreal, where you focus the selection with f
+        // No tooltip for this behaviour since we reserve the tooltip for annotations
+        if ImGui.IsItemClicked() {
+            if is_empty(entity.mesh) == false {
+                if io().KeyCtrl {
+                    // Do nothing, this selects the item
+                } else if io().KeyShift {
+                    // This is similar but a bit different to the behaviour when sweeping visibility checkboxes but its fine, I think that that code should not know about entities..?
+                    fit_on_screen_filled(entity);
+                } else {
+                    // Fit all visible items on the screen
+                    fit_on_screen(entity);
+                }
             }
         }
-    }
 
-    entity_tick_flash_hover(entity);
+        entity_tick_flash_hover(entity);
 
-    header_annotation : *Annotation = entity_header_annotation(entity);
-    if app.settings.show_header_annotation_tooltips && header_annotation {
-        Show_Tooltip(to_string(header_annotation));
-    }
-
-    /*
-    compiler_report("Enable when we have tooltip delays");
-    if (entity.is_hovered) {
-        ImGui.BeginTooltip();
-        if ImGui.BeginTable("", 2, flags=ImGui.TableFlags.NoBordersInBody) {
-            defer ImGui.EndTable();
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(app.theme.keymap_color, "RMB");
-            ImGui.TableNextColumn();
-            ImGui.Text("Open context menu for the current %", ifx entity.is_selected then "item selection" else "item");
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(app.theme.keymap_color, "Ctrl LMB");
-            ImGui.TableNextColumn();
-            ImGui.Text("Toggle selected state of the hovered item");
+        header_annotation : *Annotation = entity_header_annotation(entity);
+        if app.settings.show_header_annotation_tooltips && header_annotation {
+            Show_Tooltip(to_string(header_annotation));
         }
-        ImGui.EndTooltip();
     }
-    */
+
+    // Must remove with delete
+    //// Remove button
+    //ImGui.TableNextColumn();
+    //if ImGui.Button(imgui_label("Remove", entity)) {
+    //    result.entity_to_remove = entity_index;
+    //}
 
     // Turned on only while context menu > clipping is on. See :RenderingSelectionAABB
     entity.display_info.aabb_visible = false;
@@ -596,7 +581,7 @@ show_details_pane_ui_for_item_selection :: () {
 }
 
 show_item_selection_ui :: () {
-    if ImGui.TreeNodeEx("Selection", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen) {
+    if ImGui.TreeNodeEx("Selection", ImGui.TreeNodeFlags.SpanAvailWidth) {
         defer ImGui.TreePop();
 
         for :Selected entity : app.entities {
@@ -2125,7 +2110,7 @@ entity_source_tooltip :: (entity : Entity) {
     }
 }
 
-entity_tick_flash_hover :: (entity : *Entity) {
+entity_tick_flash_hover :: (entity : *Entity) #expand {
     was_hovered := entity.is_hovered;
     entity.is_hovered = ImGui.IsItemHovered();
     if ImGui.IsItemHovered() {

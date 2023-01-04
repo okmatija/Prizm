@@ -265,7 +265,9 @@ entity_name :: (fully_pathed_name : string) -> string {
 
 // Returns a string pointing into entity.fully_pathed_name
 entity_name :: (entity : Entity) -> string {
-    return entity_name(get_entity_source(entity).path);
+    name := entity_name(get_entity_source(entity).path);
+    if name.count return name;
+    return "---";
 }
 
 entity_description :: (using entity : Entity, with_creation_time : bool) -> string {
