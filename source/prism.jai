@@ -230,7 +230,9 @@ main :: () {
         // These functions all do a ray cast on all visible entities, but usually its only one function per frame, we could make this clear by having them return booleans saying if they executed and putting them in an if-else-if chain
         // Also, these functions determine what is rendered so its important they are called before the rendering functions
         do_clipping_sphere_mode();
-        do_selection_mode();
+        do_geometry_selection_mode();
+        do_item_selection_mode();
+
 
         // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
         render_background();

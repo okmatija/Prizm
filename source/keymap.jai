@@ -106,11 +106,18 @@ Keymap :: struct {
     mappings : [..] Single_Key_Mapping;
 }
 
-mouse_add_to_selection :: () -> bool {
+mouse_add_to_geometry_selection :: () -> bool {
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return false;
     }
     return ImGui.IsMouseClicked(.Left) && io().KeyCtrl && app.select_tool.entity.display_info.is_visible;
+}
+
+mouse_add_to_item_selection :: () -> bool {
+    if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
+        return false;
+    }
+    return ImGui.IsMouseClicked(.Left) && !io().KeyCtrl && !io().KeyShift && !io().KeyAlt;
 }
 
 mouse_reposition_camera :: () -> bool {
