@@ -156,7 +156,7 @@ init_keymap :: () {
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_POINT_SIZE_ACTION_SET);
+    add_key(*app.keymap_actions, CYCLE_VERTEX_SIZE_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_ANNOTATION_ACTION_SET);

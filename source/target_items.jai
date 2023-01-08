@@ -81,57 +81,57 @@ TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
 
 
 //
-// Cycle point size
+// Cycle vertex/position size
 //
 
-cycle_point_size :: () {
+cycle_vertex_size :: () {
 
     app_info := *app.template_display_info;
-    cycle_point_size_progress_proc(app_info);
+    cycle_vertex_size_progress_proc(app_info);
 
     for :Selected app.entities {
-        it.display_info.points_visible = app_info.points_visible;
-        it.display_info.points_size    = app_info.points_size;
+        it.display_info.positions_visible = app_info.positions_visible;
+        it.display_info.positions_size    = app_info.positions_size;
     }
 }
 
-cycle_point_size_proc :: (last_interaction_time : *void) {
+cycle_vertex_size_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_point_size();
+    cycle_vertex_size();
 }
 
 
-cycle_point_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+cycle_vertex_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
     // Handle full range of points_size
-    if !points_visible {
-        points_visible = true;
-        points_size = 2;
+    if !positions_visible {
+        positions_visible = true;
+        positions_size = 2;
         return .{0,3};
-    } else if points_size <= 2 {
-        points_size = 4;
+    } else if positions_size <= 2 {
+        positions_size = 4;
         return .{1,3};
-    } else if points_size <= 4 {
-        points_size = 6;
+    } else if positions_size <= 4 {
+        positions_size = 6;
         return .{2,3};
     } else {
-        points_visible = false;
+        positions_visible = false;
         return .{3,3};
     }
 }
 
-cycle_point_size_progress_proc_const :: () -> Fraction {
+cycle_vertex_size_progress_proc_const :: () -> Fraction {
     app_info_copy := app.template_display_info;
-    return cycle_point_size_progress_proc(*app_info_copy);
+    return cycle_vertex_size_progress_proc(*app_info_copy);
 }
 
 
-CYCLE_POINT_SIZE_ACTION_SET := Action_Set.{
-    proc=cycle_point_size_proc,
-    progress_proc=cycle_point_size_progress_proc_const,
-    desc="Cycle point size for selected items",
-    key=#char "p",
+CYCLE_VERTEX_SIZE_ACTION_SET := Action_Set.{
+    proc=cycle_vertex_size_proc,
+    progress_proc=cycle_vertex_size_progress_proc_const,
+    desc="Cycle vertex/positions size for selected items",
+    key=#char "v",
 };
 
 

@@ -21,6 +21,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
     - Pressing 'f' multiple times without changing the camera will toggle between placing the top/bottom/left/right planes around the selection or around all visible items in the scene
   - Removed the way in which modifiers changed the items targetted by shortcuts. Shortcuts (e.g., 'i', 'j', 'k', 'l' etc) always target the selected items
   - Changed 'Shift a' to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful
+  - Changed the shortcut to cycle vertex point rendering size from 'p' to 'v' because point elements (obj p-directives) and vertices (obj v-directives) are distinguished now and its most useful to cycle the vertex size and 'v' is a better memonic for that. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
 
 - Annotations
 

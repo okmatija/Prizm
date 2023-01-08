@@ -812,16 +812,18 @@ Action_Button :: (_label : string, action_set : *Action_Set) #expand {
     label := copy_string(_label, temp);
     mod := current_modifier_flags(); 
 
-    has_target := false;
-    for :Selected app.entities {
-        has_target = true;
-        break;
-    }
+    // :DisableUpdateButtonsIfNoSelection Maybe its confusing to see buttons you can't click or see the tooltip of
+    //has_target := false;
+    //for :Selected app.entities {
+    //    has_target = true;
+    //    break;
+    //}
 
     base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
     button_color := base_color;
 
-    if has_target {
+    //if has_target // See :DisableUpdateButtonsIfNoSelection
+    {
         do_style := !action_set.regular_button ; // && progress.denom != 0;
 
         if do_style {
@@ -886,8 +888,11 @@ Action_Button :: (_label : string, action_set : *Action_Set) #expand {
             push_allocator(temp);
             Show_Tooltip_Binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}));
         }
+    }
 
-    } else {
+    //See :DisableUpdateButtonsIfNoSelection
+    //else {
+    #if false {
         if !action_set.regular_button {
             button_color.w = 0;
             ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
@@ -947,7 +952,7 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Line Width", *CYCLE_LINE_WIDTH_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Point Size", *CYCLE_POINT_SIZE_ACTION_SET); // @continue nocommit This should be vertex size
+        Action_Button("Vertex Size", *CYCLE_VERTEX_SIZE_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET);
         ImGui.SameLine();
