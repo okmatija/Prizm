@@ -7,6 +7,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
 - FIXME Changes and reorganisation of UI:
 
+  - Removed the "Remove" buttons, item are now removed by selecting them and pressing the delete key
   - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
   - Added a new "Tools" section under the main "Prism" tab, moved presets shapes menu there and renamed as "Examples" tool, moved selection there too as a "Select" tool
   - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
@@ -15,10 +16,11 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
 - Changes to shortcuts:
 
-  - TODO Changed item focussing from clicking the name to require a double click, a single click with make the item the Details panel target but not adjust the camera
-  - TODO Removed the weird modifiers that change the items targetted by shortcuts, now shortcuts always target the selected item. You can edit all/visible items by using the new shortcuts to select those items before using the state modification shortcut you wanted
-  - Changed Shift-a to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful.
-  - Changed "Update" buttons along the bottom edge of the viewport so that Alt is the modifier which applies the update to selected items and Ctrl is the modfier which applies the update to all items. This is now consistent with how those modifiers are used in item selection
+  - IMPORTANT: Changes focus item behaviour, probably a commonly used shortcut
+    - Previously, pressing 'f' would focus visible items. Now, you LMB to select an item (or 'Shift a'/'Alt a' to select visible/all items) and then press 'f' to focus the selection
+    - Pressing 'f' multiple times without changing the camera will toggle between placing the top/bottom/left/right planes around the selection or around all visible items in the scene
+  - Removed the way in which modifiers changed the items targetted by shortcuts. Shortcuts (e.g., 'i', 'j', 'k', 'l' etc) always target the selected items
+  - Changed 'Shift a' to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful
 
 - Annotations
 
@@ -63,8 +65,11 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 - Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
 - Fixed the weird requirement for Point Selection to be visible in order to use sphere clipping mode, those two things are now independant
 - Fixed bug where the transform was not accounted for in mesh merging operations, affected point selection and the `debug_spatial_index` command
+- Improved the behaviour of fitting parts of the scene on the screen TODO we now more accurately account for clipping spheres/clipping ranges
 - Improved organisation/presentation of key bindings in the "Help" tab
-- Renamed "Add" button in "Items" tab to "Presets"
+- Improved the clipping sphere UI by intializing the sphere to bound the aabb of the item selection being clipped
+- Changed header annotations (the first block of obj comments) to be hidden from item name tooltips by default, these can be turned on under Preferences > Miscellaneous
+- Reduced the spacing between items in the item/annotation lists and also made some other visual improvements
 - Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
 - Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
 - Added feature to clipping sphere mode where engaging the mode (Shift LMB) while the cursor is far from the shape being clipped the entire shape is shown in a wireframe/point rendering so you can easily see the original unclipped shape

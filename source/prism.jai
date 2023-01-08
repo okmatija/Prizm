@@ -238,7 +238,7 @@ main :: () {
         render_axes_triad();
         render_selections();
 
-        do_demo_mode(); // nocommit Why do we need this here---some opengl weirdness is going on!
+        do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
 
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());

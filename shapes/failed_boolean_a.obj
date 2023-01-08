@@ -14,8 +14,8 @@
 #
 # Press 'f' to focus the camera on the clipped geometry
 # Press 'c' to toggle showing/hiding the clipping sphere you just created (maybe press 'f' again)
+#
 
-# Courtesy of Jimmy Andrews
 
 v -384.8992 20.0000 -113.3024
 v -384.8992 120.0000 -113.3024

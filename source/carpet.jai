@@ -238,6 +238,14 @@ imgui_label :: (label : string, ptr : *void = null) -> *u8 {
     return temp_c_string(tprint("%##%", label, ptr));
 }
 
+// Used to make the rows of tables close together
+ScopeZeroCellPaddingY :: () #expand {
+    padding := ImGui.GetStyle().CellPadding;
+    padding.y = 0;
+    ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, padding);
+    `defer ImGui.PopStyleVar();
+}
+
 // Combo box to select display mode enum value
 // @Cleanup Deduce the info_enum from the data
 combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum, flags : ImGui.ComboFlags = .None) -> bool {

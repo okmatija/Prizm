@@ -96,9 +96,9 @@ App :: struct {
 
         Location :: enum {
             CLOSEST_POINT;
-            VIEWPORT; // nocommit Implement me
-            CONSOLE; // nocommit Implement me
-            CENTROID; // nocommit Implement me
+            // VIEWPORT; // nocommit Implement me
+            // CONSOLE; // nocommit Implement me
+            // CENTROID; // nocommit Implement me
         }
     }
 
@@ -308,7 +308,7 @@ User_Settings :: struct {
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
 
-    show_header_annotation_tooltips := true;
+    show_header_annotation_tooltips := false;
     disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
@@ -442,6 +442,7 @@ Simp :: #import "Simp_beta_0_1_016";
 #load "kernel/GTE_Mathematics_DistLine3Triangle3.jai";
 #load "kernel/GTE_Mathematics_DistRay3Triangle3.jai";
 #load "kernel/GTE_Mathematics_DistPointTriangle.jai";
+#load "kernel/GTE_Mathematics_IntrSphere3Sphere3.jai";
 #load "kernel/utility.jai";
 #load "kernel/types.jai";
 #load "kernel/test.jai";

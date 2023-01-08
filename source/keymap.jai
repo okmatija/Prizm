@@ -141,16 +141,18 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, (unused)=>{toggle_show_ui();}, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
     add_key(*app.keymap_keydown, (unused)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
+    // :SelectionKeybindTooltip @Volatile @Cleanup Keep this in sync with the tooltip
+    add_key(*app.keymap, (unused)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, (unused)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, (unused)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, (unused)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
+
     add_key(*app.keymap, (unused)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
     // @FIXME Make these presets work with the alt key like the button
     add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{add_preset_boolean_a();}, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (unused)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (unused)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
@@ -174,12 +176,8 @@ init_keymap :: () {
     // Reserved! Do not change this binding
     add_key(*app.keymap, (unused)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
 
-    add_key :: (keymap : *Keymap, action_set : Action_Set, loc := #caller_location) {
-        for action : action_set.target_action {
-            mod := target_to_modifier(action.target);
-            desc := get_action_description(action_set, action.target);
-            add_key(keymap, action.proc, desc, action_set.key, mod, action_set.override_WantCaptureKeyboard, loc, xx *action_set.last_interaction_time);
-        }
+    add_key :: (keymap : *Keymap, using action_set : Action_Set, loc := #caller_location) {
+        add_key(keymap, proc, desc, key, .{}, override_WantCaptureKeyboard, loc, xx *last_interaction_time);
     }
 
     add_key :: (keymap : *Keymap,
@@ -216,7 +214,6 @@ init_keymap :: () {
 // Bindable procedures
 //
 
-call_fit_on_screen             :: () { fit_scene_on_screen(); } // @CompilerBug? why do we need this wrapper
 quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
 rotate_look_direction_5_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -5); }
@@ -237,6 +234,9 @@ toggle_fullscreen :: () {
 }
 
 select_or_deselect_all :: () {
+    // Currently the state transitions are: any selected -> none selected <-> all selected
+    // But maybe this is better:            any selected -> all selected <-> none selected
+    // Probably it doesn't matter
     mode := false;
     for app.entities if it.is_selected mode = true;
     for app.entities    it.is_selected = !mode;

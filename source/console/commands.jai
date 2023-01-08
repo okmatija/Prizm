@@ -102,8 +102,6 @@ select_if :: (should_select : (Entity)->bool, invert : int) {
     else          log("# selected % entities", count);
 }
 
-// @TODO Add an invert option to these?
-
 // Add visible/invisible items to the selection, if `invert` is true/false
 select_if_visible :: (invert : int = 0) {
     select_if((e) => (e.display_info.is_visible), invert);
@@ -130,13 +128,6 @@ select_if_match :: (pattern : string, invert : int = 0) {
     }
     if count == 1 log("# selected 1 entity");
     else          log("# selected % entities", count);
-} @RegisterCommand
-
-// Toggles selection state of all items
-select_toggle_selected_items :: () {
-    for app.entities {
-        it.is_selected = !it.is_selected;
-    }
 } @RegisterCommand
 
 // Sorts items in alphabetical order
@@ -737,7 +728,7 @@ item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : 
         case Matrix3;
             add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(Matrix3, .TRIANGLE));
         case;
-            // nocommit Add others from the attribute list and improve this error message
+            // TODO Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);
             return;
     }
@@ -758,7 +749,7 @@ item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Ty
         case float;
             add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(float, .VERTEX));
         case;
-            // nocommit Add others from the attribute list and improve this error message
+            // TODO Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);
             return;
     }

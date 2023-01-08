@@ -6,6 +6,10 @@ almost_equal :: (a : float, b : float, epsilon : float = 10 * FLOAT_MACHINE_EPSI
     return exactly_equal || (abs(a - b) < epsilon * (scale + abs(a) + abs(b)));
 }
 
+almost_equal :: (a : Vector3, b : Vector3, epsilon : float = 10 * FLOAT_MACHINE_EPSILON, scale : float = 1.0) -> bool {
+    return almost_equal(a.x, b.x) && almost_equal(a.y, b.y) && almost_equal(a.z, b.z);
+}
+
 angle :: (a : Vector3, b : Vector3, normalize : bool = false) -> float {
     if normalize {
         // @Cleanup make this #if and use a = normalize(a), currently this looks like a @CompilerBug

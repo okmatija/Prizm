@@ -214,19 +214,19 @@ is_any_label_theme_visible :: (using,except(is_visible) display_info : Display_I
            is_visible(annotation_label_theme);
 }
 
-is_clipped :: (display_info : Display_Info, point : Point3, test_sphere := true, test_ranges := true) -> bool {
-    if test_sphere && is_clipped(display_info.clip_sphere, point) {
+is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere := true, test_ranges := true) -> bool {
+    if test_sphere && is_clipped(display_info.clip_sphere, point_world) {
         return true;
     }
 
-    if test_ranges && is_clipped(display_info.clip_ranges, point) {
+    if test_ranges && is_clipped(display_info.clip_ranges, point_world) {
         return true;
     }
 
     return false;
 }
 
-maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
+maybe_update_render_info :: (info : *Render_Info, mesh : Simple_Mesh) {
     if info.is_dirty {
         // nocommit Handle this case
         /*
@@ -242,7 +242,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
         // stored separately to the raw position data so it can be changed efficiently
         // i.e., bounding geometry is defined in the mesh model space
-        info.bounding_sphere = bounding_sphere_ritter(mesh.positions);
+        info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
         NP := size_of(Vector3) * mesh.positions.count;

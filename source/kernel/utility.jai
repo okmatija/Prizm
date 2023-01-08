@@ -38,6 +38,9 @@ compute_centroid :: inline (t : Triangle3) -> Vector3 {
     return (t.a + t.b + t.c) / 3;
 }
 
+//
+// Sphere functions. An empty sphere is represented with a negative radius, this case isn't checked in most functions since this would be slow, and once a sphere is non-empty it probably stays that way, or emptiness can be checked in the removing function.
+//
 
 make_sphere :: (center : Point3, radius : float) -> Sphere {
     result : Sphere = ---;
@@ -48,12 +51,11 @@ make_sphere :: (center : Point3, radius : float) -> Sphere {
     return result;
 }
 
-// @Incomplete handle scaling of radius?
+// @Incomplete handle scaling of radius? if sphere.radius < 0 it should remain that way
 transform :: (using sphere : *Sphere, transform : Matrix4) {
     center = transform_point(transform, center);
 }
 
-// @Cleanup Use optional value bakes on keep_center_of_this parameter
 expand :: (using this : *Sphere, other : Sphere, keep_center_of_this := false) {
     center_distance := distance(this.center, other.center);
 
@@ -125,6 +127,7 @@ dot_cross :: (v0 : Vector3, v1 : Vector3, v2 : Vector3) -> float {
     return dot(v0, cross(v1, v2));
 }
 
+// Assumes that the given aabb is not empty
 bounding_sphere :: (aabb : AxisBox3) -> Sphere
 {
     result : Sphere = ---;
@@ -133,6 +136,7 @@ bounding_sphere :: (aabb : AxisBox3) -> Sphere
     return result;
 }
 
+// Assumes that the given points list is not empty
 bounding_sphere_naive :: (points : []Point3) -> Sphere
 {
     aabb := make_axis_box3(..points);
@@ -143,10 +147,6 @@ bounding_sphere_naive :: (points : []Point3) -> Sphere
 bounding_sphere_ritter :: (points : []Point3) -> Sphere
 {
     result : Sphere;
-
-    if !points.count {
-        return result;
-    }
 
     // Get sphere encompassing two approximately most distant points
     result = sphere_from_distant_points(points);
@@ -197,6 +197,10 @@ bounding_sphere_of_sphere_and_point :: (s : Sphere, p : Point3) -> Sphere
 // defining the AABB encompassing the point set. Return these as min and max.
 most_separated_points_on_AABB :: (points : []Point3) -> (min : int, max : int)
 {
+    if points.count == 0 {
+        return -1, -1;
+    }
+
     // First find most extreme points along principal axes
     minx, maxx := 0, 0;
     miny, maxy := 0, 0;
@@ -225,14 +229,18 @@ most_separated_points_on_AABB :: (points : []Point3) -> (min : int, max : int)
 
 sphere_from_distant_points :: (points : []Point3) -> Sphere
 {
-    // Find the most separated point pair defining the encompassing AABB
-    min, max := most_separated_points_on_AABB(points);
+    sphere : Sphere;
 
-    // Set up sphere to just encompass these two points
-    sphere : Sphere = ---;
-    sphere.center = (points[min] + points[max]) * .5;
-    sphere.radius = dot(points[max] - sphere.center, points[max] - sphere.center);
-    sphere.radius = sqrt(sphere.radius);
+    if points.count {
+        // Find the most separated point pair defining the encompassing AABB
+        min, max := most_separated_points_on_AABB(points);
+
+        // Set up sphere to just encompass these two points
+        sphere.center = (points[min] + points[max]) * .5;
+        sphere.radius = dot(points[max] - sphere.center, points[max] - sphere.center);
+        sphere.radius = sqrt(sphere.radius);
+    }
+
     return sphere;
 }
 

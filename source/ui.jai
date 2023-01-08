@@ -115,7 +115,6 @@ show_item_list_ui :: () {
             if do_tree {
                 defer ImGui.TreePop();
 
-// nocommit Fix this KeyCtrl behavior
                 // Use Ctrl LMB to select all items in the folder
                 if ImGui.IsItemClicked() && io().KeyCtrl {
                     state := false;
@@ -132,7 +131,11 @@ show_item_list_ui :: () {
                 // defer ImGui.Indent(indent2 - indent);
 
                 if entities_in_folder.count {
-                    table_flags := ImGui.TableFlags.NoBordersInBody | .ScrollY | .RowBg;
+                    table_flags := ImGui.TableFlags
+                        //.RowBg |
+                        .PadOuterX |
+                        .NoBordersInBody |
+                        .ScrollY;
                     outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
 
                     show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
@@ -141,8 +144,11 @@ show_item_list_ui :: () {
                         outer_size.y = 0; // Not really necessary, since its ignored unless flags include ScrollY
                     }
 
-                    ImGui.PushItemWidth(ImGui.GetFontSize() * -12);
-                    defer ImGui.PopItemWidth();
+                    // // IIRC this is to get the table to fill the whole UI pane, but its only really needed when we have RowBg on
+                    //ImGui.PushItemWidth(ImGui.GetFontSize() * -12);
+                    //defer ImGui.PopItemWidth();
+
+                    ScopeZeroCellPaddingY();
 
                     // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
                     if ImGui.BeginTable(imgui_label("Item List Table", xx folder), 5, flags=table_flags, outer_size=outer_size) {
@@ -167,6 +173,15 @@ show_item_list_ui :: () {
 
         selected : [..]*Entity = temp_selected_entities();
         ImGui.Text("% item% (% selected)", app.entities.count, ifx app.entities.count > 1 then "s" else "", selected.count);
+        Show_Tooltip("Summary of ways to select items:");
+        bindings : [..]Binding_With_Description;
+        bindings.allocator = temp;
+        // @Volatile @Cleanup See :SelectionKeybindTooltip
+        array_add(*bindings, make_Binding_With_Description("Ctrl a", "Select/deselect all items"));
+        array_add(*bindings, make_Binding_With_Description("Shift a", "Select/deselect visible items"));
+        array_add(*bindings, make_Binding_With_Description("Alt a", "Toggle current item selection"));
+        array_add(*bindings, make_Binding_With_Description("`", "Use the 'select_...' commands"));
+        Show_Tooltip_Binding(..bindings);
 
     } // end TreeNodeEx
 
@@ -234,8 +249,14 @@ Item_Entry_Update :: struct {
 show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
+    ////    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+    //header_color := ImGui.GetStyle().Colors[ImGui.Col.Header];
+    //header_active := ImGui.GetStyle().Colors[ImGui.Col.HeaderActive];
+    // col := ImGui.GetColorU32(ImGui.GetStyle().Colors[ImGui.Col.Header]);
+
     // Toggle visibility checkbox
     ImGui.TableNextColumn();
+    // if entity.is_selected ImGui.TableSetBgColor(.CellBg, col);
     {
         was_visible := entity.display_info.is_visible;
         visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
@@ -268,7 +289,11 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         } else {
             color : *Vector4 = get_entity_primary_color(entity);
             if color {
+                // ImGui.PushStyleColor(ImGui.Col.FrameBg, ImGui.ImVec4.{1,1,1,0});
+                ImGui.PushStyleVar(ImGui.StyleVar.FrameBorderSize, 0);
                 color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.PopStyleVar();
+                // ImGui.PopStyleColor();
             }
         }
         if ImGui.IsItemClicked(.Middle) {
@@ -307,28 +332,12 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 
             // Use the default Selectable widget
-            if ImGui.Selectable(label, *entity.is_selected) {
+            if ImGui.Selectable(label, *entity.is_selected, flags=ImGui.SelectableFlags.SpanAllColumns | .AllowItemOverlap) {
                 if !io().KeyCtrl {
-                    for :Selected app.entities {
+                    for :Selected app.entities if it != entity {
                         it.is_selected = false;
                     }
                     entity.is_selected = true;
-                }
-            }
-        }
-
-        // nocommit this should work just like Unreal, where you focus the selection with f
-        // No tooltip for this behaviour since we reserve the tooltip for annotations
-        if ImGui.IsItemClicked() {
-            if is_empty(entity.mesh) == false {
-                if io().KeyCtrl {
-                    // Do nothing, this selects the item
-                } else if io().KeyShift {
-                    // This is similar but a bit different to the behaviour when sweeping visibility checkboxes but its fine, I think that that code should not know about entities..?
-                    fit_on_screen_filled(entity);
-                } else {
-                    // Fit all visible items on the screen
-                    fit_on_screen(entity);
                 }
             }
         }
@@ -572,8 +581,7 @@ show_details_pane_ui_for_item_selection :: () {
 
             app.template_aabb_world = entity_selection_aabb();
             update := display_info_ui(*app.template_display_info, app.template_aabb_world);
-            target := Target_Items.SELECTED;
-            for app.entities if Is_Target(it) {
+            for :Selected app.entities {
                 apply_update(update, app.template_display_info, *it.display_info);
             }
         }
@@ -591,20 +599,20 @@ show_item_selection_ui :: () {
                 if is_changed_on_disk(entity) == false {
                     Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                 }
+
                 ImGui.SameLine();
                 if ImGui.Button("Focus ") {
                     // Fit all visible items on the screen
                     fit_on_screen(entity);
                 }
 
+                ImGui.SameLine();
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
                 if source {
-                    ImGui.SameLine();
                     ImGui.Checkbox(imgui_label("", entity), *source.auto_reload);
                     Show_Tooltip("Auto-reload if file changes on disk");
                 } else {
                     dummy := true;
-                    ImGui.SameLine();
                     ImGui.Checkbox(imgui_label("", entity), *dummy);
                     Show_Tooltip(tprint("Auto-reload only makes sense for files loaded from disk.\nThis entity was sourced from a %", get_entity_source_description(entity)));
                 }
@@ -612,6 +620,7 @@ show_item_selection_ui :: () {
                 ImGui.SameLine();
                 ImGui.Text("#%", it_index);
                 Show_Tooltip("Entity index for console commands");
+
                 ImGui.SameLine();
                 text := entity_description(entity, with_creation_time=true);
                 ImGui.TextUnformatted(text);
@@ -645,9 +654,6 @@ show_item_selection_ui :: () {
                 }
             }
             Show_Tooltip("Toggle auto-reload state on selected items");
-            if ImGui.Button("Focus Selection   ") {
-                focus_items(null, .SELECTED);
-            }
         }
     }
 }
@@ -735,7 +741,7 @@ show_select_ui :: () {
             } else {
                 Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
             }
-            if ImGui.IsItemClicked() && is_empty(it.mesh) == false {
+            if ImGui.IsItemClicked() && is_empty(it.mesh) == false { // nocommit Don't need this is_empty check?
                 fit_on_screen(it);
             }
             entity_tick_flash_hover(it);
@@ -805,43 +811,21 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
 Action_Button :: (_label : string, action_set : *Action_Set) #expand {
     label := copy_string(_label, temp);
     mod := current_modifier_flags(); 
-    found, target := modifier_to_target(mod);
 
     has_target := false;
-    if found {
-        if #complete target == {
-            case .ALL_ITEMS;
-                has_target = app.entities.count != 0;
-            case .VISIBLE;
-                for :Visible app.entities {
-                    has_target = true;
-                    break;
-                }
-            case .SELECTED;
-                for :Selected app.entities {
-                    has_target = true;
-                    break;
-                }
-        }
+    for :Selected app.entities {
+        has_target = true;
+        break;
     }
 
     base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
     button_color := base_color;
 
     if has_target {
-        action : Action;
-        for action_set.target_action {
-            if it.target == target {
-                action = it;
-                break;
-            }
-        }
-
-
         do_style := !action_set.regular_button ; // && progress.denom != 0;
 
         if do_style {
-            progress := action.progress_proc();
+            progress := action_set.progress_proc();
 
             delta_time_s := to_float64_seconds(current_time_consensus() - action_set.last_interaction_time);
             fade :: FADE_TIME_SECS / 2;
@@ -881,7 +865,7 @@ Action_Button :: (_label : string, action_set : *Action_Set) #expand {
 
         if ImGui.Button(imgui_label(label, *action_set)) {
             action_set.last_interaction_time = current_time_consensus();
-            action.proc(xx *action_set.last_interaction_time);
+            action_set.proc(xx *action_set.last_interaction_time);
             // action_set.hovered_duration_secs = 0.; // so we can click it without looking at the tooltip
         }
 
@@ -900,20 +884,7 @@ Action_Button :: (_label : string, action_set : *Action_Set) #expand {
 
         if action_set.hovered_duration_secs > 0.5 {
             push_allocator(temp);
-
-            #if false {
-                // Just show one of the bindings
-                desc := get_action_description(action_set, action.target);
-                Show_Tooltip_Binding(desc, to_string(action_set.key, mod));
-            } else {
-                // Show all the bindings
-                bindings : [..]Binding_With_Description;
-                bindings.allocator = temp;
-                array_add(*bindings, make_Binding_With_Description( to_string(action_set.key, VISIBLE_MOD),   get_action_description(action_set, .VISIBLE)));
-                array_add(*bindings, make_Binding_With_Description( to_string(action_set.key, SELECTED_MOD),  get_action_description(action_set, .SELECTED)));
-                array_add(*bindings, make_Binding_With_Description( to_string(action_set.key, ALL_ITEMS_MOD), get_action_description(action_set, .ALL_ITEMS)));
-                Show_Tooltip_Binding(..bindings);
-            }
+            Show_Tooltip_Binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}));
         }
 
     } else {
@@ -946,9 +917,6 @@ show_item_list_actions_ui :: () {
         return;
     }
 
-    // @CompilerBug how to specify types with multiple return values
-    target_exists, target_items := modifier_to_target(current_modifier_flags());
-
     // Try actions buttons on the bottom by the console
     {
         window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
@@ -969,8 +937,6 @@ show_item_list_actions_ui :: () {
         ImGui.Begin("target_items_ribbon", flags=window_flags);
         defer ImGui.End();
 
-        // show_action_target_text(target_items);
-        // ImGui.SameLine();
         Action_Button("Backface", *CYCLE_BACKFACE_MODE_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Opacity", *CYCLE_OPACITY_ACTION_SET);
@@ -981,9 +947,9 @@ show_item_list_actions_ui :: () {
         ImGui.SameLine();
         Action_Button("Line Width", *CYCLE_LINE_WIDTH_ACTION_SET);
         ImGui.SameLine();
-        Action_Button("Point Size", *CYCLE_POINT_SIZE_ACTION_SET);
+        Action_Button("Point Size", *CYCLE_POINT_SIZE_ACTION_SET); // @continue nocommit This should be vertex size
         ImGui.SameLine();
-        Action_Button("Face Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET);
+        Action_Button("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET);
         ImGui.SameLine();
         Action_Button("Vertex Labels", *CYCLE_VERTEX_LABEL_ACTION_SET);
         ImGui.SameLine();
@@ -1026,8 +992,6 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
 show_camera_controls :: () {
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
-    ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
-    defer ImGui.PopStyleVar();
     defer ImGui.PopStyleVar();
 
     X_AXIS :: Vector3.{1, 0, 0};
@@ -1186,47 +1150,35 @@ show_help_ui :: () {
     if ImGui.TreeNodeEx("Key Bindings", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
 
-        if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
+        if ImGui.TreeNodeEx("Camera Controls", .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.BeginTable("", 2, flags=table_flags);
             defer ImGui.EndTable();
 
-            ShowBinding("MMB", "Pan the camera");
-            ShowBinding("Scroll", "Zoom the camera into the position under the cursor");
-            ShowBinding("Alt   Scroll", "Zoom the camera into the position under the cursor slowly");
-            ShowBinding("Shift Scroll", "Zoom the camera into the camera look position");
-            ShowBinding("RMB", "Rotate the camera");
-            ShowBinding("Alt RMB", "Rotate about selected axis in the camera control pane");
+            ShowBinding("      MMB", "Pan the camera");
+            ShowBinding("      RMB", "Rotate the camera");
+            ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane");
+            ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
+            ShowBinding("      Scroll", "Zoom into the position under the cursor");
+            ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");
+            ShowBinding("Shift Scroll", "Zoom into the camera look position");
         }
 
-        if ImGui.TreeNodeEx("In the Items Tab", .SpanAvailWidth) {
+        if ImGui.TreeNodeEx("In the Items List", .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.BeginTable("", 2, flags=table_flags);
             defer ImGui.EndTable();
 
-            ShowBinding("LMB", "(on a filename) Focus an item");
-            ShowBinding("Ctrl LMB", "(on a filename) Select an item");
-            ShowBinding("Shift LMB", "(on a filename) Focus an item and zoom in");
-            ShowBinding("RMB", "(on a filename) Open context menu which modifies only the clicked item");
-            ShowBinding("RMB", "(on a selected filename) Open context menu which modifies all selected items");
-            ShowBinding("RMB", "(on a color) Cycle shading styles");
-            ShowBinding("MMB", "(on a color) Reset color from the filename");
-            ShowBinding("LMB", "(sweep over visibility checkbox) Update item visibility");
-            ShowBinding("Ctrl LMB", "(sweep over visibility checkbox) Focus hovered item");
+            ShowBinding("      RMB", "(on a color) Cycle shading styles");
+            ShowBinding("      MMB", "(on a color) Reset color from the filename");
+            ShowBinding("      LMB", "(sweep over visibility checkbox) Update item visibility");
+            ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus hovered item");
             ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
+            ShowBinding("      LMB", "(on a filename) Select an item");
+            ShowBinding("Ctrl  LMB", "(on a filename) Add an item to selection");
         }
 
-        if ImGui.TreeNodeEx("For Point Selection", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
-            defer ImGui.EndTable();
-
-            ShowBinding("Ctrl LMB", "Add nearest unclipped vertex to 'Selection' item");
-            ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
-            ShowBinding("Ctrl RMB", "Place camera orbit");
-        }
-
-        if ImGui.TreeNodeEx("For Item Set Updates", .SpanAvailWidth) {
+        if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.BeginTable("", 2, flags=table_flags);
             defer ImGui.EndTable();
@@ -1235,6 +1187,9 @@ show_help_ui :: () {
                 push_allocator(temp);
                 ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
             }
+
+            ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
+            ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
         }
 
         if ImGui.TreeNodeEx("Miscellaneous", .SpanAvailWidth) {
@@ -1242,13 +1197,13 @@ show_help_ui :: () {
             ImGui.BeginTable("", 2, flags=table_flags);
             defer ImGui.EndTable();
 
-            for app.keymap_keydown.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
-            }
             for app.keymap.mappings {
                 push_allocator(temp);
                 ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+            }
+            for app.keymap_keydown.mappings {
+                push_allocator(temp);
+                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
             }
         }
     }
@@ -1721,6 +1676,7 @@ display_information :: (entity : *Entity) {
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
 
+        // @Incomplete This should be a table, and should include annotation/attribute information
         ImGui.Text("#positions = %", entity.mesh.positions.count);
         Show_Tooltip("Number of vertex positions");
         ImGui.Text("#points = %", entity.mesh.points.count);
@@ -1794,7 +1750,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
         if annotations.count {
 
-            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable | .Sortable;
+            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .Resizable | .Reorderable | .Hideable | .Sortable | .PadOuterX;
             outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
 
             if last_frame_annotation_list_height_px < outer_size.y {
@@ -1803,6 +1759,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             }
 
             column_count : s32 = 4;
+            ScopeZeroCellPaddingY();
             if ImGui.BeginTable("##Annotations_Table", column_count, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
@@ -1909,7 +1866,7 @@ DONE;
 
                 if attribute.values.count {
 
-                    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .RowBg | .Resizable | .Reorderable | .Hideable; // | .Sortable;
+                    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .Resizable | .Reorderable | .Hideable | .PadOuterX; // | .Sortable;
                     outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
 
                     if last_frame_annotation_list_height_px < outer_size.y {
@@ -1918,6 +1875,7 @@ DONE;
                     }
 
                     column_count : s32 = 3;
+                    ScopeZeroCellPaddingY();
                     if ImGui.BeginTable(imgui_label("##Attribute_Table", attribute), column_count, flags=table_flags, outer_size=outer_size) {
                         defer ImGui.EndTable();
 
@@ -1993,22 +1951,33 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 ImGui.SameLine();
                 ImGui.Checkbox(imgui_label("##clip_sphere", *clip_sphere), *clip_sphere.is_active);
                 Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
+
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
                 ImGui.Text("Radius");
+
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
                 Show_Tooltip_Binding(DESCRIBE, BINDING);
+
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
+                // @Cleanup check this can't go nan, do we need to do the same to the clipping ranges?
                 ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
+                if isnan(clip_sphere.radius) clip_sphere.radius = POSITIVE_INF;
+                clip_sphere.radius = clamp(clip_sphere.radius, 0., POSITIVE_INF);
                 Show_Tooltip_Binding(DESCRIBE, BINDING);
+
                 ImGui.TableSetColumnIndex(3);
                 POSITIVE_INF :: 0h7F800000;
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
                 if ImGui.Button(imgui_label("Reset    ##sphere", *clip_sphere)) || uninitialized {
-                    clip_sphere.center = .{0, 0, 0};
-                    clip_sphere.radius = POSITIVE_INF;
+                    if !is_empty(aabb) {
+                        clip_sphere.sphere = bounding_sphere(aabb);
+                    } else {
+                        clip_sphere.center = .{0, 0, 0};
+                        clip_sphere.radius = POSITIVE_INF;
+                    }
                 }
                 Show_Tooltip("Reset sphere to contain the universe");
 
@@ -2026,9 +1995,11 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     ImGui.SameLine();
                     ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
                     Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
+
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text("Normal");
                     ImGui.Text("Range");
+
                     ImGui.TableSetColumnIndex(2);
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");

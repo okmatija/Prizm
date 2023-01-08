@@ -71,7 +71,25 @@ Canonical_Box :: struct(Point : Type) {
 Canonical_Box2 :: Canonical_Box(Point2);
 Canonical_Box3 :: Canonical_Box(Point3);
 
+Sphere3 :: Sphere;
+
 Sphere :: struct {
     center : Point3;
+    radius : float = -1;
+}
+
+is_empty :: (sphere : Sphere) -> bool {
+    return sphere.radius < 0;
+}
+
+
+// The circle is the intersection of the sphere |X-C|^2 = r^2 and the
+// plane Dot(N,X-C) = 0, where C is the circle center, r is the radius,
+// and N is a unit-length plane normal.
+Circle3 :: struct {
+    // Warning: GTE's default constructor sets center to (0,0,0), normal to (0,0,1), and radius to 1.
+
+    center : Vector3;
+    normal : Vector3;
     radius : float;
 }

@@ -10,8 +10,6 @@
 #    - Adding the sliver vertices to the "Point Selection" by using Ctrl LMB near them in the viewport
 #
 
-# Courtesy of Jimmy Andrews
-
 v 1.000000 0.000000 0.000000
 v 0.923880 0.382683 0.000000
 v 0.707107 0.707107 0.000000

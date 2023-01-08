@@ -1,102 +1,34 @@
-// Specfied since we use the values as an index into an array
-Target_Items :: enum int #specified {
-    // @Volatile Don't change ordering, it will desync the descriptions etc in the keymap
-    ALL_ITEMS :: 0;
-    VISIBLE ::   1;
-    SELECTED ::  2;
-}
-TARGET_ITEMS_COUNT :: #run get_enum_count(Target_Items);
-
-Is_Target :: (e : *Entity) -> bool #expand {
-    if #complete `target == {
-        case .SELECTED;  return (e.is_selected == true);
-        case .VISIBLE;   return (e.display_info.is_visible  == true);
-        case .ALL_ITEMS; return true;
-    }
-}
-
-show_action_target_text :: (target_items : Target_Items) {
-    ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-    defer ImGui.PopStyleColor();
-    if app.entities.count {
-        if #complete target_items == {
-            case .ALL_ITEMS;
-                count := app.entities.count;
-                ImGui.Text("Target all items (%)", count);
-            case .VISIBLE;
-                count := 0; for :Visible app.entities count += 1;
-                ImGui.Text("Target % visible item%", count, plural_suffix(count != 1));
-            case .SELECTED;
-                count := 0; for :Selected app.entities count += 1;
-                ImGui.Text("Target % selected item%", count, plural_suffix(count != 1));
-        }
-    } else {
-        ImGui.Text("No items to target");
-    }
-}
-
 Fraction :: struct {
     numer : int;
     denom : int;
 }
 
-Action :: struct {
-    target : Target_Items;
+Action_Set :: struct {
     proc : (data : *void)->();
 
     // Actions cycle/toggle item state, this function returns a fraction representing the progress of the state cycling so you can e.g., change the color of the action buttons according to how far along the cycle you are
     progress_proc : ()->Fraction = ()=>Fraction.{0,0};
-}
 
-Action_Set :: struct {
-    target_action : [3]Action; #assert(TARGET_ITEMS_COUNT == 3);
-    desc : string; // Important: A target-specific postfix is added by get_action_description
+    desc : string;
     key : u32;
     regular_button := false; // If true a simple ImGui.Button, otherwise a button which cycles/toggles state and changes color accordingly
     override_WantCaptureKeyboard := false;
+
+    //
+    // Transient data
+    //
     
     last_interaction_time : Apollo_Time;
     hovered_duration_secs : float; // @Cleanup When switching to ImGui 1.88 which natively supports timed tooltips
 }
 
-get_action_description :: (action_set : Action_Set, action_target : Target_Items) -> string {
-    desc : string;
-    if #complete action_target == {
-        case .VISIBLE; desc = sprint("% %", action_set.desc, "visible items");
-        case .SELECTED; desc = sprint("% %", action_set.desc, "selected items");
-        case .ALL_ITEMS; desc = sprint("% %", action_set.desc, "all items");
-    }
-    return desc;
-}
-
-ALL_ITEMS_MOD :: Modifier_Flags.{control_pressed=true};
-SELECTED_MOD :: Modifier_Flags.{alt_pressed=true};
-VISIBLE_MOD :: Modifier_Flags.{}; // To be super consistent with the modifiers for the select item key binds, this should have shift_pressed=true, but this case is very common and we want it to be maximally discoverable so we trade off some consistency in favour of discoverability
-
-modifier_to_target :: (mod : Modifier_Flags) -> bool, Target_Items {
-    if mod == VISIBLE_MOD   return true, .VISIBLE;
-    if mod == SELECTED_MOD  return true, .SELECTED;
-    if mod == ALL_ITEMS_MOD return true, .ALL_ITEMS;
-    return false, .VISIBLE;
-}
-
-target_to_modifier :: (target : Target_Items) -> Modifier_Flags {
-    if #complete target == {
-        case .VISIBLE; return VISIBLE_MOD;
-        case .SELECTED; return SELECTED_MOD;
-        case .ALL_ITEMS; return ALL_ITEMS_MOD;
-    }
-}
-
-
-
 //
 // Toggle clipping
 //
 
-any_active_clipping :: (target : Target_Items) -> bool {
+any_active_clipping :: () -> bool {
     clip_active := false;
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         if it.display_info.clip_sphere.is_active {
             clip_active = true;
             break;
@@ -109,12 +41,12 @@ any_active_clipping :: (target : Target_Items) -> bool {
     return clip_active;
 }
 
-toggle_clipping :: (target : Target_Items) {
+toggle_clipping :: () {
 
     clip_active := *app.template_display_info.clip_sphere.is_active;
     <<clip_active = !<<clip_active;
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.clip_sphere.is_active = <<clip_active;
         for * it.display_info.clip_ranges {
             it.is_active = <<clip_active;
@@ -122,42 +54,25 @@ toggle_clipping :: (target : Target_Items) {
     }
 }
 
-toggle_clipping_proc :: (last_interaction_time : *void, target : Target_Items) {
+toggle_clipping_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    toggle_clipping(target);
+    toggle_clipping();
 }
 
 
-toggle_clipping_progress_proc :: (target : Target_Items) -> Fraction {
-    if any_active_clipping(target) {
+toggle_clipping_progress_proc :: () -> Fraction {
+    if any_active_clipping() {
         return .{1,1};
     }
     return .{0,1};
 }
 
 TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
-    target_action=.[
-        // @Cleanup We repeat the target here because we need constant procs with zero inputs/ouputs so the body of add_key below works
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments toggle_clipping_proc(target=.VISIBLE),
-            progress_proc=()=>toggle_clipping_progress_proc(.VISIBLE),
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments toggle_clipping_proc(target=.SELECTED),
-            progress_proc=()=>toggle_clipping_progress_proc(.SELECTED),
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments toggle_clipping_proc(target=.ALL_ITEMS),
-            progress_proc=()=>toggle_clipping_progress_proc(.ALL_ITEMS),
-            // progress_proc=()=>{return ifx any_active_clipping(.ALL_ITEMS) then Fraction.{1,1} else .{0,1};} // @CompilerBug?
-        },
-    ],
-    desc="Toggle clipping on",
+    proc=toggle_clipping_proc,
+    progress_proc=()=>toggle_clipping_progress_proc(),
+    desc="Toggle clipping on selected items",
     key=#char "c",
 };
 
@@ -169,22 +84,22 @@ TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
 // Cycle point size
 //
 
-cycle_point_size :: (target : Target_Items) {
+cycle_point_size :: () {
 
     app_info := *app.template_display_info;
     cycle_point_size_progress_proc(app_info);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.points_visible = app_info.points_visible;
         it.display_info.points_size    = app_info.points_size;
     }
 }
 
-cycle_point_size_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_point_size_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_point_size(target);
+    cycle_point_size();
 }
 
 
@@ -213,24 +128,9 @@ cycle_point_size_progress_proc_const :: () -> Fraction {
 
 
 CYCLE_POINT_SIZE_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_point_size_proc(target=.VISIBLE),
-            progress_proc=cycle_point_size_progress_proc_const,
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_point_size_proc(target=.SELECTED),
-            progress_proc=cycle_point_size_progress_proc_const,
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_point_size_proc(target=.ALL_ITEMS),
-            progress_proc=cycle_point_size_progress_proc_const,
-        },
-    ],
-    desc="Cycle point size for",
+    proc=cycle_point_size_proc,
+    progress_proc=cycle_point_size_progress_proc_const,
+    desc="Cycle point size for selected items",
     key=#char "p",
 };
 
@@ -243,12 +143,12 @@ CYCLE_POINT_SIZE_ACTION_SET := Action_Set.{
 // Cycle wireframe width
 //
 
-cycle_wireframe_width :: (target : Target_Items) {
+cycle_wireframe_width :: () {
 
     app_info := *app.template_display_info;
     cycle_wireframe_width_progress_proc(app_info);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.segments_visible = app_info.segments_visible;
         it.display_info.segments_width   = app_info.segments_width;
         it.display_info.edges_visible = app_info.edges_visible;
@@ -257,11 +157,11 @@ cycle_wireframe_width :: (target : Target_Items) {
 }
 
 // @Cleanup could auto generate this
-cycle_wireframe_width_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_wireframe_width_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_wireframe_width(target);
+    cycle_wireframe_width();
 }
 
 cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fraction {
@@ -295,24 +195,9 @@ cycle_wireframe_width_progress_proc_const :: () -> Fraction {
 }
 
 CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_wireframe_width_proc(target=.VISIBLE),
-            progress_proc=cycle_wireframe_width_progress_proc_const,
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_wireframe_width_proc(target=.SELECTED),
-            progress_proc=cycle_wireframe_width_progress_proc_const,
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_wireframe_width_proc(target=.ALL_ITEMS),
-            progress_proc=cycle_wireframe_width_progress_proc_const,
-        },
-    ],
-    desc="Cycle line width for",
+    proc=cycle_wireframe_width_proc,
+    progress_proc=cycle_wireframe_width_progress_proc_const,
+    desc="Cycle line width (triangle edges and segments) for selected items",
     key=#char "l",
 };
 
@@ -323,21 +208,21 @@ CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
 //
 
 
-toggle_normals_visibility :: (target : Target_Items) {
+toggle_normals_visibility :: () {
 
     app_info := *app.template_display_info;
     toggle_normals_visibility_progress_proc(app_info);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.normals_visible = app_info.normals_visible;
     }
 }
 
-toggle_normals_visibility_proc :: (last_interaction_time : *void, target : Target_Items) {
+toggle_normals_visibility_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    toggle_normals_visibility(target);
+    toggle_normals_visibility();
 }
 
 toggle_normals_visibility_progress_proc :: (using app_info : *Display_Info) -> Fraction {
@@ -355,24 +240,9 @@ toggle_normals_visibility_progress_proc_const :: () -> Fraction {
 }
 
 TOGGLE_NORMALS_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments toggle_normals_visibility_proc(target=.VISIBLE),
-            progress_proc=toggle_normals_visibility_progress_proc_const,
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments toggle_normals_visibility_proc(target=.SELECTED),
-            progress_proc=toggle_normals_visibility_progress_proc_const,
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments toggle_normals_visibility_proc(target=.ALL_ITEMS),
-            progress_proc=toggle_normals_visibility_progress_proc_const,
-        },
-    ],
-    desc="Toggle normals visibility for",
+    proc=toggle_normals_visibility_proc,
+    progress_proc=toggle_normals_visibility_progress_proc_const,
+    desc="Toggle normals visibility for selected items",
     key=#char "n",
 };
 
@@ -384,7 +254,7 @@ TOGGLE_NORMALS_ACTION_SET := Action_Set.{
 // Cycle vertex labels
 //
 
-cycle_vertex_label_theme :: (target : Target_Items, theme : *Vertex_Label_Theme) -> Fraction {
+cycle_vertex_label_theme :: (theme : *Vertex_Label_Theme) -> Fraction {
 
     result : Fraction;
     result.denom = 3;
@@ -412,52 +282,37 @@ cycle_vertex_label_theme :: (target : Target_Items, theme : *Vertex_Label_Theme)
     return result;
 }
 
-cycle_vertex_label :: (target : Target_Items) {
+cycle_vertex_label :: () {
+
     theme := *app.template_display_info.vertex_label_theme;
+    cycle_vertex_label_theme(theme);
 
-    cycle_vertex_label_theme(target, theme);
-
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.vertex_label_theme.show_position = theme.show_position;
         it.display_info.vertex_label_theme.show_index = theme.show_index;
     }
 }
 
 
-cycle_vertex_label_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_vertex_label_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_vertex_label(target);
+    cycle_vertex_label();
 }
 
 
-cycle_vertex_label_progress_proc :: (target : Target_Items) -> Fraction {
+cycle_vertex_label_progress_proc :: () -> Fraction {
     app_info_copy := app.template_display_info; // We just want to get the fraction, not modify the display info
-    return cycle_vertex_label_theme(target, *app_info_copy.vertex_label_theme);
+    return cycle_vertex_label_theme(*app_info_copy.vertex_label_theme);
 }
 
 // @Cleanup decapitalize non-constant action sets
 
 CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_vertex_label_proc(target=.VISIBLE),
-            progress_proc=()=>cycle_vertex_label_progress_proc(.VISIBLE),
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_vertex_label_proc(target=.SELECTED),
-            progress_proc=()=>cycle_vertex_label_progress_proc(.SELECTED),
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_vertex_label_proc(target=.ALL_ITEMS),
-            progress_proc=()=>cycle_vertex_label_progress_proc(.ALL_ITEMS),
-        },
-    ],
-    desc="Cycle vertex labels for",
+    proc=cycle_vertex_label_proc,
+    progress_proc=()=>cycle_vertex_label_progress_proc(),
+    desc="Cycle vertex labels for selected items",
     key=#char "j",
 };
 
@@ -494,50 +349,34 @@ cycle_element_label_theme :: (theme : *Element_Label_Theme) -> Fraction {
     return result;
 }
 
-cycle_element_label :: (target : Target_Items) {
+cycle_element_label :: () {
     // All element types are kept in sync with the point one
     theme := *app.template_display_info.point_label_theme;
-
     cycle_element_label_theme(theme);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.point_label_theme.show_index = theme.show_index;
         it.display_info.segment_label_theme.show_index = theme.show_index;
         it.display_info.triangle_label_theme.show_index = theme.show_index;
     }
 }
 
-cycle_element_label_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_element_label_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_element_label(target);
+    cycle_element_label();
 }
 
-cycle_element_label_progress_proc :: (target : Target_Items) -> Fraction {
+cycle_element_label_progress_proc :: () -> Fraction {
     app_info_copy := app.template_display_info; // We just want to get the fraction, not modify the display info
     return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
 CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_element_label_proc(target=.VISIBLE),
-            progress_proc=()=>cycle_element_label_progress_proc(.VISIBLE),
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_element_label_proc(target=.SELECTED),
-            progress_proc=()=>cycle_element_label_progress_proc(.SELECTED),
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_element_label_proc(target=.ALL_ITEMS),
-            progress_proc=()=>cycle_element_label_progress_proc(.ALL_ITEMS),
-        },
-    ],
-    desc="Toggle face labels for",
+    proc=cycle_element_label_proc,
+    progress_proc=()=>cycle_element_label_progress_proc(),
+    desc="Toggle point/segment/triangle labels for selected items",
     key=#char "i",
 };
 
@@ -575,21 +414,21 @@ cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
     return result;
 }
 
-cycle_annotation :: (target : Target_Items) {
+cycle_annotation :: () {
     theme := *app.template_display_info.annotation_label_theme;
 
     cycle_annotation_theme(theme);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.annotation_label_theme.visible = theme.visible;
     }
 }
 
-cycle_annotation_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_annotation_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_annotation(target);
+    cycle_annotation();
 }
 
 cycle_annotation_progress_proc :: () -> Fraction {
@@ -598,24 +437,9 @@ cycle_annotation_progress_proc :: () -> Fraction {
 }
 
 CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_annotation_proc(target=.VISIBLE),
-            progress_proc=cycle_annotation_progress_proc,
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_annotation_proc(target=.SELECTED),
-            progress_proc=cycle_annotation_progress_proc,
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_annotation_proc(target=.ALL_ITEMS),
-            progress_proc=cycle_annotation_progress_proc,
-        },
-    ],
-    desc="Toggle annotations for",
+    proc=cycle_annotation_proc,
+    progress_proc=cycle_annotation_progress_proc,
+    desc="Toggle annotations for selected items",
     key=#char "k",
 };
 
@@ -627,21 +451,21 @@ CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
 // Cycle opacity
 //
 
-cycle_opacity :: (target : Target_Items) {
+cycle_opacity :: () {
 
     app_info := *app.template_display_info;
     cycle_opacity_progress_proc(app_info);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.triangles_color.w = app_info.triangles_color.w;
     }
 }
 
-cycle_opacity_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_opacity_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_opacity(target);
+    cycle_opacity();
 }
 
 cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
@@ -663,24 +487,9 @@ cycle_opacity_progress_proc_const :: () -> Fraction {
 }
 
 CYCLE_OPACITY_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_opacity_proc(target=.VISIBLE),
-            progress_proc=cycle_opacity_progress_proc_const,
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_opacity_proc(target=.SELECTED),
-            progress_proc=cycle_opacity_progress_proc_const,
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_opacity_proc(target=.ALL_ITEMS),
-            progress_proc=cycle_opacity_progress_proc_const,
-        },
-    ],
-    desc="Cycle opacity for",
+    proc=cycle_opacity_proc,
+    progress_proc=cycle_opacity_progress_proc_const,
+    desc="Cycle opacity for selected items",
     key=#char "o",
 };
 
@@ -692,21 +501,21 @@ CYCLE_OPACITY_ACTION_SET := Action_Set.{
 // Cycle backface mode
 //
 
-cycle_backface_mode :: (target : Target_Items) {
+cycle_backface_mode :: () {
 
     mode := *app.template_display_info.backface_mode;
     cycle_backface_mode_progress_proc(mode);
 
-    for app.entities if Is_Target(it) {
+    for :Selected app.entities {
         it.display_info.backface_mode = <<mode;
     }
 }
 
-cycle_backface_mode_proc :: (last_interaction_time : *void, target : Target_Items) {
+cycle_backface_mode_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
         <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
     }
-    cycle_backface_mode(target);
+    cycle_backface_mode();
 }
 
 cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
@@ -729,24 +538,9 @@ cycle_backface_mode_progress_proc_const :: () -> Fraction {
 }
 
 CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments cycle_backface_mode_proc(target=.VISIBLE),
-            progress_proc=cycle_backface_mode_progress_proc_const,
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments cycle_backface_mode_proc(target=.SELECTED),
-            progress_proc=cycle_backface_mode_progress_proc_const,
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments cycle_backface_mode_proc(target=.ALL_ITEMS),
-            progress_proc=cycle_backface_mode_progress_proc_const,
-        },
-    ],
-    desc="Cycle backface rendering mode for",
+    proc=cycle_backface_mode_proc,
+    progress_proc=cycle_backface_mode_progress_proc_const,
+    desc="Cycle backface rendering mode for selected items",
     key=#char "b",
 };
 
@@ -759,7 +553,7 @@ CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
 // Reload items
 //
 
-reload_items :: (unused : *void, target : Target_Items) {
+reload_items_proc :: (unused : *void) {
 
     no_dependencies_first_then_chronological :: (a : *Entity, b : *Entity) -> s64 {
         // FILE_ON_DISK and PRESET_SHAPE sources do not depend on other entities, but command outputs can, so we load those last and in order of 
@@ -771,31 +565,19 @@ reload_items :: (unused : *void, target : Target_Items) {
         return 0;
     }
 
-    tmp := array_copy(app.entities);
+    tmp : [..]*Entity;
+    array_copy(*tmp, app.entities);
     defer array_free(tmp);
     quick_sort(tmp, no_dependencies_first_then_chronological);
 
-    for tmp if Is_Target(it) {
+    for :Selected tmp {
         reload_entity(it);
     }
 }
 
 RELOAD_ITEMS_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments reload_items(target=.VISIBLE),
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments reload_items(target=.SELECTED),
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments reload_items(target=.ALL_ITEMS),
-        },
-    ],
-    desc="Reload",
+    proc=reload_items_proc,
+    desc="Reload selected items",
     key=cast(u32) Special_Key_Code.F5,
     regular_button=true,
     override_WantCaptureKeyboard=true,
@@ -809,42 +591,36 @@ RELOAD_ITEMS_ACTION_SET := Action_Set.{
 // Focus items
 //
 
-focus_items :: (unused : *void, target : Target_Items) {
 
-    sphere : Sphere;
+focus_items_proc :: (unused : *void) {
 
-    if #complete target == {
-        case .ALL_ITEMS;
-            sphere = entities_bounding_sphere();
-        case .VISIBLE;
-            entity_filter :: #code !is_visible(it);
-            sphere = entities_bounding_sphere(entity_filter);
-        case .SELECTED;
-            entity_filter :: #code !it.is_selected;
-            sphere = entities_bounding_sphere(entity_filter);
+    almost_equal :: (a : Camera, b : Camera) -> bool {
+        return
+            almost_equal(a.eye_position, b.eye_position) &&
+            almost_equal(a.look_position, b.look_position) &&
+            almost_equal(a.up_direction, b.up_direction) &&
+            almost_equal(a.left, b.left) &&
+            almost_equal(a.right, b.right) &&
+            almost_equal(a.bottom, b.bottom) &&
+            almost_equal(a.top, b.top) &&
+            almost_equal(a.near, b.near) &&
+            almost_equal(a.far, b.far);
     }
 
-    if sphere.radius > 0 {
-        fit_sphere_on_screen(sphere, sphere.radius);
+    prev_camera := app.camera;
+
+    entity_filter :: #code !it.is_selected; // Don't need to check visibility since that's already filtered for
+    fit_on_screen(entity_filter);
+
+    // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit 
+    if almost_equal(app.camera, prev_camera) {
+        fit_on_screen_filled(entity_filter);
     }
 }
 
 FOCUS_ITEMS_ACTION_SET := Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments focus_items(target=.VISIBLE),
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments focus_items(target=.SELECTED),
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments focus_items(target=.ALL_ITEMS),
-        },
-    ],
-    desc="Focus camera on",
+    proc=focus_items_proc,
+    desc="Focus camera on selected items",
     key=#char "f",
     regular_button=true,
 };
@@ -857,8 +633,8 @@ FOCUS_ITEMS_ACTION_SET := Action_Set.{
 // Clear labels
 //
 
-clear_all_labels :: (unused : *void, target : Target_Items) {
-    for app.entities if Is_Target(it) {
+clear_all_labels_proc :: (unused : *void) {
+    for :Selected app.entities {
         it.display_info.vertex_label_theme.show_index = false;
         it.display_info.vertex_label_theme.show_position = false;
         it.display_info.point_label_theme.show_index = false;
@@ -880,20 +656,7 @@ clear_all_labels :: (unused : *void, target : Target_Items) {
 
 // Note: no action button
 CLEAR_LABELS_ACTION_SET :: Action_Set.{
-    target_action=.[
-        .{
-            target=.VISIBLE,
-            proc=#bake_arguments clear_all_labels(target=.VISIBLE),
-        },
-        .{
-            target=.SELECTED,
-            proc=#bake_arguments clear_all_labels(target=.SELECTED),
-        },
-        .{
-            target=.ALL_ITEMS,
-            proc=#bake_arguments clear_all_labels(target=.ALL_ITEMS),
-        },
-    ],
-    desc="Clear labels for",
+    proc=clear_all_labels_proc,
+    desc="Clear labels for selected items",
     key=#char "x"
 };

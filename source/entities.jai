@@ -287,6 +287,118 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
     return tprint("%1%2%3%4", entity_name(entity), generation_index_text, time_separator, time_text);
 }
 
+// @Incomplete @Think Maybe we should handle visiblity on a more granular level e.g., on the element type level? We would need separate bounding geometry on the level of visibility control, which actually kindof makes sense.
+
+// Result could be an empty sphere. Does not check visiblity
+entity_raw_world_bounding_sphere :: (using entity : *Entity) -> Sphere {
+    maybe_update_render_info(*entity.render_info, entity.mesh);
+    result : Sphere = render_info.bounding_sphere;
+    transform(*result, mesh.world_from_model);
+    return result;
+}
+
+// Result could be an empty sphere. Does not check visibility
+entity_raw_world_clipping_sphere :: (using entity : Entity) -> Sphere {
+    if display_info.clip_sphere.is_active {
+        return display_info.clip_sphere.sphere; // Already in world space. Should not be empty (radius may be infinite though)
+    }
+    return .{}; // Empty sphere
+}
+
+// Result could be an empty_sphere.
+// Checks visibility, entity-level state checking like this is probably not a perf problem and makes the API more convenient. Also, it wouldn't really make sense to account for clipping, which affects visibility, but not account for overall visibility
+// Accounts for clipping sphere nocommit TODO and clipping ranges
+entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : float = 0) -> Sphere {
+    if !entity.display_info.is_visible {
+        return .{}; // Empty sphere
+    }
+
+    result : Sphere = inline entity_raw_world_bounding_sphere(entity);
+
+    if is_empty(result) {
+        return result;
+    }
+
+    if entity.display_info.clip_sphere.is_active {
+
+        clip : Sphere = inline entity_raw_world_clipping_sphere(entity);
+
+        has_intersection, intersection := find_intersection_sphere3_sphere3(result, clip);
+
+        if has_intersection if #complete intersection.kind == {
+            case .SPHERES_SEPARATED_AND_DISJOINT;
+
+                assert(false);
+
+            case .SPHERES_SEPARATED_WITH_COMMON_POINT;
+
+                result.center = intersection.point;
+                result.radius = radius_of_point;
+
+            case .SPHERES_INTERSECT_IN_A_CIRCLE;
+
+                result.center = intersection.circle.center;
+                result.radius = intersection.circle.radius;
+
+            case .SPHERE0_STRICTLY_INSIDE_SPHERE1; #through;
+            case .SPHERE0_INSIDE_SPHERE1_WITH_COMMON_POINT;
+
+                // Do nothing, result is already the bounding sphere
+
+            case .SPHERE1_STRICTLY_INSIDE_SPHERE0; #through;
+            case .SPHERE1_INSIDE_SPHERE0_WITH_COMMON_POINT;
+
+                result = clip;
+        }
+    }
+
+    // nocommit @Incomplete account for clipping planes as well
+
+    return result;
+}
+
+// nocommit Refactor to make a function entities_world_bounding_radius to handle the fixed_center case!
+
+// Result could be an empty_sphere.
+// Accounts for clipping sphere nocommit TODO and clipping ranges
+// Note: hidden entities are skipped regardless of entity_filter, because entity_world_bounding_sphere returns an empty sphere in that case
+entities_world_bounding_sphere :: ($entity_filter : Code = false, fixed_center : *Vector3 = null) -> Sphere {
+
+    expand_sphere :: (result : *Sphere, entity : *Entity, first : *bool, keep_center : bool) {
+        sphere : Sphere = entity_world_bounding_sphere(entity);
+        if !is_empty(sphere) {
+            if <<first {
+                result.center = ifx keep_center then result.center else sphere.center;
+                result.radius = sphere.radius;
+            } else {
+                expand(result, sphere, keep_center);
+            }
+            <<first = false;
+        }
+    }
+
+    result : Sphere;
+    if fixed_center {
+        result.center = <<fixed_center;
+        // radius is still negative so the sphere is empty
+    }
+
+    first := true;
+
+    Iterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
+    for :Iterator app.entities {
+        expand_sphere(*result, it, *first, (fixed_center != null));
+    }
+
+    it : *Entity = *app.select_tool.entity;
+    if it.display_info.is_visible {
+        expand_sphere(*result, it, *first, (fixed_center != null));
+    }
+
+    return result;
+}
+
+
 entity_annotation_count :: (using entity : Entity) -> int {
     result : int = 0; 
     result += command_annotations.count;
@@ -389,8 +501,6 @@ AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flag
         }
     }
 }
-
-// @continue Fix the selection bounding boxes and make item name selection widgets behave properly
 
 // Returns a result in world space
 entity_selection_aabb :: () -> AxisBox3 {
@@ -677,7 +787,7 @@ find_closest_point :: ($entity_filter : Code = #code !is_visible(it)) -> Closest
         return result;
     }
 
-    // nocommit Merge the loops over entities and also early out if the ray misses the entity AABB
+    // nocommit Early out if the ray misses the entity AABB
     // @Incomplete When available, use the spatial index
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
@@ -928,7 +1038,7 @@ set_entity_display_info :: (using entity : *Entity) {
 
     primary_color : Vector4 = compute_entity_primary_color(entity); 
 
-    // nocommit Why are checking counts here? We could just remove all those ifs
+    // @Cleanup Why are checking counts here? We could just remove all those ifs
 
     if mesh.triangles.count {
         display_info.triangles_visible = true;
