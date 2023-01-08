@@ -335,7 +335,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
 
             // Use the default Selectable widget
             if ImGui.Selectable(label, *entity.is_selected, flags=ImGui.SelectableFlags.SpanAllColumns | .AllowItemOverlap) {
-                if !io().KeyCtrl {
+                if io_mouse_right_down() {
+                    entity.is_selected = !entity.is_selected; // @Hack to undo the selection change we get with RMB, but I'm not sure why this was even happening..!
+                } else if !io().KeyCtrl {
                     for :Selected app.entities if it != entity {
                         it.is_selected = false;
                     }
@@ -661,99 +663,111 @@ show_item_selection_ui :: () {
 }
 
 show_select_ui :: () {
-    // nocommit:
-    // - Could add options to the select tool e.g., should we copy over annotations/attributes? should we prefix annotations with the item index of the source? (latter is a way of adding the source entity to the elements in the selection)
+    // TODO Could add options to the select tool
+    // - Should we copy over annotations/attributes?
+    // - Should we prefix annotations with the item index of the source?
+    // Latter is a way of adding the source entity to the elements in the selection
 
-    // indent := ImGui.GetTreeNodeToLabelSpacing();
+    using app.select_tool;
 
     do_tree := ImGui.TreeNodeEx("Select", ImGui.TreeNodeFlags.SpanAvailWidth);
-    Show_Tooltip("Create items from mesh point/face selections");
+    Show_Tooltip("Create items from mesh geometry selections");
     if do_tree {
         defer ImGui.TreePop();
 
-        // indent2 := ImGui.GetTreeNodeToLabelSpacing();
-        // ImGui.Unindent(indent2 - indent);
-        // defer ImGui.Indent(indent2 - indent);
+        entity.display_info.is_visible = true;
 
-        // Selection Mode UI
-        if ImGui.BeginTable("Mode Table", 5, flags=ImGui.TableFlags.NoBordersInBody) {
-            defer ImGui.EndTable();
+        select_element :: (
+            element_name : string,
+            element_kind : Simple_Mesh_Element,
+            tooltip : string,
+            element_color : *Vector4,
+            label_color : *Vector4,
+            elements_visible : *bool) {
 
-            it := *app.select_tool.entity; // @Cleanup remove this weird alias
+            using app.select_tool;
 
             ImGui.TableNextRow();
 
-            // Remove button
+            // Element kind radio button
             ImGui.TableNextColumn();
-            {
-                disable_cache_button := is_empty(app.select_tool.entity.mesh);
-                if disable_cache_button       ImGui.BeginDisabled();
-                defer if disable_cache_button ImGui.EndDisabled();
-
-                if ImGui.Button(imgui_label("Cache ", *app.select_tool.entity)) {
-                    if !is_empty(app.select_tool.entity.mesh) {
-                        new_entity : *Entity = New(Entity);
-
-                        merge(*new_entity.mesh, app.select_tool.entity.mesh);
-                        counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Selection");
-                        set_entity_source_from_selection(new_entity, tprint("Selection %", counter.count), new_entity.mesh.positions.count);
-                        set_entity_display_info(new_entity);
-                        counter.count += 1;
-
-                        add_entity(new_entity, app.settings.duplicate_file_behaviour);
-
-                        deinit(*app.select_tool.entity);
-
-                        log("Point Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
-                    } else {
-                        log("Point Selection caching omitted: Point Selection is empty");
-                    }
-                }
-                Show_Tooltip("Adds a new item based on this selection\nand resets the Point Selection");
-            }
+            ImGui.RadioButton(imgui_label("##element_kind", element_color), xx *target_element, xx element_kind);
+            Show_Tooltip(tooltip);
+            Show_Tooltip_Binding(tprint("Add % to selection", element_name), "Ctrl LMB");
 
             // Color selection
-            {
-                ImGui.TableNextColumn();
-                if ImGui.ColorEdit4(imgui_label("##color", it), *it.display_info.points_color.component, ImGui.ColorEditFlags.NoInputs) {
-                    // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
-                    it.display_info.vertex_label_theme.label_color = darken(it.display_info.points_color, .8);
-                }
+            ImGui.TableNextColumn();
+            if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, ImGui.ColorEditFlags.NoInputs) {
+                // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
+                <<label_color = darken(element_color, .8);
             }
 
             // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
-            {
-                ImGui.TableNextColumn();
-                visibility_changed := ImGui.Checkbox(imgui_label("##Enabled", it), *it.display_info.is_visible); // @Important is_visible here is actually is_enabled
-                Show_Tooltip("If enabled Ctrl LMB selects points");
-                // any_visibility_changed = any_visibility_changed || visibility_changed; // @Cleanup This was left over from a refactoring, we probably caused a regression, but... fix it later??
-            }
-
             ImGui.TableNextColumn();
+            ImGui.Checkbox(imgui_label("##elements_visible", elements_visible), elements_visible);
+            Show_Tooltip(tprint("% selection visibility", element_name));
 
-            ImGui.Text("Point Selection");
-            if it.display_info.is_visible {
-                bindings : [..]Binding_With_Description;
-                bindings.allocator = temp;
-                // nocommit Fix this tooltip
-                array_add(*bindings, make_Binding_With_Description( "RMB",       "Open context menu for the current Selection"));
-                array_add(*bindings, make_Binding_With_Description( "Ctrl RMB",  "Set camera orbit on nearest unclipped vertex"));
-                array_add(*bindings, make_Binding_With_Description( "Ctrl LMB",  "Add nearest unclipped vertex to Selection item"));
-                Show_Tooltip_Binding(..bindings);
-            } else {
-                Show_Tooltip("Show Selection\nEnable Selection and Clipping Modes");
-            }
-            if ImGui.IsItemClicked() && is_empty(it.mesh) == false { // nocommit Don't need this is_empty check?
-                fit_on_screen(it);
-            }
-            entity_tick_flash_hover(it);
-            
-            // Note: The select_tool entity should not have a context menu, this is just a bit confusing and weird, its simpler if the user just caches the selection to make it a proper item and then access the menu
-            //show_item_context_menu(*app.select_tool.entity, -1);
-
-            ImGui.TableNextRow();
+            // Element kind name
             ImGui.TableNextColumn();
+            ImGui.Text(element_name);
+            entity_tick_flash_hover(*entity);
         }
+
+        // Selection Mode UI
+        if ImGui.BeginTable("Mode Table", 4, flags=ImGui.TableFlags.NoBordersInBody) {
+            defer ImGui.EndTable();
+
+            select_element(
+                "Vertex", .VERTEX, "When chosen select vertices (obj v-directives)",
+                *entity.display_info.positions_color,
+                *entity.display_info.vertex_label_theme.label_color,
+                *entity.display_info.positions_visible);
+            select_element(
+                "Segment", .SEGMENT, "When chosen select segments (obj l-directives)",
+                *entity.display_info.segments_color,
+                *entity.display_info.segment_label_theme.label_color,
+                *entity.display_info.segments_visible);
+            select_element(
+                "Triangle", .TRIANGLE, "When chosen select triangles (obj f-directives)",
+                *entity.display_info.triangles_color,
+                *entity.display_info.triangle_label_theme.label_color,
+                *entity.display_info.triangles_visible);
+        }
+
+        {
+            disable_cache_button := is_empty(entity.mesh);
+            if disable_cache_button       ImGui.BeginDisabled();
+            defer if disable_cache_button ImGui.EndDisabled();
+
+            if ImGui.Button(imgui_label("Cache", *entity)) {
+                if !is_empty(entity.mesh) {
+                    new_entity : *Entity = New(Entity);
+
+                    merge(*new_entity.mesh, entity.mesh);
+                    counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Selection");
+                    set_entity_source_from_selection(new_entity, tprint("Selection %", counter.count), new_entity.mesh.positions.count);
+                    set_entity_display_info(new_entity);
+                    counter.count += 1;
+
+                    add_entity(new_entity, app.settings.duplicate_file_behaviour);
+
+                    deinit(*entity); // nocommit figure out why this works
+
+                    log("Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
+                } else {
+                    log("Selection caching omitted: Mesh was empty");
+                }
+            }
+            Show_Tooltip("Adds a new item based on this selection\nand resets the selection");
+        }
+
+        ImGui.SameLine();
+        if ImGui.Button(imgui_label("Clear", *entity)) {
+            deinit(*entity);
+        }
+
+    } else {
+        app.select_tool.entity.display_info.is_visible = false;
     }
 }
 

@@ -24,6 +24,11 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Changed the shortcut to cycle vertex point rendering size from 'p' to 'v' because point elements (obj p-directives) and vertices (obj v-directives) are distinguished now and its most useful to cycle the vertex size and 'v' is a better memonic for that. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
   - Added ability to select/deselect items by clicking on/near them with LMB in the viewport. Clicking with LMB into empty space far enough away from any items will clear the item selection
 
+- Improvements to geometry selection
+
+  - Previously we could only select vertices, now its possible to select segments and triangles as well
+  - The `Prism > Select` section has a radio button where you can pick which element type to select as well other UI for controlling the element color etc 
+
 - Annotations
 
   - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file

@@ -698,7 +698,7 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 }
 
 // Result positions are in world space
-// nocommit Rename to find_closest_element and have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
+// nocommit have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
 find_closest_element :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?

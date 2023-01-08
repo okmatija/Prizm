@@ -106,16 +106,7 @@ App :: struct {
     template_display_info : Display_Info;
     template_aabb_world : AxisBox3;
 
-    select_tool : Select_Tool;
-    Select_Tool :: struct {
-        entity : Entity; // @Refactor Make this a pointer to entity 0?
-        entity.display_info.is_visible = true;
-        entity.display_info.points_visible = true;
-        entity.display_info.points_size = 6;
-        entity.display_info.points_color = .{1, 0, .8, 1}; // @Volatile Used for the dynamic label text too
-        entity.display_info.vertex_label_theme.show_position = true;
-        entity.display_info.vertex_label_theme.label_color = .{0, 0, 0, 1};
-    }
+    select_tool : Geometry_Select_Tool;
 
     // The entity which set the clipping sphere center
     clipping_sphere_mode_entity_index : int = -1;
