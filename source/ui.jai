@@ -273,7 +273,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         }
 
         if entity.is_selected {
-            if changed_by_click g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
+            if changed_by_click {
+                g_next_frame_state.index_of_selected_item_where_visibility_changed_by_click = entity_index;
+            }
         }
     }
 

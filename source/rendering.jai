@@ -883,7 +883,7 @@ render_entities :: () {
 
     render_entity_text_ray_cast :: ($entity_filter : Code) {
 
-        closest_world : Closest_Point_Ray_Entity = find_closest_point(entity_filter);
+        closest_world : Closest_Point_Ray_Entity = find_closest_element(entity_filter);
 
         if closest_world.entity_index == -1 {
             return;

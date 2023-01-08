@@ -15,7 +15,7 @@
 // all_primitive_intersections
 // any_primitive_intersection
 // test_primitive_intersection
-// find_closest_point
+// find_closest_element
 //
 // @Incomplete maybe we should have function pointers stored in a struct for the above, could test if some operations are supported by checking if the pointer is null
 AABB_Tree :: struct(Shape : Type) {

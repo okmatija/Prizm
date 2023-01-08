@@ -307,7 +307,7 @@ entity_raw_world_clipping_sphere :: (using entity : Entity) -> Sphere {
 
 // Result could be an empty_sphere.
 // Checks visibility, entity-level state checking like this is probably not a perf problem and makes the API more convenient. Also, it wouldn't really make sense to account for clipping, which affects visibility, but not account for overall visibility
-// Accounts for clipping sphere nocommit TODO and clipping ranges
+// Accounts for clipping sphere and nocommit clipping ranges
 entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : float = 0) -> Sphere {
     if !entity.display_info.is_visible {
         return .{}; // Empty sphere
@@ -337,8 +337,13 @@ entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : floa
 
             case .SPHERES_INTERSECT_IN_A_CIRCLE;
 
-                result.center = intersection.circle.center;
-                result.radius = intersection.circle.radius;
+                // If the distance from intersection circle center to the bounding sphere center is less than the distance from the clipping sphere center to the bounding sphere center then a sphere with circumradius equal to the intersection circle with bound the remaining geometry
+                if distance_squared(intersection.circle.center, result.center) < distance_squared(clip.center, result.center) {
+                    result.center = intersection.circle.center;
+                    result.radius = intersection.circle.radius;
+                } else {
+                    result = clip;
+                }
 
             case .SPHERE0_STRICTLY_INSIDE_SPHERE1; #through;
             case .SPHERE0_INSIDE_SPHERE1_WITH_COMMON_POINT;
@@ -357,12 +362,14 @@ entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : floa
     return result;
 }
 
+DEFAULT_ENTITY_FILTER :: #code !is_visible(it);
+
 // nocommit Refactor to make a function entities_world_bounding_radius to handle the fixed_center case!
 
 // Result could be an empty_sphere.
 // Accounts for clipping sphere nocommit TODO and clipping ranges
 // Note: hidden entities are skipped regardless of entity_filter, because entity_world_bounding_sphere returns an empty sphere in that case
-entities_world_bounding_sphere :: ($entity_filter : Code = false, fixed_center : *Vector3 = null) -> Sphere {
+entities_world_bounding_sphere :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER, fixed_center : *Vector3 = null) -> Sphere {
 
     expand_sphere :: (result : *Sphere, entity : *Entity, first : *bool, keep_center : bool) {
         sphere : Sphere = entity_world_bounding_sphere(entity);
@@ -623,8 +630,8 @@ is_visible :: (e : *Entity) -> bool {
 }
 
 // @Refactor Use spatial lookups on triangles/segments/points
-// nocommit Remove this function, replace it with a version find_closest_point which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
-find_closest_vertex :: ($entity_filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
+// nocommit Remove this function, replace it with a version find_closest_element which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
+find_closest_vertex :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
@@ -692,7 +699,7 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 
 // Result positions are in world space
 // nocommit Rename to find_closest_element and have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
-find_closest_point :: ($entity_filter : Code = #code !is_visible(it)) -> Closest_Point_Ray_Entity {
+find_closest_element :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
@@ -704,7 +711,7 @@ find_closest_point :: ($entity_filter : Code = #code !is_visible(it)) -> Closest
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
 
         triangle_world : Triangle3 = transform_triangle(`entity.mesh.world_from_model, triangle_model);
-    
+
         cp : Closest_Point_Ray_Triangle = closest_point_ray_triangle(`ray_world, triangle_world);
 
         if is_clipped(`entity.display_info, cp.closestPoint[1]) {

@@ -121,7 +121,8 @@ update_camera :: (delta_time : float) {
     if mouse_reposition_camera() {
 
         // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
-        closest : Closest_Point_Ray_Entity = find_closest_point();
+        entity_filter :: #code !is_visible(it);
+        closest : Closest_Point_Ray_Entity = find_closest_element(entity_filter=entity_filter);
         if closest.entity_index != -1 {
             position := get_closest_point_on_element(closest);
 
@@ -260,7 +261,8 @@ fit_scene_on_screen :: () {
     // sphere := entities_world_bounding_sphere(entity_filter);
     // fit_sphere_on_screen(sphere, sphere.radius);
 
-    fit_on_screen();
+    entity_filter :: #code !is_visible(it);
+    fit_on_screen(entity_filter);
 }
 
 // While preserving the camera look direction:
@@ -287,7 +289,7 @@ fit_on_screen :: (entity : *Entity) {
 }
 
 // As `fit_on_screen` but for multiple entities
-fit_on_screen :: ($entity_filter : Code = false) {
+fit_on_screen :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) {
     // Compute camera look position as the center of the bounding sphere of the visible entity geometry
     tight_sphere := entities_world_bounding_sphere(entity_filter);
     look_position := tight_sphere.center;
@@ -336,7 +338,7 @@ fit_on_screen_filled :: (entity : *Entity) {
 }
 
 // As `fit_on_screen_filled` but for multiple entities
-fit_on_screen_filled :: ($entity_filter : Code = false) {
+fit_on_screen_filled :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) {
 
     // Compute a tight sphere the bounding sphere of the visible entity geometry
     tight_sphere := entities_world_bounding_sphere(entity_filter);

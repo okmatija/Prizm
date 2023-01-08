@@ -1,6 +1,7 @@
 do_clipping_sphere_mode :: () {
     if mouse_init_clip_center() { // Set the clipping sphere center
-        closest : Closest_Point_Ray_Entity = find_closest_point();
+        entity_filter :: #code !is_visible(it);
+        closest : Closest_Point_Ray_Entity = find_closest_element(entity_filter=entity_filter);
 
         if closest.entity_index != -1 {
             array_reset(*app.clipping_sphere_mode_last_entity_index_set);
