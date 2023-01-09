@@ -337,6 +337,8 @@ entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : floa
 
             case .SPHERES_INTERSECT_IN_A_CIRCLE;
 
+                // @continue nocommit There is another case that needs fixing here! it happens when the clipping sphere is larger than the bounding sphere
+
                 // If the distance from intersection circle center to the bounding sphere center is less than the distance from the clipping sphere center to the bounding sphere center then a sphere with circumradius equal to the intersection circle with bound the remaining geometry
                 if distance_squared(intersection.circle.center, result.center) < distance_squared(clip.center, result.center) {
                     result.center = intersection.circle.center;
@@ -699,7 +701,12 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 
 // Result positions are in world space
 // nocommit have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
-find_closest_element :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Closest_Point_Ray_Entity {
+find_closest_element :: (
+    $entity_filter : Code = DEFAULT_ENTITY_FILTER,
+    visit_points := true,
+    visit_segments := true,
+    visit_triangles := true
+    ) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world := make_camera_ray();
@@ -740,7 +747,7 @@ find_closest_element :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Close
     d_min := FLOAT32_INFINITY;
 
     FilterIterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
-    for :FilterIterator entity, entity_index : app.entities {
+    if visit_triangles for :FilterIterator entity, entity_index : app.entities {
         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // Keep track of the best candidates (closest to the camera/ray origin) for intersected/hit triangles and missed ones
@@ -800,7 +807,7 @@ find_closest_element :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Close
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
     for :FilterIterator entity, entity_index : app.entities {
         
-        for :WorldPointIterator point_world, point_index : entity.mesh {
+        if visit_points for :WorldPointIterator point_world, point_index : entity.mesh {
 
             cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
 
@@ -822,7 +829,7 @@ find_closest_element :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Close
             }
         }
 
-        for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
+        if visit_segments for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
             cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
 
             if cp_world.distance < d_min { // @CompilerBug When the body of the second for-loop was a macro it compiled without a backtick on d_min, which caused a bug!!!!! d_min wasn't locally declared in the macro either..!

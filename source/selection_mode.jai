@@ -28,9 +28,10 @@ do_geometry_selection_mode :: () {
 
     using app.select_tool.entity;
 
-    if app.select_tool.target_element == .VERTEX {
+    if app.select_tool.target_element == {
+    case .VERTEX;
         closest : Closest_Point_Ray_Entity = find_closest_vertex();
-        if closest.element_index == -1 {
+        if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             return;
         }
 
@@ -48,9 +49,42 @@ do_geometry_selection_mode :: () {
             array_add(*mesh.positions, position);
         }
 
-        // Rebuild points array in all cases
+        // Rebuild points array in all cases // nocommit This needs reworking now that we can add other elements
         array_reset_keeping_memory(*mesh.points);
         for 0..mesh.positions.count-1 array_add(*mesh.points, xx it);
+
+        render_info.is_dirty = true;
+    case .SEGMENT;
+    case .TRIANGLE;
+
+        closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_segments=false);
+        if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
+            return;
+        }
+
+        if closest.closest_point_element != .TRIANGLE {
+            log_error("Expected a triangle closest point casting a colliding ray in triangle selection mode");
+            return;
+        }
+
+        hit_entity : *Entity = app.entities[closest.entity_index];
+        hit_triangle : Triangle3 = mesh_triangle_world(hit_entity.mesh, closest.element_index);
+
+        // @Refactor It would be cool to have a loop which could remove triangles with the remove keyword
+        to_remove_index := -1;
+        for :WorldTriangleIterator triangle, triangle_index : mesh {
+            if hit_triangle.a == triangle.a && hit_triangle.b == triangle.b && hit_triangle.c == triangle.c {
+                to_remove_index = triangle_index;
+                break;
+            }
+        }
+
+        if to_remove_index < 0 {
+            add_triangle(*mesh, hit_triangle);
+        } else {
+            // nocommit Remove the vertices as well
+            array_unordered_remove_by_index(*mesh.triangles, to_remove_index);
+        }
 
         render_info.is_dirty = true;
     }
