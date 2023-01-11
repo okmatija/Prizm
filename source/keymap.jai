@@ -264,12 +264,22 @@ toggle_fullscreen :: () {
 }
 
 select_or_deselect_all :: () {
-    // Currently the state transitions are: any selected -> none selected <-> all selected
-    // But maybe this is better:            any selected -> all selected <-> none selected
-    // Probably it doesn't matter
-    mode := false;
-    for app.entities if it.is_selected mode = true;
-    for app.entities    it.is_selected = !mode;
+    // Two options for state transitionse:
+    //
+    //       any selected -> none selected <-> all selected
+    //       any selected -> all selected  <-> none selected
+    //
+    // The second is better because first time we do Ctrl-a we want to select everything!
+    count := 0;
+    for :Selected app.entities {
+        count += 1;
+    }
+
+    for :All app.entities {
+        if      count == 0                  it.is_selected = true;
+        else if count  < app.entities.count it.is_selected = true;
+        else                                it.is_selected = false;
+    }
 }
 
 // Deselects items which are not visible and toggles selection of visible items
