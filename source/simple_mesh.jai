@@ -82,6 +82,74 @@ add_triangle :: (using mesh : *Simple_Mesh, triangle : Triangle3) {
     array_add(*mesh.positions, triangle.c);
 }
 
+add_segment :: (using mesh : *Simple_Mesh, segment : Segment3) {
+    tuple : *Tuple2(u32) = array_add(*mesh.segments);
+
+    tuple.x = xx mesh.positions.count;
+    array_add(*mesh.positions, segment.start);
+
+    tuple.y = xx mesh.positions.count;
+    array_add(*mesh.positions, segment.end);
+}
+
+add_point :: (using mesh : *Simple_Mesh, position : Vector3) {
+    index : *u32 = array_add(*mesh.points);
+
+    <<index = xx mesh.positions.count;
+    array_add(*mesh.positions, position);
+}
+
+
+// @Warning This invalidates existing index references
+remove_triangle_by_index :: (using mesh : *Simple_Mesh, remove_index : int) {
+    if remove_index < 0 || remove_index > mesh.triangles.count {
+        return;
+    }
+
+    array_unordered_remove_by_index(*mesh.triangles, remove_index);
+
+    compact_mesh(mesh);
+}
+
+// @Warning This invalidates existing index references
+remove_segment_by_index :: (using mesh : *Simple_Mesh, remove_index : int) {
+    if remove_index < 0 || remove_index > mesh.segments.count {
+        return;
+    }
+
+    array_unordered_remove_by_index(*mesh.segments, remove_index);
+
+    compact_mesh(mesh);
+}
+
+// @Warning This invalidates existing index references
+remove_point_by_index :: (using mesh : *Simple_Mesh, remove_index : int) {
+    if remove_index < 0 || remove_index > mesh.points.count {
+        return;
+    }
+
+    array_unordered_remove_by_index(*mesh.points, remove_index);
+
+    compact_mesh(mesh);
+}
+
+remove_elements_by_index :: (elements : *[..]$T, remove_indices : ..int) {
+    new_elements : [..]T;
+    array_reserve(*new_elements, elements.count - remove_indices.count);
+
+    // @Speed
+    for <<elements {
+        found := array_find(remove_indices, it_index);
+        if !found {
+            array_add(*new_elements, it);
+        }
+    }
+
+    new_elements, <<elements = swap(new_elements, <<elements);
+
+    array_free(new_elements);
+}
+
 // // @Incomplete see parshapes for a sample implementation
 // weld :: (mesh : Simple_Mesh) -> Simple_Mesh { }
 // unweld :: (mesh : Simple_Mesh) -> Simple_Mesh { }
@@ -407,11 +475,9 @@ mesh_triangle_edges_world :: #bake_arguments mesh_triangle_edges_hack(world_spac
 //
 
 TriangleTupleIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags) #expand {
-    #assert(flags == 0); // No options are supported
-
-    for i : 0..mesh.triangles.count-1 {
-        `it_index := i;
-        `it := mesh.triangles[i];
+    for *=cast(bool)(flags & .POINTER), <=cast(bool)(flags & .REVERSE) triangle_tuple, triangle_index : mesh.triangles {
+        `it_index := triangle_index;
+        `it := triangle_tuple;
         #insert (remove=#assert(false)) body;
     }
 }
@@ -451,6 +517,15 @@ TriangleEdgeIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Fla
 ModelTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=false);
 WorldTriangleEdgeIterator :: #bake_arguments TriangleEdgeIterator(world_space=true);
 
+
+SegmentTupleIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags) #expand {
+    for *=cast(bool)(flags & .POINTER), <=cast(bool)(flags & .REVERSE) segment_tuple, segment_index : mesh.segments {
+        `it_index := segment_index;
+        `it := segment_tuple;
+        #insert (remove=#assert(false)) body;
+    }
+}
+
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 SegmentIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
     #assert(flags == 0); // No options are supported
@@ -465,6 +540,14 @@ SegmentIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $
 ModelSegmentIterator :: #bake_arguments SegmentIterator(world_space=false);
 WorldSegmentIterator :: #bake_arguments SegmentIterator(world_space=true);
 
+
+PointIndexIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags) #expand {
+    for *=cast(bool)(flags & .POINTER), <=cast(bool)(flags & .REVERSE) position_index, point_index : mesh.points {
+        `it_index := point_index;
+        `it := position_index;
+        #insert (remove=#assert(false)) body;
+    }
+}
 
 // Reserve the ambiguous name for this iterator which won't compile if used directly
 PointIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $world_space : bool) #expand {
@@ -495,3 +578,59 @@ VertexIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $w
 
 ModelVertexIterator :: #bake_arguments VertexIterator(world_space=false);
 WorldVertexIterator :: #bake_arguments VertexIterator(world_space=true);
+
+
+compact_mesh :: (mesh : *Simple_Mesh) {
+
+    // Keep track of which vertices are still being used by at least one triangle
+    used_positions : [..]bool;
+    defer array_free(used_positions);
+    array_resize(*used_positions, mesh.positions.count);
+
+    for :TriangleTupleIterator triangle_tuple : mesh {
+        used_positions[triangle_tuple.x] = true;
+        used_positions[triangle_tuple.y] = true;
+        used_positions[triangle_tuple.z] = true;
+    }
+
+    for :SegmentTupleIterator segment_tuple : mesh {
+        used_positions[segment_tuple.x] = true;
+        used_positions[segment_tuple.y] = true;
+    }
+
+    for :PointIndexIterator position_index : mesh {
+        used_positions[position_index] = true;
+    }
+
+    // Shift all the vertices that are not being used to the end of the array
+    cursor : u32 = 0;
+    for i : 0..mesh.positions.count-1 {
+        if used_positions[i] {
+            mesh.positions[cursor] = mesh.positions[i];
+
+            // Update the vertex indices of the remaining triangles
+            for * :TriangleTupleIterator triangle_tuple : mesh {
+                if triangle_tuple.x == i then triangle_tuple.x = cursor;
+                if triangle_tuple.y == i then triangle_tuple.y = cursor;
+                if triangle_tuple.z == i then triangle_tuple.z = cursor;
+            }
+
+            // Update the vertex indices of the remaining segments
+            for * :SegmentTupleIterator segment_tuple : mesh {
+                if segment_tuple.x == i then segment_tuple.x = cursor;
+                if segment_tuple.y == i then segment_tuple.y = cursor;
+            }
+
+            // Update the vertex indices of the remaining points
+            for * :PointIndexIterator position_index : mesh {
+                if <<position_index == i then <<position_index = cursor;
+            }
+
+            cursor += 1;
+        }
+    }
+
+    // Update the number of vertices
+    mesh.positions.count = cursor;
+
+}

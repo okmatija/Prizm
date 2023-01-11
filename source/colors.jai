@@ -42,6 +42,11 @@ NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
 NICE_BLUE :: BLUE; // ImGui.ImVec4.{216/255., 109/255., 48/255., 1};
 NICE_GREY :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
 
+SELECT_TRIANGLE :: Vector4.{190./255, 186./255, 48./255, 1};
+SELECT_SEGMENT :: #run darken(SELECT_TRIANGLE, .8);
+SELECT_POINT :: #run darken(SELECT_SEGMENT, .8);
+SELECT_VERTEX :: #run darken(SELECT_POINT, .8);
+
 // Junk
 // IMGUI_BUTTON_DARK_BLUE :: #run color_u32_as_vector4(0x4296FA); // ImGui.Col.Button for the dark theme
 // IMGUI_BUTTON_DARK_BLUE_TETRADIC_GREEN :: #run color_u32_as_vector4(0x2BB12D);

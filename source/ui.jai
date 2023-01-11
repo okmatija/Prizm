@@ -675,6 +675,7 @@ show_select_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
 
+        // nocommit We wanted to have geometry selection mode active iff the select tree is open but this does not do that because it doesn't turn off!
         entity.display_info.is_visible = true;
 
         select_element :: (
@@ -718,20 +719,25 @@ show_select_ui :: () {
             defer ImGui.EndTable();
 
             select_element(
-                "Vertex", .VERTEX, "When chosen select vertices (obj v-directives)",
-                *entity.display_info.positions_color,
-                *entity.display_info.vertex_label_theme.label_color,
-                *entity.display_info.positions_visible);
+                "Triangle", .TRIANGLE, "When chosen select triangles (obj f-directives)",
+                *entity.display_info.triangles_color,
+                *entity.display_info.triangle_label_theme.label_color,
+                *entity.display_info.triangles_visible);
             select_element(
                 "Segment", .SEGMENT, "When chosen select segments (obj l-directives)",
                 *entity.display_info.segments_color,
                 *entity.display_info.segment_label_theme.label_color,
                 *entity.display_info.segments_visible);
             select_element(
-                "Triangle", .TRIANGLE, "When chosen select triangles (obj f-directives)",
-                *entity.display_info.triangles_color,
-                *entity.display_info.triangle_label_theme.label_color,
-                *entity.display_info.triangles_visible);
+                "Point", .POINT, "When chosen select points (obj p-directives)",
+                *entity.display_info.points_color,
+                *entity.display_info.point_label_theme.label_color,
+                *entity.display_info.points_visible);
+            select_element(
+                "Vertex", .VERTEX, "When chosen select vertices (obj v-directives)",
+                *entity.display_info.positions_color,
+                *entity.display_info.vertex_label_theme.label_color,
+                *entity.display_info.positions_visible);
         }
 
         {
@@ -750,6 +756,9 @@ show_select_ui :: () {
                     counter.count += 1;
 
                     add_entity(new_entity, app.settings.duplicate_file_behaviour);
+
+                    // nocommit I think this is not needed
+                    // item_find_unreferenced_positions(app.entities.count-1, new_item=0);
 
                     deinit(*entity); // nocommit figure out why this works
 

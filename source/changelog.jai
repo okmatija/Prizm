@@ -28,6 +28,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 
   - Previously we could only select vertices, now its possible to select segments and triangles as well
   - The `Prism > Select` section has a radio button where you can pick which element type to select as well other UI for controlling the element color etc 
+  - This feature will be expanded upon in future e.g., copying annotations from the selections elements, adding marquee selection etc
 
 - Annotations
 
