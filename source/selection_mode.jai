@@ -46,7 +46,7 @@ do_geometry_selection_mode :: () {
             return;
         }
 
-        position := get_closest_point_on_element(closest);
+        position := get_closest_point_on_element(closest); // world space
 
         // Find position indices with this coordinate value
         position_indices := temp_array(u32);

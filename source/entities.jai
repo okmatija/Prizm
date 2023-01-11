@@ -29,11 +29,12 @@ Entity :: struct {
     spatial : *AABB_Tree(Simple_Mesh);
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
-    command_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
-    block_annotations :  [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
-    vertex_annotations : [..]Annotation; // Comments attached to vertices e.g., v directives in .obj files, @Think maybe also include comments on p directives
-    face_annotations :   [..]Annotation; // Comments attached to triangles e.g., f directives in .obj files
-    line_annotations :   [..]Annotation; // Comments attached to line segments e.g., l directives in .obj files
+    command_annotations : [..]Annotation;
+    block_annotations :   [..]Annotation; // Comments in the file but not attached to any particular geometry, the first block of comments will be shown in the item tooltip
+    vertex_annotations :  [..]Annotation; // Comments attached to vertices e.g., v directives in .obj files
+    point_annotations :   [..]Annotation; // Comments attached to vertices e.g., p directives in .obj files
+    line_annotations :    [..]Annotation; // Comments attached to line segments e.g., l directives in .obj files
+    face_annotations :    [..]Annotation; // Comments attached to triangles e.g., f directives in .obj files
     annotation_info : Annotation_Info;
 
     Annotation_Info :: struct {
@@ -120,6 +121,7 @@ deinit :: (using entity : *Entity) {
     array_reset(*command_annotations);
     array_reset(*block_annotations);
     array_reset(*vertex_annotations);
+    array_reset(*point_annotations);
     array_reset(*face_annotations);
     array_reset(*line_annotations);
 
@@ -413,6 +415,7 @@ entity_annotation_count :: (using entity : Entity) -> int {
     result += command_annotations.count;
     result += block_annotations.count;
     result += vertex_annotations.count;
+    result += point_annotations.count;
     result += face_annotations.count;
     result += line_annotations.count;
     return result;
@@ -422,6 +425,7 @@ entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annota
     quick_sort(command_annotations,  compare);
     quick_sort(block_annotations,  compare);
     quick_sort(vertex_annotations, compare);
+    quick_sort(point_annotations, compare);
     quick_sort(face_annotations,   compare);
     quick_sort(line_annotations,   compare);
 }
@@ -434,17 +438,19 @@ entity_header_annotation :: (entity : *Entity) -> *Annotation {
     return null;
 }
 
-// nocommit Fragile when you add a new annotation array
+// FIXME This is fragile when you add a new annotation array
 set_entity_annotations :: (entity : *Entity,
     command_annotations : [..]Annotation,
     block_annotations :  [..]Annotation,
     vertex_annotations : [..]Annotation,
+    point_annotations : [..]Annotation,
     face_annotations :   [..]Annotation,
     line_annotations :   [..]Annotation) {
 
     entity.command_annotations = command_annotations;
     entity.block_annotations =  block_annotations;
     entity.vertex_annotations = vertex_annotations;
+    entity.point_annotations =  point_annotations;
     entity.face_annotations =   face_annotations;
     entity.line_annotations =   line_annotations;
 
@@ -454,6 +460,9 @@ set_entity_annotations :: (entity : *Entity,
     max, show_kind = block_annotations.count, .BLOCK;
     if max < vertex_annotations.count {
         max, show_kind = vertex_annotations.count, .VERTEX;
+    }
+    if max < point_annotations.count {
+        max, show_kind = point_annotations.count, .POINT;
     }
     if max < line_annotations.count {
         max, show_kind = line_annotations.count, .LINE;
@@ -467,7 +476,10 @@ set_entity_annotations :: (entity : *Entity,
 }
 
 // @Think Do we need this is we have a default value for kinds?
-AnnotationIterator :: #bake_arguments AnnotationIteratorBase(kinds=Annotation.Kind.COMMAND|.BLOCK|.VERTEX|.LINE|.TRIANGLE);
+AnnotationIterator :: #bake_arguments AnnotationIteratorBase(
+    // @Volatile
+    kinds=Annotation.Kind.COMMAND|.BLOCK|.POINT|.VERTEX|.LINE|.TRIANGLE
+    );
 
 AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flags, kinds : Annotation.Kind) #expand {
     #assert(flags == 0); // No options are supported
@@ -491,6 +503,13 @@ AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flag
 
     if kinds & .VERTEX {
         for annotation, annotation_index : vertex_annotations {
+            it, it_index = annotation, annotation_index;
+            #insert body;
+        }
+    }
+
+    if kinds & .POINT {
+        for annotation, annotation_index : point_annotations {
             it, it_index = annotation, annotation_index;
             #insert body;
         }

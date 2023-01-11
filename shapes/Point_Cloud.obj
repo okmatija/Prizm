@@ -13,7 +13,7 @@ vn 4 1 0
 vn 5 1 1
 p 1
 p 2
-p 3
+p 3 # This is a comment on point 2 (0-based index)
 p 4
 p 5
 p 6

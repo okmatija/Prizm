@@ -1632,9 +1632,11 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         // @Cleanup Make this work with reflection!
         DoRadioButton("Vertex", .VERTEX, entity.vertex_annotations);
         ImGui.SameLine();
-        DoRadioButton("Edge", .LINE, entity.line_annotations);
+        DoRadioButton("Point", .POINT, entity.point_annotations);
         ImGui.SameLine();
-        DoRadioButton("Face", .TRIANGLE, entity.face_annotations);
+        DoRadioButton("Segment", .LINE, entity.line_annotations);
+        ImGui.SameLine();
+        DoRadioButton("Triangle", .TRIANGLE, entity.face_annotations);
         ImGui.SameLine();
         DoRadioButton("Block", .BLOCK, entity.block_annotations); // @Think Maybe better name is FILE annotation
         ImGui.SameLine();
@@ -1643,6 +1645,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         annotations : [..]Annotation;
         if #complete entity.annotation_info.show_kind == {
             case .VERTEX;   annotations = entity.vertex_annotations;
+            case .POINT;    annotations = entity.point_annotations;
             case .LINE;     annotations = entity.line_annotations;
             case .TRIANGLE; annotations = entity.face_annotations;
             case .BLOCK;    annotations = entity.block_annotations;

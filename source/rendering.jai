@@ -752,6 +752,9 @@ render_entities :: () {
                     point_world, point_model : Vector3 = ---;
                     if #complete annotation.kind == {
                         case .VERTEX;
+                            point_model = mesh_position_model(entity.mesh, annotation.id);
+                            point_world = mesh_position_world(entity.mesh, annotation.id);
+                        case .POINT;
                             point_model = mesh_point_model(entity.mesh, annotation.id);
                             point_world = mesh_point_world(entity.mesh, annotation.id);
                         case .LINE;
@@ -779,11 +782,11 @@ render_entities :: () {
             // Vertex labels
             //
 
-// @continue Remove this and instead show the position data for vertices connected to displayed elements
+            // @continue FIXME Remove this and instead show the position data for vertices connected to displayed elements
             {
                 // @Speed this should use the spatial index??
                 if is_visible(vertex_label_theme) for :ModelVertexIterator position_model, position_index : entity.mesh {
-                    position_world := mesh_point_world(entity.mesh, position_index);
+                    position_world := mesh_position_world(entity.mesh, position_index);
                     if !is_clipped(entity.display_info, position_world) {
                         text_position_px : Tuple2i = to_screen_position(position_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
@@ -920,7 +923,7 @@ render_entities :: () {
         using,except(is_visible) entity.display_info;
 
         // position_index is an index into the array of mesh.positions, which is filled with v-directive data
-        AddVertexAndAnnotationLabels :: (position_world : Vector3, position_model : Vector3, position_index : int) #expand {
+        AddVertexAndVertexAnnotationLabels :: (position_world : Vector3, position_model : Vector3, position_index : int) #expand {
             // Note: Since we don't have a mapping from mesh.positions to mesh.points we can't easily add to the point_labels array in this function, but this is kindof an unusual case anyhow: it only occurs if you have a triangle element where the connected positions are also point elements
             //if is_visible(`point_label_theme) {...}
 
@@ -952,7 +955,7 @@ render_entities :: () {
                 position_model := transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
                 position_index := closest_world.element_index;
 
-                AddVertexAndAnnotationLabels(position_world, position_model, position_index);
+                AddVertexAndVertexAnnotationLabels(position_world, position_model, position_index);
             }
 
         case .POINT;
@@ -964,15 +967,14 @@ render_entities :: () {
                 array_add(*point_labels, make_Label_Info(text_position_px, text));
             }
 
-            // nocommit @continue Enable this when we add .POINT to Annotation.Kind
-            //// Point annotation label
-            //if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
-            //    if annotation.kind == .POINT && annotation.id == index {
-            //        text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
-            //        text : string = to_string(annotation);
-            //        array_add(*annotation_labels, make_Label_Info(text_position_px, text));
-            //    }
-            //}
+            // Point annotation label
+            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+               if annotation.kind == .POINT && annotation.id == closest_world.element_index {
+                   text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
+                   text : string = to_string(annotation);
+                   array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+               }
+            }
 
             // Point position and position annotation labels
             {
@@ -980,7 +982,7 @@ render_entities :: () {
                 position_model := transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
                 position_index := entity.mesh.points[closest_world.element_index];
 
-                AddVertexAndAnnotationLabels(position_world, position_model, position_index);
+                AddVertexAndVertexAnnotationLabels(position_world, position_model, position_index);
             }
 
         case .SEGMENT;
@@ -1010,7 +1012,7 @@ render_entities :: () {
                 position_model := segment_model.p[it];
                 position_index := segment_tuple.component[it];
 
-                AddVertexAndAnnotationLabels(position_world, position_model, position_index);
+                AddVertexAndVertexAnnotationLabels(position_world, position_model, position_index);
             }
 
         case .TRIANGLE;
@@ -1040,7 +1042,7 @@ render_entities :: () {
                 position_model := triangle_model.v[it];
                 position_index := triangle_tuple.component[it];
 
-                AddVertexAndAnnotationLabels(position_world, position_model, position_index);
+                AddVertexAndVertexAnnotationLabels(position_world, position_model, position_index);
             }
 
         case .MESH;

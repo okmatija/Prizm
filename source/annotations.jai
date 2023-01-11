@@ -2,7 +2,7 @@ Annotation :: struct {
     // @Cleanup Remove kind because we sort this out by storing annotations in separate containers
     Kind :: enum_flags {
         VERTEX;   // v-directive
-        // POINT;    // p-directive // nocommit look carefully at all the places where this change needs to propogate!
+        POINT;    // p-directive
         LINE;     // l-directive
         TRIANGLE; // f-directive
         BLOCK;    // e.g., a header at the top of an .obj file
@@ -15,7 +15,7 @@ Annotation :: struct {
     id : int;
 
     // strings are owned @Cleanup This sucks, we should use a pool for the annotations
-    value : Tagged_Union(string, float); // nocommit This should just be string type, typed data should be an attribute
+    value : Tagged_Union(string, float); // FIXME This should just be string type, typed data should be an attribute
 }
 
 deinit :: (annotation : Annotation) {

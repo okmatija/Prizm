@@ -56,6 +56,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         command_annotations,
         block_annotations,
         vertex_annotations,
+        point_annotations,
         face_annotations,
         line_annotations) result;
 
@@ -158,7 +159,13 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
-                log_warning("Skipping comment annotation at %:%. Comments on 'p' directives should be moved to 'v' directives", filename, current_line);
+                annotation : Annotation;
+                annotation.kind = .POINT;
+                annotation.id = mesh.points.count - 1;
+                if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
+                    array_add(*point_annotations, annotation);
+                }
+
                 eat_token(*parser);
             }
 
@@ -363,11 +370,12 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
 
     // nocommit remove this, and replace with something to deduce annotation_info?
     set_entity_annotations(result, 
-        result.command_annotations,
-        result.block_annotations,
-        result.vertex_annotations,
-        result.face_annotations,
-        result.line_annotations);
+        command_annotations=result.command_annotations,
+        block_annotations=result.block_annotations,
+        vertex_annotations=result.vertex_annotations,
+        point_annotations=result.point_annotations,
+        face_annotations=result.face_annotations,
+        line_annotations=result.line_annotations);
     set_entity_source_from_file(result, filename);
     set_entity_display_info(result);
     init_entity_spatial_index(result);

@@ -1,8 +1,12 @@
-v 0 0 0
-v 1 0 0
-v 0 1 0
-v 0 0 1
-v 1 1 1
-f 1 2 3
-l 3 4
-p 5
+v 0 0 0 # Vertex Annotation A
+v 1 0 0 # Vertex Annotation B
+v 0 1 0 # Vertex Annotation C
+v 0 0 1 # Vertex Annotation D
+v 1 1 1 # Vertex Annotation E
+v 3 1 2 # Vertex Annotation F
+
+f 1 2 3 # Triangle Annotation A
+
+l 3 4   # Segment Annotation A
+
+p 6     # Point Annotation A

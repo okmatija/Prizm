@@ -514,8 +514,8 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
     for origin, edge : edge_to_origin {
         segment := array_add(*polyline_soup.polylines);
         // Copy model space coordinates because the transform is encoded separately
-        array_add(*segment.points, mesh_point_model(mesh, edge.x));
-        array_add(*segment.points, mesh_point_model(mesh, edge.y));
+        array_add(*segment.points, mesh_position_model(mesh, edge.x));
+        array_add(*segment.points, mesh_position_model(mesh, edge.y));
     }
     new_mesh : Simple_Mesh = to_Mesh(polyline_soup);
     new_mesh.world_from_model = mesh.world_from_model;

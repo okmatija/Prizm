@@ -166,7 +166,7 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
 
     array_resize(*dst.positions, dst.positions.count + src.positions.count);
     for i : 0..src.positions.count-1 {
-        dst.positions[positions_offset + i] = transform_point(dst_model_from_world, mesh_point_world(src, i));
+        dst.positions[positions_offset + i] = transform_point(dst_model_from_world, mesh_position_world(src, i));
     }
 
     array_resize(*dst.points, dst.points.count + src.points.count);
@@ -384,17 +384,24 @@ get_point_model :: #bake_arguments get_point_bake_arguments_proc(world_space=fal
 get_point_world :: #bake_arguments get_point_bake_arguments_proc(world_space=true);
 */
 
-mesh_point_hack :: inline (using mesh : Simple_Mesh, vid : int, $world_space : bool) -> Vector3 {
+mesh_position_hack :: inline (using mesh : Simple_Mesh, position_index : int, $world_space : bool) -> Vector3 {
     #if world_space {
-        return transform_point(world_from_model, positions[vid]);
+        return transform_point(world_from_model, positions[position_index]);
     }
-    return positions[vid];
+    return positions[position_index];
 }
 
-mesh_point_model :: #bake_arguments mesh_point_hack(world_space=false);
-mesh_point_world :: #bake_arguments mesh_point_hack(world_space=true);
+mesh_position_model :: #bake_arguments mesh_position_hack(world_space=false);
+mesh_position_world :: #bake_arguments mesh_position_hack(world_space=true);
 
 
+mesh_point_hack :: inline (using mesh : Simple_Mesh, point_index : int, $world_space : bool) -> Vector3 {
+    position_index := mesh.points[point_index];
+    return inline mesh_position_hack(mesh, position_index, world_space);
+}
+
+mesh_point_model :: #bake_arguments mesh_position_hack(world_space=false);
+mesh_point_world :: #bake_arguments mesh_position_hack(world_space=true);
 
 
 
@@ -406,8 +413,8 @@ mesh_segment3_hack :: (mesh : Simple_Mesh, segment_index : int, $world_space : b
     tuple := inline mesh_segment3_tuple(mesh, segment_index);
 
     result : Segment3 = ---;
-    result.start = mesh_point_hack(mesh, tuple.component[0], world_space); 
-    result.end   = mesh_point_hack(mesh, tuple.component[1], world_space); 
+    result.start = mesh_position_hack(mesh, tuple.component[0], world_space); 
+    result.end   = mesh_position_hack(mesh, tuple.component[1], world_space); 
     return result;
 }
 
@@ -427,9 +434,9 @@ mesh_triangle_hack :: (mesh : Simple_Mesh, triangle_index : int, $world_space : 
     tuple := inline mesh_triangle_tuple(mesh, triangle_index);
 
     result : Triangle3 = ---;
-    result.a = mesh_point_hack(mesh, tuple.component[0], world_space);
-    result.b = mesh_point_hack(mesh, tuple.component[1], world_space);
-    result.c = mesh_point_hack(mesh, tuple.component[2], world_space);
+    result.a = mesh_position_hack(mesh, tuple.component[0], world_space);
+    result.b = mesh_position_hack(mesh, tuple.component[1], world_space);
+    result.c = mesh_position_hack(mesh, tuple.component[2], world_space);
     return result;
 }
 
@@ -456,8 +463,8 @@ mesh_triangle_edges_hack :: (mesh : Simple_Mesh, triangle_index : int, $world_sp
 
     result : Tuple3(Segment3) = ---;
     for e : 0..2 {
-        result.component[e].start = mesh_point_hack(mesh, edge_indices.component[e].x, world_space);
-        result.component[e].end =   mesh_point_hack(mesh, edge_indices.component[e].y, world_space);
+        result.component[e].start = mesh_position_hack(mesh, edge_indices.component[e].x, world_space);
+        result.component[e].end =   mesh_position_hack(mesh, edge_indices.component[e].y, world_space);
     }
     return result;
 }
@@ -556,7 +563,7 @@ PointIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $wo
     for point_index : 0..mesh.points.count-1 {
         position_index := mesh.points[point_index]; 
         `it_index := point_index;
-        `it : Vector3 = mesh_point_hack(mesh, position_index, world_space);
+        `it : Vector3 = mesh_position_hack(mesh, position_index, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
@@ -571,7 +578,7 @@ VertexIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $w
 
     for position_model, position_index : mesh.positions {
         `it_index := position_index;
-        `it : Vector3 = mesh_point_hack(mesh, position_index, world_space);
+        `it : Vector3 = mesh_position_hack(mesh, position_index, world_space);
         #insert (remove=#assert(false)) body;
     }
 }
