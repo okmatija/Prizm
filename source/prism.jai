@@ -204,6 +204,9 @@ main :: () {
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
+        // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
+        app.select_tool.entity.display_info.is_visible = false;
+
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         if app.show_ui {
             show_left_window();
@@ -235,9 +238,10 @@ main :: () {
 
 
         // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
+        // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
         render_background();
-        render_entities();
         render_selections();
+        render_entities();
         render_axes_triad();
 
         do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!

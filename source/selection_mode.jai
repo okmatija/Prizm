@@ -29,7 +29,7 @@ Geometry_Select_Tool :: struct {
 }
 
 do_geometry_selection_mode :: () {
-    if !mouse_add_to_geometry_selection() {
+    if !viewport_capture_mouse() || (!mouse_toggle_in_geometry_selection() && !mouse_set_geometry_selection()) {
         return;
     }
 
@@ -40,6 +40,9 @@ do_geometry_selection_mode :: () {
 
         closest : Closest_Point_Ray_Entity = find_closest_vertex();
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
+            if mouse_set_geometry_selection() {
+                deinit(*app.select_tool.entity);
+            }
             return;
         }
 
@@ -53,41 +56,48 @@ do_geometry_selection_mode :: () {
             }
         }
 
-        if position_indices.count {
+        if mouse_toggle_in_geometry_selection() {
+            if position_indices.count {
 
-            // Collect elements connected to any of the position indices being removed
-            to_remove_tids := temp_array(int);
-            to_remove_sids := temp_array(int);
-            to_remove_pids := temp_array(int);
+                // Collect elements connected to any of the position indices being removed
+                to_remove_tids := temp_array(int);
+                to_remove_sids := temp_array(int);
+                to_remove_pids := temp_array(int);
 
-            for remove_index : position_indices {
-                for :TriangleTupleIterator triangle_tuple, triangle_index : mesh {
-                    if triangle_tuple.x == remove_index || triangle_tuple.y == remove_index || triangle_tuple.z == remove_index {
-                        array_add(*to_remove_tids, triangle_index);
+                for remove_index : position_indices {
+                    for :TriangleTupleIterator triangle_tuple, triangle_index : mesh {
+                        if triangle_tuple.x == remove_index || triangle_tuple.y == remove_index || triangle_tuple.z == remove_index {
+                            array_add(*to_remove_tids, triangle_index);
+                        }
+                    }
+
+                    for :SegmentTupleIterator segment_tuple, segment_index : mesh {
+                        if segment_tuple.x == remove_index || segment_tuple.y == remove_index {
+                            array_add(*to_remove_sids, segment_index);
+                        }
+                    }
+
+                    for :PointIndexIterator position_index, point_index : mesh {
+                        if position_index == remove_index {
+                            array_add(*to_remove_pids, point_index);
+                        }
                     }
                 }
 
-                for :SegmentTupleIterator segment_tuple, segment_index : mesh {
-                    if segment_tuple.x == remove_index || segment_tuple.y == remove_index {
-                        array_add(*to_remove_sids, segment_index);
-                    }
-                }
+                // Remove elements connected any of the position indices
+                remove_elements_by_index(*mesh.triangles, ..to_remove_tids);
+                remove_elements_by_index(*mesh.segments, ..to_remove_sids);
+                remove_elements_by_index(*mesh.points, ..to_remove_pids);
 
-                for :PointIndexIterator position_index, point_index : mesh {
-                    if position_index == remove_index {
-                        array_add(*to_remove_pids, point_index);
-                    }
-                }
+                compact_mesh(*mesh);
+            } else {
+                // Adding the position as a point
+                add_point(*mesh, position);
             }
+        }
 
-            // Remove elements connected any of the position indices
-            remove_elements_by_index(*mesh.triangles, ..to_remove_tids);
-            remove_elements_by_index(*mesh.segments, ..to_remove_sids);
-            remove_elements_by_index(*mesh.points, ..to_remove_pids);
-
-            compact_mesh(*mesh);
-        } else {
-            // Adding the position as a point
+        if mouse_set_geometry_selection() {
+            deinit(*app.select_tool.entity);
             add_point(*mesh, position);
         }
 
@@ -95,6 +105,9 @@ do_geometry_selection_mode :: () {
 
         closest : Closest_Point_Ray_Entity = find_closest_element(visit_segments=false, visit_triangles=false);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
+            if mouse_set_geometry_selection() {
+                deinit(*app.select_tool.entity);
+            }
             return;
         }
 
@@ -106,25 +119,35 @@ do_geometry_selection_mode :: () {
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_point : Vector3 = mesh_point_world(hit_entity.mesh, closest.element_index);
 
-        // Search for the segment in the current selection mesh
-        found_index := -1;
-        for :WorldPointIterator position, point_index : mesh {
-            if position == hit_point {
-                found_index = point_index;
-                break;
+        if mouse_toggle_in_geometry_selection() {
+            // Search for the segment in the current selection mesh
+            found_index := -1;
+            for :WorldPointIterator position, point_index : mesh {
+                if position == hit_point {
+                    found_index = point_index;
+                    break;
+                }
+            }
+
+            if found_index < 0 {
+                add_point(*mesh, hit_point);
+            } else {
+                remove_point_by_index(*mesh, found_index);
             }
         }
 
-        if found_index < 0 {
+        if mouse_set_geometry_selection() {
+            deinit(*app.select_tool.entity);
             add_point(*mesh, hit_point);
-        } else {
-            remove_point_by_index(*mesh, found_index);
         }
 
     case .SEGMENT;
 
         closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_triangles=false);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
+            if mouse_set_geometry_selection() {
+                deinit(*app.select_tool.entity);
+            }
             return;
         }
 
@@ -136,25 +159,35 @@ do_geometry_selection_mode :: () {
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_segment : Segment3 = mesh_segment3_world(hit_entity.mesh, closest.element_index);
 
-        // Search for the segment in the current selection mesh
-        found_index := -1;
-        for :WorldSegmentIterator segment, segment_index : mesh {
-            if segment.start == hit_segment.start && segment.end == hit_segment.end {
-                found_index = segment_index;
-                break;
+        if mouse_toggle_in_geometry_selection() {
+            // Search for the segment in the current selection mesh
+            found_index := -1;
+            for :WorldSegmentIterator segment, segment_index : mesh {
+                if segment.start == hit_segment.start && segment.end == hit_segment.end {
+                    found_index = segment_index;
+                    break;
+                }
+            }
+
+            if found_index < 0 {
+                add_segment(*mesh, hit_segment);
+            } else {
+                remove_segment_by_index(*mesh, found_index);
             }
         }
 
-        if found_index < 0 {
+        if mouse_set_geometry_selection() {
+            deinit(*app.select_tool.entity);
             add_segment(*mesh, hit_segment);
-        } else {
-            remove_segment_by_index(*mesh, found_index);
         }
 
     case .TRIANGLE;
 
         closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_segments=false);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
+            if mouse_set_geometry_selection() {
+                deinit(*app.select_tool.entity);
+            }
             return;
         }
 
@@ -166,19 +199,26 @@ do_geometry_selection_mode :: () {
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_triangle : Triangle3 = mesh_triangle_world(hit_entity.mesh, closest.element_index);
 
-        // Search for the triangle in the current selection mesh
-        found_index := -1;
-        for :WorldTriangleIterator triangle, triangle_index : mesh {
-            if hit_triangle.a == triangle.a && hit_triangle.b == triangle.b && hit_triangle.c == triangle.c {
-                found_index = triangle_index;
-                break;
+        if mouse_toggle_in_geometry_selection() {
+            // Search for the triangle in the current selection mesh
+            found_index := -1;
+            for :WorldTriangleIterator triangle, triangle_index : mesh {
+                if hit_triangle.a == triangle.a && hit_triangle.b == triangle.b && hit_triangle.c == triangle.c {
+                    found_index = triangle_index;
+                    break;
+                }
+            }
+
+            if found_index < 0 {
+                add_triangle(*mesh, hit_triangle);
+            } else {
+                remove_triangle_by_index(*mesh, found_index);
             }
         }
 
-        if found_index < 0 {
+        if mouse_set_geometry_selection() {
+            deinit(*app.select_tool.entity);
             add_triangle(*mesh, hit_triangle);
-        } else {
-            remove_triangle_by_index(*mesh, found_index);
         }
 
     } // if app.select_tool.target_element ==
@@ -187,17 +227,28 @@ do_geometry_selection_mode :: () {
 }
 
 do_item_selection_mode :: () {
-    if !mouse_add_to_item_selection() {
+    if !viewport_capture_mouse() || (!mouse_toggle_in_item_selection() && !mouse_set_item_selection()) {
         return;
     }
 
     closest : Closest_Point_Ray_Entity = find_closest_element();
 
     if valid_geometry_index(closest.entity_index) {
-        app.entities[closest.entity_index].is_selected = !app.entities[closest.entity_index].is_selected;
+        if mouse_set_item_selection() {
+            for :Selected app.entities {
+                it.is_selected = false;
+            }
+            app.entities[closest.entity_index].is_selected = true;
+        }
+
+        if mouse_toggle_in_item_selection() {
+            app.entities[closest.entity_index].is_selected = !app.entities[closest.entity_index].is_selected;
+        }
     } else {
-        for :Selected app.entities {
-            it.is_selected = false;
+        if mouse_set_item_selection() {
+            for :Selected app.entities {
+                it.is_selected = false;
+            }
         }
     }
 }

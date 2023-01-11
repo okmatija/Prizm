@@ -672,7 +672,6 @@ show_select_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
 
-        // nocommit We wanted to have geometry selection mode active iff the select tree is open but this does not do that because it doesn't turn off!
         entity.display_info.is_visible = true;
 
         select_element :: (
@@ -775,9 +774,6 @@ show_select_ui :: () {
 
         //show_rendering_ui(*app.select_tool.entity.display_info);
         //show_labelling_ui(*app.select_tool.entity.display_info);
-
-    } else {
-        app.select_tool.entity.display_info.is_visible = false;
     }
 }
 

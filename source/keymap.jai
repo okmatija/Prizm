@@ -106,18 +106,41 @@ Keymap :: struct {
     mappings : [..] Single_Key_Mapping;
 }
 
-mouse_add_to_geometry_selection :: () -> bool {
+viewport_capture_mouse :: () -> bool {
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return false;
     }
-    return ImGui.IsMouseClicked(.Left) && io().KeyCtrl && app.select_tool.entity.display_info.is_visible;
+    return true;
 }
 
-mouse_add_to_item_selection :: () -> bool {
-    if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
-        return false;
-    }
-    return ImGui.IsMouseClicked(.Left) && !io().KeyCtrl && !io().KeyShift && !io().KeyAlt;
+mouse_toggle_in_selection :: () -> bool {
+    return ImGui.IsMouseClicked(.Left) &&
+        io().KeyCtrl &&
+        !io().KeyShift &&
+        !io().KeyAlt;
+}
+
+mouse_set_selection :: () -> bool {
+    return ImGui.IsMouseClicked(.Left) &&
+        !io().KeyCtrl &&
+        !io().KeyShift &&
+        !io().KeyAlt;
+}
+
+mouse_toggle_in_geometry_selection :: () -> bool {
+    return mouse_toggle_in_selection() && app.select_tool.entity.display_info.is_visible;
+}
+
+mouse_set_geometry_selection :: () -> bool {
+    return mouse_set_selection() && app.select_tool.entity.display_info.is_visible;
+}
+
+mouse_toggle_in_item_selection :: () -> bool {
+    return mouse_toggle_in_selection() && !app.select_tool.entity.display_info.is_visible;
+}
+
+mouse_set_item_selection :: () -> bool {
+    return mouse_set_selection() && !app.select_tool.entity.display_info.is_visible;
 }
 
 mouse_reposition_camera :: () -> bool {
@@ -286,7 +309,7 @@ my_debug_function :: () {
 }
 
 Preset_Counter :: struct {
-    count : int;
+    count : int = 1; // 1 because I prefer the colors that get generated when we start at 1 :/
 }
 g_preset_name_to_counter : Table(string, Preset_Counter);
 

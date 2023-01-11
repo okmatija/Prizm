@@ -12,9 +12,6 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Added a new "Tools" section under the main "Prism" tab, moved presets shapes menu there and renamed as "Examples" tool, moved selection there too as a "Select" tool
   - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
   - Made the clipping sphere and clipping slab more compact to take up less space in the viewport
-  - Moved the Select tool to `Prism>Tools>Select`
-    - Added ability to select triangles and segments as well points, what gets selected is controlled by a radio button.
-    - This feature is very basic will be expanded/improved in future, feature requests welcome
   - TODO Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable windows, icons and when I figure out how to make a usable borderless SDL window.
 
 - Changes to shortcuts:
@@ -26,6 +23,16 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Changed 'Shift a' to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful
   - Changed the shortcut to cycle vertex point rendering size from 'p' to 'v' because point elements (obj p-directives) and vertices (obj v-directives) are distinguished now and its most useful to cycle the vertex size and 'v' is a better memonic for that. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
   - Added ability to select/deselect items by clicking on/near them with LMB in the viewport. Clicking with LMB into empty space far enough away from any items will clear the item selection
+
+- Changes to how selection works:
+
+  - LMB alone sets a selection, this can be used to clear the selection (by clicking somewhere where nothing can added to the selection)
+  - Ctrl LMB adds/removes things from a selection
+  - What the above key binds select depends on if the Select tool `Prism>Tools>Select` is open:
+    - If the Select tool is open then Geometry selection mode is active:
+      - Added ability to select triangles and segments as well points, what gets selected is controlled by a radio button.
+      - This feature is very basic will be expanded/improved in future, feature requests welcome
+    - If the Select tool is not open then Item selection mode is active
 
 - Annotations
 
