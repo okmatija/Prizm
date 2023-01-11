@@ -237,8 +237,8 @@ main :: () {
         // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
         render_background();
         render_entities();
-        render_axes_triad();
         render_selections();
+        render_axes_triad();
 
         do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
 

@@ -1121,13 +1121,15 @@ render_selections :: () {
     // the clipping sphere (there is no way to set it right now, anyway) since this is also
     // annoying in the case of selections
 
-    Simp.ScopeContext();
-    vertex_theme := entity.display_info.vertex_label_theme;
-    for mesh.positions {
-        text := get_point_text(it, it_index, vertex_theme);
-        text_position_px : Tuple2i = to_screen_position(it, projection_from_model);
-        Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, vertex_theme.label_color, scale=vertex_theme.label_scale);
-    }
+    // Disabled text rendering while selecting, that can be done after caching the selection
+
+    //Simp.ScopeContext();
+    //vertex_theme := entity.display_info.vertex_label_theme;
+    //for mesh.positions {
+    //    text := get_point_text(it, it_index, vertex_theme);
+    //    text_position_px : Tuple2i = to_screen_position(it, projection_from_model);
+    //    Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, vertex_theme.label_color, scale=vertex_theme.label_scale);
+    //}
 }
 
 // This function was added so that we could use Simp *when it was using the same context as the rest of the

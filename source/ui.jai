@@ -24,13 +24,13 @@ show_left_window :: () {
             defer ImGui.EndTabItem();
 
             // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
-            show_item_list_ui();
+            show_prism_tab_ui();
         }
 
         if ImGui.BeginTabItem("Edit") {
             defer ImGui.EndTabItem();
 
-            show_edit_ui();
+            show_edit_tab_ui();
         }
 
         if ImGui.BeginTabItem("View") {
@@ -43,7 +43,7 @@ show_left_window :: () {
         if ImGui.BeginTabItem("Help") {
             defer ImGui.EndTabItem();
 
-            show_help_ui();
+            show_help_tab_ui();
         }
     }
 }
@@ -73,12 +73,22 @@ show_right_window :: () {
     show_camera_controls();
 }
 
-show_item_list_ui :: () {
-
-    // indent := ImGui.GetTreeNodeToLabelSpacing();
-
+show_prism_tab_ui :: () {
     show_tools_ui();
+    show_items_ui();
+    show_details_ui();
+}
 
+show_tools_ui :: () {
+    do_tree := ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    if do_tree {
+        defer ImGui.TreePop();
+        show_select_ui();
+        show_preset_ui();
+    }
+}
+
+show_items_ui :: () {
     entity_to_remove := -1;
     any_visibility_changed : bool;
 
@@ -224,19 +234,6 @@ show_item_list_ui :: () {
 
     if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
         fit_scene_on_screen();
-    }
-
-    // nocommit The above should be in a show_items_ui function
-
-    show_details_pane_ui();
-}
-
-show_tools_ui :: () {
-    do_tree := ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
-    if do_tree {
-        defer ImGui.TreePop();
-        show_select_ui();
-        show_preset_ui();
     }
 }
 
@@ -408,7 +405,7 @@ show_preset_ui :: () {
 }
 
 
-show_edit_ui :: () {
+show_edit_tab_ui :: () {
 
     if ImGui.TreeNodeEx("Preferences", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
@@ -510,7 +507,7 @@ DONE);
 }
 
 // If entity == null then show the details for the template
-show_details_pane_ui :: () {
+show_details_ui :: () {
 
     selected : [..]*Entity = temp_selected_entities();
     if selected.count == 0 {
@@ -696,17 +693,17 @@ show_select_ui :: () {
             Show_Tooltip(tooltip);
             Show_Tooltip_Binding(tprint("Add % to selection", element_name), "Ctrl LMB");
 
+            // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
+            ImGui.TableNextColumn();
+            ImGui.Checkbox(imgui_label("##elements_visible", elements_visible), elements_visible);
+            Show_Tooltip(tprint("% selection visibility", element_name));
+
             // Color selection
             ImGui.TableNextColumn();
             if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, ImGui.ColorEditFlags.NoInputs) {
                 // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
                 <<label_color = darken(element_color, .8);
             }
-
-            // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
-            ImGui.TableNextColumn();
-            ImGui.Checkbox(imgui_label("##elements_visible", elements_visible), elements_visible);
-            Show_Tooltip(tprint("% selection visibility", element_name));
 
             // Element kind name
             ImGui.TableNextColumn();
@@ -767,6 +764,7 @@ show_select_ui :: () {
                     log("Selection caching omitted: Mesh was empty");
                 }
             }
+            // nocommit Maybe don't reset the selection anymore
             Show_Tooltip("Adds a new item based on this selection\nand resets the selection");
         }
 
@@ -774,6 +772,9 @@ show_select_ui :: () {
         if ImGui.Button(imgui_label("Clear", *entity)) {
             deinit(*entity);
         }
+
+        //show_rendering_ui(*app.select_tool.entity.display_info);
+        //show_labelling_ui(*app.select_tool.entity.display_info);
 
     } else {
         app.select_tool.entity.display_info.is_visible = false;
@@ -1144,7 +1145,7 @@ show_camera_controls :: () {
     }
 }
 
-show_help_ui :: () {
+show_help_tab_ui :: () {
     table_flags := ImGui.TableFlags.BordersInnerV | .RowBg;
 
     if ImGui.TreeNodeEx("About", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
@@ -1567,135 +1568,9 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
 
     old_display_info := <<display_info;
 
-    if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        ImGui.Text("Visible    ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##item_visible", display_info), *display_info.is_visible);
-        Show_Tooltip("Overall item visibility");
-
-        // FIXME FIXME: opacity should control wireframe??
-        ImGui.Text("Render Mode");
-        ImGui.SameLine();
-        ImGui.PushItemWidth(120);
-        combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
-        ImGui.PopItemWidth();
-
-        // This doesn't seem very useful so I removed it
-        //ImGui.SameLine();
-        //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-        //Show_Tooltip("Deduce item primary colors from the file path");
-
-        {
-            ImGui.Text("Triangles  ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
-            Show_Tooltip("Triangle visibility");
-            {
-                ImGui.SameLine();
-                ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
-                Show_Tooltip("Frontface Color");
-            }
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-            Show_Tooltip("Backface Render Mode");
-            ImGui.PopItemWidth();
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
-            Show_Tooltip("Flat Shading");
-        }
-
-
-        {
-            ImGui.Text("Segments   ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
-            Show_Tooltip("Segment visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
-            Show_Tooltip("Width");
-            display_info.segments_width = clamp(display_info.segments_width, 1, 5);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Points     ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-            Show_Tooltip("Point visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.InputInt("##points_size", *display_info.points_size);
-            Show_Tooltip("Size");
-            display_info.points_size = clamp(display_info.points_size, 1, 10);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Positions  ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
-            Show_Tooltip("Positions visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.InputInt("##positions_size", *display_info.positions_size);
-            Show_Tooltip("Size");
-            display_info.positions_size = clamp(display_info.positions_size, 1, 10);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Edges      ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
-            Show_Tooltip("Triangle edges visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
-            Show_Tooltip("Width");
-            display_info.edges_width = clamp(display_info.edges_width, 1., 5);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Normals    ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-            Show_Tooltip("Normal visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
-            Show_Tooltip("Length");
-            ImGui.PopItemWidth();
-        }
-    }
-
+    show_rendering_ui(display_info);
     show_clipping_ui(display_info, aabb);
-
-    if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
-        show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
-        show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
-        show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
-        show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
-    }
+    show_labelling_ui(display_info, entity_index);
 
     return get_update(old_display_info, display_info);
 }
@@ -1951,9 +1826,143 @@ DONE;
     }
 }
 
-
 // This is also used for the attribute tables, so don't be confused by the name..!
 last_frame_annotation_list_height_px : float;
+
+
+show_rendering_ui :: (display_info : *Display_Info) {
+    if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
+        defer ImGui.TreePop();
+
+        ImGui.Text("Visible    ");
+        ImGui.SameLine();
+        ImGui.Checkbox(imgui_label("##item_visible", display_info), *display_info.is_visible);
+        Show_Tooltip("Overall item visibility");
+
+        // FIXME FIXME: opacity should control wireframe??
+        ImGui.Text("Render Mode");
+        ImGui.SameLine();
+        ImGui.PushItemWidth(120);
+        combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
+        ImGui.PopItemWidth();
+
+        // This doesn't seem very useful so I removed it
+        //ImGui.SameLine();
+        //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+        //Show_Tooltip("Deduce item primary colors from the file path");
+
+        {
+            ImGui.Text("Triangles  ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
+            Show_Tooltip("Triangle visibility");
+            {
+                ImGui.SameLine();
+                ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
+                Show_Tooltip("Frontface Color");
+            }
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
+            Show_Tooltip("Backface Render Mode");
+            ImGui.PopItemWidth();
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
+            Show_Tooltip("Flat Shading");
+        }
+
+
+        {
+            ImGui.Text("Segments   ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
+            Show_Tooltip("Segment visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
+            Show_Tooltip("Width");
+            display_info.segments_width = clamp(display_info.segments_width, 1, 5);
+            ImGui.PopItemWidth();
+        }
+
+        {
+            ImGui.Text("Points     ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
+            Show_Tooltip("Point visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.InputInt("##points_size", *display_info.points_size);
+            Show_Tooltip("Size");
+            display_info.points_size = clamp(display_info.points_size, 1, 10);
+            ImGui.PopItemWidth();
+        }
+
+        {
+            ImGui.Text("Positions  ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
+            Show_Tooltip("Positions visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.InputInt("##positions_size", *display_info.positions_size);
+            Show_Tooltip("Size");
+            display_info.positions_size = clamp(display_info.positions_size, 1, 10);
+            ImGui.PopItemWidth();
+        }
+
+        {
+            ImGui.Text("Edges      ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
+            Show_Tooltip("Triangle edges visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
+            Show_Tooltip("Width");
+            display_info.edges_width = clamp(display_info.edges_width, 1., 5);
+            ImGui.PopItemWidth();
+        }
+
+        {
+            ImGui.Text("Normals    ");
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
+            Show_Tooltip("Normal visibility");
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+            Show_Tooltip("Length");
+            ImGui.PopItemWidth();
+        }
+    }
+}
+
+
+show_labelling_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
+        defer ImGui.TreePop();
+
+        show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
+        show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
+        show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
+        show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
+        show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
+    }
+}
+
 
 show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 

@@ -12,6 +12,9 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Added a new "Tools" section under the main "Prism" tab, moved presets shapes menu there and renamed as "Examples" tool, moved selection there too as a "Select" tool
   - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
   - Made the clipping sphere and clipping slab more compact to take up less space in the viewport
+  - Moved the Select tool to `Prism>Tools>Select`
+    - Added ability to select triangles and segments as well points, what gets selected is controlled by a radio button.
+    - This feature is very basic will be expanded/improved in future, feature requests welcome
   - TODO Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable windows, icons and when I figure out how to make a usable borderless SDL window.
 
 - Changes to shortcuts:
@@ -23,12 +26,6 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
   - Changed 'Shift a' to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful
   - Changed the shortcut to cycle vertex point rendering size from 'p' to 'v' because point elements (obj p-directives) and vertices (obj v-directives) are distinguished now and its most useful to cycle the vertex size and 'v' is a better memonic for that. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
   - Added ability to select/deselect items by clicking on/near them with LMB in the viewport. Clicking with LMB into empty space far enough away from any items will clear the item selection
-
-- Improvements to geometry selection
-
-  - Previously we could only select vertices, now its possible to select segments and triangles as well
-  - The `Prism > Select` section has a radio button where you can pick which element type to select as well other UI for controlling the element color etc 
-  - This feature will be expanded upon in future e.g., copying annotations from the selections elements, adding marquee selection etc
 
 - Annotations
 
