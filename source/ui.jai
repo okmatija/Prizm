@@ -105,7 +105,7 @@ show_items_ui :: () {
             // The list clipper works on lots of evenly spaced items, which means we need to group entities by folder before we use it
             entities_in_folder : [..]Local_Entity;
             entities_in_folder.allocator = temp;
-            for entity, entity_index : app.entities {
+            for :All entity, entity_index : app.entities {
                 if get_directory(get_entity_source(entity).path) == folder.path {
                     local_entity : Local_Entity;
                     local_entity.entity = entity;
@@ -200,7 +200,7 @@ show_items_ui :: () {
     {
         if g_this_frame_state.index_of_selected_item_where_color_was_changed != -1 {
             source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_color_was_changed];
-            for app.entities if it.is_selected {
+            for :Selected app.entities {
                 it_primary_color : *Vector4 = get_entity_primary_color(it);
                 source_primary_color : *Vector4 = get_entity_primary_color(source);
                 if it_primary_color && source_primary_color {
@@ -210,19 +210,19 @@ show_items_ui :: () {
         }
         if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
             source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
-            for app.entities if it.is_selected {
+            for :Selected app.entities {
                 it.display_info.display_mode = source.display_info.display_mode;
             }
         }
         if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
-            for app.entities if it.is_selected {
+            for :Selected app.entities {
                 it.display_info.display_mode = Display_Info.{}.display_mode;
                 set_entity_primary_color(it);
             }
         }
         if g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click != -1 {
             source : *Entity =app.entities[g_this_frame_state.index_of_selected_item_where_visibility_changed_by_click];
-            for app.entities if it.is_selected {
+            for :Selected app.entities {
                 it.display_info.is_visible = source.display_info.is_visible;
             }
         }
@@ -719,6 +719,8 @@ show_select_ui :: () {
                 *entity.display_info.triangles_color,
                 *entity.display_info.triangle_label_theme.label_color,
                 *entity.display_info.triangles_visible);
+            entity.display_info.edges_visible = entity.display_info.triangles_visible; // Turn off/on edges with triangles
+
             select_element(
                 "Segment", .SEGMENT, "When chosen select segments (obj l-directives)",
                 *entity.display_info.segments_color,
@@ -1008,8 +1010,10 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
         // We could have buttons to toggle selection/visibility by folder but we don't, the user can just Ctrl LMB on folder names to select all the items and then press delete to remove them, or click on visibility to toggle visibility. Maybe we should have the buttons for better discoverability, but I think more tooltips (when we move to an ImGui version where delays are properly supported) will be a better solution
 
         if ImGui.Button("Remove folder") {
-            for app.entities if get_directory(get_entity_source(it).path) == path {
-                remove it;
+            for :All app.entities {
+                if get_directory(get_entity_source(it).path) == path {
+                    remove it;
+                }
             }
             remove_directory(path);
         }

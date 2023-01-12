@@ -730,7 +730,7 @@ render_entities :: () {
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
-        FilterIterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
+        FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
         for :FilterIterator entity, entity_index : app.entities {
 
             // Caches for glyph quads @TODO pull these arrays out of the entity loop so that label overlapping can be fixed across entities e.g., if mesh A and B have a coincident vertex we'd like the text labels for that vertex not to overlap
@@ -1063,12 +1063,12 @@ render_entities :: () {
     not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangles_color.w != 1.);
     not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
 
-    Visible_Opaque ::      #bake_arguments Entities_Iterator(entity_filter=not_visible_opaque);
-    Visible_Transparent :: #bake_arguments Entities_Iterator(entity_filter=not_visible_transparent);
-    Visible_Hovered ::     #bake_arguments Entities_Iterator(entity_filter=not_visible_hovered);
+    VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
+    VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
+    VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
 
-    for :Visible_Opaque      app.entities render_entity_geometry(it, it_index);
-    for :Visible_Transparent app.entities render_entity_geometry(it, it_index);
+    for :VisibleOpaque      app.entities render_entity_geometry(it, it_index);
+    for :VisibleTransparent app.entities render_entity_geometry(it, it_index);
 
     // :RenderingSelectionAABB Here we also render the AABB for a selection of entities, which is a bit of a hack
     if app.template_display_info.aabb_visible {
@@ -1091,11 +1091,15 @@ render_entities :: () {
             render_entity_text_spotlight(entity_filter=no_labels);
     }
 
-    for :Visible_Hovered     app.entities render_entity_geometry(it, it_index);
+    for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
 
 
 render_selections :: () {
+    if !app.select_tool.entity.display_info.is_visible {
+        return;
+    }
+
     Scope_GL_State();
 
     if app.select_tool.entity.is_hovered {

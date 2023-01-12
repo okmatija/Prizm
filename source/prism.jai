@@ -108,7 +108,7 @@ main :: () {
         // print("Change for path %: %", change.full_path, change.events);
 
         found_entity : *Entity;
-        for entity : app.entities {
+        for :All entity : app.entities {
             if entity.source.kind == .Entity_Source_File && get_entity_source(entity).path == change.full_path {
                 found_entity = entity;
                 break entity; // There can only be one relevant entity for each file change

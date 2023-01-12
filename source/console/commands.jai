@@ -92,7 +92,7 @@ help :: () {
 
 select_if :: (should_select : (Entity)->bool, invert : int) {
     count := 0;
-    for app.entities {
+    for :All app.entities {
         if should_select(it) == (invert == 0) {
             it.is_selected = true;
             count += 1;
@@ -118,7 +118,7 @@ select_if_empty :: (invert : int = 0) {
 // The following wildcards/regex patterns are supported: * ? [] [-]
 select_if_match :: (pattern : string, invert : int = 0) {
     count := 0;
-    for app.entities {
+    for :All app.entities {
         // Note: We use entity_name here, we could have used the fully pathed filename but then you need to prefix with a * always
         text : string = entity_name(it);
         if wildcard_match(text, pattern) == (invert == 0) {
@@ -286,7 +286,7 @@ item_copy_clipping_sphere :: (source_id : int, target_id : int) {
 
 // Sets the edge/wireframe color to the face/surface color for all items
 set_edge_color_to_face_color :: () {
-    for app.entities {
+    for :All app.entities {
         it.display_info.segments_color = it.display_info.triangles_color;
     }
 } @RegisterCommand

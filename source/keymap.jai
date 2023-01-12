@@ -285,13 +285,13 @@ select_or_deselect_all :: () {
 // Deselects items which are not visible and toggles selection of visible items
 select_or_deselect_visible :: () {
     select := false;
-    for app.entities if it.display_info.is_visible {
+    for :Visible app.entities {
         if !it.is_selected {
             select = true;
         }
     }
 
-    for app.entities {
+    for :All app.entities {
         if it.display_info.is_visible {
             it.is_selected = select;
         } else {
@@ -301,7 +301,7 @@ select_or_deselect_visible :: () {
 }
 
 toggle_current_selection :: () {
-    for app.entities {
+    for :All app.entities {
         it.is_selected = !it.is_selected;
     }
 }

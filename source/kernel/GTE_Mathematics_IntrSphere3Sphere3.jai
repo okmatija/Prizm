@@ -33,7 +33,7 @@ Intersection_Sphere3_Sphere3 :: struct {
 }
 
 // Assumes sphere0 and sphere1 are non-empty
-find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> (intersect : bool #must, Intersection_Sphere3_Sphere3) {
+find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> Intersection_Sphere3_Sphere3 {
     result : Intersection_Sphere3_Sphere3 = ---;
 
     // The plane of intersection must have C1-C0 as its normal
@@ -48,7 +48,7 @@ find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> (
     {
         // The spheres are disjoint/separated.
         result.kind = xx 0;
-        return false, result;
+        return result;
     }
 
     if (sqrLen == rSumSqr)
@@ -58,7 +58,7 @@ find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> (
         Normalize(*C1mC0);
         result.kind = xx 1;
         result.point = sphere0.center + r0 * C1mC0;
-        return true, result;
+        return result;
     }
 
     rDif := r0 - r1;
@@ -69,7 +69,7 @@ find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> (
         // point in the intersection set.
         result.kind = xx (ifx rDif <= 0. then 3 else 5);
         result.point = .5 * (sphere0.center + sphere1.center);
-        return true, result;
+        return result;
     }
     if (sqrLen == rDifSqr)
     {
@@ -86,7 +86,7 @@ find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> (
             result.kind = xx 6;
             result.point = sphere0.center + r0 * C1mC0;
         }
-        return true, result;
+        return result;
     }
 
     // Compute t for which the circle of intersection has center
@@ -103,5 +103,5 @@ find_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> (
 
     // The intersection is a circle.
     result.kind = xx 2;
-    return true, result;
+    return result;
 }

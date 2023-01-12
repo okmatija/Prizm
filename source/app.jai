@@ -218,7 +218,7 @@ remove_directory :: (directory : string) {
 
     // Check if no other entities will need to watch this directory
     remove_directory := true;
-    for app.entities {
+    for :All app.entities {
         if it.source.kind == .Entity_Source_File && get_directory(get_entity_source(it).path) == directory {
             remove_directory = false;
             break;
@@ -254,7 +254,7 @@ current_window_aspect_ratio_width_over_height :: () -> float {
 }
 
 // nocommit Rename this to something less generic and use this name for a basic iterator over entities
-Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
+EntitiesIterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
     #assert(flags == 0); // No options are supported
 
     for entity, entity_index : <<entities {
@@ -264,12 +264,13 @@ Entities_Iterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $
             continue;
         }
 
-        #insert (remove=#assert(false), break=break entity) body;
+        #insert (break=break entity) body;
     }
 }
 
-Visible ::  #bake_arguments Entities_Iterator(entity_filter=#code !it.display_info.is_visible);
-Selected :: #bake_arguments Entities_Iterator(entity_filter=#code !it.is_selected);
+All ::      #bake_arguments EntitiesIterator(entity_filter=false);
+Visible ::  #bake_arguments EntitiesIterator(entity_filter=#code !it.display_info.is_visible);
+Selected :: #bake_arguments EntitiesIterator(entity_filter=#code !it.is_selected);
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {

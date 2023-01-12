@@ -56,25 +56,35 @@ transform :: (using sphere : *Sphere, transform : Matrix4) {
     center = transform_point(transform, center);
 }
 
-expand :: (using this : *Sphere, other : Sphere, keep_center_of_this := false) {
+expand :: (using this : *Sphere, other : Sphere) {
     center_distance := distance(this.center, other.center);
 
     if this.radius > center_distance + other.radius {
-        // Do nothing, this sphere contains other sphere
+        // this sphere contains other sphere, do nothing
     } else if other.radius > center_distance + this.radius {
-        // Update this sphere, it's contained in the other sphere
-        if keep_center_of_this {
-            this.radius = center_distance + other.radius;
-        } else {
-            <<this = other;
-        }
+        // other sphere contains this sphere, update this sphere
+        <<this = other;
     } else {
-        if keep_center_of_this {
-            this.radius = center_distance + max(this.radius, other.radius);
-        } else {
-            this.radius = center_distance / 2 + max(this.radius, other.radius);
-            this.center = (this.center + other.center) / 2;
-        }
+        // spheres intersect or are separated, same code in both cases
+        this.radius = center_distance / 2 + max(this.radius, other.radius);
+        this.center = (this.center + other.center) / 2;
+    }
+
+    return;
+}
+
+// Expand the radius of this, but keep its center fixed
+expand_radius :: (using this : *Sphere, other : Sphere) {
+    center_distance := distance(this.center, other.center);
+
+    if this.radius > center_distance + other.radius {
+        // this sphere contains other sphere, do nothing
+    } else if other.radius > center_distance + this.radius {
+        // other sphere contains this sphere, update this sphere
+        this.radius = center_distance + other.radius;
+    } else {
+        // spheres intersect or are separated, same code in both cases
+        this.radius = center_distance + other.radius;
     }
 
     return;

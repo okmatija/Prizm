@@ -1,4 +1,4 @@
-PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
+PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
 - New Feature: Attributes
 
   - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -77,6 +77,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0-rc", "WIP", #string DONE
 - Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
 - Fixed the weird requirement for Point Selection to be visible in order to use sphere clipping mode, those two things are now independant
 - Fixed bug where the transform was not accounted for in mesh merging operations, affected point selection and the `debug_spatial_index` command
+- Fixed annoying behaviour where the camera could orbit a bit after the orbit was placed with Ctrl RMB because the orbit code was not checking that Ctrl is not pressed
 - Improved the behaviour of fitting parts of the scene on the screen TODO we now more accurately account for clipping spheres/clipping ranges
 - Improved organisation/presentation of key bindings in the "Help" tab
 - Improved the clipping sphere UI by intializing the sphere to bound the aabb of the item selection being clipped

@@ -102,7 +102,7 @@ remove_entity_by_index :: (entity_to_remove_index : int) {
 }
 
 remove_entities_if_selected :: () {
-    for app.entities if it.is_selected {
+    for :Selected app.entities {
         remove_directory(get_directory(get_entity_source(it).path));
         deinit(it);
         free(it);
@@ -315,95 +315,119 @@ entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : floa
         return .{}; // Empty sphere
     }
 
-    result : Sphere = inline entity_raw_world_bounding_sphere(entity);
+    bound : Sphere = inline entity_raw_world_bounding_sphere(entity);
 
-    if is_empty(result) {
-        return result;
+    if is_empty(bound) {
+        return .{}; // Empty sphere
     }
 
     if entity.display_info.clip_sphere.is_active {
 
         clip : Sphere = inline entity_raw_world_clipping_sphere(entity);
+        intersection := find_intersection_sphere3_sphere3(bound, clip);
 
-        has_intersection, intersection := find_intersection_sphere3_sphere3(result, clip);
+        if #complete intersection.kind == {
+        case .SPHERES_SEPARATED_AND_DISJOINT;
 
-        if has_intersection if #complete intersection.kind == {
-            case .SPHERES_SEPARATED_AND_DISJOINT;
+            return .{}; // Empty sphere
 
-                assert(false);
+        case .SPHERES_SEPARATED_WITH_COMMON_POINT;
 
-            case .SPHERES_SEPARATED_WITH_COMMON_POINT;
+            return .{intersection.point, radius_of_point};
 
-                result.center = intersection.point;
-                result.radius = radius_of_point;
+        case .SPHERES_INTERSECT_IN_A_CIRCLE;
 
-            case .SPHERES_INTERSECT_IN_A_CIRCLE;
-
-                // @continue nocommit There is another case that needs fixing here! it happens when the clipping sphere is larger than the bounding sphere
-
-                // If the distance from intersection circle center to the bounding sphere center is less than the distance from the clipping sphere center to the bounding sphere center then a sphere with circumradius equal to the intersection circle with bound the remaining geometry
-                if distance_squared(intersection.circle.center, result.center) < distance_squared(clip.center, result.center) {
-                    result.center = intersection.circle.center;
-                    result.radius = intersection.circle.radius;
+            if bound.radius > clip.radius {
+                if distance_squared(intersection.circle.center, bound.center) < distance_squared(clip.center, bound.center) {
+                    return .{intersection.circle.center, intersection.circle.radius};
                 } else {
-                    result = clip;
+                    return clip;
                 }
+            } else {
+                if distance_squared(intersection.circle.center, clip.center) < distance_squared(bound.center, clip.center) {
+                    return .{intersection.circle.center, intersection.circle.radius};
+                } else {
+                    return bound;
+                }
+            }
 
-            case .SPHERE0_STRICTLY_INSIDE_SPHERE1; #through;
-            case .SPHERE0_INSIDE_SPHERE1_WITH_COMMON_POINT;
+        case .SPHERE0_STRICTLY_INSIDE_SPHERE1; #through;
+        case .SPHERE0_INSIDE_SPHERE1_WITH_COMMON_POINT;
 
-                // Do nothing, result is already the bounding sphere
+            return bound;
 
-            case .SPHERE1_STRICTLY_INSIDE_SPHERE0; #through;
-            case .SPHERE1_INSIDE_SPHERE0_WITH_COMMON_POINT;
+        case .SPHERE1_STRICTLY_INSIDE_SPHERE0; #through;
+        case .SPHERE1_INSIDE_SPHERE0_WITH_COMMON_POINT;
 
-                result = clip;
+            return clip;
         }
     }
 
-    // nocommit @Incomplete account for clipping planes as well
+    // @Incomplete Clip the against the clipping planes as well
 
-    return result;
+    return bound;
 }
 
-DEFAULT_ENTITY_FILTER :: #code !is_visible(it);
-
-// nocommit Refactor to make a function entities_world_bounding_radius to handle the fixed_center case!
+visit_visible :: #code !is_visible(it);
+visit_visible_selected :: #code !(is_visible(it) && it.is_selected);
 
 // Result could be an empty_sphere.
 // Accounts for clipping sphere nocommit TODO and clipping ranges
 // Note: hidden entities are skipped regardless of entity_filter, because entity_world_bounding_sphere returns an empty sphere in that case
-entities_world_bounding_sphere :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER, fixed_center : *Vector3 = null) -> Sphere {
+entities_world_bounding_sphere :: ($entity_filter : Code = visit_visible) -> Sphere {
 
-    expand_sphere :: (result : *Sphere, entity : *Entity, first : *bool, keep_center : bool) {
+    expand_sphere :: (result : *Sphere, entity : *Entity) {
         sphere : Sphere = entity_world_bounding_sphere(entity);
         if !is_empty(sphere) {
-            if <<first {
-                result.center = ifx keep_center then result.center else sphere.center;
-                result.radius = sphere.radius;
+            if is_empty(result) {
+                <<result = sphere;
             } else {
-                expand(result, sphere, keep_center);
+                expand(result, sphere);
             }
-            <<first = false;
         }
     }
 
     result : Sphere;
-    if fixed_center {
-        result.center = <<fixed_center;
-        // radius is still negative so the sphere is empty
-    }
 
-    first := true;
-
-    Iterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
+    Iterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
     for :Iterator app.entities {
-        expand_sphere(*result, it, *first, (fixed_center != null));
+        expand_sphere(*result, it);
     }
 
+    // @Cleanup use entity_filter here? Or remove it altogether
     it : *Entity = *app.select_tool.entity;
     if it.display_info.is_visible {
-        expand_sphere(*result, it, *first, (fixed_center != null));
+        expand_sphere(*result, it);
+    }
+
+    return result;
+}
+
+entities_world_bounding_radius :: ($entity_filter : Code = visit_visible, center : Vector3) -> Sphere {
+
+    expand_radius :: (result : *Sphere, entity : *Entity) {
+        sphere : Sphere = entity_world_bounding_sphere(entity);
+        if !is_empty(sphere) {
+            if is_empty(result) {
+                result.radius = distance(result.center, sphere.center) + sphere.radius;
+            } else {
+                expand_radius(result, sphere);
+            }
+        }
+    }
+
+    result : Sphere;
+    result.center = center;
+
+    Iterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
+    for :Iterator app.entities {
+        expand_radius(*result, it);
+    }
+
+    // @Cleanup use entity_filter here? Or remove it altogether
+    it : *Entity = *app.select_tool.entity;
+    if it.display_info.is_visible {
+        expand_radius(*result, it);
     }
 
     return result;
@@ -588,7 +612,7 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
     found_index : int = -1;
 
     if generation_index >= 0 {
-        for app.entities {
+        for :All app.entities {
             if it.generation_index == generation_index {
                 if get_entity_source(it).path == fully_pathed_name {
                     found = it;
@@ -599,7 +623,7 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
         }
     } else {
         max_generation_index : int = -1;
-        for app.entities {
+        for :All app.entities {
             if it.generation_index > max_generation_index {
                 if get_entity_source(it).path == fully_pathed_name {
                     max_generation_index = it.generation_index;
@@ -652,7 +676,7 @@ is_visible :: (e : *Entity) -> bool {
 
 // @Refactor Use spatial lookups on triangles/segments/points
 // nocommit Remove this function, replace it with a version find_closest_element which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
-find_closest_vertex :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Closest_Point_Ray_Entity {
+find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
@@ -666,7 +690,7 @@ find_closest_vertex :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) -> Closes
 
     min_dist2 := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
+    FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
     
     for :FilterIterator entity, entity_index : app.entities {
         inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
@@ -721,7 +745,7 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 // Result positions are in world space
 // nocommit have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
 find_closest_element :: (
-    $entity_filter : Code = DEFAULT_ENTITY_FILTER,
+    $entity_filter : Code = visit_visible,
     visit_points := true,
     visit_segments := true,
     visit_triangles := true
@@ -765,7 +789,7 @@ find_closest_element :: (
 
     d_min := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments Entities_Iterator(entity_filter=entity_filter);
+    FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
     if visit_triangles for :FilterIterator entity, entity_index : app.entities {
         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
@@ -1105,7 +1129,7 @@ init_entity_spatial_index :: (using entity : *Entity) {
 }
 
 get_entity_index :: (entity : *Entity) -> int {
-    for app.entities {
+    for :All app.entities {
         if it == entity {
             return it_index;
         }

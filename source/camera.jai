@@ -120,26 +120,25 @@ update_camera :: (delta_time : float) {
 
     if mouse_reposition_camera() {
 
-        // @Cleanup @Volatile closest.element_index can be a vertex or triangle index
-        entity_filter :: #code !is_visible(it);
-        closest : Closest_Point_Ray_Entity = find_closest_element(entity_filter=entity_filter);
+        closest : Closest_Point_Ray_Entity = find_closest_element(visit_visible);
         if closest.entity_index != -1 {
-            position := get_closest_point_on_element(closest);
 
-            entity_filter :: #code !it.display_info.is_visible;
-            sphere : Sphere = entities_world_bounding_sphere(entity_filter, fixed_center=*position);
+            position : Vector3 = get_closest_point_on_element(closest);
+            sphere : Sphere = entities_world_bounding_radius(visit_visible, position);
 
             if !is_empty(sphere) { // @Cleanup could be an assert instead, since if we get a closest.entity_index != -1 we should have a sphere
-                // nocommit Cleanup use transform_point/transform_vector here
                 view_from_world := make_look_at_matrix(app.camera);
-                closest_view := view_from_world * make_vector4(position, 1.);
                 world_from_view := inverse(view_from_world);
-                eye_displacement := (world_from_view * make_vector4(closest_view.x, closest_view.y, 0., 0.)).xyz;
+
+                closest_view := transform_point(view_from_world, position);
+                eye_displacement := transform_vector(world_from_view, Vector3.{closest_view.x, closest_view.y, 0.});
 
                 app.camera.look_position = position;
                 app.camera.eye_position  += eye_displacement;
-                app.camera.far = sphere.radius * 2;
-                app.camera.near = -app.camera.far;
+
+                look_length := distance(app.camera.look_position, app.camera.eye_position);
+                app.camera.far  = look_length + sphere.radius * 2;
+                app.camera.near = look_length - sphere.radius * 2;
             }
         }
 
@@ -171,7 +170,7 @@ update_camera :: (delta_time : float) {
             camera.look_position += increment;
         }
 
-    } else if ImGui.IsMouseDragging(.Right, 0.) && mouse_move_valid { // Orbit about the look position using right button
+    } else if ImGui.IsMouseDragging(.Right, 0.) && !io().KeyCtrl && mouse_move_valid { // Orbit about the look position using right button. Make sure Ctrl is not down since Ctrl RMB sets the camera orbit and its annoying to have the camera start rotating after you do that..!
 
         world_from_projection_at_mouse_down := inverse(make_projection_from_world(camera_at_mouse_down));
 
@@ -257,12 +256,7 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 // Adjust the camera position and viewing volume to fit the visible geometry while preserving the camera look direction
 // The camera orbit will be centered on the centroid of all visible entities
 fit_scene_on_screen :: () {
-    // entity_filter :: #code !it.display_info.is_visible;
-    // sphere := entities_world_bounding_sphere(entity_filter);
-    // fit_sphere_on_screen(sphere, sphere.radius);
-
-    entity_filter :: #code !is_visible(it);
-    fit_on_screen(entity_filter);
+    fit_on_screen(visit_visible);
 }
 
 // While preserving the camera look direction:
@@ -270,43 +264,35 @@ fit_scene_on_screen :: () {
 // 2. Set the camera near/far/top/bottom/left/right planes to fit all visible items on the screen
 fit_on_screen :: (entity : *Entity) {
     // Compute camera look position as the center of the bounding sphere of the visible entity geometry
-    tight_sphere := entity_world_bounding_sphere(entity);
-    look_position := tight_sphere.center;
+    look_sphere := entity_world_bounding_sphere(entity);
 
-    if is_empty(tight_sphere) {
+    if is_empty(look_sphere) {
         return; // Do nothing, we don't know where to look
     }
 
     // Compute the sphere, centered on `look_position`, to place the camera planes
-    entity_is_visible_filter :: #code !it.display_info.is_visible;
-    camera_sphere := entities_world_bounding_sphere(entity_is_visible_filter, *look_position);
-    assert(!is_empty(camera_sphere)); // If tight_sphere was not empty this shouldn't be!
-    assert(look_position == camera_sphere.center);
+    camera_sphere := entities_world_bounding_radius(visit_visible, look_sphere.center);
+    assert(!is_empty(camera_sphere)); // If look_sphere was not empty this shouldn't be!
 
     // Update the camera to fit the camera sphere
     fit_sphere_on_screen(camera_sphere);
-    assert(look_position == app.camera.look_position);
 }
 
 // As `fit_on_screen` but for multiple entities
-fit_on_screen :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) {
-    // Compute camera look position as the center of the bounding sphere of the visible entity geometry
-    tight_sphere := entities_world_bounding_sphere(entity_filter);
-    look_position := tight_sphere.center;
+fit_on_screen :: ($entity_filter : Code = visit_visible) {
+    // Compute a sphere whose center will be the look position
+    look_sphere := entities_world_bounding_sphere(entity_filter);
 
-    if is_empty(tight_sphere) {
+    if is_empty(look_sphere) {
         return; // Do nothing, we don't know where to look
     }
 
-    // Compute the sphere, centered on `look_position`, to place the camera planes
-    entity_is_visible_filter :: #code !it.display_info.is_visible;
-    camera_sphere := entities_world_bounding_sphere(entity_is_visible_filter, *look_position);
-    assert(!is_empty(camera_sphere)); // If tight_sphere was not empty this shouldn't be!
-    assert(look_position == camera_sphere.center);
+    // Compute a sphere centered on `look_position`, to place the camera planes
+    camera_sphere := entities_world_bounding_radius(visit_visible, look_sphere.center);
+    assert(!is_empty(camera_sphere)); // If look_sphere was not empty this shouldn't be!
 
     // Update the camera to fit the camera sphere
     fit_sphere_on_screen(camera_sphere);
-    assert(look_position == app.camera.look_position);
 }
 
 // While preserving the camera look direction:
@@ -316,21 +302,19 @@ fit_on_screen :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) {
 fit_on_screen_filled :: (entity : *Entity) {
 
     // Compute a tight sphere the bounding sphere of the visible entity geometry
-    tight_sphere := entity_world_bounding_sphere(entity);
-    look_position := tight_sphere.center;
+    look_sphere := entity_world_bounding_sphere(entity);
 
-    if is_empty(tight_sphere) {
+    if is_empty(look_sphere) {
         return; // Do nothing, we don't know where to look
     }
 
     // Update the camera as described in `fit_on_screen` and cache it
     fit_on_screen(entity);
     near_far_camera := app.camera;
-    assert(look_position == near_far_camera.look_position);
+    assert(look_sphere.center == near_far_camera.look_position);
 
     // Update the camera to fit the tight sphere
-    fit_sphere_on_screen(tight_sphere);
-    assert(look_position == app.camera.look_position);
+    fit_sphere_on_screen(look_sphere);
 
     // Update the near/far planes so they fit all visible geometry 
     app.camera.near = near_far_camera.near;
@@ -338,24 +322,22 @@ fit_on_screen_filled :: (entity : *Entity) {
 }
 
 // As `fit_on_screen_filled` but for multiple entities
-fit_on_screen_filled :: ($entity_filter : Code = DEFAULT_ENTITY_FILTER) {
+fit_on_screen_filled :: ($entity_filter : Code = visit_visible) {
 
-    // Compute a tight sphere the bounding sphere of the visible entity geometry
-    tight_sphere := entities_world_bounding_sphere(entity_filter);
-    look_position := tight_sphere.center;
+    // Compute a tight sphere the bounding sphere of the filter-passing geometry
+    look_sphere := entities_world_bounding_sphere(entity_filter);
 
-    if is_empty(tight_sphere) {
+    if is_empty(look_sphere) {
         return; // Do nothing, we don't know where to look
     }
 
     // Update the camera as described in `fit_on_screen` and cache it
-    fit_on_screen();
+    fit_on_screen(entity_filter);
     near_far_camera := app.camera;
-    //assert(look_position == near_far_camera.look_position); // @Cleanup Understand why these trigger??
+    assert(look_sphere.center == near_far_camera.look_position);
 
     // Update the camera to fit the tight sphere
-    fit_sphere_on_screen(tight_sphere);
-    //assert(look_position == app.camera.look_position); // @Cleanup Understand why these trigger??
+    fit_sphere_on_screen(look_sphere);
 
     // Update the near/far planes so they fit all visible geometry 
     app.camera.near = near_far_camera.near;
@@ -384,7 +366,7 @@ fit_sphere_on_screen :: (_sphere : Sphere, _look_length : float = 0) {
 
     look_direction := current_look_direction();
     app.camera.look_position = sphere.center;
-    app.camera.eye_position = app.camera.look_position - normalize_or_z_axis(look_direction) * look_length;
+    app.camera.eye_position  = app.camera.look_position - normalize_or_z_axis(look_direction) * look_length;
     app.camera.far    = distance(app.camera.look_position, app.camera.eye_position) + sphere.radius * 2;
     app.camera.top    = sphere.radius;
     app.camera.right  = current_window_aspect_ratio_width_over_height() * sphere.radius;

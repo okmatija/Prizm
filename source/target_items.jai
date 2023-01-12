@@ -609,12 +609,13 @@ focus_items_proc :: (unused : *void) {
 
     prev_camera := app.camera;
 
-    entity_filter :: #code !it.is_selected; // Don't need to check visibility since that's already filtered for
-    fit_on_screen(entity_filter);
+    // FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
+
+    fit_on_screen(visit_visible_selected);
 
     // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit 
     if almost_equal(app.camera, prev_camera) {
-        fit_on_screen_filled(entity_filter);
+        fit_on_screen_filled(visit_visible_selected);
     }
 }
 
