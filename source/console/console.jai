@@ -268,7 +268,7 @@ console_draw :: () {
                 }
                 write_entire_file_to_cwd("LOG.txt", contents);
             }
-            Show_Tooltip("Write the console log to LOG.txt\nHandy if you want to search the console log");
+            show_tooltip("Write the console log to LOG.txt\nHandy if you want to search the console log");
             ImGui.EndPopup();
         }
 

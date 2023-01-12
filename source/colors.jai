@@ -55,7 +55,7 @@ SELECT_VERTEX :: #run darken(SELECT_POINT, .8);
 
 FONT_SIZE :: 58;
 
-BORDER_SIZE :: 3;
+BORDER_SIZE :: 2;
 
 // Chosen using the tetradic option here, with the default button color as input https://www.canva.com/colors/color-wheel/
 CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR :: ImGui.ImVec4.{43./255, 117./255, 45./255, 1.};

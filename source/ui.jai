@@ -143,6 +143,7 @@ show_items_ui :: () {
                 if entities_in_folder.count {
                     table_flags := ImGui.TableFlags
                         //.RowBg |
+                        //.BordersOuter |
                         .PadOuterX |
                         .NoBordersInBody |
                         .ScrollY;
@@ -183,7 +184,7 @@ show_items_ui :: () {
 
         selected : [..]*Entity = temp_selected_entities();
         ImGui.Text("% item% (% selected)", app.entities.count, ifx app.entities.count > 1 then "s" else "", selected.count);
-        Show_Tooltip("Summary of ways to select items:");
+        show_tooltip("Summary of ways to select items:");
         bindings : [..]Binding_With_Description;
         bindings.allocator = temp;
         // @Volatile @Cleanup See :SelectionKeybindTooltip
@@ -191,7 +192,7 @@ show_items_ui :: () {
         array_add(*bindings, make_Binding_With_Description("Shift a", "Select/deselect visible items"));
         array_add(*bindings, make_Binding_With_Description("Alt a", "Toggle current item selection"));
         array_add(*bindings, make_Binding_With_Description("`", "Use the 'select_...' commands"));
-        Show_Tooltip_Binding(..bindings);
+        show_tooltip_binding(..bindings);
 
     } // end TreeNodeEx
 
@@ -258,7 +259,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         was_visible := entity.display_info.is_visible;
         visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
         result.visibility_changed = visibility_changed;
-        Show_Tooltip("Visible");
+        show_tooltip("Visible");
 
         if !was_visible && entity.display_info.is_visible {
             // @Think We should probably have some kind of function list/hook/delegate feature so we can add code to be executed when visibility changes etc
@@ -316,7 +317,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
     ImGui.TableNextColumn();
     {
         ImGui.Text("#%", entity_index);
-        Show_Tooltip("Entity index for console commands");
+        show_tooltip("Entity index for console commands");
     }
 
     // Entity name
@@ -347,7 +348,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
 
         header_annotation : *Annotation = entity_header_annotation(entity);
         if app.settings.show_header_annotation_tooltips && header_annotation {
-            Show_Tooltip(to_string(header_annotation));
+            show_tooltip(to_string(header_annotation));
         }
     }
 
@@ -375,29 +376,29 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
 
 show_preset_ui :: () {
 
-    // indent := ImGui.GetTreeNodeToLabelSpacing();
-
     do_tree := ImGui.TreeNodeEx("Examples", ImGui.TreeNodeFlags.SpanAvailWidth);
-    Show_Tooltip("Create preset shapes\nSome function as tutorials");
+    show_tooltip("Create preset shapes\nSome function as tutorials");
     if do_tree {
         defer ImGui.TreePop();
 
-        // indent2 := ImGui.GetTreeNodeToLabelSpacing();
-        // ImGui.Unindent(indent2 - indent);
-        // defer ImGui.Indent(indent2 - indent);
+        BoxSection();
 
+        ImGui.TableNextColumn();
         if ImGui.Button("Cube    ") { add_preset_cube(); }
         ImGui.SameLine();
         ImGui.Text("A basic cube. Hold Alt to fix position");
 
+        ImGui.TableNextColumn();
         if ImGui.Button("Widget  ") { add_preset_widget(); }
         ImGui.SameLine();
         ImGui.Text("A mesh generated from a CAD file");
 
+        ImGui.TableNextColumn();
         if ImGui.Button("BooleanA") { add_preset_boolean_a(); }
         ImGui.SameLine();
         ImGui.Text("A failed mesh boolean");
 
+        ImGui.TableNextColumn();
         if ImGui.Button("BooleanB") { add_preset_boolean_b(); }
         ImGui.SameLine();
         ImGui.Text("A failed cylinder/cone mesh boolean");
@@ -431,7 +432,7 @@ show_edit_tab_ui :: () {
                 radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
                 radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
                 ImGui.DragFloat("Closest-Point Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                Show_Tooltip(tprint(#string DONE
+                show_tooltip(tprint(#string DONE
 Closest-point query radius in pixels affecting:
 - Selection
 - Clipping sphere center seeding
@@ -447,7 +448,7 @@ DONE, Labelling_Mode.RAY_CAST));
             defer ImGui.TreePop();
 
             combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
-            Show_Tooltip(tprint(#string DONE
+            show_tooltip(tprint(#string DONE
 %: Show labels at the intersection/closest point of a camera ray query
 %: Show labels within some distance of the cursor location
 DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
@@ -458,7 +459,7 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
                 radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
                 radius_px := cast(float) app.settings.labelling_radius_px;
                 ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                Show_Tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
+                show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
                 app.settings.labelling_radius_px = cast(int) radius_px;
             }
 
@@ -469,8 +470,9 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
         if ImGui.TreeNodeEx("Console", ImGui.TreeNodeFlags.SpanAvailWidth) {
             defer ImGui.TreePop();
 
+
             combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
-            Show_Tooltip(#string DONE
+            show_tooltip(#string DONE
 Transparent mode: log window ignores mouse input so you can interact with the scene while reading the log
 Interactive mode: log window captures mouse input so you can scroll through log messages
 DONE);
@@ -481,7 +483,7 @@ DONE);
             defer ImGui.TreePop();
 
             ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
-            Show_Tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+            show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
             ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
         }
 
@@ -490,7 +492,7 @@ DONE);
 
             ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
             ImGui.Checkbox("Demo Mode", *app.demo_mode);
-            Show_Tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
+            show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
 
             disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
             if disable_window_resize_button ImGui.BeginDisabled();
@@ -524,7 +526,7 @@ show_details_ui :: () {
     }
 
     do_tree := ImGui.TreeNodeEx("Details", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
-    Show_Tooltip(tooltip);
+    show_tooltip(tooltip);
     if do_tree {
         defer ImGui.TreePop();
 
@@ -593,12 +595,16 @@ show_item_selection_ui :: () {
     if ImGui.TreeNodeEx("Selection", ImGui.TreeNodeFlags.SpanAvailWidth) {
         defer ImGui.TreePop();
 
+        BoxSection();
+
         for :Selected entity : app.entities {
+
+            ImGui.TableNextColumn();
             if entity_name(entity).count {
 
                 if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
                 if is_changed_on_disk(entity) == false {
-                    Show_Tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
+                    show_tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
                 }
 
                 ImGui.SameLine();
@@ -611,16 +617,16 @@ show_item_selection_ui :: () {
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
                 if source {
                     ImGui.Checkbox(imgui_label("", entity), *source.auto_reload);
-                    Show_Tooltip("Auto-reload if file changes on disk");
+                    show_tooltip("Auto-reload if file changes on disk");
                 } else {
                     dummy := true;
                     ImGui.Checkbox(imgui_label("", entity), *dummy);
-                    Show_Tooltip(tprint("Auto-reload only makes sense for files loaded from disk.\nThis entity was sourced from a %", get_entity_source_description(entity)));
+                    show_tooltip(tprint("Auto-reload only makes sense for files loaded from disk.\nThis entity was sourced from a %", get_entity_source_description(entity)));
                 }
 
                 ImGui.SameLine();
                 ImGui.Text("#%", it_index);
-                Show_Tooltip("Entity index for console commands");
+                show_tooltip("Entity index for console commands");
 
                 ImGui.SameLine();
                 text := entity_description(entity, with_creation_time=true);
@@ -654,7 +660,7 @@ show_item_selection_ui :: () {
                     }
                 }
             }
-            Show_Tooltip("Toggle auto-reload state on selected items");
+            show_tooltip("Toggle auto-reload state on selected items");
         }
     }
 }
@@ -668,7 +674,7 @@ show_select_ui :: () {
     using app.select_tool;
 
     do_tree := ImGui.TreeNodeEx("Select", ImGui.TreeNodeFlags.SpanAvailWidth);
-    Show_Tooltip("Create items from mesh geometry selections");
+    show_tooltip("Create items from mesh geometry selections");
     if do_tree {
         defer ImGui.TreePop();
 
@@ -688,14 +694,15 @@ show_select_ui :: () {
 
             // Element kind radio button
             ImGui.TableNextColumn();
-            ImGui.RadioButton(imgui_label("##element_kind", element_color), xx *target_element, xx element_kind);
-            Show_Tooltip(tooltip);
-            Show_Tooltip_Binding(tprint("Add % to selection", element_name), "Ctrl LMB");
+            ImGui.RadioButton(imgui_label(tprint("%##element_kind", element_name), element_color), xx *target_element, xx element_kind);
+            show_tooltip(tooltip);
+            show_tooltip_binding(tprint("Add % to selection", element_name), "Ctrl LMB");
+            entity_tick_flash_hover(*entity);
 
             // Enable checkbox. @Think Consider making this a radio button, if we always have a selection option, but maybe we don't want that...
             ImGui.TableNextColumn();
             ImGui.Checkbox(imgui_label("##elements_visible", elements_visible), elements_visible);
-            Show_Tooltip(tprint("% selection visibility", element_name));
+            show_tooltip(tprint("% selection visibility", element_name));
 
             // Color selection
             ImGui.TableNextColumn();
@@ -704,35 +711,34 @@ show_select_ui :: () {
                 <<label_color = darken(element_color, .8);
             }
 
-            // Element kind name
-            ImGui.TableNextColumn();
-            ImGui.Text(element_name);
-            entity_tick_flash_hover(*entity);
+            // // Element kind name
+            // ImGui.TableNextColumn();
+            // ImGui.Text(element_name);
         }
 
         // Selection Mode UI
-        if ImGui.BeginTable("Mode Table", 4, flags=ImGui.TableFlags.NoBordersInBody) {
+        if ImGui.BeginTable("Mode Table", 4, flags=ImGui.TableFlags.BordersOuter) {
             defer ImGui.EndTable();
 
             select_element(
-                "Triangle", .TRIANGLE, "When chosen select triangles (obj f-directives)",
+                "Triangles", .TRIANGLE, "When chosen select triangles (obj f-directives)",
                 *entity.display_info.triangles_color,
                 *entity.display_info.triangle_label_theme.label_color,
                 *entity.display_info.triangles_visible);
             entity.display_info.edges_visible = entity.display_info.triangles_visible; // Turn off/on edges with triangles
 
             select_element(
-                "Segment", .SEGMENT, "When chosen select segments (obj l-directives)",
+                "Segments", .SEGMENT, "When chosen select segments (obj l-directives)",
                 *entity.display_info.segments_color,
                 *entity.display_info.segment_label_theme.label_color,
                 *entity.display_info.segments_visible);
             select_element(
-                "Point", .POINT, "When chosen select points (obj p-directives)",
+                "Points", .POINT, "When chosen select points (obj p-directives)",
                 *entity.display_info.points_color,
                 *entity.display_info.point_label_theme.label_color,
                 *entity.display_info.points_visible);
             select_element(
-                "Vertex", .VERTEX, "When chosen select vertices (obj v-directives)",
+                "Positions", .VERTEX, "When chosen select vertices (obj v-directives)",
                 *entity.display_info.positions_color,
                 *entity.display_info.vertex_label_theme.label_color,
                 *entity.display_info.positions_visible);
@@ -766,7 +772,7 @@ show_select_ui :: () {
                 }
             }
             // nocommit Maybe don't reset the selection anymore
-            Show_Tooltip("Adds a new item based on this selection\nand resets the selection");
+            show_tooltip("Adds a new item based on this selection\nand resets the selection");
         }
 
         ImGui.SameLine();
@@ -786,7 +792,7 @@ format_float_ui :: (format : *FormatFloat) -> bool {
     trailing_width : s32 = xx format.trailing_width;
     changed |= ImGui.InputInt("Float decimals", *trailing_width);
     format.trailing_width = clamp(trailing_width, 0, 12);
-    Show_Tooltip("Number of digits following the decimal point");
+    show_tooltip("Number of digits following the decimal point");
     changed |= combo_box("Float format", *format.mode, type_info(FormatFloat.Mode));
 
     return changed;
@@ -801,7 +807,7 @@ format_struct_ui :: (format : *FormatStruct) -> bool {
         format.use_long_form_if_more_than_this_many_members = ifx use_long_form then -1 else 99999;
         changed = true;
     }
-    Show_Tooltip(TOOLTIP);
+    show_tooltip(TOOLTIP);
 TOOLTIP :: #string DONE
 "short form" means just draw values e.g., {1, 3, 5}
 "long form"  means draw names then values e.g., {x = 1; y = 3; z = 5;}
@@ -910,7 +916,7 @@ Action_Button :: (_label : string, action_set : *Action_Set) #expand {
 
         if action_set.hovered_duration_secs > 0.5 {
             push_allocator(temp);
-            Show_Tooltip_Binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}));
+            show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}));
         }
     }
 
@@ -1049,7 +1055,7 @@ show_camera_controls :: () {
         // ImGui.TableNextColumn();
         ImGui.SameLine();
         ImGui.DragFloat( "##Near ", *app.camera.near, .05);
-        Show_Tooltip("Near plane offset");
+        show_tooltip("Near plane offset");
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -1067,7 +1073,7 @@ show_camera_controls :: () {
         // ImGui.TableNextColumn();
         ImGui.SameLine();
         ImGui.DragFloat( "##Far  ", *app.camera.far, .05);
-        Show_Tooltip("Far plane offset");
+        show_tooltip("Far plane offset");
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
@@ -1096,13 +1102,13 @@ show_camera_controls :: () {
         // ImGui.TableNextColumn();
         ImGui.SameLine();
         combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        Show_Tooltip_Binding("Camera Rotation Axis", "Alt RMB");
+        show_tooltip_binding("Camera Rotation Axis", "Alt RMB");
     }
 
     // @FIXME Having this combo box here screws up the UI when you close the Settings tree :(
     // ImGui.SetNextItemWidth(-FLOAT32_MIN);
     // combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-    // Show_Tooltip("Alt RMB Camera Rotation Axis");
+    // show_tooltip("Alt RMB Camera Rotation Axis");
 
     // compiler_report("Move this menu next to the other buttons and update the changelog")
 
@@ -1115,15 +1121,15 @@ show_camera_controls :: () {
 
         // @TODO Would be better to set the look direction vector I think
         ImGui.DragFloat( "##Near ", *app.camera.near, .05);
-        Show_Tooltip("Near plane offset");
+        show_tooltip("Near plane offset");
         ImGui.DragFloat( "##Far  ", *app.camera.far, .05);
-        Show_Tooltip("Far plane offset");
+        show_tooltip("Far plane offset");
         // ImGui.DragFloat3("Orbit", *app.camera.look_position.component);
         // ImGui.DragFloat3("Eye  ", *app.camera.eye_position.component);
         // ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
 
         combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        Show_Tooltip_Binding("Camera Rotation Axis", "Alt RMB");
+        show_tooltip_binding("Camera Rotation Axis", "Alt RMB");
 
         // Not really needed if you can explicitly set the orbit position
         // if app.camera.look_position != Vector3.{0, 0, 0} {
@@ -1146,7 +1152,7 @@ show_camera_controls :: () {
 }
 
 show_help_tab_ui :: () {
-    table_flags := ImGui.TableFlags.BordersInnerV | .RowBg;
+    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
 
     if ImGui.TreeNodeEx("About", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
@@ -1168,14 +1174,6 @@ show_help_tab_ui :: () {
 
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %.", compiler_get_version_info(null));
         ImGui.Text(COMPILER_VERSION_INFO);
-    }
-
-    // @Cleaup name it like a macro
-    ShowBinding :: (binding : string, description : string) #expand {
-        ImGui.TableNextColumn();
-        ImGui.TextColored(app.theme.keymap_color, binding);
-        ImGui.TableNextColumn();
-        ImGui.Text(description);
     }
 
     if ImGui.TreeNodeEx("Key Bindings", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
@@ -1258,7 +1256,7 @@ show_help_tab_ui :: () {
             }
             write_entire_file_to_cwd("CHANGELOG.md", contents);
         }
-        Show_Tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
+        show_tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
 
         latest := app.changelog[0];
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
@@ -1283,16 +1281,16 @@ show_help_tab_ui :: () {
         }
     }
 
-    if ImGui.TreeNodeEx("Known Issues", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-        defer ImGui.TreePop();
-
-        if ImGui.BeginTable("", 2, flags=table_flags | .ScrollX, outer_size=outer_size) {
-            defer ImGui.EndTable();
-            for app.known_issues {
-                ShowBinding(it.name, it.description);
-            }
-        }
-    }
+    // FIXME This is broken
+    //if ImGui.TreeNodeEx("Known Issues", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
+    //    defer ImGui.TreePop();
+    //    if ImGui.BeginTable("", 2, flags=table_flags | .ScrollX) {
+    //        defer ImGui.EndTable();
+    //        for app.known_issues {
+    //            ShowBinding(it.name, it.description);
+    //        }
+    //    }
+    //}
 
     // @Incomplete add a message about where the keymap is for editing
 }
@@ -1404,7 +1402,7 @@ show_pending_directories_ui :: () {
                 message = "(none)";
                 ImGui.TextDisabled(message);
             }
-            Show_Tooltip(message);
+            show_tooltip(message);
         }
     }
 
@@ -1446,7 +1444,7 @@ show_pending_directories_ui :: () {
         deinit(dir);
         app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
     }
-    Show_Tooltip("Load all selected/checked files");
+    show_tooltip("Load all selected/checked files");
 
     ImGui.SameLine();
 
@@ -1454,7 +1452,7 @@ show_pending_directories_ui :: () {
         deinit(dir);
         app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
     }
-    Show_Tooltip("Do not load any files");
+    show_tooltip("Do not load any files");
 
     ImGui.SameLine();
 
@@ -1465,7 +1463,7 @@ show_pending_directories_ui :: () {
             }
             array_reset(*app.pending_directories);
         }
-        Show_Tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
+        show_tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
     }
 }
 
@@ -1485,21 +1483,21 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
 
     ImGui.SameLine();
     ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
-    Show_Tooltip("Show value of .obj v-directives (model space positions)\nwhich are referenced by elements");
+    show_tooltip("Show value of .obj v-directives (model space positions)\nwhich are referenced by elements");
 
     ImGui.SameLine();
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-    Show_Tooltip("Text Color");
+    show_tooltip("Text Color");
 
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    Show_Tooltip("Text Scale");
+    show_tooltip("Text Scale");
     ImGui.PopItemWidth();
 
     ImGui.SameLine();
     ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
-    Show_Tooltip(tooltip);
+    show_tooltip(tooltip);
 
     if valid_geometry_index(entity_index) {
         if ImGui.TreeNodeEx("Advanced##Labelling", .SpanAvailWidth) {
@@ -1509,7 +1507,7 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
             if ImGui.Button("Find Unreferenced Positions") {
                 item_find_unreferenced_positions(entity_index, new_item=0);
             }
-            Show_Tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
+            show_tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
         }
     }
 }
@@ -1519,16 +1517,16 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     ImGui.SameLine();
 
     ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
-    Show_Tooltip(tooltip);
+    show_tooltip(tooltip);
     ImGui.SameLine();
 
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-    Show_Tooltip("Text Color");
+    show_tooltip("Text Color");
     ImGui.SameLine();
 
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    Show_Tooltip("Text Scale");
+    show_tooltip("Text Scale");
     ImGui.PopItemWidth();
 }
 
@@ -1537,16 +1535,16 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     ImGui.SameLine();
 
     ImGui.Checkbox(imgui_label("##visible", theme), *theme.visible);
-    Show_Tooltip(tooltip);
+    show_tooltip(tooltip);
     ImGui.SameLine();
 
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-    Show_Tooltip("Text Color");
+    show_tooltip("Text Color");
     ImGui.SameLine();
 
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    Show_Tooltip("Text Scale");
+    show_tooltip("Text Scale");
     ImGui.PopItemWidth();
 }
 
@@ -1555,16 +1553,16 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
     ImGui.SameLine();
 
     ImGui.Checkbox(imgui_label("##visible", theme), *theme.visible);
-    Show_Tooltip(tooltip);
+    show_tooltip(tooltip);
     ImGui.SameLine();
 
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
-    Show_Tooltip("Text Color");
+    show_tooltip("Text Color");
     ImGui.SameLine();
 
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    Show_Tooltip("Text Scale");
+    show_tooltip("Text Scale");
     ImGui.PopItemWidth();
 }
 
@@ -1583,28 +1581,40 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
 display_information :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Information", .SpanAvailWidth) {
         defer ImGui.TreePop();
-        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
-        defer ImGui.PopStyleColor();
 
-        // @Incomplete This should be a table, and should include annotation/attribute information
-        ImGui.Text("#positions = %", entity.mesh.positions.count);
-        Show_Tooltip("Number of vertex positions");
-        ImGui.Text("#points = %", entity.mesh.points.count);
-        Show_Tooltip("Number of point elements");
-        ImGui.Text("#segments = %", entity.mesh.segments.count);
-        Show_Tooltip("Number of line segment elements");
-        ImGui.Text("#triangles = %", entity.mesh.triangles.count);
-        Show_Tooltip("Number of triangle elements");
+        table_flags := ImGui.TableFlags.BordersOuter;
+        ImGui.BeginTable("", 2, flags=table_flags);
+        defer ImGui.EndTable();
 
-        maybe_update_render_info(*entity.render_info, *entity.mesh);
+        Row :: (entry : string, description : string, tooltip : string) #expand {
+            ImGui.TableNextColumn();
+            ImGui.TextColored(app.theme.keymap_color, entry);
+            if tooltip show_tooltip(tooltip);
 
-        imgui_text_for_aabb(entity.render_info.bounding_aabb);
+            ImGui.TableNextColumn();
+            ImGui.Text(description);
+            if tooltip show_tooltip(tooltip);
+        }
+
+        // @Incomplete Attributes/Annotations information?
+        Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
+        Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
+        Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
+        Row("Triangles", tprint("%", entity.mesh.triangles.count), "Number of triangle elements");
+        aabb := entity.render_info.bounding_aabb;
+        Row("AABB Max Point", tprint("[%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z), "Model space AABB");
+        Row("AABB Min Point", tprint("[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z), "Model space AABB");
     }
 }
 
 display_transform :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Transform", .SpanAvailWidth) {
         defer ImGui.TreePop();
+
+        BoxSection();
+
+        ImGui.TableNextColumn();
+
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         ImGui.Text("This is a \"world from model\" transform");
         ImGui.PopStyleColor();
@@ -1618,23 +1628,20 @@ display_transform :: (entity : *Entity) {
 
 display_annotations :: (entity : *Entity, entity_index : int) {
 
-    header := "Annotation Table (none)";
     annotation_count := entity_annotation_count(entity);
-    if annotation_count {
-        header = tprint("Annotation Table (%)", annotation_count);
-    } else {
-        ImGui.BeginDisabled();
-    }
-    defer if annotation_count == 0 then ImGui.EndDisabled();
+    header := ifx annotation_count == 0 then "Annotation Table (none)" else "Annotation Table";
+    if            annotation_count == 0 then ImGui.BeginDisabled();
+    defer if      annotation_count == 0 then ImGui.EndDisabled();
 
     show_annotation_theme_ui("Annotations", "Show annotations", *entity.display_info.annotation_label_theme);
 
-    if ImGui.TreeNodeEx(imgui_label(header, entity), .SpanAvailWidth) {
+    if ImGui.TreeNodeEx(imgui_label(header), .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         DoRadioButton :: (name : string, annotations_kind : Annotation.Kind, annotations : [..]Annotation) #expand {
             if !annotations.count ImGui.BeginDisabled();
             ImGui.RadioButton(name, xx *`entity.annotation_info.show_kind, xx annotations_kind);
+            show_tooltip(tprint("% annotation%", annotations.count, plural_suffix(annotations.count > 1)));
             if !annotations.count ImGui.EndDisabled();
         }
 
@@ -1663,7 +1670,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
         if annotations.count {
 
-            table_flags := ImGui.TableFlags.RowBg | .ScrollY | .Resizable | .Reorderable | .Hideable | .Sortable | .PadOuterX;
+            table_flags := attr_anno_table_flags;
             outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
 
             if last_frame_annotation_list_height_px < outer_size.y {
@@ -1732,7 +1739,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                         bindings.allocator = temp;
                         array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
                         array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
-                        Show_Tooltip_Binding(..bindings);
+                        show_tooltip_binding(..bindings);
                     }
 
                     ImGui.TableNextColumn();
@@ -1757,7 +1764,7 @@ display_attribute :: (entity : *Entity, entity_index : int, base_attribute : *Si
     if base_attribute.type == {
         case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
             ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
-            Show_Tooltip(TOOLTIP);
+            show_tooltip(TOOLTIP);
             TOOLTIP :: #string DONE
 Matrix3 :: struct {
 _11, _12, _13 : float;
@@ -1779,7 +1786,9 @@ DONE;
 
                 if attribute.values.count {
 
-                    table_flags := ImGui.TableFlags.RowBg | .ScrollY | .Resizable | .Reorderable | .Hideable | .PadOuterX; // | .Sortable;
+                    table_flags := attr_anno_table_flags;
+                    table_flags &= ~.Sortable;
+
                     outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
 
                     if last_frame_annotation_list_height_px < outer_size.y {
@@ -1812,7 +1821,7 @@ DONE;
                             bindings.allocator = temp;
                             array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
                             array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
-                            Show_Tooltip_Binding(..bindings);
+                            show_tooltip_binding(..bindings);
 
                             ImGui.TableNextColumn();
                             ImGui.Text(tprint("%", index));
@@ -1842,120 +1851,140 @@ show_rendering_ui :: (display_info : *Display_Info) {
     if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        ImGui.Text("Visible    ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##item_visible", display_info), *display_info.is_visible);
-        Show_Tooltip("Overall item visibility");
+        BoxSection();
 
-        // FIXME FIXME: opacity should control wireframe??
-        ImGui.Text("Render Mode");
-        ImGui.SameLine();
-        ImGui.PushItemWidth(120);
-        combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
-        ImGui.PopItemWidth();
+        ImGui.TableNextColumn();
+        show_rendering_triangles_ui(display_info);
 
-        // This doesn't seem very useful so I removed it
-        //ImGui.SameLine();
-        //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-        //Show_Tooltip("Deduce item primary colors from the file path");
+        ImGui.TableNextColumn();
+        show_rendering_segments_ui(display_info);
 
-        {
-            ImGui.Text("Triangles  ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
-            Show_Tooltip("Triangle visibility");
-            {
-                ImGui.SameLine();
-                ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
-                Show_Tooltip("Frontface Color");
-            }
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-            Show_Tooltip("Backface Render Mode");
-            ImGui.PopItemWidth();
+        ImGui.TableNextColumn();
+        show_rendering_points_ui(display_info);
+
+        ImGui.TableNextColumn();
+        show_rendering_positions_ui(display_info);
+
+        ImGui.TableNextColumn();
+        show_rendering_edges_ui(display_info);
+
+        ImGui.TableNextColumn();
+        show_rendering_normals_ui(display_info);
+
+        if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+
+            // FIXME FIXME: opacity should control wireframe??
+            ImGui.Text("Render Mode");
             ImGui.SameLine();
             ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
-            Show_Tooltip("Flat Shading");
-        }
-
-
-        {
-            ImGui.Text("Segments   ");
+            show_tooltip("Flat Shading");
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
-            Show_Tooltip("Segment visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
-            Show_Tooltip("Width");
-            display_info.segments_width = clamp(display_info.segments_width, 1, 5);
+            ImGui.PushItemWidth(120);
+            combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
             ImGui.PopItemWidth();
-        }
 
-        {
-            ImGui.Text("Points     ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-            Show_Tooltip("Point visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.InputInt("##points_size", *display_info.points_size);
-            Show_Tooltip("Size");
-            display_info.points_size = clamp(display_info.points_size, 1, 10);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Positions  ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
-            Show_Tooltip("Positions visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.InputInt("##positions_size", *display_info.positions_size);
-            Show_Tooltip("Size");
-            display_info.positions_size = clamp(display_info.positions_size, 1, 10);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Edges      ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
-            Show_Tooltip("Triangle edges visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
-            Show_Tooltip("Width");
-            display_info.edges_width = clamp(display_info.edges_width, 1., 5);
-            ImGui.PopItemWidth();
-        }
-
-        {
-            ImGui.Text("Normals    ");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-            Show_Tooltip("Normal visibility");
-            ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-            ImGui.SameLine();
-            ImGui.PushItemWidth(70);
-            ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
-            Show_Tooltip("Length");
-            ImGui.PopItemWidth();
+            // This doesn't seem very useful so I removed it
+            //ImGui.SameLine();
+            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+            //show_tooltip("Deduce item primary colors from the file path");
         }
     }
+}
+
+
+show_rendering_triangles_ui :: (display_info : *Display_Info) {
+    ImGui.Text("Triangles  ");
+
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
+    show_tooltip("Triangle visibility");
+
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
+    show_tooltip("Frontface Color");
+
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
+    ImGui.PopItemWidth();
+    show_tooltip("Backface Render Mode");
+}
+
+show_rendering_segments_ui :: (display_info : *Display_Info) {
+    ImGui.Text("Segments   ");
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
+    show_tooltip("Segment visibility");
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
+    show_tooltip("Width");
+    display_info.segments_width = clamp(display_info.segments_width, 1, 5);
+    ImGui.PopItemWidth();
+}
+
+show_rendering_points_ui :: (display_info : *Display_Info) {
+    ImGui.Text("Points     ");
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
+    show_tooltip("Point visibility");
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.SameLine();
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    ImGui.InputInt("##points_size", *display_info.points_size);
+    show_tooltip("Size");
+    display_info.points_size = clamp(display_info.points_size, 1, 10);
+    ImGui.PopItemWidth();
+}
+
+show_rendering_positions_ui :: (display_info : *Display_Info) {
+    ImGui.Text("Positions  ");
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
+    show_tooltip("Positions visibility");
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.SameLine();
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    ImGui.InputInt("##positions_size", *display_info.positions_size);
+    show_tooltip("Size");
+    display_info.positions_size = clamp(display_info.positions_size, 1, 10);
+    ImGui.PopItemWidth();
+}
+
+show_rendering_edges_ui :: (display_info : *Display_Info) {
+    ImGui.Text("Edges      ");
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
+    show_tooltip("Triangle edges visibility");
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
+    show_tooltip("Width");
+    display_info.edges_width = clamp(display_info.edges_width, 1., 5);
+    ImGui.PopItemWidth();
+}
+
+show_rendering_normals_ui :: (display_info : *Display_Info) {
+    ImGui.Text("Normals    ");
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
+    show_tooltip("Normal visibility");
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+    show_tooltip("Length");
+    ImGui.PopItemWidth();
 }
 
 
@@ -1963,10 +1992,26 @@ show_labelling_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
+        BoxSection();
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
         show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
         show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
         show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
         show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
+
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
         show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
     }
 }
@@ -1977,7 +2022,8 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
     if ImGui.TreeNodeEx("Clipping", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        if ImGui.BeginTable("##Clipping UI Table", 4, flags=ImGui.TableFlags.RowBg) { // , flags=ImGui.TableFlags.SizingFixedFit) {
+        table_flags := ImGui.TableFlags.BordersOuter; // | .RowBg; // .SizingFixedFit
+        if ImGui.BeginTable("##Clipping UI Table", 4, flags=table_flags) {
             defer ImGui.EndTable();
 
             ImGui.TableSetupColumn("checkbox", .WidthFixed, user_id=0);
@@ -1994,10 +2040,10 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
                 ImGui.TableSetColumnIndex(0);
                 ImGui.Text("Sphere");
-                Show_Tooltip_Binding(DESCRIBE, BINDING);
+                show_tooltip_binding(DESCRIBE, BINDING);
                 ImGui.SameLine();
                 ImGui.Checkbox(imgui_label("##clip_sphere", *clip_sphere), *clip_sphere.is_active);
-                Show_Tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
+                show_tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
 
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
@@ -2006,14 +2052,14 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
-                Show_Tooltip_Binding(DESCRIBE, BINDING);
+                show_tooltip_binding(DESCRIBE, BINDING);
 
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 // @Cleanup check this can't go nan, do we need to do the same to the clipping ranges?
                 ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
                 if isnan(clip_sphere.radius) clip_sphere.radius = POSITIVE_INF;
                 clip_sphere.radius = clamp(clip_sphere.radius, 0., POSITIVE_INF);
-                Show_Tooltip_Binding(DESCRIBE, BINDING);
+                show_tooltip_binding(DESCRIBE, BINDING);
 
                 ImGui.TableSetColumnIndex(3);
                 POSITIVE_INF :: 0h7F800000;
@@ -2026,7 +2072,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                         clip_sphere.radius = POSITIVE_INF;
                     }
                 }
-                Show_Tooltip("Reset sphere to contain the universe");
+                show_tooltip("Reset sphere to contain the universe");
 
                 get_update(old_clip_sphere, clip_sphere);
             }
@@ -2041,7 +2087,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     ImGui.Text("Slab  ");
                     ImGui.SameLine();
                     ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
-                    Show_Tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
+                    show_tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
 
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text("Normal");
@@ -2075,7 +2121,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                         p.min -= .0001;
                         p.max += .0001;
                     }
-                    Show_Tooltip("Reset the range min/max to keep the entire aabb");
+                    show_tooltip("Reset the range min/max to keep the entire aabb");
 
                     if ImGui.Button(imgui_label("Normalize", p)) {
                         normal_length := length(p.normal);
@@ -2085,7 +2131,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                             p.normal /= normal_length;
                         }
                     }
-                    Show_Tooltip("Make the normal unit and update the range min/max");
+                    show_tooltip("Make the normal unit and update the range min/max");
                 }
 
                 // See :RenderingSelectionAABB
@@ -2105,26 +2151,20 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
 display_action_buttons := true;
 
-imgui_text_for_aabb :: (aabb : AxisBox3) {
-    ImGui.Text("Model space AABB:");
-    ImGui.Text("Max [%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z);
-    ImGui.Text("Min [%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z);
-}
-
 entity_source_tooltip :: (entity : Entity) {
     if #complete entity.source.kind == {
         case .Entity_Source_File;
             source := isa(entity.source, Entity_Source_File); assert(source != null); // @CompilerBug Why assert(source) does not work?
-            Show_Tooltip(tprint("File:    %\nCreated: %", source.path, filetime_to_readable_date(source.creation_time)));
+            show_tooltip(tprint("File:    %\nCreated: %", source.path, filetime_to_readable_date(source.creation_time)));
         case .Entity_Source_Command;
             source := isa(entity.source, Entity_Source_Command); assert(source != null);
-            Show_Tooltip(tprint("Command: %\nCreated: %", source.console_command, filetime_to_readable_date(source.creation_time)));
+            show_tooltip(tprint("Command: %\nCreated: %", source.console_command, filetime_to_readable_date(source.creation_time)));
         case .Entity_Source_Preset;
             source := isa(entity.source, Entity_Source_Preset); assert(source != null);
-            Show_Tooltip(tprint("Example shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
+            show_tooltip(tprint("Example shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
         case .Entity_Source_Selection;
             source := isa(entity.source, Entity_Source_Selection); assert(source != null);
-            Show_Tooltip(tprint("Selection\nCreated: %", filetime_to_readable_date(source.creation_time)));
+            show_tooltip(tprint("Selection\nCreated: %", filetime_to_readable_date(source.creation_time)));
     }
 }
 
@@ -2146,6 +2186,15 @@ item_list_sweep_state : Checkbox_Sweep_Mode_State;
 
 FADE_TIME_SECS :: 1.;
 
+attr_anno_table_flags :: ImGui.TableFlags
+    .BordersOuter |
+    .Hideable |
+    .RowBg |
+    .Resizable |
+    .Reorderable |
+    .ScrollY |
+    .Sortable |
+    .PadOuterX;
 
 #scope_export // @CompilerBug without this scope_export the line below errors!
 ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue

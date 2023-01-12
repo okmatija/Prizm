@@ -238,6 +238,21 @@ imgui_label :: (label : string, ptr : *void = null) -> *u8 {
     return temp_c_string(tprint("%##%", label, ptr));
 }
 
+ShowBinding :: (binding : string, description : string) #expand {
+    ImGui.TableNextColumn();
+    ImGui.TextColored(app.theme.keymap_color, binding);
+    ImGui.TableNextColumn();
+    ImGui.Text(description);
+}
+
+BoxSection :: () #expand {
+    table_flags := ImGui.TableFlags
+        .BordersOuter;
+        // .NoHostExtendX; // Can be useful
+    ImGui.BeginTable("", 1, flags=table_flags);
+    `defer ImGui.EndTable();
+}
+
 // Used to make the rows of tables close together
 ScopeZeroCellPaddingY :: () #expand {
     padding := ImGui.GetStyle().CellPadding;
@@ -392,10 +407,10 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
     return false, false;
 }
 
-//  @Cleanup Rename Show_Tooltip* since these dont need to be macros
+//  @Cleanup Rename show_tooltip* since these dont need to be macros
 
 // @Incomplete add a delay before popup, see https://github.com/ocornut/imgui/issues/1485
-Show_Tooltip :: (description : string) {
+show_tooltip :: (description : string) {
     if (ImGui.IsItemHovered()) {
         ImGui.BeginTooltip();
         // ImGui.PushTextWrapPos(450);
@@ -405,8 +420,8 @@ Show_Tooltip :: (description : string) {
     }
 }
 
-// @CompilerBug This does not compile if its not a macro, because we dont find KEYBINDING_COLOR, but that should work..!
-Show_Tooltip_Binding :: (description : string, binding : string) #expand {
+// @CompilerBug{"0.1.049"} This does not compile if its not a macro, there is an error about 'Undeclared identifier 'app''
+show_tooltip_binding :: (description : string, binding : string) #expand {
     if (ImGui.IsItemHovered()) {
         ImGui.BeginTooltip();
         ImGui.TextColored(app.theme.keymap_color, binding);
@@ -428,7 +443,7 @@ make_Binding_With_Description :: (binding : string, description : string) -> Bin
     return result;
 }
 
-Show_Tooltip_Binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "") #expand {
+show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "") #expand {
     if bindings_with_descriptions.count == 0 return;
 
     if (ImGui.IsItemHovered()) {
@@ -606,7 +621,7 @@ type_to_string :: (type: Type) -> string {
 // Needed to make sure the tooltip is visible regardless of whether the tree node is open or closed
 TreeNodeWithTooltip :: (label : *u8, tooltip : string) -> bool #expand {
     result := ImGui.TreeNodeEx(label, .SpanAvailWidth);
-    Show_Tooltip(tooltip);
+    show_tooltip(tooltip);
     return result;
 }
 

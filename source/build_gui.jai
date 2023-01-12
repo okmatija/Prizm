@@ -127,9 +127,9 @@ build_gui :: (
                 Combo_Box(dead_code_elimination);
 
                 // @CompilerBug Using any InputText widgets causes compilation to crash in realloc, but the same code works at runtime
-                InputText("output_executable_name", *output_executable_name, .EnterReturnsTrue); Show_Tooltip("Unpathed, does not include extension such as \".exe\"");
+                InputText("output_executable_name", *output_executable_name, .EnterReturnsTrue); show_tooltip("Unpathed, does not include extension such as \".exe\"");
                 InputText("output_path", *output_path, .EnterReturnsTrue);
-                InputText("intermediate_path", *intermediate_path, .EnterReturnsTrue); Show_Tooltip("The place for temporary files, such as .added_strings_*, intermediate object files, etc.");
+                InputText("intermediate_path", *intermediate_path, .EnterReturnsTrue); show_tooltip("The place for temporary files, such as .added_strings_*, intermediate object files, etc.");
                 InputText("entry_point_name", *entry_point_name, .EnterReturnsTrue);
 
                 Input_Int(temporary_storage_size);

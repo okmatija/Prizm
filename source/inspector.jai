@@ -55,7 +55,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
             }
             do_tree := ImGui.TreeNodeEx(imgui_label(to_string(name), data), flags);
             if depth == 0 {
-                Show_Tooltip("Auto-generated and messy right now");
+                show_tooltip("Auto-generated and messy right now");
             }
             if do_tree {
                 defer ImGui.TreePop();
