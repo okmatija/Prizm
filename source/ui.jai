@@ -1586,6 +1586,11 @@ display_information :: (entity : *Entity) {
         ImGui.BeginTable("", 2, flags=table_flags);
         defer ImGui.EndTable();
 
+        ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);
+        ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthFixed);//;, 60);
+        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+        ImGui.TableHeadersRow();
+
         Row :: (entry : string, description : string, tooltip : string) #expand {
             ImGui.TableNextColumn();
             ImGui.TextColored(app.theme.keymap_color, entry);
