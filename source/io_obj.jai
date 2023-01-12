@@ -18,11 +18,11 @@ ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix so
 // @Incomplete Parameter to enable objs with segments to not get converted to polylines?
 
 // @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
-load_obj :: (filename : string, data : string, name : string) -> *Entity {
-    result : *Entity;
+load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
+    results : [..]*Entity;
     if !data {
         log(" File was empty");
-        return result;
+        return results;
     }
 
     parser : Parser;
@@ -51,7 +51,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     assert(parser.tokens.count > 0);
     assert(parser.tokens[parser.tokens.count - 1].type == .EOF);
 
-    result = New(Entity); // nocommit local_entities should be the result 
+    result := New(Entity);
+    array_add(*results, result);
+
+    set_entity_source_from_file(result, filename); // Do this here so the new entity has a filename, which is commonly needed in console commands
+
     using,only(mesh,
         command_annotations,
         block_annotations,
@@ -67,15 +71,6 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         array_free(scratch_vn);
         // array_free(scratch_vt);
     }
-
-    // For the duration of this function make app.entities point to the local entities array so that:
-    // 1. We can more conveniently index entities created by this function, without needing a larger refactor to implement negative entity indexing (which we should still do)
-    // 3. We can later multithread file loading
-    local_entities, old_entities : [..]*Entity;
-    array_add(*local_entities, result);
-    old_entities = app.entities;
-    app.entities = local_entities;
-    defer app.entities = old_entities;
 
     found_inf_or_nan : bool;
     missing_normals_count : int;
@@ -296,7 +291,13 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
             }
 
             for command : commands {
+
+                // Use the local entities array as the one that is referenced by console commands and the restore the old one after that
+                old_entities := app.entities;
+                app.entities = results;
                 console_execute_command(command);
+                results = app.entities;
+                app.entities = old_entities;
 
                 annotation : Annotation;
                 annotation.kind = .COMMAND;
@@ -352,8 +353,11 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     }
 
     if parser.failed {
-        deinit(result);
-        return null;
+        for results {
+            deinit(it);
+        }
+        array_reset(*results);
+        return results;
     }
 
     // Sort annotations by kind then by id
@@ -376,7 +380,6 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
         point_annotations=result.point_annotations,
         face_annotations=result.face_annotations,
         line_annotations=result.line_annotations);
-    set_entity_source_from_file(result, filename);
     set_entity_display_info(result);
     init_entity_spatial_index(result);
 
@@ -389,7 +392,7 @@ load_obj :: (filename : string, data : string, name : string) -> *Entity {
     //    }
     //}
 
-    return result;
+    return results;
 }
 
 save_obj :: (filename : string, mesh : Simple_Mesh) -> bool

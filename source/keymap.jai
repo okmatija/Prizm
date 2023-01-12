@@ -327,8 +327,13 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     CONTENTS, OK :: #run read_entire_file(FILENAME);
     #assert(OK); // If this fails then FILENAME is probably invalid
 
+    results : [..]*Entity = load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
+    if !results.count {
+        return null;
+    }
 
-    result : *Entity = load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
+    // @Incomplete Think about how to handle presets that generate more than one output??
+    result : *Entity = results[0]; 
 
     // Update the source to be a preset
     assert(result.source.kind == .Entity_Source_File); // because we loaded a file
@@ -357,6 +362,7 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
 
 add_preset :: (preset_proc : #type ()->*Entity) {
     entity : *Entity = preset_proc();
+    assert(entity != null); // Expected an entity
     source := isa(entity.source, Entity_Source_Preset);
     assert(source != null); // Expected a preset
     source.preset_proc = preset_proc;

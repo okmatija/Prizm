@@ -133,8 +133,10 @@ main :: () {
                 }
             }
             if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {
-                entity := load_one_file(change.full_path, .IGNORE);
-                add_entity(entity, .IGNORE);
+                entities := load_one_file(change.full_path, .IGNORE);
+                for entity : entities {
+                    add_entity(entity, .IGNORE);
+                }
 
                 if app.settings.fit_to_screen_on_file_watcher_event {
                     fit_scene_on_screen();
@@ -420,8 +422,10 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 #scope_file
 
 handle_filename :: (fully_pathed_filename : string, matching_name_behaviour : Duplicate_File_Behaviour) {
-    entity := load_one_file(fully_pathed_filename, matching_name_behaviour);
-    add_entity(entity, matching_name_behaviour); 
+    entities := load_one_file(fully_pathed_filename, matching_name_behaviour);
+    for entity : entities {
+        add_entity(entity, matching_name_behaviour); 
+    }
 }
 
 handle_directory :: (path : string) {

@@ -48,6 +48,7 @@ debug_fake_annotations :: (id : int) {
 
     item := app.entities[id];
     array_reset_keeping_memory(*item.vertex_annotations);
+    array_reset_keeping_memory(*item.line_annotations);
     array_reset_keeping_memory(*item.face_annotations);
 
     if item.mesh.positions.count > 0 {
@@ -60,6 +61,18 @@ debug_fake_annotations :: (id : int) {
         }
 
         log("# Cleared vertex annotations and added fake ones");
+    }
+
+    if item.mesh.segments.count > 0 {
+        for :SegmentTupleIterator item.mesh {
+            annotation : Annotation;
+            annotation.kind = .LINE;
+            set(*annotation.value, random_get_zero_to_one());
+            annotation.id = it_index;
+            array_add(*item.line_annotations, annotation);
+        }
+
+        log("# Cleared segments annotations and added fake ones");
     }
 
     if item.mesh.triangles.count > 0 {

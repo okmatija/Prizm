@@ -905,11 +905,13 @@ num_selected_entities :: () -> int {
     return count;
 }
 
-load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
+load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> [..]*Entity {
+    results : [..]*Entity;
+
     check, check_ok := is_directory(filename);
     if check || !check_ok {
         log_warning("Expected a fully pathed filename, got '%'\n", filename);
-        return null;
+        return results;
     }
 
     name := entity_name(filename);
@@ -919,7 +921,7 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
         found, found_index := find_entity(filename, -1);
         if found && matching_name_behaviour == .IGNORE {
             log_warning("Skipped file: '%' (already loaded)\n", name);
-            return null;
+            return results;
         }
     }
 
@@ -929,17 +931,19 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
     contents := read_entire_file(filename);
     defer free(contents);
 
-    result : *Entity = load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
+    results = load_one_file_from_memory(filename, contents, name, matching_name_behaviour);
     // @Incomplete check the directory has been set correctly here?
 
-    return result;
+    return results;
 }
 
 // @Cleanup rename to load_from_memory, and rename the filename argument..? or add another name parameter (or just set that after HMMMM)
-load_one_file_from_memory :: (filename : string, contents : string, name : string, matching_name_behaviour : Duplicate_File_Behaviour) -> *Entity {
+load_one_file_from_memory :: (filename : string, contents : string, name : string, matching_name_behaviour : Duplicate_File_Behaviour) -> [..]*Entity {
+    results : [..]*Entity;
+
     if !contents {
         log_warning("Skipped file: '%' (empty or missing)\n", filename);
-        return null;
+        return results;
     }
 
     // Check if we can early exit and avoid parsing the contents
@@ -947,11 +951,13 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
         found, found_index := find_entity(filename, -1);
         if found && matching_name_behaviour == .IGNORE {
             log_warning("Skipped file: '%' (already loaded)\n", name);
-            return null;
+            return results;
         }
     }
 
-    return load_one_file_from_memory(filename, contents, name);
+    results = load_one_file_from_memory(filename, contents, name);
+
+    return results;
 }
 
 
@@ -980,12 +986,15 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
                 log("Reloading file '%'... ", get_entity_source(entity).path);
                 duplicate_file_behaviour := Duplicate_File_Behaviour.OVERWRITE; // @Incomplete this should be customizable
 
-                // nocommit With command annotations this function could return a list of new entities, and each of these should be merged into the item list using duplicate_file_behaviour
-                new_entity := load_one_file(get_entity_source(entity).path, duplicate_file_behaviour);
-                if new_entity {
-                    // Set generation_index before adding to overwrite the correct entity
-                    new_entity.generation_index = entity.generation_index;
-                    add_entity(new_entity, duplicate_file_behaviour);
+                new_entities := load_one_file(get_entity_source(entity).path, duplicate_file_behaviour);
+                if new_entities.count {
+                    for new_entity : new_entities {
+                        if new_entity {
+                            // Set generation_index before adding to overwrite the correct entity
+                            new_entity.generation_index = entity.generation_index;
+                            add_entity(new_entity, duplicate_file_behaviour);
+                        }
+                    }
                 } else {
                     // If the entity didn't exist or couldn't be loaded clear the entity
                     clear(entity);
@@ -1193,23 +1202,24 @@ Entity_Source_Selection :: struct {
 
 #scope_file
 
-load_one_file_from_memory :: (filename : string, contents : string, name : string) -> *Entity {
-    result : *Entity;
+load_one_file_from_memory :: (filename : string, contents : string, name : string) -> [..]*Entity {
+    results : [..]*Entity;
 
     // @Refactor Improve the log messaging during file loading e.g., with indents after this message
     log("Loading file '%'...", filename);
 
     if ends_with_nocase(filename, "obj") {
-        result = load_obj(filename, contents, name);
+        results = load_obj(filename, contents, name);
     } else if ends_with_nocase(filename, "wkt") {
-        result = load_wkt(filename, contents, name);
+        result := load_wkt(filename, contents, name);
+        array_add(*results, result);
     }
 
-    if result {
+    if results.count {
         log("Loaded file '%'", filename);
     } else {
         log_error("Could not load file '%'", filename);
     }
 
-    return result;
+    return results;
 }

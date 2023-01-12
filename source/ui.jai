@@ -1429,8 +1429,8 @@ show_pending_directories_ui :: () {
                 reload_entity(entity);
             } else {
                 // Note we use .IGNORE rather than app.settings.duplicate_file_behaviour here, the user can get the latter behaviour by dragging in files individually
-                entity := load_one_file(file.fully_pathed_filename, .IGNORE);
-                if entity {
+                entities := load_one_file(file.fully_pathed_filename, .IGNORE);
+                for entity : entities {
                     add_entity(entity, .IGNORE); 
                     source := isa(entity.source, Entity_Source_File);
                     assert(source != null); // Expecte a file
