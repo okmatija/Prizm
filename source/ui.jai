@@ -1502,10 +1502,15 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     Show_Tooltip(tooltip);
 
     if valid_geometry_index(entity_index) {
-        if ImGui.Button("Find Unreferenced Positions") {
-            item_find_unreferenced_positions(entity_index, new_item=0);
+        if ImGui.TreeNodeEx("Advanced##Labelling", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+
+            ImGui.Text("If labels look wrong this may help:");
+            if ImGui.Button("Find Unreferenced Positions") {
+                item_find_unreferenced_positions(entity_index, new_item=0);
+            }
+            Show_Tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
         }
-        Show_Tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
     }
 }
 
