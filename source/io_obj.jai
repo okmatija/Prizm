@@ -121,6 +121,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             }
 
             array_add(*scratch_vn, normal);
+            array_add(*mesh.normals, normal);
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {

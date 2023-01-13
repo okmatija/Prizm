@@ -1,6 +1,7 @@
 Simple_Mesh :: struct {
     // Position
     positions : [..]Vector3;
+    normals : [..]Vector3; // FIXME This should be an attribute!!
 
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
     // .obj loading will fill these in from p, l and f directives respectively
@@ -38,6 +39,7 @@ deinit :: (using mesh : *Simple_Mesh) {
 
     // Note: array_reset frees memory and zeros members
     array_reset(*positions);
+    array_reset(*normals);
     array_reset(*points);
     array_reset(*segments);
     array_reset(*triangles);
@@ -48,6 +50,7 @@ deinit :: (using mesh : *Simple_Mesh) {
 clear :: (using mesh : *Simple_Mesh) {
     // Zeros all the counts, but keeps the memory
     array_reset_keeping_memory(*positions);
+    array_reset_keeping_memory(*normals);
     array_reset_keeping_memory(*points);
     array_reset_keeping_memory(*segments);
     array_reset_keeping_memory(*triangles);
@@ -187,17 +190,16 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
         dst.triangles[triangles_offset + i].z = xx positions_offset + src.triangles[i].z;
     }
 
-    // nocommit Transform attributes
-/*
+    // @Incomplete Transform attributes
+
     if src.normals.count || dst.normals.count {
-        array_resize(*dst.normals, positions_count);
+        array_resize(*dst.normals, dst.positions.count + src.positions.count);
         for i : 0..src.normals.count-1 {
             src_normal_world := transform_vector(src_world_from_model_vector, src.normals[i]);
             dst_normal_model := transform_vector(dst_model_from_world_vector, src_normal_world);
             dst.normals[positions_offset + i] = dst_normal_model;
         }
     }
-*/
 }
 
 // @FIXME Add a $world_space argument
@@ -227,15 +229,14 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
         <<it = (transform * make_vector4(it, 1.)).xyz;
     }
 
-    // nocommit Transform attributes
-/*
+    // @Incomplete Transform attributes
+
     if mesh.normals.count {
         inverse_transpose := transpose(inverse(transform));
         for * mesh.normals {
             <<it = (inverse_transpose * make_vector4(it, 0.)).xyz;
         }
     }
-*/
 }
 
 // Iterates over all triangles, computes the triangle normal and assigns it to the vertices
@@ -243,16 +244,13 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
 // - Vertices which are referenced by more than one triangle, will be given the normal of the triangle with the largest triangle index
 // - Vertices which are not referenced by any triangles will be assigned [0,0,0] as the normal
 compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh) -> bool, string {
-    return false, "@Incomplete"; // nocommit Implement this
-
-/*
     if !mesh return false, "Null mesh";
 
-    if mesh.geometry_format != .TRIANGLES {
-        return false, "Invalid geometry format";
+    if mesh.triangles.count == 0 {
+        return false, "No triangles";
     }
 
-    if mesh.indices.count % 3 == 0 {
+    {
         // Points not referenced by any triangle are assigned zero normals
         array_resize(*mesh.normals, mesh.positions.count, initialize=true);
 
@@ -271,12 +269,9 @@ compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh) -> bool, string {
                 return false, tprint("Out-of-range indices in mesh connectivity array, got %, %, %, but max index is %", tt.i, tt.j, tt.k, mesh.positions.count-1);
             }
         }
-    } else {
-        return false, "Invalid indices in mesh connectivity array";
     }
 
     return true, "";
-*/
 }
 
 

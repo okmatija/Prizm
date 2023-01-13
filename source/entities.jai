@@ -293,7 +293,7 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
 
 // Result could be an empty sphere. Does not check visiblity
 entity_raw_world_bounding_sphere :: (using entity : *Entity) -> Sphere {
-    maybe_update_render_info(*entity.render_info, entity.mesh);
+    maybe_update_render_info(*entity.render_info, *entity.mesh);
     result : Sphere = render_info.bounding_sphere;
     transform(*result, mesh.world_from_model);
     return result;

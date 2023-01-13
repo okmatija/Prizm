@@ -261,12 +261,11 @@ item_flip_normals :: (id : int) {
 
     entity := app.entities[id];
 
-    // nocommit Transform attributes
-    /*
+    // @Incomplete Transform attributes
+
     for * entity.mesh.normals {
         <<it *= -1;
     }
-    */
 
     for i : 0..entity.mesh.triangles.count-1 {
         using entity.mesh;

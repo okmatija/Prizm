@@ -226,18 +226,15 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
     return false;
 }
 
-maybe_update_render_info :: (info : *Render_Info, mesh : Simple_Mesh) {
+maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
-        // nocommit Handle this case
-        /*
-        if mesh.geometry_format == .TRIANGLES && !mesh.normals.count {
+        if mesh.triangles.count && !mesh.normals.count {
             // log("Computing and assigning triangle normals to vertices\n");
             success, failure_reason := compute_vertex_normals_from_triangles(mesh);
             if !success {
                 log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
             }
         }
-        */
 
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
         // stored separately to the raw position data so it can be changed efficiently
@@ -246,14 +243,14 @@ maybe_update_render_info :: (info : *Render_Info, mesh : Simple_Mesh) {
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
         NP := size_of(Vector3) * mesh.positions.count;
-        NN := 0; // size_of(Vector3) * mesh.normals.count;
+        NN := size_of(Vector3) * mesh.normals.count;
 
         if !info.vbo glGenBuffers(1, *info.vbo);
 
         glBindBuffer(GL_ARRAY_BUFFER, info.vbo);
         glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
-        // glBufferSubData(GL_ARRAY_BUFFER, NP, NN, mesh.normals.data);
+        glBufferSubData(GL_ARRAY_BUFFER, NP, NN, mesh.normals.data);
 
         if !info.points_ibo glGenBuffers(1, *info.points_ibo);
         if !info.segments_ibo glGenBuffers(1, *info.segments_ibo);
