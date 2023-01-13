@@ -1,11 +1,14 @@
-PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
+PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
 - New Feature: Attributes
 
   - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
   - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
   - Multiple attributes are supported, and each will have its own tab in the item context menu
+  - TODO Added a preset example to demonstrate the new annotation functionality
+DONE};
 
-- FIXME Changes and reorganisation of UI:
+PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
+- Changes and reorganisation of UI:
 
   - Removed the "Remove" buttons, item are now removed by selecting them and pressing the delete key
   - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
@@ -34,12 +37,11 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
       - This feature is very basic will be expanded/improved in future, feature requests welcome
     - If the Select tool is not open then Item selection mode is active
 
-- Annotations
+- New Features: Command Annotations
 
   - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file
-  - Annotatations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
-  - TODO Added a preset example to demonstrate the new annotation functionality
-  - TODO Remove the display of annotations for the RMB'd item when more than one item is selected, its confusing, also do the same for attributes
+  - Annotations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
+  - Removed the annotations UI when multiple items are selected, this was confusing, you can only inspect annotations when exactly one item is selected now
 
 - .obj file loading/mesh data-structure changes
 
