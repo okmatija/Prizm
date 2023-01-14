@@ -6,7 +6,7 @@ Camera :: struct {
 
     rotation_axis := Camera_Rotation_Axis.ROLL; // :UserConfig use configurable default
 
-    // nocommit Is this even used?? Remove it, we can compute from the entities or the look/eye_positions
+    // @Cleanup Is this even used?? Remove it, we can compute from the entities or the look/eye_positions
     scene_bounding_sphere : Sphere;
 
     // Data for orthographic projection

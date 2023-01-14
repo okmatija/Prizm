@@ -116,15 +116,17 @@ deinit :: (using entity : *Entity) {
     deinit(*mesh);
     deinit(spatial);
     
-    for :AnnotationIterator entity deinit(it);
-    // nocommit We should have AnnotationListIterator, so we don't need to change so many places
+    for :AnnotationIterator entity {
+        deinit(it);
+    }
+
+    // @Cleanup We should have AnnotationListIterator, so we don't need to change so many places
     array_reset(*command_annotations);
     array_reset(*block_annotations);
     array_reset(*vertex_annotations);
     array_reset(*point_annotations);
     array_reset(*face_annotations);
     array_reset(*line_annotations);
-
 
     free(get_entity_source(entity).path);
     if #complete source.kind == {
@@ -315,7 +317,7 @@ entity_raw_world_clipping_sphere :: (using entity : Entity) -> Sphere {
 
 // Result could be an empty_sphere.
 // Checks visibility, entity-level state checking like this is probably not a perf problem and makes the API more convenient. Also, it wouldn't really make sense to account for clipping, which affects visibility, but not account for overall visibility
-// Accounts for clipping sphere and nocommit clipping ranges
+// Accounts for clipping sphere and @Incomplete clipping ranges
 entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : float = 0) -> Sphere {
     if !entity.display_info.is_visible {
         return .{}; // Empty sphere
@@ -378,7 +380,7 @@ visit_visible :: #code !is_visible(it);
 visit_visible_selected :: #code !(is_visible(it) && it.is_selected);
 
 // Result could be an empty_sphere.
-// Accounts for clipping sphere nocommit TODO and clipping ranges
+// Accounts for clipping sphere @Incomplete FIXME clipping ranges
 // Note: hidden entities are skipped regardless of entity_filter, because entity_world_bounding_sphere returns an empty sphere in that case
 entities_world_bounding_sphere :: ($entity_filter : Code = visit_visible) -> Sphere {
 
@@ -681,13 +683,13 @@ is_visible :: (e : *Entity) -> bool {
 }
 
 // @Refactor Use spatial lookups on triangles/segments/points
-// nocommit Remove this function, replace it with a version find_closest_element which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
+// @Cleanup Remove this function, replace it with a version find_closest_element which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
 find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_Ray_Entity {
 
     // @Refactor to pass in the ray?
     ray_world : Ray3 = make_camera_ray();
 
-    // nocommit Consider clamping this based on a max model space distance, see get_model_space_query_radius
+    // @Cleanup Consider clamping this based on a max model space distance, see get_model_space_query_radius
     max_dist_px : int = app.settings.closest_point_query_max_dist_px;
 
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
@@ -749,7 +751,6 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 }
 
 // Result positions are in world space
-// nocommit have it only return results with closest_point_element set to .POINT, .SEGMENT or .TRIANGLE
 find_closest_element :: (
     $entity_filter : Code = visit_visible,
     visit_points := true,
@@ -803,14 +804,14 @@ find_closest_element :: (
         best_ray_triangle_hit, best_ray_triangle_miss : Closest_Point_Ray_Triangle;
         best_ray_triangle_hit_index, best_ray_triangle_miss_index : int = -1;
 
-        // nocommit Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
+        // @Speed Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
         // if is_clipped(`entity.display_info, isect_world, test_sphere=`sphere_clipped, test_ranges=`range_clipped) {
         //     continue;
         // }
 
         if entity.spatial == null {
 
-            // nocommit Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
+            // @Speed Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
             for :ModelTriangleIterator triangle, triangle_index : entity.mesh {
                 ProcessTriangle(triangle, triangle_index);
             }
@@ -850,7 +851,7 @@ find_closest_element :: (
         return result;
     }
 
-    // nocommit Early out if the ray misses the entity AABB
+    // @Speed Early out if the ray misses the entity AABB
     // @Incomplete When available, use the spatial index
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
@@ -979,7 +980,7 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
 
         case .Entity_Source_File;
 
-            // nocommit This code is in the wrong place
+            // @Cleanup This code is in the wrong place?
             enable_reload_shortcut :: (entity : Entity) -> bool {
                 if app.settings.disable_reload_key_if_file_unchanged {
                     return is_changed_on_disk(entity);
@@ -1166,7 +1167,7 @@ get_entity_source_description :: (entity : Entity) -> string {
     return "";
 }
 
-// nocommit fix the comments here
+// @Cleanup Are the comments here out of date?
 Entity_Source :: struct {
     // if kind == .FILE_ON_DISK these are filled using file_modtime_and_size
     // otherwise these are the current_time_consensus and the mesh vertex count

@@ -199,7 +199,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                 AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Simple_Mesh) #expand {
                     if face.has_normals {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
-                        // nocommit Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
+                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
                         vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(result, "vn", Simple_Mesh_Normals);
                         normals : *Matrix3 = array_add(*vn.values);
                         for i : 0..2 {
@@ -373,7 +373,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         log("If you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex (v-directive)");
     }
 
-    // nocommit remove this, and replace with something to deduce annotation_info?
+    // @Cleanup remove this? and replace with something to deduce annotation_info?
     set_entity_annotations(result, 
         command_annotations=result.command_annotations,
         block_annotations=result.block_annotations,

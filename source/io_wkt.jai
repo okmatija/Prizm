@@ -182,7 +182,7 @@ load_wkt :: (filename : string, data : string, name : string) -> *Entity {
             init_entity_spatial_index(entity);
 
             if entity.mesh.positions.count == 0 {
-                // nocommit Make these render like polylines in the meantime!
+                // @FIXME Make these render like polylines in the meantime!
                 log_error("Loading polygons is not supported because polygon triangulation is not yet implemented, sorry!\n");
                 parser.failed = true;
             }

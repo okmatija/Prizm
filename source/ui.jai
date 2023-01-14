@@ -770,8 +770,8 @@ show_select_ui :: () {
 
             if ImGui.Button(imgui_label("Cache", *entity)) {
                 if !is_empty(entity.mesh) {
-                    new_entity : *Entity = New(Entity);
 
+                    new_entity : *Entity = New(Entity);
                     merge(*new_entity.mesh, entity.mesh);
                     counter : *Preset_Counter = find_or_add(*g_preset_name_to_counter, "Selection");
                     set_entity_source_from_selection(new_entity, tprint("Selection %", counter.count), new_entity.mesh.positions.count);
@@ -780,18 +780,12 @@ show_select_ui :: () {
 
                     add_entity(new_entity, app.settings.duplicate_file_behaviour);
 
-                    // nocommit I think this is not needed
-                    // item_find_unreferenced_positions(app.entities.count-1, new_item=0);
-
-                    deinit(*entity); // nocommit figure out why this works
-
                     log("Selection cached: Created item #% %", app.entities.count-1, entity_name(new_entity));
                 } else {
                     log("Selection caching omitted: Mesh was empty");
                 }
             }
-            // nocommit Maybe don't reset the selection anymore
-            show_tooltip("Adds a new item based on this selection\nand resets the selection");
+            show_tooltip("Adds a new item based on this selection");
         }
 
         ImGui.SameLine();

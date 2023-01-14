@@ -55,7 +55,7 @@ clear :: (using mesh : *Simple_Mesh) {
     array_reset_keeping_memory(*segments);
     array_reset_keeping_memory(*triangles);
 
-    // nocommit Handle attributes here
+    // @FIXME Handle attributes here
 }
 
 no_elements :: (mesh : Simple_Mesh) -> bool {
@@ -276,7 +276,7 @@ compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh) -> bool, string {
 
 
 Simple_Mesh_Element :: enum {
-    VERTEX;   // a.k.a "position". Set via the v-directive (not really an element, just position data) nocommit Maybe we don't need this here since its not an element??
+    VERTEX;   // a.k.a "position". Set via the v-directive (not really an element, just position data)
 
     POINT;    // Set via the p-directive
     SEGMENT;  // Set via the l-directive
@@ -322,7 +322,7 @@ ATTRIBUTE_VALUE_TYPES :: Type.[string, float, Vector3, Matrix3];
 
 // @Think Perhaps we want dynamic_ versions of these functions which have non-constant value_type??
 
-// nocommit These functions should work on the mesh directly, not the entity
+// @Cleanup These functions should work on the mesh directly, not the entity
 
 find_mesh_attribute :: (entity : *Entity, attribute_name : string, $attribute_type : Type) -> *attribute_type {
     for entity.mesh.attributes {

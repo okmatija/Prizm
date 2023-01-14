@@ -96,9 +96,10 @@ App :: struct {
 
         Location :: enum {
             CLOSEST_POINT;
-            // VIEWPORT; // nocommit Implement me
-            // CONSOLE; // nocommit Implement me
-            // CENTROID; // nocommit Implement me
+            // @Incomplete Support visualizing labels in different positions
+            // VIEWPORT;
+            // CONSOLE;
+            // CENTROID;
         }
     }
 
@@ -253,7 +254,6 @@ current_window_aspect_ratio_width_over_height :: () -> float {
     return cast(float) app.current_window_width / cast(float) app.current_window_height;
 }
 
-// nocommit Rename this to something less generic and use this name for a basic iterator over entities
 EntitiesIterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
     #assert(flags == 0); // No options are supported
 
@@ -382,7 +382,7 @@ ImGui :: #import "ImGui";
 // Prism modules
 Simp :: #import "Simp_beta_0_1_016";
 // #import "Tagged_Union_Enum"(DEBUG=true);
-#load "modules/Tagged_Union_Enum.jai"; // nocommit FIXME this should be a module but it doesn't work when we use it as a module
+#load "modules/Tagged_Union_Enum.jai"; // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
 
 #load "annotations.jai";
 #load "axis_box.jai";

@@ -561,7 +561,7 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     glBlendEquation(GL_FUNC_ADD);
 }
 
-// nocommit Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
+// @Cleanup Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
 render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
 
     maybe_update_render_info(render_info, mesh);
@@ -944,7 +944,7 @@ render_entities :: () {
         if #complete closest_world.closest_point_element == {
         case .VERTEX; // aka position
 
-            // nocommit closest_world may never return this actually, perhaps we should compute this will a find_closest_element function (and change the obj loading code to convert unreferenced positions into point elements)
+            // @Think closest_world may never return this case actually?
 
             // Position and annotation label
             {

@@ -30,7 +30,7 @@ deinit :: (annotation : Annotation) {
 
 // In temporary storage... @Cleanup, this should use the contextual allocator
 to_string :: (annotation : Annotation) -> string {
-    // nocommit maybe prefix with directive that was annotated??
+    // @Think maybe prefix with directive that was annotated??
     if #complete annotation.value.kind == {
         case .string;
             pointer := cast(*string) annotation.value.bytes.data;
