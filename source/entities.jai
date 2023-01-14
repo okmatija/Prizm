@@ -212,6 +212,12 @@ is_changed_on_disk :: (entity : Entity) -> bool {
     return changed;
 }
 
+temp_visible_entities :: () -> [..]*Entity {
+    visible : [..]*Entity = temp_array(*Entity);
+    for :Visible app.entities array_add(*visible, it);
+    return visible;
+}
+
 temp_selected_entities :: () -> [..]*Entity {
     selected : [..]*Entity = temp_array(*Entity);
     for :Selected app.entities array_add(*selected, it);

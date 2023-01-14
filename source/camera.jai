@@ -5,7 +5,9 @@ Camera :: struct {
     up_direction :  Vector3;
 
     rotation_axis := Camera_Rotation_Axis.ROLL; // :UserConfig use configurable default
-    scene_bounding_sphere : Sphere; // nocommit Is this even used??
+
+    // nocommit Is this even used?? Remove it, we can compute from the entities or the look/eye_positions
+    scene_bounding_sphere : Sphere;
 
     // Data for orthographic projection
     left:   float;
@@ -120,26 +122,27 @@ update_camera :: (delta_time : float) {
 
     if mouse_reposition_camera() {
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_visible);
-        if closest.entity_index != -1 {
+        closest_world : Closest_Point_Ray_Entity = find_closest_element(visit_visible);
+        if closest_world.entity_index != -1 {
 
-            position : Vector3 = get_closest_point_on_element(closest);
-            sphere : Sphere = entities_world_bounding_radius(visit_visible, position);
+            // We want to shift the camera over to look at the new point but preserve the top/bottom/left/right planes
 
-            if !is_empty(sphere) { // @Cleanup could be an assert instead, since if we get a closest.entity_index != -1 we should have a sphere
-                view_from_world := make_look_at_matrix(app.camera);
-                world_from_view := inverse(view_from_world);
+            position_world : Vector3 = get_closest_point_on_element(closest_world);
+            sphere : Sphere = entities_world_bounding_radius(visit_visible, position_world);
+            assert(is_empty(sphere) == false); // if got closest.entity_index != -1 we should have a sphere
 
-                closest_view := transform_point(view_from_world, position);
-                eye_displacement := transform_vector(world_from_view, Vector3.{closest_view.x, closest_view.y, 0.});
-
-                app.camera.look_position = position;
-                app.camera.eye_position  += eye_displacement;
-
-                look_length := distance(app.camera.look_position, app.camera.eye_position);
-                app.camera.far  = look_length + sphere.radius * 2;
-                app.camera.near = look_length - sphere.radius * 2;
-            }
+            view_from_world := make_look_at_matrix(app.camera);
+            world_from_view := inverse(view_from_world);
+        
+            position_view := transform_point(view_from_world, position_world);
+            eye_displacement := transform_vector(world_from_view, Vector3.{position_view.x, position_view.y, 0.});
+        
+            app.camera.look_position = position_world;
+            app.camera.eye_position  += eye_displacement;
+        
+            look_length := distance(app.camera.look_position, app.camera.eye_position);
+            app.camera.far  = look_length + sphere.radius * 2;
+            app.camera.near = look_length - sphere.radius * 2;
         }
 
     } else if io_mouse_middle_down() && mouse_move_valid { // Pan with middle down.
@@ -342,35 +345,35 @@ fit_on_screen_filled :: ($entity_filter : Code = visit_visible) {
     // Update the near/far planes so they fit all visible geometry 
     app.camera.near = near_far_camera.near;
     app.camera.far = near_far_camera.far;
+    app.camera.eye_position = near_far_camera.eye_position;
 }
 
 // Adjust the camera position and viewing volume to fit the world space sphere while preserving the camera look direction
-fit_sphere_on_screen :: (_sphere : Sphere, _look_length : float = 0) {
-    if is_empty(_sphere) {
+//
+// It's important to position the eye on the boundary of the sphere, so that we avoid a bug like this:
+//
+//    a   <-E
+//
+//          E->   b
+//
+// Here the eye, E, is positioned between objects a and b, so when you change the look position to be centered on one and the other and the camera gets shifted if starts looking in opposite directions
+fit_sphere_on_screen :: (sphere_world : Sphere) {
+    if is_empty(sphere_world) {
+        // :PreserveCameraPositionWithNoVisibleItems
         // Do nothing. This is useful behaviour if, for example, the user hides all items, doesn't move the mouse but then presses 'f', in this case we don't want to change the camera so that if the user unhides all the items are in the same place as before
         return;
     }
 
-    sphere := _sphere;
-    look_length := _look_length;
+    app.camera.scene_bounding_sphere = sphere_world;
+    buffer_factor := 0.0; // Maybe this should be more than 0?
 
-    if sphere.radius <= 0. {
-        sphere.radius = 1.; // @Think I'm not sure about this... only need to check == 0 anyway, since we return on empty
-    }
-
-    if look_length == 0. {
-        look_length = dot_product(unit_vector(current_look_direction()), sphere.center - app.camera.eye_position);
-    }
-
-    app.camera.scene_bounding_sphere = sphere;
-
-    look_direction := current_look_direction();
-    app.camera.look_position = sphere.center;
-    app.camera.eye_position  = app.camera.look_position - normalize_or_z_axis(look_direction) * look_length;
-    app.camera.far    = distance(app.camera.look_position, app.camera.eye_position) + sphere.radius * 2;
-    app.camera.top    = sphere.radius;
-    app.camera.right  = current_window_aspect_ratio_width_over_height() * sphere.radius;
-    app.camera.near   = distance(app.camera.look_position, app.camera.eye_position) - sphere.radius * 2;
+    look_direction := normalize_or_z_axis(current_look_direction());
+    app.camera.look_position = sphere_world.center;
+    app.camera.eye_position  = sphere_world.center - sphere_world.radius * look_direction;
+    app.camera.far    = (2. + buffer_factor) * sphere_world.radius;
+    app.camera.top    = sphere_world.radius;
+    app.camera.right  = current_window_aspect_ratio_width_over_height() * sphere_world.radius;
+    app.camera.near   = (0. - buffer_factor) * sphere_world.radius;
     app.camera.bottom = -app.camera.top;
     app.camera.left   = -app.camera.right;
 

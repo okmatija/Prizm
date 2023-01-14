@@ -233,8 +233,24 @@ show_items_ui :: () {
         remove_entity_by_index(entity_to_remove);
     }
 
-    if app.settings.fit_to_screen_on_visibility_change && any_visibility_changed {
-        fit_scene_on_screen();
+    if any_visibility_changed {
+        // See :PreserveCameraPositionWithNoVisibleItems, we want to keep that behaviour here too
+        if app.settings.fit_to_screen_on_visibility_change {
+            fit_scene_on_screen();
+        } else {
+            look_sphere := entities_world_bounding_radius(visit_visible, app.camera.look_position);
+            prev_camera := app.camera;
+            fit_sphere_on_screen(look_sphere);
+            new_near := app.camera.near;
+            new_far  := app.camera.far;
+            new_eye  := app.camera.eye_position;
+
+            // Adjust to fit newly visible items
+            app.camera = prev_camera;
+            app.camera.near = new_near;
+            app.camera.far  = new_far;
+            app.camera.eye_position = new_eye;
+        }
     }
 }
 
@@ -1609,9 +1625,14 @@ display_information :: (entity : *Entity) {
         Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
         Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
         Row("Triangles", tprint("%", entity.mesh.triangles.count), "Number of triangle elements");
+
         aabb := entity.render_info.bounding_aabb;
         Row("AABB Max Point", tprint("[%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z), "Model space AABB");
         Row("AABB Min Point", tprint("[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z), "Model space AABB");
+
+        sphere := entity.render_info.bounding_sphere;
+        Row("Sphere center", tprint("[%, %, %]", sphere.center.x, sphere.center.y, sphere.center.z), "Model space bounding sphere");
+        Row("Sphere radius", tprint("%", sphere.radius), "Model space bounding sphere");
     }
 }
 
