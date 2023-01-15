@@ -292,14 +292,6 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             }
 
             for command : commands {
-
-                // Use the local entities array as the one that is referenced by console commands and the restore the old one after that
-                old_entities := app.entities;
-                app.entities = results;
-                console_execute_command(command);
-                results = app.entities;
-                app.entities = old_entities;
-
                 annotation : Annotation;
                 annotation.kind = .COMMAND;
                 annotation.id = current_line;
@@ -382,6 +374,16 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         face_annotations=result.face_annotations,
         line_annotations=result.line_annotations);
     set_entity_display_info(result);
+
+    for command : result.command_annotations {
+        // Use the local entities array as the one that is referenced by console commands and the restore the old one after that
+        old_entities := app.entities;
+        app.entities = results;
+        console_execute_command(to_string(command));
+        results = app.entities;
+        app.entities = old_entities;
+    }
+
     init_entity_spatial_index(result);
 
     //print("result = %\n", formatStruct(<<result, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));

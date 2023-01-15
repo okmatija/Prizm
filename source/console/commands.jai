@@ -115,11 +115,6 @@ select_if :: (should_select : (Entity)->bool, invert : int) {
     else          log("# selected % entities", count);
 }
 
-// Add visible/invisible items to the selection, if `invert` is true/false
-select_if_visible :: (invert : int = 0) {
-    select_if((e) => (e.display_info.is_visible), invert);
-} @RegisterCommand
-
 // Add items with/without position data to the selection, if `invert` is true/false
 select_if_empty :: (invert : int = 0) {
     select_if((e)=>(is_empty(e.mesh)), invert);
@@ -274,6 +269,40 @@ item_flip_normals :: (id : int) {
     }
 
     entity.render_info.is_dirty = true;
+} @RegisterCommand
+
+
+// Set the color of the highest-dimensional element (triangle > segment > point) in the given item's mesh
+item_set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    if r < 0 || r > 255 {
+        log_error("# Expected r to be in the range [0, 255], got %", r);
+        return;
+    }
+
+    if g < 0 || g > 255 {
+        log_error("# Expected g to be in the range [0, 255], got %", g);
+        return;
+    }
+
+    if b < 0 || b > 255 {
+        log_error("# Expected b to be in the range [0, 255], got %", b);
+        return;
+    }
+
+    if a < 0 || a > 255 {
+        log_error("# Expected a to be in the range [0, 255], got %", a);
+        return;
+    }
+
+    entity := app.entities[id];
+
+    color, visible := get_entity_primary_color(entity);
+    <<color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+
 } @RegisterCommand
 
 // @TODO It would be handy to support varargs/arrays for the target_ids for the following functions

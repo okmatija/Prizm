@@ -592,6 +592,7 @@ RELOAD_ITEMS_ACTION_SET := Action_Set.{
 //
 
 
+// @Volatile :FocusItemBehavior Sync with focus button
 focus_items_proc :: (unused : *void) {
 
     almost_equal :: (a : Camera, b : Camera) -> bool {

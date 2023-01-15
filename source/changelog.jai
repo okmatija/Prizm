@@ -8,86 +8,107 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
 DONE};
 
 PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
-- Changes and reorganisation of UI:
+- Changes to the UI
 
-  - Removed the "Remove" buttons, item are now removed by selecting them and pressing the delete key
-  - TODO Made the light theme the default TODO Fix the green when drag dropping a folder into Prism
-  - Added a new "Tools" section under the main "Prism" tab, moved presets shapes menu there and renamed as "Examples" tool, moved selection there too as a "Select" tool
-  - Created an "Edit" tool which works like the old actions menu but is better organised. There is a edit tool settings struct which matches the per-item versions. The state of this stuct is shown in the Edit tool, and when any state is changed in the tool the change is propogated to the targetted items, which are set via the radio button in the tool.
-  - Made the clipping sphere and clipping slab more compact to take up less space in the viewport
-  - TODO Note: Change the UI is annoying for users, sorry, it'll probably happen again though towards something following more familiar UI idioms (e.g., File/Edit/Window/Tools menu bar) that looks a bit more like Unreal/Blender with dockable windows, icons and when I figure out how to make a usable borderless SDL window.
+  - Made the Light theme the default, the Dark theme can be set in "Edit > Preferences > Appearance"
+  - Removed the "Remove" button: item are now removed by selecting them and pressing the delete key
+  - Removed the item context menu which was accessed with RMB on the item name, there is now a "Details" section which shows that information
+  - Removed the selection context menu which was accessed with RMB on a selected item, when multiple items are selected the "Details" section shows common data which, when edited, is applied to all items in the selection. 
+  - Adopted a more idiomatic layout for application options with new Edit/View/Help tabs. In future we'll move these to the OS application window
+  - Added boxes around the widgets within sections, to make it visually clearer what options are in what section
+  - Reduced the spacing between items in the item/annotation lists/tables
+  - Removed header annotations (the first block of obj comments) from the item name tooltips by default, these can be turned on under "Edit > Preferences > Miscellaneous"
+  - Improved the layout/presentation in general. Most notably in the "Labeling", "Clipping" and "Information" sections and the key bindings sections in the "Help" tab
+  - Improved the clipping sphere UI by intializing the sphere to bound the aabb of the item selection being clipped
+  - Fixed some section header not extending for the full window width
+  - Fixed some buttons which were not working
+  - Note: UI changes can be annoying but this should happen less as we move towards something more familiar/idiomatic (to users of Unreal/Blender). Planned future work, just FYI, is:
+    - Clarify when widgets in the "Details" section have multiple values e.g., using tri-state checkboxes where tick => ON, no-tick => OFF and solid fill => some selected items ON, others OFF
+    - Figure out how to make a usable borderless SDL window and Move Prism/Edit/View/Help tabs into the OS window
+    - Move to imgui's docking branch to add dockable windows
 
-- Changes to shortcuts:
+- Changes to shortcuts
 
-  - IMPORTANT: Changes focus item behaviour, probably a commonly used shortcut
-    - Previously, pressing 'f' would focus visible items. Now, you LMB to select an item (or 'Shift a'/'Alt a' to select visible/all items) and then press 'f' to focus the selection
-    - Pressing 'f' multiple times without changing the camera will toggle between placing the top/bottom/left/right planes around the selection or around all visible items in the scene
-  - Removed the way in which modifiers changed the items targetted by shortcuts. Shortcuts (e.g., 'i', 'j', 'k', 'l' etc) always target the selected items
-  - Changed 'Shift a' to be a shortcut which selects/deselects visible items, previously it complemented the selection state of visible items which was very weird/not useful
-  - Changed the shortcut to cycle vertex point rendering size from 'p' to 'v' because point elements (obj p-directives) and vertices (obj v-directives) are distinguished now and its most useful to cycle the vertex size and 'v' is a better memonic for that. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
-  - Added ability to select/deselect items by clicking on/near them with LMB in the viewport. Clicking with LMB into empty space far enough away from any items will clear the item selection
+  - Pressing 'f' key
+    - Old behavior: Focus visible items (i.e., set camera planes/look position/eye position) 
+    - New behavior: Focus selected items, and pressing multiple times toggles between filling the screen with selected or visible items
+    - Improved the accuracy of the focussing by accounting for clipping spheres. Clipping ranges will be accounted for in future work
+  - Pressing 'p' key
+    - Old behavior: Cycle vertex point rendering
+    - New behavior: None
+  - Pressing 'v' key
+    - Old behavior: None
+    - New behavior: Cycle vertex point rendering. This key is a better mnemonic now that point elements (obj p-directives) and vertices (obj v-directives) are distinguished. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
+  - Clicking LMB on an item name
+    - Old behavior: Focussed the item
+    - New behavior: Sets the item selection to the clicked item, with Ctrl toggle the item in the selection
+  - Clicking LMB on an item in the viewport
+    - Old behavior: None
+    - New behavior: Sets the item selection to the clicked item or clears the selection if click is far from any items, with Ctrl toggle the item in the selection
+  - Changed how modifier keys Ctrl/Shift affect item state changing shortcuts (e.g., 'i', 'j', 'k', 'l' etc)
+    - Old behavior: Ctrl applied the state change to selected items, Shift applied the state change to all items
+    - New behavior: Modifiers have no effect, all shortcuts target selected items
 
-- Changes to how selection works:
+- Changes to .obj file loading
 
-  - LMB alone sets a selection, this can be used to clear the selection (by clicking somewhere where nothing can added to the selection)
-  - Ctrl LMB adds/removes things from a selection
-  - What the above key binds select depends on if the Select tool `Prism>Tools>Select` is open:
-    - If the Select tool is open then Geometry selection mode is active:
-      - Added ability to select triangles and segments as well points, what gets selected is controlled by a radio button.
-      - This feature is very basic will be expanded/improved in future, feature requests welcome
-    - If the Select tool is not open then Item selection mode is active
+  - Reminder an annotation is all the text following the # character
+  - New Feature: Comments ignored by Prism
+    - Annotations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
+    - Removed the annotations UI when multiple items are selected, this was confusing, you can only inspect annotations when exactly one item is selected now
+  - New Feature: Command Annotations
+    - Annotations starting with an exclamation mark (lines starting #!) are "command annotations": the text following the ! is interpreted as a console command and is executed after parsing all the geometry in the file
+    - In future this feature will be expanded to do things like map data annotated on mesh triangles to triangle edges and we may change the policy on when the commands are executed
+    - Examples of command annotations, note the second # starts a comment ignored by Prism
 
-- New Features: Command Annotations
+      #! prism_log "hello world!"         # Prints "hello world!" to the console as the file is loaded
+      #! item_set_primary_color 0 255 0 0 # Sets the highest-dimensional element color to red. Note if you change the color of the item and then reload it a different feature preserves the manually changed color
+      #! item_find_open_edges 0           # Finds triangle edges not shared by another triangle and adds them as segments
+      #! item_find_open_edges 0 1         # As above, but puts the segments into a new item, after a file with this line is loaded two items are created. If you want to run a command on the created item its index will be 1
 
-  - Block annotations (comments on lines with no geometry information) starting with an exclamation mark ie #! are interpreted as command annotations, the console command that follows is immediately executed while parsing the file
-  - Annotations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
-  - Removed the annotations UI when multiple items are selected, this was confusing, you can only inspect annotations when exactly one item is selected now
+  - Added support for multiple element types in the same item. Previously Prism could only load objs which were entirely triangles, entirely segments or entirely points
+  - Added support for negative indices, so "v 0 0 0\n  v 1 0 0\n  l 1 2" is equivalent to "v 0 0 0\n  v 1 0 0\n  l -2 -1"
+    - Useful so you don't need to track the current vertex index, or if you're writing a triangle soup where it can reduce the file size
 
-- .obj file loading/mesh data-structure changes
+- Changes to label rendering
 
-  - Enabled support for multiple element types in the same item, previously Prism could only load meshes which were entirely triangles, segments or points.  TODO Removed select_if_XXX commands since they no longer make sense.
-  - Added support for negative indices in f, l and p ex. in a file starting with "v 0 0 0\nv 1 0 0\nv 2 0 0\n" writing "f -3 -2 -1" is equivalent to "f 1 2 3" (Fixes ISSUE_006)
-  - Note: Negative indices are useful if you don't want to keep a running count of how many vertices have been written or if you're writing a triangle soup with duplicate vertices where it can reduce file size. It seems not to be a well supported feature in other obj views TODO check paraview, meshlab and vscode
-
-- Label rendering improvements:
-
-  - TODO Mesh geometry/topology and annotation label visibility is now a global rather than per-item setting and collected these under the Inspect section of the Items tab (All items have annotations but attributes vary, so visibility is controlled locally)
-  - TODO Label visibility is globally controlled, but styles can be changed per-item
-  - Fixed overlapping text labels of the same type in the same item. This is probably the most common case, more work is needed to fix other cases
-    - ex1. labels for co-located vertices in the same item no longer overlap
-    - ex2. labels for co-located vertices on different items will still overlap
-    - ex3. labels for vertices and annotation/attribute labels on the same verticies will still overlap TODO Fix this one
-  - TODO When rotating the scene labels which were visible at the start of the rotation persist, this behaviour can be changed in the Options menu
-  - Added a new ray-casting labelling mode (the new default) in which labels are shown on the intersected/closed labeled element. This can be changed in the Options tab along with the radius in pixels for the closest point case.
-  - Added an option (enabled by default) to show vertex labels when inspecting triangle/segment/point labels
-  - Removed the option to skip labelling back-facing triangles/oriented points, it was not very useful and less so now that TODO occlusion is supported
-  - Moved the label coordinate float formatting into "Options > Labelling"
+  - Added a new "ray-cast" Labeling mode in which labels are shown on the intersected/closest point/segment/triangle
+    - The ray-cast Labeling mode is the new default
+    - The ray-cast Labeling mode uses "Closest-Point Query Radius" which can be set in the "Edit > Preferences > Viewport" tab
+    - The old "spotlight" Labeling mode can be enabled in the "Edit > Preferences > Labeling" section
+  - Improved issues with overlapping text labels.  Future work will make this better.
+    - Labels of the same type and on the same item no longer overlap (e.g., index labels of two coincident points). This is probably the most common case
+    - Labels of different types but on the same item can still overlap (e.g., a point index label and an annoation on that point). Future work will fix this case
+    - Labels of the same type on different items can still overlap. Future work will fix this case
+  - Removed the option to skip Labeling back-facing triangles/oriented points
+  - Removed the per-item label formatting options. Formatting options are now global and can be edited in the "Edit > Preferences > Labeling" section
   - Increased the default label scale from .3 to .4
 
-- Console commands
+- Changes to geometry selection:
+
+  - Geometry selection is now enabled/visible only when the "Prism > Tools > Select" section is opened since it uses shortcuts that are shared with the item selection mentioned under shortcuts above
+  - Added ability to select triangles and segments as well points/vertices, what gets selected is controlled by a radio button.
+  - This feature is very basic will be expanded/improved in future, feature requests welcome
+  - Fixed strange coupling between geometry selection and sphere clipping mode, previously sphere clipping would only work when selecting geometry was enabled
+
+- Changes to console commands
 
   - Added `item_clear_points`, `item_clear_segments` and `item_clear_triangles` commands
-  - Added a parameter to `item_find_open_edges` which can be used to add the edges as segments in the target item rather than creating a new item. By default this new parameter modifies the target item, the previous behaviour can be recovered by passing 1 (true) for the new parameter.
-  - Added an `item_find_unreferenced_positions` function which finds any positions (v-directives) which are not referenced by any element (p-, l- or f-directives) and then explicitly adds them as point elements. Similarly to `item_find_open_edges`, this function can create a new item but by default it modifies the target item.
-  - Added an `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles of the given item
-  - Added a `select_if_visible` command which adds visible items to the current selection
-  - Added an invert option to the `select_if_XXX` commands
+  - Added a parameter to `item_find_open_edges` which can be used to add the edges as segments in the target item rather than creating a new item. By default this new parameter modifies the target item, the old behavior can be recovered by passing 1 (true) for the new parameter.
+  - Added an `item_find_unreferenced_positions` function which finds any positions (v-directives) which are not referenced by any element (p-, l- or f-directives) and then explicitly adds them as point elements.
+  - Added an `item_find_zero_area_triangles` command which adds a new item containing all the zero area triangles
+  - Added an `item_set_primary_color` command which sets the color of the highest-dimensional element (triangle > segment > point) in the mesh
+  - Added parameters to the `select_if_empty` and `select_if_match` commands to invert the selection (Note you can also invert selections using the `Alt a` shortcut)
+  - Removed `select_if_Mesh`, `select_if_Polygon_Soup`, `select_if_Polyline_Soup2` and `select_if_Polyline_Soup3` commands since they make less sense with the data structure changes mentioned in the obj loading section
   - Improved error reporting when a console command was not found
   - Fixed some incorrectly formatted command log output
 
-- Fixed "Reload" buttons not working
-- Fixed interactable box for tree sections in the "Help" tab not extending for the full window width
-- Fixed the weird requirement for Point Selection to be visible in order to use sphere clipping mode, those two things are now independant
-- Fixed bug where the transform was not accounted for in mesh merging operations, affected point selection and the `debug_spatial_index` command
-- Fixed annoying behaviour where the camera could orbit a bit after the orbit was placed with Ctrl RMB because the orbit code was not checking that Ctrl is not pressed
-- Improved the behaviour of fitting parts of the scene on the screen TODO we now more accurately account for clipping spheres/clipping ranges
-- Improved organisation/presentation of key bindings in the "Help" tab
-- Improved the clipping sphere UI by intializing the sphere to bound the aabb of the item selection being clipped
-- Changed header annotations (the first block of obj comments) to be hidden from item name tooltips by default, these can be turned on under Preferences > Miscellaneous
-- Reduced the spacing between items in the item/annotation lists and also made some other visual improvements
-- Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
-- Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
-- Added feature to clipping sphere mode where engaging the mode (Shift LMB) while the cursor is far from the shape being clipped the entire shape is shown in a wireframe/point rendering so you can easily see the original unclipped shape
+- Miscellaneous changes
+
+  - Fixed bug where the transform was not accounted for in mesh merging operations which affected geometry selection and the `debug_spatial_index` command
+  - Fixed annoying behavior where the camera could orbit a bit after the orbit was placed with Ctrl RMB because the orbit code was not checking that Ctrl is not pressed
+  - Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
+  - Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
+  - Added feature to clipping sphere mode where engaging the mode (Shift LMB) while the cursor is far from the shape being clipped the entire shape is shown in a wireframe/point rendering so you can easily see the original unclipped shape
 DONE
 };
 
@@ -176,13 +197,13 @@ DONE
 };
 
 PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "6 September 2022", #string DONE
-- Improved item reloading behaviour
+- Improved item reloading behavior
 
-  - Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behaviour changes:
+  - Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behavior changes:
   - Preset shapes are reloaded by calling their creation functions
   - Outputs of console commands are reloaded by calling their console command string. It is up to the command author to support command reloading in a way that makes sense
-  - Items are reloaded in order of decreasing creation time, with items loaded from disk preceeding console command output items or preset shape items. This heuristic is designed to give the expected behaviour in simple cases like reload a file from disk, run command A on it and then run command B on the output of command A
-  - Changed reload item button so its disabled if the file mod time and file size are unchanged from when the file was first loaded. The old behaviour where reloads can be triggered with no constraints by unchecking the 'Disable reload if file unchange' option
+  - Items are reloaded in order of decreasing creation time, with items loaded from disk preceeding console command output items or preset shape items. This heuristic is designed to give the expected behavior in simple cases like reload a file from disk, run command A on it and then run command B on the output of command A
+  - Changed reload item button so its disabled if the file mod time and file size are unchanged from when the file was first loaded. The old behavior where reloads can be triggered with no constraints by unchecking the 'Disable reload if file unchange' option
   - Added an asterisk to the end of item names for items read from disk if the file has been modified or has changed size since it was loaded
   - Added a checkbox to enable auto-reloading when the file of an item read from disk is modified
 
@@ -194,7 +215,7 @@ PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "6 September 2022", #string DONE
   - Directories dropped into Prism will create folders which default to auto loading/reloading any contained files
   - If files are added to a directory that already exists give that file the auto load state
 
-- Changed the behaviour of .obj loading so it logs warnings and tries to display broken geometry rather failing to load the shape
+- Changed the behavior of .obj loading so it logs warnings and tries to display broken geometry rather failing to load the shape
 
   - Missing normals (occuring when a face uses an index which exceeds the number of normals in the file) are set to zero
   - Missing vertices (occuring when a face uses an index which exceeds the number of vertices in the file) are positioned at an "Invalid Point" position
@@ -215,7 +236,7 @@ PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "6 September 2022", #string DONE
   - Added a feature where Shift LMB on the item name will center the camera on the item and have the item fill the screen while positioning near/far planes so the rest of the scene is visible
   - Changed the timestamp associated with items loaded from disk to be the file mod time. Previously this was the time the file was loaded into Prism.
 
-- Fixed preset buttons so they act consistently with the global duplicate file behaviour option
+- Fixed preset buttons so they act consistently with the global duplicate file behavior option
 - Fixed issue where files loaded from the commandline used a relative rather than absolute filename
 - Fixed issue where backfaces were not always rendered properly when the render mode was set to .NORMALS
 DONE
@@ -303,7 +324,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
   - The radius of the disk can be changed (along with other label settings) via RMB on the label action buttons. Note each item caches its own copy of these settings
 
 - Fixed the tooltip for the 'Reload Items' button when it operates on visible items (i.e., when no modifier key is down)
-- Fixed some unituitive/strange behaviour related to selecting vertices (normals were being used, and were sometimes incorrect due to unitialized memory, now normals are ignored)
+- Fixed some unituitive/strange behavior related to selecting vertices (normals were being used, and were sometimes incorrect due to unitialized memory, now normals are ignored)
 - Fixed an issue where 'Ctrl RMB' did not allow placing the camera orbit on vertices which were not reference by a line/triangle
 - Various minor improvements to the item context menu
 DONE
@@ -317,7 +338,7 @@ PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
     - Control modified bindings act on selected items, this is consistent with control LMB selecting items in the Item List
     - Shift modified bindings act on all items
   - Added a sliders to the camera UI so that the near and far clippings planes can be adjusted
-  - Added a Actions menu to the Item List with buttons whose behaviour can be modified with modifier keys following pattern described above
+  - Added a Actions menu to the Item List with buttons whose behavior can be modified with modifier keys following pattern described above
   - Added a 'Known issues' section to the help menu
   - Changed the initial camera look direction to be along .{-1,-1,-1}
   - Changed defaults so the camera max zoom out is not limited by the scene bounding sphere, this can be toggled the help menu User Settings
@@ -333,7 +354,7 @@ PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
 - Fixed labels not clipping against clipping volumes
 - Fixed lexer not considering decimal strings with an 'e', but no '.', to be floats
 - Fixed a crash when requesting point label rendering for point clouds
-- Fixed a bug where changes to the float labelling format on a selection of elements was ignored
+- Fixed a bug where changes to the float Labeling format on a selection of elements was ignored
 - Fixed a performance problem caused by a missing early-out of text rendering code
 DONE
 };

@@ -621,16 +621,31 @@ show_item_selection_ui :: () {
             ImGui.TableNextColumn();
             if entity_name(entity).count {
 
-                if ImGui.Button(imgui_label("Reload", entity)) reload_entity(entity, triggered_by_button=true);
-                if is_changed_on_disk(entity) == false {
-                    show_tooltip("This file has NOT changed on disk\nsince the last time it was loaded");
-                }
+                // @Volatile :FocusItemBehavior Sync with focus items shortcut
+                if ImGui.Button(imgui_label("Focus", entity)) {
+                    almost_equal :: (a : Camera, b : Camera) -> bool {
+                        return
+                            almost_equal(a.eye_position, b.eye_position) &&
+                            almost_equal(a.look_position, b.look_position) &&
+                            almost_equal(a.up_direction, b.up_direction) &&
+                            almost_equal(a.left, b.left) &&
+                            almost_equal(a.right, b.right) &&
+                            almost_equal(a.bottom, b.bottom) &&
+                            almost_equal(a.top, b.top) &&
+                            almost_equal(a.near, b.near) &&
+                            almost_equal(a.far, b.far);
+                    }
 
-                ImGui.SameLine();
-                if ImGui.Button("Focus ") {
-                    // Fit all visible items on the screen
+                    prev_camera := app.camera;
+
                     fit_on_screen(entity);
+
+                    // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
+                    if almost_equal(app.camera, prev_camera) {
+                        fit_on_screen_filled(entity);
+                    }
                 }
+                show_tooltip_binding(FOCUS_ITEMS_ACTION_SET.desc, to_string(FOCUS_ITEMS_ACTION_SET.key));
 
                 ImGui.SameLine();
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
@@ -660,6 +675,7 @@ show_item_selection_ui :: () {
                     reload_entity(entity, triggered_by_button=true);
                 }
             }
+            show_tooltip_binding(RELOAD_ITEMS_ACTION_SET.desc, to_string(RELOAD_ITEMS_ACTION_SET.key));
             ImGui.SameLine();
             if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
                 // Find the state to toggle
