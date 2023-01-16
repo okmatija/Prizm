@@ -1248,7 +1248,7 @@ draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Them
 
     label_table : Table(Tuple2i, [..]string, hash_Tuple2i, compare_Tuple2i);
     init(*label_table, label_infos.count);
-    defer uninit(*label_table);
+    defer deinit(*label_table);
 
     for label_info : label_infos {
         overlapping_labels : *[..]string = find_or_add(*label_table, label_info.position_px);

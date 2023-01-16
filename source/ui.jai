@@ -1511,8 +1511,8 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     ImGui.Text(name);
 
     ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
-    show_tooltip("Show value of .obj v-directives (model space positions)\nwhich are referenced by elements");
+    ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
+    show_tooltip(tooltip);
 
     ImGui.SameLine();
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
@@ -1525,8 +1525,8 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     ImGui.PopItemWidth();
 
     ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
-    show_tooltip(tooltip);
+    ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
+    show_tooltip("Show value of .obj v-directives (model space positions)\nwhich are referenced by elements");
 
     if valid_geometry_index(entity_index) {
         if ImGui.TreeNodeEx("Advanced##Labelling", .SpanAvailWidth) {

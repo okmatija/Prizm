@@ -519,7 +519,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
     }
 
     edge_to_origin : Table(Tuple2(u32), s64, edge_hash, edge_comp);
-    defer uninit(*edge_to_origin);
+    defer deinit(*edge_to_origin);
 
     entity : *Entity = app.entities[id];
     mesh : *Simple_Mesh = *entity.mesh;

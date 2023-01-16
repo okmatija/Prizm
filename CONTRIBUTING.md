@@ -29,7 +29,7 @@ This tool is intended to be hackable and compiled from source as you use it. So 
 From the top-level project directory do the following:
 
 1. Update `changelog.jai` with the release date
-2. Disable the runtime console and compile using: `jai build.jai -- release`
+2. Disable the runtime console and compile using: `jai build.jai - release`
 3. Test everything works. Include a test with a large (>200MB) file. Maybe reproduce the steps in the preset tooltips
 4. Copy the top-level directory and rename it `Prism-X.Y.Z`
 5. Delete the .git, data, source folder and other folders/files not to be distributed
@@ -39,5 +39,8 @@ From the top-level project directory do the following:
 
 Note: Delete tags using: `git tag --delete vNNN && git push --delete origin vNNN`
 
-After you've made a Prism.zip THEN rename it to Prism_X.Y.Z.zip, it will unzip containing Prism folder
-Post the changelog with a SCREENSHOT, and put the exe in the thread
+Post the changelog summary with a SCREENSHOT
+Post the zip in a followup
+Post the full changelog in a further followup
+
+Note if, after you've made a Prism.zip, you then rename it to Prism_X.Y.Z.zip, it will unzip containing Prism folder, but I think we don't want this.

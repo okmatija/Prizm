@@ -7,11 +7,14 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
+PRISM_VERSION_LATEST :: App.Version.{"0.5.1", "WIP", #string DONE
+DONE};
+
+PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE
 - Changes to the UI
 
   - Made the Light theme the default, the Dark theme can be set in "Edit > Preferences > Appearance"
-  - Removed the "Remove" button: item are now removed by selecting them and pressing the delete key
+  - Removed the "Remove" buttons item are now removed by selecting them and pressing the delete key
   - Removed the item context menu which was accessed with RMB on the item name, there is now a "Details" section which shows that information
   - Removed the selection context menu which was accessed with RMB on a selected item, when multiple items are selected the "Details" section shows common data which, when edited, is applied to all items in the selection. 
   - Adopted a more idiomatic layout for application options with new Edit/View/Help tabs. In future we'll move these to the OS application window
@@ -25,7 +28,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
   - Note: UI changes can be annoying but this should happen less as we move towards something more familiar/idiomatic (to users of Unreal/Blender). Planned future work, just FYI, is:
     - Clarify when widgets in the "Details" section have multiple values e.g., using tri-state checkboxes where tick => ON, no-tick => OFF and solid fill => some selected items ON, others OFF
     - Figure out how to make a usable borderless SDL window and Move Prism/Edit/View/Help tabs into the OS window
-    - Move to imgui's docking branch to add dockable windows
+    - Move to imgui's docking branch to add dockable/resizable windows which will be useful when we expand functionality to add data to geometry
 
 - Changes to shortcuts
 
@@ -38,27 +41,27 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
     - New behavior: None
   - Pressing 'v' key
     - Old behavior: None
-    - New behavior: Cycle vertex point rendering. This key is a better mnemonic now that point elements (obj p-directives) and vertices (obj v-directives) are distinguished. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
+    - New behavior: Cycle vertex point rendering
+    - Note: This key is a better mnemonic now that point elements (obj p-directives) and vertices (obj v-directives) are distinguished. There is no shortcut for cycling point element size, this can be done in the "Rendering" section of the items details
   - Clicking LMB on an item name
     - Old behavior: Focussed the item
-    - New behavior: Sets the item selection to the clicked item, with Ctrl toggle the item in the selection
+    - New behavior: Sets the item selection to the clicked item. With Ctrl also down, toggle the item in the selection
   - Clicking LMB on an item in the viewport
     - Old behavior: None
-    - New behavior: Sets the item selection to the clicked item or clears the selection if click is far from any items, with Ctrl toggle the item in the selection
+    - New behavior: Sets the item selection to the clicked item or clears the selection if click is far from any items. With Ctrl also down, toggle the item in the selection
   - Changed how modifier keys Ctrl/Shift affect item state changing shortcuts (e.g., 'i', 'j', 'k', 'l' etc)
     - Old behavior: Ctrl applied the state change to selected items, Shift applied the state change to all items
-    - New behavior: Modifiers have no effect, all shortcuts target selected items
+    - New behavior: Modifiers have no effect, all shortcuts target selected items when the shortcuts are pressed unmodified
 
 - Changes to .obj file loading
 
-  - Reminder an annotation is all the text following the # character
   - New Feature: Comments ignored by Prism
-    - Annotations containing two # on the same line ignore all the text following the second #, this a way to add text to the obj file in a way that it will be ignored by Prism
-    - Removed the annotations UI when multiple items are selected, this was confusing, you can only inspect annotations when exactly one item is selected now
+    - Any text on a line after a second # is ignored. This a way to add text to the obj file in a way that it will be ignored by Prism
+    - An Annotation in Prism is now the text between two # characters
   - New Feature: Command Annotations
     - Annotations starting with an exclamation mark (lines starting #!) are "command annotations": the text following the ! is interpreted as a console command and is executed after parsing all the geometry in the file
     - In future this feature will be expanded to do things like map data annotated on mesh triangles to triangle edges and we may change the policy on when the commands are executed
-    - Examples of command annotations, note the second # starts a comment ignored by Prism
+    - Examples of command annotations (note the second # starts a comment ignored by Prism and is a convenient place to document the effect/intent of the command):
 
       #! prism_log "hello world!"         # Prints "hello world!" to the console as the file is loaded
       #! item_set_primary_color 0 255 0 0 # Sets the highest-dimensional element color to red. Note if you change the color of the item and then reload it a different feature preserves the manually changed color
@@ -66,7 +69,7 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
       #! item_find_open_edges 0 1         # As above, but puts the segments into a new item, after a file with this line is loaded two items are created. If you want to run a command on the created item its index will be 1
 
   - Added support for multiple element types in the same item. Previously Prism could only load objs which were entirely triangles, entirely segments or entirely points
-  - Added support for negative indices, so "v 0 0 0\n  v 1 0 0\n  l 1 2" is equivalent to "v 0 0 0\n  v 1 0 0\n  l -2 -1"
+  - Added support for negative indices, so a file containing the text "v 0 0 0\n  v 1 0 0\n  l 1 2" is equivalent to a file containing the text "v 0 0 0\n  v 1 0 0\n  l -2 -1"
     - Useful so you don't need to track the current vertex index, or if you're writing a triangle soup where it can reduce the file size
 
 - Changes to label rendering
@@ -74,19 +77,19 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
   - Added a new "ray-cast" Labeling mode in which labels are shown on the intersected/closest point/segment/triangle
     - The ray-cast Labeling mode is the new default
     - The ray-cast Labeling mode uses "Closest-Point Query Radius" which can be set in the "Edit > Preferences > Viewport" tab
-    - The old "spotlight" Labeling mode can be enabled in the "Edit > Preferences > Labeling" section
-  - Improved issues with overlapping text labels.  Future work will make this better.
+    - The old "spotlight" Labeling mode can be enabled in the "Edit > Preferences > Labeling" section but note it still has the problem of not checking for occlusion
+  - Improved issues with overlapping text labels
     - Labels of the same type and on the same item no longer overlap (e.g., index labels of two coincident points). This is probably the most common case
     - Labels of different types but on the same item can still overlap (e.g., a point index label and an annoation on that point). Future work will fix this case
     - Labels of the same type on different items can still overlap. Future work will fix this case
-  - Removed the option to skip Labeling back-facing triangles/oriented points
+  - Removed the option to skip labeling back-facing triangles/oriented points since it was just confusing and not very useful
   - Removed the per-item label formatting options. Formatting options are now global and can be edited in the "Edit > Preferences > Labeling" section
   - Increased the default label scale from .3 to .4
 
 - Changes to geometry selection:
 
-  - Geometry selection is now enabled/visible only when the "Prism > Tools > Select" section is opened since it uses shortcuts that are shared with the item selection mentioned under shortcuts above
-  - Added ability to select triangles and segments as well points/vertices, what gets selected is controlled by a radio button.
+  - Geometry selection is enabled/visible only when the "Prism > Tools > Select" section is open since the shortcuts are shared with the item selection mentioned under shortcuts above
+  - Added ability to select triangles and segments as well points/vertices. What element gets selected is controlled by a radio button
   - This feature is very basic will be expanded/improved in future, feature requests welcome
   - Fixed strange coupling between geometry selection and sphere clipping mode, previously sphere clipping would only work when selecting geometry was enabled
 
@@ -105,10 +108,11 @@ PRISM_VERSION_LATEST :: App.Version.{"0.5.0", "WIP", #string DONE
 - Miscellaneous changes
 
   - Fixed bug where the transform was not accounted for in mesh merging operations which affected geometry selection and the `debug_spatial_index` command
-  - Fixed annoying behavior where the camera could orbit a bit after the orbit was placed with Ctrl RMB because the orbit code was not checking that Ctrl is not pressed
-  - Added a setting to adjust the closest point query max distance in pixels, change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
-  - Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
+  - Fixed annoying behavior where the camera could orbit a bit after the orbit was placed via Ctrl RMB because the orbit code was not checking that Ctrl is not pressed
+  - Removed the annotations UI when multiple items are selected, this was confusing, you can only inspect annotations when exactly one item is selected now
+  - Added a setting to adjust the closest point query max distance in pixels. Change this to adjust how close the mouse click needs to be to select vertices/seed a clipping sphere, the default value is 20 pixels
   - Added feature to clipping sphere mode where engaging the mode (Shift LMB) while the cursor is far from the shape being clipped the entire shape is shown in a wireframe/point rendering so you can easily see the original unclipped shape
+  - Added a very early prototype for "Demo Mode", which can be enabled under the "Options" tab.  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
 DONE
 };
 
@@ -434,7 +438,8 @@ DONE
 };
 
 init_changelog :: () {
-    array_add(*app.changelog, PRISM_VERSION_LATEST);
+    // array_add(*app.changelog, PRISM_VERSION_LATEST);
+    array_add(*app.changelog, PRISM_VERSION_0_5_0);
     array_add(*app.changelog, PRISM_VERSION_0_4_0);
     array_add(*app.changelog, PRISM_VERSION_0_3_1);
     array_add(*app.changelog, PRISM_VERSION_0_3_0);
