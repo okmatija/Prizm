@@ -4,24 +4,20 @@
 //
 
 // Call this every frame.
-FrameMark :: (name: string = "") #expand {
-	if name {
-		___tracy_emit_frame_mark(temp_c_string(name));
-	} else {
-		___tracy_emit_frame_mark(null);
-	}
+FrameMark :: () #expand {
+	___tracy_emit_frame_mark(null);
 }
 
 // Call this at the start of the scope you want to profile..
 ZoneScoped :: ($name := "", text := "", color: u32 = 0, value: u64 = 0, location := #caller_location) #expand {
 	
 	#if name {
-		name :: name;
+		zone_name :: name;
 	} else {
-		name :: #procedure_name(#this);
+		zone_name :: #procedure_name(#this);
 	}
 	
-	tracy_loc := ___tracy_alloc_srcloc(xx location.line_number, location.fully_pathed_filename.data, xx location.fully_pathed_filename.count, name.data, name.count);
+	tracy_loc := ___tracy_alloc_srcloc(xx location.line_number, location.fully_pathed_filename.data, xx location.fully_pathed_filename.count, zone_name.data, zone_name.count);
 	tracy_ctx := ___tracy_emit_zone_begin_alloc(tracy_loc, 1);
 	
 	if text  ___tracy_emit_zone_text(tracy_ctx, text.data, text.count);
@@ -162,9 +158,6 @@ ___tracy_emit_plot :: (name: *u8, val: float64) #foreign TracyClientLib;
 ___tracy_emit_message_appinfo :: (txt: *u8, size: u64) #foreign TracyClientLib;
 
 #scope_module
-
-// Maybe we can get rid of this dependency?
-using, only(temp_c_string) Basic :: #import "Basic";
 
 // If you get an error here, run 'jai build.jai' to build the shared and dynamic libraries.
 TracyClientLib :: #library "TracyClient";
