@@ -8,7 +8,7 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
 DONE};
 
 PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "WIP", #string DONE
-- TODO
+- Fixed a bug where obj files with command annotations that should have created more than one item were not working
 DONE};
 
 PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE

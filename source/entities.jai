@@ -454,7 +454,8 @@ entity_annotation_count :: (using entity : Entity) -> int {
 }
 
 entity_sort_annotations :: (using entity : Entity, compare : (Annotation, Annotation) -> s64) {
-    quick_sort(command_annotations,  compare);
+    // Do not sort command annotations, since they may depend on each other its important they are executed in the order provided
+    // quick_sort(command_annotations,  compare);
     quick_sort(block_annotations,  compare);
     quick_sort(vertex_annotations, compare);
     quick_sort(point_annotations, compare);

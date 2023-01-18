@@ -375,14 +375,14 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         line_annotations=result.line_annotations);
     set_entity_display_info(result);
 
+    // Use the local entities array as the one that is referenced by console commands and the restore the old one after that
+    old_entities := app.entities;
+    app.entities = results;
     for command : result.command_annotations {
-        // Use the local entities array as the one that is referenced by console commands and the restore the old one after that
-        old_entities := app.entities;
-        app.entities = results;
         console_execute_command(to_string(command));
-        results = app.entities;
-        app.entities = old_entities;
     }
+    results = app.entities;
+    app.entities = old_entities;
 
     init_entity_spatial_index(result);
 
