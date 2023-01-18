@@ -5,7 +5,7 @@ main :: () {
     SDL_Init(SDL_INIT_VIDEO);
 
     init_changelog();
-    app.window = SDL_CreateWindow(tprint("% %", OUTPUT_EXE_NAME, app.changelog[0].name).data,
+    app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);

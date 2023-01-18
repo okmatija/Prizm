@@ -1,5 +1,5 @@
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
-- New Feature: Attributes
+- New Feature: Attributes TODO Add a feature flag for enabling this
 
   - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
   - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
@@ -7,7 +7,8 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_LATEST :: App.Version.{"0.5.1", "WIP", #string DONE
+PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "WIP", #string DONE
+- TODO
 DONE};
 
 PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE
@@ -438,7 +439,8 @@ DONE
 };
 
 init_changelog :: () {
-    // array_add(*app.changelog, PRISM_VERSION_LATEST);
+    //array_add(*app.changelog, PRISM_VERSION_0_6_0);
+    array_add(*app.changelog, PRISM_VERSION_0_5_1);
     array_add(*app.changelog, PRISM_VERSION_0_5_0);
     array_add(*app.changelog, PRISM_VERSION_0_4_0);
     array_add(*app.changelog, PRISM_VERSION_0_3_1);
