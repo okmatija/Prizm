@@ -1,4 +1,4 @@
-# Tracy-Bindings-for-Jai
+# Tracy bindings for Jai
 
 Jai bindings for the [Tracy profiler](https://github.com/wolfpld/tracy) v0.9.
 
