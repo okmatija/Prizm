@@ -1,3 +1,40 @@
+
+//
+// Helpful macros to interface with the C api
+//
+
+// Call this every frame.
+FrameMark :: (optional_name: string = "") #expand {
+	if optional_name {
+		___tracy_emit_frame_mark(temp_c_string(optional_name));
+	} else {
+		___tracy_emit_frame_mark(null);
+	}
+}
+
+// Call this at the start of the scope you want to profile..
+ZoneScoped :: ($optional_name := "", optional_text := "", optional_color: u32 = 0, optional_value: u64 = 0, location := #caller_location) #expand {
+	
+	#if optional_name {
+		name :: optional_name;
+	} else {
+		name :: #procedure_name(#this);
+	}
+	
+	tracy_loc := ___tracy_alloc_srcloc(xx location.line_number, location.fully_pathed_filename.data, xx location.fully_pathed_filename.count, name.data, name.count);
+	tracy_ctx := ___tracy_emit_zone_begin_alloc(tracy_loc, 1);
+	
+	if optional_text  ___tracy_emit_zone_text(tracy_ctx, optional_text.data, optional_text.count);
+	if optional_color ___tracy_emit_zone_color(tracy_ctx, optional_color);
+	if optional_value ___tracy_emit_zone_value(tracy_ctx, optional_value);
+	
+	`defer ___tracy_emit_zone_end(tracy_ctx);
+}
+
+//
+// C API
+//
+
 ___tracy_source_location_data :: struct {
 	name:  *u8;
 	function: *u8;
@@ -70,7 +107,7 @@ ___tracy_emit_zone_begin_callstack :: (srcloc: *___tracy_source_location_data, d
 ___tracy_emit_zone_begin_alloc :: (srcloc: u64, active: s32) -> TracyCZoneCtx #foreign TracyClientLib;
 ___tracy_emit_zone_begin_alloc_callstack :: (srcloc: u64, depth: s32, active: s32) -> TracyCZoneCtx #foreign TracyClientLib;
 ___tracy_emit_zone_end :: (ctx: TracyCZoneCtx) #foreign TracyClientLib;
-___tracy_emit_zone_text :: (ctx: TracyCZoneCtx, txt: *u32, size: u64) #foreign TracyClientLib;
+___tracy_emit_zone_text :: (ctx: TracyCZoneCtx, txt: *u8, size: u64) #foreign TracyClientLib;
 ___tracy_emit_zone_name :: (ctx: TracyCZoneCtx, txt: *u8, size: u64) #foreign TracyClientLib;
 ___tracy_emit_zone_color :: (ctx: TracyCZoneCtx, color: u32) #foreign TracyClientLib;
 ___tracy_emit_zone_value :: (ctx: TracyCZoneCtx, value: u64) #foreign TracyClientLib;
@@ -97,6 +134,11 @@ ___tracy_emit_gpu_calibration_serial :: (data: ___tracy_gpu_calibration_data) #f
 
 ___tracy_connected :: () -> s32 #foreign TracyClientLib;
 
+#if false { // Incomplete: These are only usable when tracy is compiled with TRACY_FIBERS.
+	___tracy_fiber_enter :: (fiber: *u8) #foreign TracyClientLib;
+	___tracy_fiber_leave :: () #foreign TracyClientLib;
+}
+
 ___tracy_emit_memory_alloc :: (ptr: *void, size: u64, secure: s32) #foreign TracyClientLib;
 ___tracy_emit_memory_alloc_callstack :: (ptr: *void, size: u64, depth: s32, secure: s32) #foreign TracyClientLib;
 ___tracy_emit_memory_free :: (ptr: *void, secure: s32) #foreign TracyClientLib;
@@ -111,6 +153,24 @@ ___tracy_emit_messageL  :: (txt: *u8, callstack: s32) #foreign TracyClientLib;
 ___tracy_emit_messageC  :: (txt: *u8, size: u64, color: u32, callstack: s32) #foreign TracyClientLib;
 ___tracy_emit_messageLC :: (txt: *u8, color: u32, callstack: s32) #foreign TracyClientLib;
 
+___tracy_emit_frame_mark :: (name: *u8) #foreign TracyClientLib;
+___tracy_emit_frame_mark_start :: (name: *u8) #foreign TracyClientLib;
+___tracy_emit_frame_mark_end :: (name: *u8) #foreign TracyClientLib;
+___tracy_emit_frame_image :: (image: *void, w: u16, h: u16, offset: u8, flip: s32) #foreign TracyClientLib;
+
+___tracy_emit_plot :: (name: *u8, val: float64) #foreign TracyClientLib;
+___tracy_emit_message_appinfo :: (txt: *u8, size: u64) #foreign TracyClientLib;
+
 #scope_module
 
+// Maybe we can get rid of this dependency?
+using, only(temp_c_string) Basic :: #import "Basic";
+
+// If you get an error here, run 'jai build.jai' to build the shared and dynamic libraries.
 TracyClientLib :: #library "TracyClient";
+
+#run {
+	// Tracy require these libs to work.
+	Compiler :: #import "Compiler";
+	Compiler.set_build_options_dc(.{append_linker_arguments=.["ws2_32.lib", "msvcprtd.lib"]});
+}
