@@ -23,7 +23,7 @@ while true {
 }
 ```
 
-These macros allow various optional arguments to provide more information to Tracy about the zones. Look at `module.jai` for reference.
+These macros allow various optional arguments that provide more information to Tracy about the zones. Look at `module.jai` for reference.
 
 ## Support 
 
