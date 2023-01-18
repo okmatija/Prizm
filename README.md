@@ -33,6 +33,6 @@ Feel free to test these on other platforms and file an issue in case of any prob
 ## License and more information 
 Tracy is released under the [3-clause BSD license](https://github.com/wolfpld/tracy/blob/master/LICENSE).
 
-These bindings are released under the MIT license.
+These bindings are released under the [MIT license](https://github.com/vrcamillo/jai-tracy/blob/main/LICENSE).
 
 You can find more detailed information in Tracy documentation, available in the [official repository](https://github.com/wolfpld/tracy).
