@@ -6,7 +6,7 @@ Jai bindings for the [Tracy profiler](https://github.com/wolfpld/tracy) v0.9.
 
 1. Ensure that the `tracy` submodule is cloned at the root of the repository. 
 2. Build the static and shared libraries using `jai build.jai` at the root of the repository.
-3. Move this repository to your modules folder and `#import`.
+3. Move this repository to your modules folder and `#import` it.
 
 ## API
 Some helpful macros are provided to help users interface with the C API:
