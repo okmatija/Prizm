@@ -1,10 +1,10 @@
-#module_parameters()(ENABLED := true);
+#module_parameters(enabled := true);
 
 //
 // Helpful macros to interface with the C api
 //
 
-#if ENABLED {
+#if enabled {
 	#load "c_bindings.jai";
 	
 	// Call this every frame.
