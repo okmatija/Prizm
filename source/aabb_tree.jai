@@ -357,7 +357,7 @@ build :: (using tree : *AABB_Tree, depth : int, parent : int) {
 
     midindex := primitive_info_range.count  / 2; // Default to object median split
 
-    if abs(interval[1] - interval[0]) > 1.e-6 {
+    if interval[1] > interval[0] && !almost_equal(interval[0], interval[1]) {
         // Partition at midpoint by walking inwards from each side swapping if primitive center < midpoint
         midpoint := (interval[1] + interval[0]) / 2;
         lower, upper := 0, primitive_info_range.count-1;

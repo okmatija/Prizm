@@ -3,7 +3,15 @@ BYTES_TO_TRIM :: "# \t\r\n";
 obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, bool {
     is_number :: (t : Token) -> bool {
         // Identifier for nan and inf, parse_vectorN functions will error if the identifier is unrecognised
-        return t.type == .INTEGER || t.type == .FLOAT || t.type == .IDENTIFIER;
+        if t.type == .INTEGER || t.type == .FLOAT {
+            return true;
+        }
+
+        if t.type == .IDENTIFIER {
+            return equal_nocase(t.string_value, "inf") || equal_nocase(t.string_value, "nan");
+        }
+
+        return false;
     }
 
     // Look ahead to figure out if we have a 2D or 3D point

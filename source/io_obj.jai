@@ -92,6 +92,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             }
 
             if dim == 2 {
+                // @Think Maybe use app.invalid_point.z here
                 array_add(*mesh.positions, make_vector3(point2, 0));
             } else if dim == 3 {
                 array_add(*mesh.positions, point3);
@@ -167,6 +168,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
+            // @Incomplete Support more than two vertices on a single line?
             missing1, index1 := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
             if missing1 missing_vertices_count += 1;
 

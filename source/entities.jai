@@ -442,10 +442,12 @@ entities_world_bounding_radius :: ($entity_filter : Code = visit_visible, center
 }
 
 
-entity_annotation_count :: (using entity : Entity) -> int {
+entity_annotation_count :: (using entity : Entity, only_geometry_annotations := false) -> int {
     result : int = 0; 
-    result += command_annotations.count;
-    result += block_annotations.count;
+    if only_geometry_annotations == false {
+        result += command_annotations.count;
+        result += block_annotations.count;
+    }
     result += vertex_annotations.count;
     result += point_annotations.count;
     result += face_annotations.count;

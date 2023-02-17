@@ -1,6 +1,6 @@
 // @Incomplete Demo mode: Rendering key and mouse state to the viewport to help with recording gifs etc. This will make it easier to demo prism, there can be UI/options for:
 // - Configuring where to put the text e.g., follow the cursor, text color etc
-// - 
+// - There should be a TTL option on the demo text and a stack that pushes older text down while it fades
 
 do_demo_mode :: () {
     if !app.demo_mode return;

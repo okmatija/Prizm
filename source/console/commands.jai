@@ -35,6 +35,21 @@ quit :: () {
     app.closing_application = true;
 } @RegisterCommand
 
+// Load files found in the given path as if it was provided to the Prism executable on the command line.
+// The path may contain * wildcards for matching filenames but not directories (this will be implemented in future)
+load :: (path : string) {
+    count := app.entities.count;
+    handle_load_string(path); 
+    loaded_count := app.entities.count - count;
+    log("Loaded % item%", loaded_count, plural_suffix(loaded_count != 1));
+} @RegisterCommand
+
+// Print the path containing the running Prism executable
+// Handy to know this if you want to pass a relative path to the `load` function
+pwd :: () {
+    log(path_strip_filename(get_path_of_running_executable()));
+} @RegisterCommand
+
 debug_toggle_fps :: () {
     app.show_fps = !app.show_fps;
 } @RegisterCommand

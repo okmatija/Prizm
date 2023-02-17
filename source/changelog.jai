@@ -7,8 +7,17 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "WIP", #string DONE
+PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE
+- Fixed a bug where * wildcard matching only searched in paths continuing from the executable location. `Prism.exe ../Path/To/Debug/*obj` now works
+  - Note: * is currently only accepted when matching filenames, directories will be supported in future but for now this means `Prism.exe ../../Debug/h*/cube.obj` does not work
 - Fixed a bug where obj files with command annotations that should have created more than one item were not working
+- Fixed a bug where obj files with 2D vertex directives (e.g., `v 1 2`) where not parsed correctly
+- Fixed the state displayed by some widgets in the Details pane when multiple items were selected
+- Fixed a crash that could happen while building spatial indices
+- Added a `load` command which can be called while Prism is running to load files as if they were given via the command line on startup
+- Added a `pwd` command which prints the directory containing the Prism executable, which can be useful if you want to pass relative paths to `load`
+- Improved text labeling so it skips checking against elements which are not definitely not going to be visible
+- Improved text labeling on overlapping geometry in some cases
 DONE};
 
 PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE

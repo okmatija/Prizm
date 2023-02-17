@@ -354,6 +354,9 @@ cycle_element_label :: () {
     theme := *app.template_display_info.point_label_theme;
     cycle_element_label_theme(theme);
 
+    // All element types are kept in sync with the point one
+    app.template_display_info.segment_label_theme.show_index = theme.show_index;
+    app.template_display_info.triangle_label_theme.show_index = theme.show_index;
     for :Selected app.entities {
         it.display_info.point_label_theme.show_index = theme.show_index;
         it.display_info.segment_label_theme.show_index = theme.show_index;

@@ -276,32 +276,7 @@ load_from_command_line :: () {
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
-
-        // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
-        pattern := canonically_formatted_path_string(args[it]);
-
-        // Note: Previously we also searched for #char "-" but this was confusing since some folder names use this as a separator, if we want to find that one make sure its also within square brackets
-        if find_index_of_any_from_left(pattern, "*") != -1 {
-            // @Cleanup This is really annoying. file_list gives different results on windows/linux
-            files := file_list(".", recursive=true, follow_symlinks=false);
-            defer array_free(files);
-            for _file, file_index : files {
-                file := _file;
-                file = canonically_formatted_path_string(file);
-                if wildcard_match(file, pattern) {
-                    handle_filename(file, .IGNORE);
-                }
-            }
-        } else {
-            got_directory, got_directory_valid := is_directory(pattern);
-            if !got_directory_valid {
-                log_warning("Expected a filename or directory, got '%'", pattern);
-            } else if got_directory {
-                handle_directory(pattern);
-            } else {
-                handle_filename(pattern, app.settings.duplicate_file_behaviour);
-            }
-        }
+        handle_load_string(args[it]);
     }
     fit_scene_on_screen();
 }
@@ -375,7 +350,12 @@ handle_events :: () {
             case SDL_DROPFILE;
 
                 // @Leak event.drop.file should be free'd using SDL_free
-                dropped := canonically_formatted_path_string(to_string(event.drop.file));
+                drop_file : string = to_string(event.drop.file);
+                dropped, success := canonically_formatted_path_string(drop_file);
+                if !success {
+                    log_warning("Failed to read file path '%', maybe it doesn't exist?", drop_file);
+                    continue;
+                }
 
                 got_directory, got_directory_valid := is_directory(dropped);
                 if !got_directory_valid {
@@ -417,6 +397,60 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
         case Special_Key_Code.F12;    return SDLK_F12;
     }
     return SDLK_UNKNOWN;
+}
+
+handle_load_string :: (path : string, recursive := false) -> bool {
+
+    // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
+    // Note: On unix this function fails if the path does not exist, on Windows it does not fail
+    pattern : string = canonically_formatted_path_string(path);
+
+    // Note: Previously we also searched for #char "-" but this was confusing since some folder names use this as a separator, if we want to find that one make sure its also within square brackets
+    wildcard_index : s64 = find_index_of_any_from_left(pattern, "*"); // From left since we want the first one
+
+    if wildcard_index != -1 {
+
+        // Fail if the wildcard didn't occur in the filename
+        // @Incomplete Remove this constraint, make it recursive if the * isn't in the filename
+        directory_index : s64 = find_index_from_right(pattern, "/"); // From right since we want the last one
+        if directory_index != -1 {
+            if wildcard_index < directory_index {
+                log_error("Wildcard * can only occur in the filename but it preceeded a directory separator, got '%'", path);
+                return false;
+            }
+        }
+
+        directory : string = slice(pattern, 0, directory_index + 1);
+        if directory == "" || !is_directory(directory){
+            directory = ".";
+        }
+
+        files := file_list(directory, recursive=recursive, follow_symlinks=false);
+        defer array_free(files);
+
+        for _file, file_index : files {
+            file := _file;
+            file = canonically_formatted_path_string(file);
+            if wildcard_match(file, pattern) {
+                handle_filename(file, .IGNORE);
+            }
+        }
+
+    } else {
+
+        got_directory, got_directory_valid := is_directory(pattern);
+
+        if !got_directory_valid {
+            log_warning("Expected a filename or directory, got '%'", pattern);
+        } else if got_directory {
+            handle_directory(pattern);
+        } else {
+            handle_filename(pattern, app.settings.duplicate_file_behaviour);
+        }
+
+    }
+
+    return true;
 }
 
 #scope_file

@@ -214,6 +214,52 @@ is_any_label_theme_visible :: (using,except(is_visible) display_info : Display_I
            is_visible(annotation_label_theme);
 }
 
+Any_Label_Theme_Visible :: struct {
+    vertex_label_theme_visible : bool;
+    point_label_theme_visible : bool;
+    segment_label_theme_visible : bool;
+    triangle_label_theme_visible : bool;
+    annotation_label_theme_visible : bool;
+}
+
+// @CompilerBug if we don't have the first bool argument here then the code compiled but ran incorrectly 
+is_any_label_theme_visible :: ($entity_filter : Code) -> bool, Any_Label_Theme_Visible {
+    result : Any_Label_Theme_Visible;
+    result_single : bool = false;
+
+    FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
+    for :FilterIterator entity, entity_index : app.entities {
+        using,except(is_visible) entity.display_info;
+
+        if is_visible(vertex_label_theme) && entity.mesh.positions.count {
+            result.vertex_label_theme_visible = true;
+            result_single = true;
+        }
+
+        if is_visible(point_label_theme) && entity.mesh.points.count {
+            result.point_label_theme_visible = true;
+            result_single = true;
+        }
+
+        if is_visible(segment_label_theme) && entity.mesh.segments.count {
+            result.segment_label_theme_visible = true;
+            result_single = true;
+        }
+
+        if is_visible(triangle_label_theme) && entity.mesh.triangles.count {
+            result.triangle_label_theme_visible = true;
+            result_single = true;
+        }
+
+        if is_visible(annotation_label_theme) && entity_annotation_count(entity, only_geometry_annotations=true) {
+            result.annotation_label_theme_visible = true;
+            result_single = true;
+        }
+    }
+
+    return result_single, result;
+}
+
 is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere := true, test_ranges := true) -> bool {
     if test_sphere && is_clipped(display_info.clip_sphere, point_world) {
         return true;
@@ -883,7 +929,16 @@ render_entities :: () {
 
     render_entity_text_ray_cast :: ($entity_filter : Code) {
 
-        closest_world : Closest_Point_Ray_Entity = find_closest_element(entity_filter);
+        unused : bool;
+        any_visible : Any_Label_Theme_Visible;
+        unused, any_visible = is_any_label_theme_visible(entity_filter);
+
+        closest_world : Closest_Point_Ray_Entity = find_closest_element(
+            entity_filter,
+            // If we're inspecting vertex labels we need to visit all elements
+            visit_points    = (any_visible.vertex_label_theme_visible || any_visible.point_label_theme_visible),
+            visit_segments  = (any_visible.vertex_label_theme_visible || any_visible.segment_label_theme_visible),
+            visit_triangles = (any_visible.vertex_label_theme_visible || any_visible.triangle_label_theme_visible));
 
         if closest_world.entity_index == -1 {
             return;
@@ -1076,16 +1131,16 @@ render_entities :: () {
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
-    no_labels :: #code !is_visible(it) || !is_any_label_theme_visible(it.display_info);
+    visit_labelled :: #code !is_visible(it) || !is_any_label_theme_visible(it.display_info);
 
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
-            render_entity_text_ray_cast(entity_filter=no_labels);
+            render_entity_text_ray_cast(visit_labelled);
 
         case .SPOTLIGHT;
 
-            render_entity_text_spotlight(entity_filter=no_labels);
+            render_entity_text_spotlight(visit_labelled);
     }
 
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);

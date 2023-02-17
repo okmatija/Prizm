@@ -85,12 +85,14 @@ maybe_trim_trailing_forwardslash :: (_s : string) -> string {
     return s;
 }
 
-canonically_formatted_path_string :: (_path : string) -> string {
-    path := get_absolute_path(_path);
-    path_overwrite_separators(path, #char "/");
-    path = maybe_trim_leading_dot_forwardslash(path);
-    path = maybe_trim_trailing_forwardslash(path);
-    return path;
+canonically_formatted_path_string :: (_path : string) -> string, success : bool {
+    path, success := get_absolute_path(_path);
+    if success {
+        path_overwrite_separators(path, #char "/"); // @CompilerBug.{"0.1.052"} in the documentation, I think the docs use a path which isn't writable, also "have a sad time" would be better clarified
+        path = maybe_trim_leading_dot_forwardslash(path);
+        // path = maybe_trim_trailing_forwardslash(path); // Don't remove this, its useful to use the trailing / to distinguish a directory/filename
+    }
+    return path, success;
 }
 
 get_ident_name :: (code : Code) -> string {
