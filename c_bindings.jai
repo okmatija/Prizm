@@ -132,11 +132,3 @@ ___tracy_emit_message_appinfo :: (txt: *u8, size: u64) #foreign TracyClientLib;
 
 // If you get an error here, run 'jai build.jai' to build the shared and dynamic libraries.
 TracyClientLib :: #library "TracyClient";
-
-#run {
-    Compiler :: #import "Compiler";
-    #if OS == .WINDOWS {
-        // Tracy requires these libs to work.
-        Compiler.set_build_options_dc(.{append_linker_arguments=.["ws2_32.lib", "msvcprtd.lib"]});
-    }
-}
