@@ -1,36 +1,23 @@
-#module_parameters(enabled := true);
+// Based on modules/Iprof, but adapted for the Tracy compiler.
 
-//
-// Helpful macros to interface with the C api
-//
+Import_Mode :: enum u8 {
+    METAPROGRAM :: 0;
+    CLIENT      :: 1;
+}
 
-#if enabled {
-	#load "c_bindings.jai";
+#module_parameters(IMPORT_MODE := Import_Mode.METAPROGRAM, ENABLED := true);
 
-	// Call this every frame.
-	FrameMark :: () #expand #no_debug {
-		___tracy_emit_frame_mark(null);
-	}
 
-	// Call this at the start of the scope you want to profile.
-	ZoneScoped :: ($name := "", text := "", color: u32 = 0, value: u64 = 0, location := #caller_location) #expand #no_debug {
+#if IMPORT_MODE == .METAPROGRAM {
+    // When being imported by a metaprogram, we provide code for instrumenting the target program,
+    // including the Metaprogram_Plugin interface.
 
-		#if name {
-			zone_name :: name;
-		} else {
-			zone_name :: #procedure_name(#this);
-		}
-
-		tracy_loc := ___tracy_alloc_srcloc(xx location.line_number, location.fully_pathed_filename.data, xx location.fully_pathed_filename.count, zone_name.data, zone_name.count);
-		tracy_ctx := ___tracy_emit_zone_begin_alloc(tracy_loc, 1);
-
-		if text  ___tracy_emit_zone_text(tracy_ctx, text.data, cast(u64) text.count);
-		if color ___tracy_emit_zone_color(tracy_ctx, color);
-		if value ___tracy_emit_zone_value(tracy_ctx, value);
-
-		`defer ___tracy_emit_zone_end(tracy_ctx);
-	}
+    #load "instrument.jai";
+    #load "options.jai";
 } else {
-	FrameMark :: () #expand #no_debug {}
-	ZoneScoped :: ($name := "", text := "", color: u32 = 0, value: u64 = 0, location := #caller_location) #expand #no_debug {}
+    // When imported by the client, we provide the actual profiling code,
+    // and code for reporting the profile results (either batch-wise
+    // or interactively). This is the bulk of the actual code in this module.
+
+    #load "runtime.jai";
 }
