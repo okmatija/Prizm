@@ -935,7 +935,7 @@ render_entities :: () {
 
         closest_world : Closest_Point_Ray_Entity = find_closest_element(
             entity_filter,
-            // If we're inspecting vertex labels we need to visit all elements
+            // If we're inspecting vertex labels we need to visit all elements @continue Same for annotations
             visit_points    = (any_visible.vertex_label_theme_visible || any_visible.point_label_theme_visible),
             visit_segments  = (any_visible.vertex_label_theme_visible || any_visible.segment_label_theme_visible),
             visit_triangles = (any_visible.vertex_label_theme_visible || any_visible.triangle_label_theme_visible));

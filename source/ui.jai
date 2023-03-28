@@ -1278,7 +1278,6 @@ show_help_tab_ui :: () {
             defer free(contents);
             time := filetime_to_readable_date(current_time_consensus(), true);
             contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\n", time));
-            contents = join(contents, "Press 'h' for the help window and find the button in the Changelog subsection\n\n\n\n");
             for app.changelog {
                 entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
                 contents = join(contents, entry);
