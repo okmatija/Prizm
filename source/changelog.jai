@@ -11,6 +11,8 @@ PRISM_VERSION_0_5_2 :: App.Version.{"0.5.2", "WIP", #string DONE
 - Added a C++ api for writing .obj files with functions that write Prism-specific annotations
   - Note: One goal with Prism-specific extensions is that they are for convenience and should not require an .obj file that cannot be loaded in other viewers
 - Added a build warning when the compiler version used to compile Prism is different from the expected one (aka the one Matija is using)
+- Fixed a bug where obj files containing faces connecting more than 4 vertices did not work
+  - TODO implement a similar fix for line element (l-directive)
 DONE};
 
 PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE

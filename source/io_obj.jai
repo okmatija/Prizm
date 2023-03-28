@@ -193,7 +193,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         } else if eat_possible_identifier(*parser, "f") {
 
             face : Obj_Face = parse_face(*parser);
-            if face.index_count < 3 {
+            if face.indices.count < 3 { // nocommit Check other error conditions
                 log_warning("Ignoring invalid face on line %\n", current_line);
                 // Do not error here! 
             } else {
@@ -224,11 +224,14 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     array_add(*mesh.triangles, triangle_tuple);
                 }
 
-                AddFace(.[0, 1, 2], face, *mesh);
-                if face.index_count == 4 {
-                    AddFace(.[0, 2, 3], face, *mesh);
+                // AddFace(.[0, 1, 2], face, *mesh);
+                for f : 0..face.indices.count-2-1 {
+                    vids : [3]int;
+                    vids[0] = 0;
+                    vids[1] = f + 1;
+                    vids[2] = f + 2;
+                    AddFace(vids, face, *mesh);
                 }
-
                 tok := peek_token(*parser);
                 if tok.type == .COMMENT && tok.line_number == current_line {
                     annotation : Annotation;

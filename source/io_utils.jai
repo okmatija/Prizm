@@ -78,10 +78,9 @@ obj_value :: (array : []$T, obj_index : Obj_Index, fallback : T) -> is_fallback 
 
 Obj_Face :: struct {
 
-    indices : [4]Obj_Index;
-    texture : [4]Obj_Index;
-    normal  : [4]Obj_Index;
-    index_count : int; // How many indices followed the 'f'
+    indices : [..]Obj_Index;
+    texture : [..]Obj_Index;
+    normal  : [..]Obj_Index;
 
     has_textures := false;
     has_normals := false;
@@ -89,36 +88,39 @@ Obj_Face :: struct {
 
 parse_face :: (p : *Parser) -> Obj_Face {
     face : Obj_Face;
+
     current_line := peek_token(p).line_number;
-    for i : 0..3 {
-        if peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
+    while peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
 
-            face.indices[i] = parse_obj_index(p);
-            slash := eat_possible_token(p, #char "/");
-            if slash {
-                slash = eat_possible_token(p, #char "/");
-                if slash {
-                    // case v//vn
-                    face.normal[i] = parse_obj_index(p);
-                    face.has_normals = true;
-                } else {
-                    face.texture[i] = parse_obj_index(p);
-                    slash = eat_possible_token(p, #char "/");
-                    if slash {
-                        // case v/vt/vn
-                        face.normal[i] = parse_obj_index(p);
-                        face.has_normals = true;
-                        face.has_textures = true;
-                    } else {
-                        // case v/vt
-                        face.has_textures = true;
-                    }
-                }
-            } else {
-                // case v
-            }
+        t := peek_token(p);
 
-            face.index_count = i + 1;
+        array_add(*face.indices, parse_obj_index(p));
+
+        slash1 := eat_possible_token(p, #char "/");
+        if !slash1 {
+            // case v i.e., only vertices
+            continue;
+        }
+
+        slash2 := eat_possible_token(p, #char "/");
+        if slash2 {
+            // case v//vn i.e., vertices and normals
+            array_add(*face.normal, parse_obj_index(p));
+            face.has_normals = true;
+            continue;
+        }
+
+        array_add(*face.texture, parse_obj_index(p));
+
+        slash3 := eat_possible_token(p, #char "/");
+        if slash3 {
+            // case v/vt/vn
+            array_add(*face.normal, parse_obj_index(p));
+            face.has_textures = true;
+            face.has_normals = true;
+        } else {
+            // case v/vt
+            face.has_textures = true;
         }
     }
     return face;
