@@ -10,8 +10,11 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.059, built on 17 March 2023";
 
 build :: () {
+
+    #run check_compiler_version();
 
     // This is a build file that doesn't generate an executable
     set_build_options_dc(.{do_output=false});
@@ -94,7 +97,8 @@ build :: () {
     set_build_options(build_mode.build_options, w);
 
     {
-        for plugins if it.before_intercept it.before_intercept(it);
+        intercept_flags : Intercept_Flags;
+        for plugins if it.before_intercept it.before_intercept(it, *intercept_flags);
 
         compiler_begin_intercept(w);
 
@@ -494,6 +498,14 @@ set_icon_and_manifest :: (options: Build_Options) {
         if !success {
             compiler_error("add manifest failed.");
         }*/
+    }
+}
+
+check_compiler_version :: () {
+    COMPILER_VERSION_INFO :: #run compiler_get_version_info(null);
+    if (COMPILER_VERSION_INFO != EXPECTED_COMPILER_VERSION_INFO) {
+        message := tprint("Using compiler version '%' but expected version '%'. The program may not compile, or some things may be broken.", COMPILER_VERSION_INFO, EXPECTED_COMPILER_VERSION_INFO);
+        compiler_report(message, mode = Report.ERROR_CONTINUABLE);
     }
 }
 

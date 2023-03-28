@@ -28,7 +28,7 @@ This tool is intended to be hackable and compiled from source as you use it. So 
 
 From the top-level project directory do the following:
 
-1. Update `changelog.jai` with the release date
+1. Update `changelog.jai` with the release date. Update `EXPECTED_COMPILER_VERSION_INFO`
 2. Disable the runtime console and compile using: `jai build.jai - release`
 3. Test everything works. Include a test with a large (>200MB) file. Maybe reproduce the steps in the preset tooltips
 4. Copy the top-level directory and rename it `Prism-X.Y.Z`
