@@ -4,7 +4,7 @@
 
 Jai bindings for the [Tracy profiler](https://github.com/wolfpld/tracy) v0.9.
 
-It’s originally based on [vrcamillo/jai-tracy](https://github.com/vrcamillo/jai-tracy), but modified to work as a auto-instrumenting metaprogram plugin (like modules/Iprof).
+It’s originally based on [vrcamillo/jai-tracy](https://github.com/vrcamillo/jai-tracy), but modified to work as an auto-instrumenting metaprogram plugin (like modules/Iprof).
 
 ## Setup
 
