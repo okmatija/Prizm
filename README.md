@@ -1,6 +1,6 @@
 # Tracy bindings for Jai
 
-**This currently (as of beta 0.1.059) triggers bugs in the compiler related to message export/import and therefore probably only works for very simple projects.**
+**This module requires (as of 2023-03-31 unreleased) beta 0.1.060 to work reliably due to bugs in older compiler versions related to message export/import.**
 
 Jai bindings for the [Tracy profiler](https://github.com/wolfpld/tracy) v0.9.
 
