@@ -197,9 +197,21 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                 log_warning("Ignoring invalid face on line %\n", current_line);
                 // Do not error here! 
             } else {
+                tok := peek_token(*parser);
+                has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
 
-                AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Simple_Mesh) #expand {
-                    if face.has_normals {
+                // Parse annotation before adding faces so we add the annotation to each face
+                annotation : Annotation;
+                if has_annotation {
+                    annotation.kind = .TRIANGLE;
+                    if !set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
+                        has_annotation = false;
+                    }
+                    eat_token(*parser);
+                }
+
+                AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Simple_Mesh, annotation : *Annotation) #expand {
+                    if face.normal.count {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
                         vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(result, "vn", Simple_Mesh_Normals);
@@ -221,29 +233,20 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                             `missing_vertices_count += 1;
                         }
                     }
+
                     array_add(*mesh.triangles, triangle_tuple);
+                    if annotation {
+                        annotation.id = mesh.triangles.count - 1;
+                        array_add(*face_annotations, <<annotation);
+                    }
                 }
 
-                // AddFace(.[0, 1, 2], face, *mesh);
                 for f : 0..face.indices.count-2-1 {
                     vids : [3]int;
                     vids[0] = 0;
                     vids[1] = f + 1;
                     vids[2] = f + 2;
-                    AddFace(vids, face, *mesh);
-                }
-                tok := peek_token(*parser);
-                if tok.type == .COMMENT && tok.line_number == current_line {
-                    annotation : Annotation;
-
-                    annotation.kind = .TRIANGLE;
-                    annotation.id = mesh.triangles.count - 1;
-
-                    if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
-                        array_add(*face_annotations, annotation);
-                    }
-
-                    eat_token(*parser);
+                    AddFace(vids, face, *mesh, ifx has_annotation then *annotation else null);
                 }
             }
 
