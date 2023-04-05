@@ -1,5 +1,24 @@
+#if 1  // Prism debug code begins (fold this in your IDE)
 
+#ifndef PRISM_FOR_UNREAL
+#define PRISM_FOR_UNREAL 1
+#endif
+
+#if PRISM_FOR_UNREAL
 #include <VectorTypes.h> // Unreal
+
+#define PRISM_VEC2_CLASS_EXTRA                                                                          \
+    Vec2(UE::Math::TVector2<T>   p) { x = p.X; y = p.Y; }                                               \
+    Vec2(UE::Geometry::FVector2i p) { x = p.X; y = p.Y; }
+
+#define PRISM_VEC3_CLASS_EXTRA                                                                          \
+    Vec3(UE::Math::TVector<T>    p) { x = p.X; y = p.Y, z = p.Z; }                                      \
+    Vec3(UE::Geometry::FVector3i p) { x = p.X; y = p.Y; z = p.Z; }
+
+#define PRISM_VEC4_CLASS_EXTRA                                                                          \
+    Vec4(UE::Math::TVector4<T> p)   { x = p.X; y = p.Y, z = p.Z; w = p.W; }
+#endif
+
 
 #include <fstream>
 #include <iomanip>
@@ -34,7 +53,8 @@ void example_printf_logging();  // An example that demos using the prism::Obj st
 // v 1 0 1
 // v 0 1 1
 // v 1 1 1
-// f 4 5 6 7 # This face will be triangle fan-ated with this annotation on each triangle
+// f 4 5 6 7 # Triangle fan
+// l -4 -3 -2 -2 # Triangle fan border
 //
 struct Obj {
 
@@ -57,9 +77,9 @@ struct Obj {
     template <typename T> Obj& vector(T x, T y, T z, T w) { obj << " " << x << " " << y << " " << z << " " << z; return *this; }
 
     Obj& vertex()                                         { return v(); }
-    Obj& point(int i = -1)                                { return p(i); }
-    Obj& segment(int i = -2, int j = -1)                  { return l(i, j); }
-    Obj& triangle(int i = -3, int j = -2, int k = -1)     { return f(i, j, k); }
+    Obj& point(int i = -1)                                { return pi(i); }
+    Obj& segment(int i = -2, int j = -1)                  { return li(i, j); }
+    Obj& triangle(int i = -3, int j = -2, int k = -1)     { return fi(i, j, k); }
 
     // TODO annotation(foo).annotation(bar) will NOT show bar in prism. Maybe we should make this work by tracking if we have a # written?
     Obj&                       annotation()    { obj << "#"; return *this; }
@@ -214,19 +234,19 @@ struct Obj {
 
     // Add a segment.
     Obj&                       l()                               { obj << "l"; return *this; }
-    Obj&                       lij(int i = -2,   int j = -1    ) { return l().vector(i,j);   }
-    template <typename T> Obj& l(T x1,T y1,      T x2,T y2     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().lij(); }
-    template <typename T> Obj& l(T x1,T y1,T z1, T x2,T y2,T z2) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().lij(); }
-    template <typename T> Obj& l(Vec2<T> xy1,      Vec2<T> xy2 ) { return v(xy1)     .ln().v(xy2)     .ln().lij(); }
-    template <typename T> Obj& l(Vec3<T> xyz1,     Vec3<T> xyz2) { return v(xyz1)    .ln().v(xyz2)    .ln().lij(); }
+    Obj&                       li(int i = -2,    int j = -1    ) { return l().vector(i,j);   }
+    template <typename T> Obj& l(T x1,T y1,      T x2,T y2     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().li(); }
+    template <typename T> Obj& l(T x1,T y1,T z1, T x2,T y2,T z2) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().li(); }
+    template <typename T> Obj& l(Vec2<T> xy1,      Vec2<T> xy2 ) { return v(xy1)     .ln().v(xy2)     .ln().li(); }
+    template <typename T> Obj& l(Vec3<T> xyz1,     Vec3<T> xyz2) { return v(xyz1)    .ln().v(xyz2)    .ln().li(); }
 
     // Add a triangle.
     Obj&                       f()                                               { obj << "f"; return *this; }
-    Obj&                       fijk(int i = -3,  int j = -2,     int k = -1    ) { return f().vector(i,j,k); }
-    template <typename T> Obj& f(T x1,T y1,      T x2,T y2,      T x3,T y3     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().v(x3,y3)   .ln().f(); }
-    template <typename T> Obj& f(T x1,T y1,T z1, T x2,T y2,T z2, T x3,T y3,T z3) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln().f(); }
-    template <typename T> Obj& f(Vec2<T> xy1,    Vec2<T> xy2,    Vec2<T> xy3   ) { return v(xy1)     .ln().v(xy2)     .ln().v(xy3)     .ln().f(); }
-    template <typename T> Obj& f(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3  ) { return v(xyz1)    .ln().v(xyz2)    .ln().v(xyz3)    .ln().f(); }
+    Obj&                       fi(int i = -3,    int j = -2,     int k = -1    ) { return f().vector(i,j,k); }
+    template <typename T> Obj& f(T x1,T y1,      T x2,T y2,      T x3,T y3     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().v(x3,y3)   .ln().fi(); }
+    template <typename T> Obj& f(T x1,T y1,T z1, T x2,T y2,T z2, T x3,T y3,T z3) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln().fi(); }
+    template <typename T> Obj& f(Vec2<T> xy1,    Vec2<T> xy2,    Vec2<T> xy3   ) { return v(xy1)     .ln().v(xy2)     .ln().v(xy3)     .ln().fi(); }
+    template <typename T> Obj& f(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3  ) { return v(xyz1)    .ln().v(xyz2)    .ln().v(xyz3)    .ln().fi(); }
 
 
     // Add a box.
@@ -245,10 +265,6 @@ struct Vec2 {
     Vec2() : x(0), y(0) {}
     Vec2(T x, T y) : x(x), y(y) {}
 
-    // Eventually these will need to be in the macro below
-    Vec2(UE::Math::TVector2<T>   p) { x = p.X; y = p.Y; }
-    Vec2(UE::Geometry::FVector2i p) { x = p.X; y = p.Y; }
-
 #ifdef PRISM_VEC2_CLASS_EXTRA
     PRISM_VEC2_CLASS_EXTRA
 #endif
@@ -261,10 +277,6 @@ struct Vec3 {
     Vec3() : x(0), y(0), z(0) {}
     Vec3(T x, T y, T z) : x(x), y(y), z(z) {}
 
-    // Eventually these will need to be in the macro below
-    Vec3(UE::Math::TVector<T>    p) { x = p.X; y = p.Y, z = p.Z; }
-    Vec3(UE::Geometry::FVector3i p) { x = p.X; y = p.Y; z = p.Z; }
-
 #ifdef PRISM_VEC3_CLASS_EXTRA
     PRISM_VEC3_CLASS_EXTRA
 #endif
@@ -276,9 +288,6 @@ struct Vec4 {
 
     Vec4() : x(0), y(0), z(0), w(0) {}
     Vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
-
-    // Eventually these will need to be in the macro below
-    Vec4(UE::Math::TVector4<T> p) { x = p.X; y = p.Y, z = p.Z; w = p.W; } 
 
 #ifdef PRISM_VEC4_CLASS_EXTRA
     PRISM_VEC4_CLASS_EXTRA
@@ -327,3 +336,22 @@ void example_printf_logging() {
 
 
 } // end namespace prism
+
+// TODO Check this works
+#ifdef PRISM_FOR_UNREAL
+#undef PRISM_FOR_UNREAL
+#endif
+
+#ifdef PRISM_VEC2_CLASS_EXTRA
+#undef PRISM_VEC2_CLASS_EXTRA
+#endif
+
+#ifdef PRISM_VEC3_CLASS_EXTRA
+#undef PRISM_VEC3_CLASS_EXTRA
+#endif
+
+#ifdef PRISM_VEC4_CLASS_EXTRA
+#undef PRISM_VEC4_CLASS_EXTRA
+#endif
+
+#endif // Prism debug code ends

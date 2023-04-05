@@ -2,7 +2,10 @@
 
 int main() {
 
-    prism::
+    prism::example_basic_api();
+    prism::example_concise_api();
+    prism::example_advanced_api();
+    prism::example_printf_logging();
 
     return 0;
 }
