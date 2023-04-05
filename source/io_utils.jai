@@ -112,6 +112,17 @@ parse_face :: (p : *Parser) -> Obj_Face {
     return face;
 }
 
+parse_polyline :: (p : *Parser) -> [..]Obj_Index {
+    result : [..]Obj_Index;
+
+    current_line := peek_token(p).line_number;
+    while peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
+        array_add(*result, parse_obj_index(p));
+    }
+
+    return result;
+}
+
 // @Refactor remove this when we've switched to attributes
 set_annotation_value :: (annotation : *Annotation, _string_value : string) -> bool {
     string_value := _string_value;

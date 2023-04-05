@@ -1114,7 +1114,7 @@ show_camera_controls :: () {
         } else if io().KeyAlt {
             right_label, left_label, amount = " < ", " > ", 1.;
         }
-        if ImGui.Button(to_c_string(right_label)) {
+        if ImGui.Button(right_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, amount);
         }
@@ -1124,7 +1124,7 @@ show_camera_controls :: () {
             set_look_direction(direction=.{-1, -1, -1}, up=up);
         }
         ImGui.TableNextColumn();
-        if ImGui.Button(to_c_string(left_label)) {
+        if ImGui.Button(left_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, -amount);
         }
@@ -1277,7 +1277,7 @@ show_help_tab_ui :: () {
             contents : string;
             defer free(contents);
             time := filetime_to_readable_date(current_time_consensus(), true);
-            contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\n", time));
+            contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
             for app.changelog {
                 entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
                 contents = join(contents, entry);

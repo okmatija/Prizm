@@ -168,33 +168,45 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
-            // @Incomplete Support more than two vertices on a single line?
-            missing1, index1 := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
-            if missing1 missing_vertices_count += 1;
+            polyline : [..]Obj_Index = parse_polyline(*parser);
+            if polyline.count < 2 { // nocommit Check other error conditions
+                log_warning("Ignoring invalid l-directive on line %\n", current_line);
+                // Do not error here! 
+            } else {
 
-            missing2, index2 := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
-            if missing2 missing_vertices_count += 1;
+                tok := peek_token(*parser);
+                has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
 
-            array_add(*mesh.segments, make_Tuple2(index1, index2));
-
-            tok := peek_token(*parser);
-            if tok.type == .COMMENT && tok.line_number == current_line {
+                // Parse annotation before adding faces so we add the annotation to each face
                 annotation : Annotation;
-
-                annotation.kind = .LINE;
-                annotation.id = mesh.segments.count - 1;
-                if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
-                    array_add(*line_annotations, annotation);
+                if has_annotation {
+                    annotation.kind = .LINE;
+                    if !set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
+                        has_annotation = false;
+                    }
+                    eat_token(*parser);
                 }
 
-                eat_token(*parser);
+                for i : 0..polyline.count-2 {
+                    missing1, index1 := obj_index(mesh.positions.count, polyline[i], MISSING_VERTEX_INDEX);
+                    if missing1 missing_vertices_count += 1;
+
+                    missing2, index2 := obj_index(mesh.positions.count, polyline[i+1], MISSING_VERTEX_INDEX);
+                    if missing2 missing_vertices_count += 1;
+
+                    array_add(*mesh.segments, make_Tuple2(index1, index2));
+                    if has_annotation {
+                        annotation.id = mesh.segments.count - 1;
+                        array_add(*line_annotations, annotation);
+                    }
+                }
             }
 
         } else if eat_possible_identifier(*parser, "f") {
 
             face : Obj_Face = parse_face(*parser);
             if face.indices.count < 3 { // nocommit Check other error conditions
-                log_warning("Ignoring invalid face on line %\n", current_line);
+                log_warning("Ignoring invalid f-directive on line %\n", current_line);
                 // Do not error here! 
             } else {
                 tok := peek_token(*parser);
@@ -219,19 +231,16 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                         for i : 0..2 {
                             missing : bool;
                             missing, normals.v[i] = obj_value(scratch_vn, face.normal[vids[i]], MISSING_NORMAL_FALLBACK);
-                            if missing {
-                                `missing_normals_count += 1;
-                            }
+                            if missing `missing_normals_count += 1;
                         }
                     }
 
                     triangle_tuple : Tuple3(u32) = ---;
                     for i : 0..2 {
                         missing, index := obj_index(mesh.positions.count, face.indices[vids[i]], MISSING_VERTEX_INDEX);
+                        if missing `missing_vertices_count += 1;
+
                         triangle_tuple.component[i] = index;
-                        if missing {
-                            `missing_vertices_count += 1;
-                        }
                     }
 
                     array_add(*mesh.triangles, triangle_tuple);
