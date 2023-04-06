@@ -12,6 +12,7 @@ PRISM_VERSION_0_5_2 :: App.Version.{"0.5.2", "WIP", #string DONE
   - Note: One goal with Prism-specific extensions is that they are for convenience and should not require an .obj file that cannot be loaded in other viewers
 - Added support for obj files with f-directives connecting more than 4 vertices and l-directives with more than 2 vertices
   - This geometry is represented as a triangle fan/segment soup and any annotation on the end of line is added to each triangle/segment separately
+- Fixed a bug where annotation labels were not show when only annotation labels were requested
 - Added a build warning when the compiler version used to compile Prism is different from the expected one (aka the one Matija is using)
 - Added a suggestion to the file written by the button "Help > Changelog > Save to CHANGELOG.md" to suggest you read the changelog on https://markdownlivepreview.com
 DONE};
