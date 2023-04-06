@@ -13,6 +13,9 @@ console_history.txt
 # Ignore the shapes folder which should not be version controlled
 shapes-novc/
 
+# Ignore the example files written by the c++ api test exe
+cpp/*.obj
+
 # Ignore the windows icon file which is generated in build.jai
 *.ico
 

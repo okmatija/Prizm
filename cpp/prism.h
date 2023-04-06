@@ -1,5 +1,6 @@
 #if 1  // Prism debug code begins (fold this in your IDE)
 
+// By default enable the Unreal API
 #ifndef PRISM_FOR_UNREAL
 #define PRISM_FOR_UNREAL 1
 #endif
@@ -17,14 +18,18 @@
 
 #define PRISM_VEC4_CLASS_EXTRA                                                                          \
     Vec4(UE::Math::TVector4<T> p)   { x = p.X; y = p.Y, z = p.Z; w = p.W; }
-#endif
 
+#define PRISM_OBJ_CLASS_EXTRA                                                                           \
+    write(const FString& filename)   { return write(TCHAR_TO_UTF8(*filename)); }
+
+#endif // PRISM_FOR_UNREAL
 
 #include <fstream>
 #include <iomanip>
 #include <limits>
 #include <sstream>
 #include <string>
+#include <cassert>
 #include <stdarg.h> // for va_arg(), va_list()
 
 namespace prism {
@@ -133,16 +138,29 @@ struct Obj {
 
     // Add a 2D polygon. Ex. (write a square) float square[4][2] = {{0,0},{1,0},{1,1},{0,1}}; polygon2(*square,4);
     template <typename T> Obj& polygon2(int point_count, T* coord_buffer) { return polygon(point_count, coord_buffer, 2); }
+    // TODO Add a Count type that does not cast from a float to prevent errors in the first argument
+    // TODO Polygons/Polylines should be implemented with variadic vertex function and single argument l or f function where the argument is the point count to write that many negative indices, or variadic to write that many explicit ints
     template <typename T> Obj& polygon2_xy(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
-
-        v(x1, y1).ln().v(x2, y2).ln().v(x3, y3).ln();
-
         va_list va;
         va_start(va, y3);
+        polyimpl2_xy('f', point_count, x1,y1, x2,y3, x3,y3, va);
+        va_end(va);
+        return *this;
+    }
+    // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { }
+
+    // Add a 3D polygon.
+    template <typename T> Obj& polygon3(int point_count, T* coord_buffer) { return polygon(point_count, coord_buffer, 3); }
+    template <typename T> Obj& polygon3_xyz(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
+        v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln();
+
+        va_list va;
+        va_start(va, z3);
         for (int i = 0; i < point_count - 3; i++) {
             T xn = va_arg(va, T);
             T yn = va_arg(va, T);
-            v(xn, yn).ln();
+            T zn = va_arg(va, T);
+            v(xn, yn, zn).ln();
         }
         va_end(va);
 
@@ -154,10 +172,6 @@ struct Obj {
 
         return *this;
     }
-    // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { }
-
-    // Add a 3D polygon.
-    template <typename T> Obj& polygon3(int point_count, T* coord_buffer) { return polygon(point_count, coord_buffer, 3); }
 
     template <typename T> Obj& polygon (int point_count, T* coord_buffer, uint8_t point_dimension) {
         if (point_count <= 0) {
@@ -177,6 +191,36 @@ struct Obj {
             insert(i);
         }
 
+        return *this;
+    }
+
+    template <typename T> Obj& polyimpl2_xy(char directive, int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, va_list va) {
+        assert(directive == 'l' || directive == 'f');
+
+        v(x1, y1).ln().v(x2, y2).ln().v(x3, y3).ln();
+
+        for (int i = 0; i < point_count - 3; i++) {
+            T xn = va_arg(va, T);
+            T yn = va_arg(va, T);
+            v(xn, yn).ln();
+        }
+
+        // Write directive with no newline so the caller can add an annotation
+        directive == 'l' ? l() : f();
+        for (int i = -point_count; i < 0; i++) {
+            insert(i);
+        }
+
+        return *this;
+    }
+
+
+    // Add a 2D polyline
+    template <typename T> Obj& polyline2_xy(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
+        va_list va;
+        va_start(va, y3);
+        polyimpl2_xy('l', point_count, x1,y1, x2,y3, x3,y3, va);
+        va_end(va);
         return *this;
     }
 
@@ -256,6 +300,10 @@ struct Obj {
     // TODO fbox, l/frect, l/faabb, l/fcircle, l/fball, l/fsphere, l/ftetrahedron, polyline, star (defined to neatly fit into a box or a circle with the same number of points)
     // TODO Add functions corresponding to command annotations e.g., to set item state/prism application state
     // TODO Template the above on the annotation type?
+
+#ifdef PRISM_OBJ_CLASS_EXTRA
+    PRISM_OBJ_CLASS_EXTRA
+#endif
 };
 
 template <typename T>
@@ -307,8 +355,11 @@ void example_basic_api() {
 
 void example_advanced_api() {
     Obj obj;
-    obj.triangle(0., 0., 1., 0., 1., 1.).an("Tri(1,2,3)");
+    obj.triangle(0., 0., 1., 0., 1., 1.).an("Tri2D 1");
     obj.point(3., 3.).an("Point 4");
+    obj.polygon2_xy (5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
+    obj.polyline2_xy(5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
+    obj.polygon3_xyz(5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.);
     obj.write("prism_example_advanced_api.obj");
 }
 
@@ -337,7 +388,6 @@ void example_printf_logging() {
 
 } // end namespace prism
 
-// TODO Check this works
 #ifdef PRISM_FOR_UNREAL
 #undef PRISM_FOR_UNREAL
 #endif
@@ -352,6 +402,10 @@ void example_printf_logging() {
 
 #ifdef PRISM_VEC4_CLASS_EXTRA
 #undef PRISM_VEC4_CLASS_EXTRA
+#endif
+
+#ifdef PRISM_OBJ_CLASS_EXTRA
+#undef PRISM_OBJ_CLASS_EXTRA
 #endif
 
 #endif // Prism debug code ends
