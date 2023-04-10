@@ -147,7 +147,7 @@ struct Obj {
         va_end(va);
         return *this;
     }
-    // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { }
+    // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { } // TODO test this
 
     // Add a 3D polygon.
     template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return polygon(point_count, xyz_coords, 3); }
@@ -205,11 +205,12 @@ struct Obj {
             v(xn, yn).ln();
         }
 
-        // Write directive with no newline so the caller can add an annotation
         directive == 'l' ? l() : f();
         for (int i = -point_count; i < 0; i++) {
             insert(i);
         }
+
+        // No newline here so the caller can add an annotation
 
         return *this;
     }
@@ -219,9 +220,9 @@ struct Obj {
     template <typename T> Obj& polyline2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
         va_list va;
         va_start(va, y3);
-        polyimpl2_xy('l', point_count, x1,y1, x2,y3, x3,y3, va);
+        v2_impl(point_count, x1,y1, x2,y2, x3,y3, va);
         va_end(va);
-        return *this;
+        return lis(point_count);
     }
 
     template <typename T> Obj& insert(T* data, int count) { 
@@ -251,7 +252,7 @@ struct Obj {
     // Set the precision used when writing floats to the obj.
     // Use the max_digits10 variant to round-trip from float to decimal and back
     // More details here: https://randomascii.wordpress.com/2012/02/11/they-sure-look-equal/
-                          Obj& set_precision(int n = 6)     { obj.precision(n); return *this; }
+    Obj&                       set_precision(int n = 6)     { obj.precision(n); return *this; }
     template <typename T> Obj& set_precision_digits10()     { return set_precision(std::numeric_limits<T>::digits10); }
     template <typename T> Obj& set_precision_max_digits10() { return set_precision(std::numeric_limits<T>::max_digits10); }
 
@@ -268,6 +269,23 @@ struct Obj {
     template <typename T> Obj& v(Vec2<T> xy)  { return v().vector(xy);    }
     template <typename T> Obj& v(Vec3<T> xyz) { return v().vector(xyz);   }
 
+    // Add a vertex list.
+    template <typename T> Obj& v2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, va_list va) {
+        va_list va;
+        va_start(va, y3);
+        v2_impl(point_count, x1,y1, x2,y2, x3,y3, va);
+        va_end(va);
+        return *this;
+    }
+    template <typename T> Obj& v3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, va_list va) {
+        va_list va;
+        va_start(va, z3);
+        v3_impl(point_count, x1,y1,z1, x2,y2,z2, x3,y3,z3, va);
+        va_end(va);
+        return *this;
+    }
+
+
     // Add a point.
     Obj&                       p()              { obj << "p"; return *this;  }
     Obj&                       pi(int i = -1)   { return p().insert(i);      }
@@ -279,6 +297,7 @@ struct Obj {
     // Add a segment.
     Obj&                       l()                               { obj << "l"; return *this; }
     Obj&                       li(int i = -2,    int j = -1    ) { return l().vector(i,j);   }
+    Obj&                       lis(int count)                    { l(); for (int i = -count; i < 0; i++) insert(i); return *this; }
     template <typename T> Obj& l(T x1,T y1,      T x2,T y2     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().li(); }
     template <typename T> Obj& l(T x1,T y1,T z1, T x2,T y2,T z2) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().li(); }
     template <typename T> Obj& l(Vec2<T> xy1,      Vec2<T> xy2 ) { return v(xy1)     .ln().v(xy2)     .ln().li(); }
@@ -287,6 +306,8 @@ struct Obj {
     // Add a triangle.
     Obj&                       f()                                               { obj << "f"; return *this; }
     Obj&                       fi(int i = -3,    int j = -2,     int k = -1    ) { return f().vector(i,j,k); }
+    Obj&                       fis(int count)                                    { f(); for (int i = -count; i < 0; i++) insert(i); return *this; }
+    Obj&                       fis(int count, int i, int j, int k, ...)          { fi(i, j, k); va_list va; va_start(va, k); for (int i = 0; i < count-3; i++) insert(va_arg(va, int)); va_end(va); return *this; }
     template <typename T> Obj& f(T x1,T y1,      T x2,T y2,      T x3,T y3     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().v(x3,y3)   .ln().fi(); }
     template <typename T> Obj& f(T x1,T y1,T z1, T x2,T y2,T z2, T x3,T y3,T z3) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln().fi(); }
     template <typename T> Obj& f(Vec2<T> xy1,    Vec2<T> xy2,    Vec2<T> xy3   ) { return v(xy1)     .ln().v(xy2)     .ln().v(xy3)     .ln().fi(); }
@@ -300,6 +321,26 @@ struct Obj {
     // TODO fbox, l/frect, l/faabb, l/fcircle, l/fball, l/fsphere, l/ftetrahedron, polyline, star (defined to neatly fit into a box or a circle with the same number of points)
     // TODO Add functions corresponding to command annotations e.g., to set item state/prism application state
     // TODO Template the above on the annotation type?
+
+    template <typename T> Obj& v2_impl(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, va_list va) {
+        v(x1,y1).ln().v(x2,y2).ln().v(x3,y3).ln();
+        for (int i = 0; i < point_count-3; i++) {
+            T xn = va_arg(va, T);
+            T yn = va_arg(va, T);
+            v(xn, yn).ln();
+        }
+        return *this;
+    }
+    template <typename T> Obj& v3_impl(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3,  va_list va) {
+        v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln();
+        for (int i = 0; i < point_count-3; i++) {
+            T xn = va_arg(va, T);
+            T yn = va_arg(va, T);
+            T zn = va_arg(va, T);
+            v(xn,yn,zn).ln();
+        }
+        return *this;
+    }
 
 #ifdef PRISM_OBJ_CLASS_EXTRA
     PRISM_OBJ_CLASS_EXTRA
