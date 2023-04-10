@@ -31,6 +31,7 @@
 #include <string>
 #include <cassert>
 #include <stdarg.h> // for va_arg(), va_list()
+#include <iostream> // for std::cout, used in tests TODO add a macro for logging?
 
 namespace prism {
 
@@ -42,11 +43,11 @@ template <typename T> struct Vec2;
 template <typename T> struct Vec3;
 template <typename T> struct Vec4;
 
-void example_basic_api();    // An example of writing a file using the Basic API
-void example_advanced_api(); // Same as example_basic_api but using the Advanced API
-void example_concise_api();  // Same as example_advanced_api but using the Concise API
-//void example_entire_api(); // An example which shows all features of the API
-void example_printf_logging();  // An example that demos using the prism::Obj struct for general printf debugging
+void example_basic_api(bool write_file = false);    // An example of writing a file using the Basic API
+void example_advanced_api(bool write_file = false); // Same as example_basic_api but using the Advanced API
+void example_concise_api(bool write_file = false);  // Same as example_advanced_api but using the Concise API
+//void example_entire_api(bool write_file = false); // An example which shows all features of the API
+void example_printf_logging(bool write_file = false);  // An example that demos using the prism::Obj struct for general printf debugging
 
 // Overview of Prism obj extensions
 //
@@ -92,7 +93,7 @@ struct Obj {
 
     // Write data in .obj format
     // Unreal tip: TCHAR_TO_UTF8(*FString::Printf(TEXT("E:\\Debug\\Debug_%05d.obj"), Counter)));
-    void write(std::string filename) {
+    void write(std::string filename) const {
         std::ofstream file;
         file.open(filename, std::ofstream::out | std::ofstream::trunc);
         file << obj.str();
@@ -342,18 +343,53 @@ struct Vec4 {
 #endif
 };
 
-void example_basic_api() {
-    // The comments show the strings that are written to the obj file when write is called
+namespace {
+bool check_and_or_write(const Obj& obj, std::string wanted, std::string test_name, bool write_file) {
+
+    std::string got = obj.obj.str();
+    if (wanted == got) {
+        std::cout << "Test " << test_name << "() PASSED..." << std::endl;
+    } else {
+        std::cout << "Test " << test_name << "() FAILED..." << std::endl;
+        std::cout << "Wanted:\n" << wanted << "\nGot:\n" << got << std::endl;
+        return false;
+    }
+
+    std::string filename = "prism_" + test_name + ".obj";
+    if (write_file) {
+        obj.write(filename);
+        std::cout << "  Wrote " << filename << std::endl;
+    } else {
+        std::cout << "  Write " << filename << " by passing true to the test function" << std::endl;
+    }
+
+    return true;
+}
+}
+
+void example_basic_api(bool write_file) {
     Obj obj;
     obj.vertex().vector(0., 0.).newline().point().newline();                       // "v 0 0\np -1\n"
     obj.vertex().vector(1., 0.).newline().point().newline();                       // "v 1 0\np -1\n"
     obj.vertex().vector(1., 1.).newline().point().newline();                       // "v 1 1\np -1\n"
     obj.triangle().annotation("Tri(1,2,3)").newline();                             // "f -3 -2 -1# Tri(1,2,3)\n"
     obj.vertex().vector(3., 3.).newline().point().annotation("Point 4").newline(); // "v 3 3\np -1# Point 4"
-    obj.write("prism_example_basic_api.obj");
+
+    std::string wanted = R"DONE(v 0 0
+p -1
+v 1 0
+p -1
+v 1 1
+p -1
+f -3 -2 -1# Tri(1,2,3)
+v 3 3
+p -1# Point 4
+)DONE";
+
+    assert(check_and_or_write(obj, wanted, "example_basic_api", write_file));
 }
 
-void example_advanced_api() {
+void example_advanced_api(bool write_file) {
     Obj obj;
     obj.triangle(0., 0., 1., 0., 1., 1.).an("Tri2D 1");
     obj.point(3., 3.).an("Point 4");
@@ -361,22 +397,24 @@ void example_advanced_api() {
     obj.polyline2_xy(5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
     obj.polygon3_xyz(5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.);
     obj.write("prism_example_advanced_api.obj");
+
+    // TODO @continue show the obj file here, ad make it a test
 }
 
-void example_concise_api() {
+void example_concise_api(bool write_file) {
     Obj obj;
     obj.f(0., 0., 1., 0., 1., 1.).an("Tri(1,2,3)");
     obj.p(3., 3.).an("Point 4");
     obj.write("prism_example_concise_api.obj");
 }
 
-//void example_entire_api() {
+//void example_entire_api(bool write_file) {
 //    Obj obj;
 //    obj << "# Incomplete\n";
 //    obj.write("prism_example_entire_api.obj");
 //}
 
-void example_printf_logging() {
+void example_printf_logging(bool write_file) {
     Obj obj;
     obj.insert("some int = ").insert(5).ln();
     if (true) {

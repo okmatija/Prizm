@@ -9,13 +9,13 @@ DONE};
 
 PRISM_VERSION_0_5_2 :: App.Version.{"0.5.2", "WIP", #string DONE
 - Added a C++ api for writing .obj files with functions that write Prism-specific annotations
+  - TLDR; paste contents of prism.h into your files, read the prism_example_XXX functions for usage examples
   - Write vertices/points/lines/faces (v,p,l,f-directives)
   - Write 2D/3D boxes, circles, spheres, crosses/stars
   - Functions can be iterated to make a single line concise
   - Redundancy in the api to make things concise
   - Variadic versions of functions
   - Write annotations and command annotations
-  - Paste into your files
   - Note: One goal with Prism-specific extensions is that they are for convenience and should not require an .obj file that cannot be loaded in other viewers
 
 - Added support for obj files with f-directives connecting more than 4 vertices and l-directives with more than 2 vertices
