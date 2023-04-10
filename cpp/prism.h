@@ -76,8 +76,7 @@ struct Obj {
 
     Obj& newline() { return ln(); }
 
-    // Note the preceeding spaces which makes the functions each to cascade e.g., to write a polygon face???
-    template <typename T> Obj& insert(T anything)         { obj << " " << anything; return *this; } // Useful for strings, scalars or anything with operator<<
+    template <typename T> Obj& insert(T anything)         { obj << " " << anything; return *this; }
     template <typename T> Obj& vector(T x, T y)           { obj << " " << x << " " << y; return *this; }
     template <typename T> Obj& vector(T x, T y, T z)      { obj << " " << x << " " << y << " " << z; return *this; }
     template <typename T> Obj& vector(T x, T y, T z, T w) { obj << " " << x << " " << y << " " << z << " " << z; return *this; }
@@ -91,8 +90,7 @@ struct Obj {
     Obj&                       annotation()    { obj << "#"; return *this; }
     template <typename T> Obj& annotation(T a) { return annotation().insert(a); }
 
-    // Write data in .obj format
-    // Unreal tip: TCHAR_TO_UTF8(*FString::Printf(TEXT("E:\\Debug\\Debug_%05d.obj"), Counter)));
+    // Write data in .obj format. Tip: Use format string "%05d" to write an int padded with zeros to width 5
     void write(std::string filename) const {
         std::ofstream file;
         file.open(filename, std::ofstream::out | std::ofstream::trunc);
@@ -138,7 +136,7 @@ struct Obj {
     template <typename T> Obj& triangle(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3)   { return f(xyz1,     xyz2,     xyz3);     }
 
     // Add a 2D polygon. Ex. (write a square) float square[4][2] = {{0,0},{1,0},{1,1},{0,1}}; polygon2(*square,4);
-    template <typename T> Obj& polygon2(int point_count, T* xy_coords) { return polygon(point_count, xy_coords, 2); }
+    template <typename T> Obj& polygon2(int point_count, T* xy_coords) { return poly_impl('f', point_count, xy_coords, 2); }
     // TODO Add a Count type that does not cast from a float to prevent errors in the first argument
     // TODO Polygons/Polylines should be implemented with variadic vertex function and single argument l or f function where the argument is the point count to write that many negative indices, or variadic to write that many explicit ints
     template <typename T> Obj& polygon2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
@@ -151,7 +149,7 @@ struct Obj {
     // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { } // TODO test this
 
     // Add a 3D polygon.
-    template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return polygon(point_count, xyz_coords, 3); }
+    template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return poly_impl('f', point_count, xyz_coords, 3); }
     template <typename T> Obj& polygon3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
         va_list va;
         va_start(va, y3);
@@ -159,28 +157,6 @@ struct Obj {
         va_end(va);
         return fis(point_count);
     }
-
-    template <typename T> Obj& polygon (int point_count, T* coord_buffer, uint8_t point_dimension) {
-        if (point_count <= 0) {
-            return;
-        }
-
-        for (int i = 0; i < point_count; i++) {
-            v();
-            for (int d = 0; d < point_dimension; d++) {
-                insert(coord_buffer[i * point_dimension + d]).ln();
-            }
-        }
-
-        // Write f-directive with no newline so the caller can add an annotation
-        f();
-        for (int i = -point_count; i < 0; i++) {
-            insert(i);
-        }
-
-        return *this;
-    }
-
 
 
     // Add a 2D polyline
@@ -250,9 +226,9 @@ struct Obj {
         return *this;
     }
 
-    // Add normals.
+    // TODO Add normals.
 
-    // Add tangents.
+    // TODO Add tangents.
 
     // TODO Add groups.
 
@@ -298,6 +274,30 @@ struct Obj {
     // TODO Add functions corresponding to command annotations e.g., to set item state/prism application state
     // TODO Template the above on the annotation type?
 
+    // Implementation methods. Not private but you probably don't want to use them
+
+    template <typename T> Obj& poly_impl(char directive, int point_count, T* coord_buffer, uint8_t point_dimension) {
+        if (point_count <= 0) {
+            return;
+        }
+
+        for (int i = 0; i < point_count; i++) {
+            v();
+            for (int d = 0; d < point_dimension; d++) {
+                insert(coord_buffer[i * point_dimension + d]).ln();
+            }
+        }
+
+        directive == 'f' ? f() : l();
+        for (int i = -point_count; i < 0; i++) {
+            insert(i);
+        }
+
+        // No newline so the caller can add an annotation
+
+        return *this;
+    }
+
     template <typename T> Obj& v2_impl(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, va_list va) {
         v(x1,y1).ln().v(x2,y2).ln().v(x3,y3).ln();
         for (int i = 0; i < point_count-3; i++) {
@@ -307,6 +307,7 @@ struct Obj {
         }
         return *this;
     }
+
     template <typename T> Obj& v3_impl(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3,  va_list va) {
         v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln();
         for (int i = 0; i < point_count-3; i++) {
@@ -445,9 +446,8 @@ f -5 -4 -3 -2 -1
 }
 
 void example_concise_api(bool write_file) {
-    Obj obj;
-    obj.f(0., 0., 1., 0., 1., 1.).an("Tri(1,2,3)");
-    obj.p(3., 3.).an("Point 4");
+    Obj obj; // If we didn't need to pass this variable to the check function below we could use Obj() in the line below (and also add a `write` call to create and log a file in one line)
+    obj.f(0., 0., 1., 0., 1., 1.).an("Tri(1,2,3)").p(3., 3.).an("Point 4");
 
     std::string wanted = R"DONE(v 0 0
 v 1 0
