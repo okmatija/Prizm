@@ -44,10 +44,9 @@ template <typename T> struct Vec3;
 template <typename T> struct Vec4;
 
 void example_basic_api(bool write_file = false);    // An example of writing a file using the Basic API
-void example_advanced_api(bool write_file = false); // Same as example_basic_api but using the Advanced API
-void example_concise_api(bool write_file = false);  // Same as example_advanced_api but using the Concise API
-//void example_entire_api(bool write_file = false); // An example which shows all features of the API
-void example_printf_logging(bool write_file = false);  // An example that demos using the prism::Obj struct for general printf debugging
+void example_advanced_api(bool write_file = false); // An example of writing a file using the Advanced API
+void example_concise_api(bool write_file = false);  // An example of writing a file using the Concise API (very short function names)
+void example_printf_logging(bool write_file = false); // An example that demos using the prism::Obj struct for general printf debugging
 
 // Overview of Prism obj extensions
 //
@@ -138,10 +137,10 @@ struct Obj {
     template <typename T> Obj& triangle(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3)   { return f(xyz1,     xyz2,     xyz3);     }
 
     // Add a 2D polygon. Ex. (write a square) float square[4][2] = {{0,0},{1,0},{1,1},{0,1}}; polygon2(*square,4);
-    template <typename T> Obj& polygon2(int point_count, T* coord_buffer) { return polygon(point_count, coord_buffer, 2); }
+    template <typename T> Obj& polygon2(int point_count, T* xy_coords) { return polygon(point_count, xy_coords, 2); }
     // TODO Add a Count type that does not cast from a float to prevent errors in the first argument
     // TODO Polygons/Polylines should be implemented with variadic vertex function and single argument l or f function where the argument is the point count to write that many negative indices, or variadic to write that many explicit ints
-    template <typename T> Obj& polygon2_xy(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
+    template <typename T> Obj& polygon2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
         va_list va;
         va_start(va, y3);
         polyimpl2_xy('f', point_count, x1,y1, x2,y3, x3,y3, va);
@@ -151,8 +150,8 @@ struct Obj {
     // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { }
 
     // Add a 3D polygon.
-    template <typename T> Obj& polygon3(int point_count, T* coord_buffer) { return polygon(point_count, coord_buffer, 3); }
-    template <typename T> Obj& polygon3_xyz(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
+    template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return polygon(point_count, xyz_coords, 3); }
+    template <typename T> Obj& polygon3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
         v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln();
 
         va_list va;
@@ -217,7 +216,7 @@ struct Obj {
 
 
     // Add a 2D polyline
-    template <typename T> Obj& polyline2_xy(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
+    template <typename T> Obj& polyline2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
         va_list va;
         va_start(va, y3);
         polyimpl2_xy('l', point_count, x1,y1, x2,y3, x3,y3, va);
@@ -346,24 +345,26 @@ struct Vec4 {
 namespace {
 bool check_and_or_write(const Obj& obj, std::string wanted, std::string test_name, bool write_file) {
 
+    bool passed = true;
+
     std::string got = obj.obj.str();
     if (wanted == got) {
         std::cout << "Test " << test_name << "() PASSED..." << std::endl;
     } else {
         std::cout << "Test " << test_name << "() FAILED..." << std::endl;
         std::cout << "Wanted:\n" << wanted << "\nGot:\n" << got << std::endl;
-        return false;
+        passed = false;
     }
 
     std::string filename = "prism_" + test_name + ".obj";
-    if (write_file) {
+    if (write_file || !passed) {
         obj.write(filename);
         std::cout << "  Wrote " << filename << std::endl;
     } else {
         std::cout << "  Write " << filename << " by passing true to the test function" << std::endl;
     }
 
-    return true;
+    return passed;
 }
 }
 
@@ -393,26 +394,54 @@ void example_advanced_api(bool write_file) {
     Obj obj;
     obj.triangle(0., 0., 1., 0., 1., 1.).an("Tri2D 1");
     obj.point(3., 3.).an("Point 4");
-    obj.polygon2_xy (5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
-    obj.polyline2_xy(5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
-    obj.polygon3_xyz(5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.);
-    obj.write("prism_example_advanced_api.obj");
+    obj.polygon2( 5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
+    obj.polyline2(5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
+    obj.polygon3(5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.).ln();
 
-    // TODO @continue show the obj file here, ad make it a test
+    std::string wanted = R"DONE(v 0 0
+v 1 0
+v 1 1
+f -3 -2 -1# Tri2D 1
+v 3 3
+p -1# Point 4
+v 10 10
+v 11 11
+v 11 11
+v 10 11
+v 10 10
+f -5 -4 -3 -2 -1
+v 10 10
+v 11 11
+v 11 11
+v 10 11
+v 10 10
+l -5 -4 -3 -2 -1
+v 10 10 2
+v 11 10 2
+v 11 11 2
+v 10 11 2
+v 10 10 2
+f -5 -4 -3 -2 -1
+)DONE";
+
+    assert(check_and_or_write(obj, wanted, "example_advanced_api", write_file));
 }
 
 void example_concise_api(bool write_file) {
     Obj obj;
     obj.f(0., 0., 1., 0., 1., 1.).an("Tri(1,2,3)");
     obj.p(3., 3.).an("Point 4");
-    obj.write("prism_example_concise_api.obj");
-}
 
-//void example_entire_api(bool write_file) {
-//    Obj obj;
-//    obj << "# Incomplete\n";
-//    obj.write("prism_example_entire_api.obj");
-//}
+    std::string wanted = R"DONE(v 0 0
+v 1 0
+v 1 1
+f -3 -2 -1# Tri(1,2,3)
+v 3 3
+p -1# Point 4
+)DONE";
+
+    assert(check_and_or_write(obj, wanted, "example_concise_api", write_file));
+}
 
 void example_printf_logging(bool write_file) {
     Obj obj;
@@ -420,7 +449,11 @@ void example_printf_logging(bool write_file) {
     if (true) {
         obj.insert("condition passed on line ").insert(__LINE__).ln();
     }
-    obj.write("prism_example_printf_logging.obj");
+
+    // Do not test this function, since __LINE__ above will result in frequent breaking changes
+    if (write_file) {
+        obj.write("prism_example_printf_logging.obj");
+    }
 }
 
 

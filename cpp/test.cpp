@@ -4,10 +4,11 @@
 
 int main() {
 
-    prism::example_basic_api();
-    prism::example_concise_api();
-    prism::example_advanced_api();
-    prism::example_printf_logging();
+    bool write_obj = false;
+    prism::example_basic_api(write_obj);
+    prism::example_concise_api(write_obj);
+    prism::example_advanced_api(write_obj);
+    prism::example_printf_logging(write_obj);
 
     return 0;
 }
