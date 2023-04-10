@@ -9,6 +9,7 @@ DONE};
 
 PRISM_VERSION_0_5_2 :: App.Version.{"0.5.2", "WIP", #string DONE
 - Added a C++ api for writing .obj files with functions that write Prism-specific annotations
+  - Having this debug code outside your project is a feature: if you accidentally commmit it your CI/CD pipeline should fail to compile
   - TLDR; paste contents of prism.h into your files, read the prism_example_XXX functions for usage examples
   - Write vertices/points/lines/faces (v,p,l,f-directives)
   - Write 2D/3D boxes, circles, spheres, crosses/stars

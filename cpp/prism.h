@@ -1,3 +1,7 @@
+// TODO Add a Count type that does not cast from a float to prevent errors in the first argument
+// TODO Polygons/Polylines should be implemented with variadic vertex function and single argument l or f function where the argument is the point count to write that many negative indices, or variadic to write that many explicit ints
+// TODO annotation(foo).annotation(bar) will NOT show bar in prism. Maybe we should make this work by tracking if we have a # written?
+
 #if 1  // Prism debug code begins (fold this in your IDE)
 
 // By default enable the Unreal API
@@ -6,7 +10,7 @@
 #endif
 
 #if PRISM_FOR_UNREAL
-#include <VectorTypes.h> // Unreal
+#include <VectorTypes.h>
 
 #define PRISM_VEC2_CLASS_EXTRA                                                                          \
     Vec2(UE::Math::TVector2<T>   p) { x = p.X; y = p.Y; }                                               \
@@ -20,7 +24,7 @@
     Vec4(UE::Math::TVector4<T> p)   { x = p.X; y = p.Y, z = p.Z; w = p.W; }
 
 #define PRISM_OBJ_CLASS_EXTRA                                                                           \
-    write(const FString& filename)   { return write(TCHAR_TO_UTF8(*filename)); }
+    void write_fstring(const FString& filename)   { return write(TCHAR_TO_UTF8(*filename)); }
 
 #endif // PRISM_FOR_UNREAL
 
@@ -31,7 +35,7 @@
 #include <string>
 #include <cassert>
 #include <stdarg.h> // for va_arg(), va_list()
-#include <iostream> // for std::cout, used in tests TODO add a macro for logging?
+#include <iostream> // for std::cout, used in tests
 
 namespace prism {
 
@@ -86,7 +90,6 @@ struct Obj {
     Obj& segment(int i = -2, int j = -1)                  { return li(i, j); }
     Obj& triangle(int i = -3, int j = -2, int k = -1)     { return fi(i, j, k); }
 
-    // TODO annotation(foo).annotation(bar) will NOT show bar in prism. Maybe we should make this work by tracking if we have a # written?
     Obj&                       annotation()    { obj << "#"; return *this; }
     template <typename T> Obj& annotation(T a) { return annotation().insert(a); }
 
@@ -111,7 +114,7 @@ struct Obj {
     template <typename T> Obj& vector(Vec3<T> p) { return vector(p.x,p.y,p.z); }
     template <typename T> Obj& vector(Vec4<T> p) { return vector(p.x,p.y,p.z,p.w); }
 
-    // Add a vertex.
+    // Add a vertex/position.
     template <typename T> Obj& vertex(T x,T y)     { return v(x,y); }
     template <typename T> Obj& vertex(T x,T y,T z) { return v(x,y,z); }
     template <typename T> Obj& vertex(Vec2<T> xy)  { return v(xy.x,xy.y); }
@@ -137,12 +140,10 @@ struct Obj {
 
     // Add a 2D polygon. Ex. (write a square) float square[4][2] = {{0,0},{1,0},{1,1},{0,1}}; polygon2(*square,4);
     template <typename T> Obj& polygon2(int point_count, T* xy_coords) { return poly_impl('f', point_count, xy_coords, 2); }
-    // TODO Add a Count type that does not cast from a float to prevent errors in the first argument
-    // TODO Polygons/Polylines should be implemented with variadic vertex function and single argument l or f function where the argument is the point count to write that many negative indices, or variadic to write that many explicit ints
     template <typename T> Obj& polygon2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
         va_list va;
         va_start(va, y3);
-        v2(point_count, x1,y1, x2,y2, x3,y3, va);
+        v2_impl(point_count, x1,y1, x2,y2, x3,y3, va);
         va_end(va);
         return fis(point_count);
     }
@@ -152,8 +153,8 @@ struct Obj {
     template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return poly_impl('f', point_count, xyz_coords, 3); }
     template <typename T> Obj& polygon3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
         va_list va;
-        va_start(va, y3);
-        v3(point_count, x1,y1,z1, x2,y2,z2, x3,y3,z3, va);
+        va_start(va, z3);
+        v3_impl(point_count, x1,y1,z1, x2,y2,z2, x3,y3,z3, va);
         va_end(va);
         return fis(point_count);
     }
@@ -240,13 +241,13 @@ struct Obj {
     Obj& l()                               { obj << "l"; return *this; }
     Obj& li(int i = -2, int j = -1)        { return l().vector(i,j);   }
     Obj& lis(int count)                    { l(); for (int i = -count; i < 0; i++) insert(i); return *this; }
-    Obj& lis(int count, int i, int j, ...) { li(i, j);    va_list va; va_start(va, j); for (int i = 0; i < count-2; i++) insert(va_arg(va, int)); va_end(va); return *this; }
+    Obj& lis(int count, int i, int j, ...) { li(i, j); va_list va; va_start(va, j); for (int n = 0; n < count-2; n++) insert(va_arg(va, int)); va_end(va); return *this; }
 
     // Add a triangle/polygon (indices only)
     Obj& f()                                      { obj << "f"; return *this; }
     Obj& fi(int i = -3, int j = -2, int k = -1)   { return f().vector(i,j,k); }
     Obj& fis(int count)                           { f(); for (int i = -count; i < 0; i++) insert(i); return *this; }
-    Obj& fis(int count, int i, int j, int k, ...) { fi(i, j, k); va_list va; va_start(va, k); for (int i = 0; i < count-3; i++) insert(va_arg(va, int)); va_end(va); return *this; }
+    Obj& fis(int count, int i, int j, int k, ...) { fi(i, j, k); va_list va; va_start(va, k); for (int n = 0; n < count-3; n++) insert(va_arg(va, int)); va_end(va); return *this; }
 
     // Add a point (position and index)
     template <typename T> Obj& p(T x, T y)      { return v(x,y)  .ln().pi(); }
@@ -412,9 +413,9 @@ void example_advanced_api(bool write_file) {
     Obj obj;
     obj.triangle(0., 0., 1., 0., 1., 1.).an("Tri2D 1");
     obj.point(3., 3.).an("Point 4");
-    obj.polygon2( 5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
-    obj.polyline2(5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
-    obj.polygon3( 5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.).ln();
+    obj.polygon2( 5, 10.,10.,    11.,10.,    11.,11.,    10.,11.,    10.,10.).ln();
+    obj.polyline2(5, 10.,10.,    11.,10.,    11.,11.,    10.,11.,    10.,10.).ln();
+    obj.polygon3( 5, 10.,10.,2., 11.,10.,2., 11.,11.,2., 10.,11.,2., 10.,10.,2.).ln();
 
     std::string wanted = R"DONE(v 0 0
 v 1 0
@@ -423,13 +424,13 @@ f -3 -2 -1# Tri2D 1
 v 3 3
 p -1# Point 4
 v 10 10
-v 11 11
+v 11 10
 v 11 11
 v 10 11
 v 10 10
 f -5 -4 -3 -2 -1
 v 10 10
-v 11 11
+v 11 10
 v 11 11
 v 10 11
 v 10 10
