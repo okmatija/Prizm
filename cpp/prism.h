@@ -61,6 +61,7 @@ void example_printf_logging(bool write_file = false); // An example that demos u
 // f 4 5 6 7 # Triangle fan
 // l -4 -3 -2 -2 # Triangle fan border
 //
+// In many functions no newline so the caller can add an annotation. Need to write explicit ln()
 struct Obj {
 
     std::stringstream obj;
@@ -143,34 +144,20 @@ struct Obj {
     template <typename T> Obj& polygon2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
         va_list va;
         va_start(va, y3);
-        polyimpl2_xy('f', point_count, x1,y1, x2,y3, x3,y3, va);
+        v2(point_count, x1,y1, x2,y2, x3,y3, va);
         va_end(va);
-        return *this;
+        return fis(point_count);
     }
     // template <typename T> Obj& polygon2_Vec(int point_count, Vec2 xy1, Vec2 xy2, Vec2 xy3, ...) { } // TODO test this
 
     // Add a 3D polygon.
     template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return polygon(point_count, xyz_coords, 3); }
     template <typename T> Obj& polygon3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
-        v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln();
-
         va_list va;
-        va_start(va, z3);
-        for (int i = 0; i < point_count - 3; i++) {
-            T xn = va_arg(va, T);
-            T yn = va_arg(va, T);
-            T zn = va_arg(va, T);
-            v(xn, yn, zn).ln();
-        }
+        va_start(va, y3);
+        v3(point_count, x1,y1,z1, x2,y2,z2, x3,y3,z3, va);
         va_end(va);
-
-        // Write f-directive with no newline so the caller can add an annotation
-        f();
-        for (int i = -point_count; i < 0; i++) {
-            insert(i);
-        }
-
-        return *this;
+        return fis(point_count);
     }
 
     template <typename T> Obj& polygon (int point_count, T* coord_buffer, uint8_t point_dimension) {
@@ -194,26 +181,6 @@ struct Obj {
         return *this;
     }
 
-    template <typename T> Obj& polyimpl2_xy(char directive, int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, va_list va) {
-        assert(directive == 'l' || directive == 'f');
-
-        v(x1, y1).ln().v(x2, y2).ln().v(x3, y3).ln();
-
-        for (int i = 0; i < point_count - 3; i++) {
-            T xn = va_arg(va, T);
-            T yn = va_arg(va, T);
-            v(xn, yn).ln();
-        }
-
-        directive == 'l' ? l() : f();
-        for (int i = -point_count; i < 0; i++) {
-            insert(i);
-        }
-
-        // No newline here so the caller can add an annotation
-
-        return *this;
-    }
 
 
     // Add a 2D polyline
@@ -257,27 +224,25 @@ struct Obj {
     template <typename T> Obj& set_precision_max_digits10() { return set_precision(std::numeric_limits<T>::max_digits10); }
 
     //
-    // Concise API. These are convenience functions
+    // Concise API.
     //
 
     Obj& ln() { obj << "\n"; return *this; }
 
-    // Add a vertex.
+    // Add positions.
     Obj&                       v()            { obj << "v"; return *this; }
     template <typename T> Obj& v(T x,T y)     { return v().vector(x,y);   }
     template <typename T> Obj& v(T x,T y,T z) { return v().vector(x,y,z); }
     template <typename T> Obj& v(Vec2<T> xy)  { return v().vector(xy);    }
     template <typename T> Obj& v(Vec3<T> xyz) { return v().vector(xyz);   }
-
-    // Add a vertex list.
-    template <typename T> Obj& v2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, va_list va) {
+    template <typename T> Obj& v2(int point_count, T x1,T y1,  T x2,T y2,  T x3,T y3, ...) {
         va_list va;
         va_start(va, y3);
         v2_impl(point_count, x1,y1, x2,y2, x3,y3, va);
         va_end(va);
         return *this;
     }
-    template <typename T> Obj& v3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, va_list va) {
+    template <typename T> Obj& v3(int point_count, T x1,T y1,T z1,  T x2,T y2,T z2,  T x3,T y3,T z3, ...) {
         va_list va;
         va_start(va, z3);
         v3_impl(point_count, x1,y1,z1, x2,y2,z2, x3,y3,z3, va);
@@ -285,34 +250,45 @@ struct Obj {
         return *this;
     }
 
+    // Add normals.
 
-    // Add a point.
-    Obj&                       p()              { obj << "p"; return *this;  }
-    Obj&                       pi(int i = -1)   { return p().insert(i);      }
+    // Add tangents.
+
+    // TODO Add groups.
+
+    // Add a point (index only)
+    Obj& p()            { obj << "p"; return *this;  }
+    Obj& pi(int i = -1) { return p().insert(i);      }
+
+    // Add a segment/polyline (indices only)
+    Obj& l()                               { obj << "l"; return *this; }
+    Obj& li(int i = -2, int j = -1)        { return l().vector(i,j);   }
+    Obj& lis(int count)                    { l(); for (int i = -count; i < 0; i++) insert(i); return *this; }
+    Obj& lis(int count, int i, int j, ...) { li(i, j);    va_list va; va_start(va, j); for (int i = 0; i < count-2; i++) insert(va_arg(va, int)); va_end(va); return *this; }
+
+    // Add a triangle/polygon (indices only)
+    Obj& f()                                      { obj << "f"; return *this; }
+    Obj& fi(int i = -3, int j = -2, int k = -1)   { return f().vector(i,j,k); }
+    Obj& fis(int count)                           { f(); for (int i = -count; i < 0; i++) insert(i); return *this; }
+    Obj& fis(int count, int i, int j, int k, ...) { fi(i, j, k); va_list va; va_start(va, k); for (int i = 0; i < count-3; i++) insert(va_arg(va, int)); va_end(va); return *this; }
+
+    // Add a point (position and index)
     template <typename T> Obj& p(T x, T y)      { return v(x,y)  .ln().pi(); }
     template <typename T> Obj& p(T x, T y, T z) { return v(x,y,z).ln().pi(); }
     template <typename T> Obj& p(Vec2<T> xy)    { return v(xy)   .ln().pi(); }
     template <typename T> Obj& p(Vec3<T> xyz)   { return v(xyz)  .ln().pi(); }
 
-    // Add a segment.
-    Obj&                       l()                               { obj << "l"; return *this; }
-    Obj&                       li(int i = -2,    int j = -1    ) { return l().vector(i,j);   }
-    Obj&                       lis(int count)                    { l(); for (int i = -count; i < 0; i++) insert(i); return *this; }
+    // Add a segment/polyline (positions and indices)
     template <typename T> Obj& l(T x1,T y1,      T x2,T y2     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().li(); }
     template <typename T> Obj& l(T x1,T y1,T z1, T x2,T y2,T z2) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().li(); }
     template <typename T> Obj& l(Vec2<T> xy1,      Vec2<T> xy2 ) { return v(xy1)     .ln().v(xy2)     .ln().li(); }
     template <typename T> Obj& l(Vec3<T> xyz1,     Vec3<T> xyz2) { return v(xyz1)    .ln().v(xyz2)    .ln().li(); }
 
-    // Add a triangle.
-    Obj&                       f()                                               { obj << "f"; return *this; }
-    Obj&                       fi(int i = -3,    int j = -2,     int k = -1    ) { return f().vector(i,j,k); }
-    Obj&                       fis(int count)                                    { f(); for (int i = -count; i < 0; i++) insert(i); return *this; }
-    Obj&                       fis(int count, int i, int j, int k, ...)          { fi(i, j, k); va_list va; va_start(va, k); for (int i = 0; i < count-3; i++) insert(va_arg(va, int)); va_end(va); return *this; }
+    // Add a triangle/polygon (positions and indices)
     template <typename T> Obj& f(T x1,T y1,      T x2,T y2,      T x3,T y3     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().v(x3,y3)   .ln().fi(); }
     template <typename T> Obj& f(T x1,T y1,T z1, T x2,T y2,T z2, T x3,T y3,T z3) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln().fi(); }
     template <typename T> Obj& f(Vec2<T> xy1,    Vec2<T> xy2,    Vec2<T> xy3   ) { return v(xy1)     .ln().v(xy2)     .ln().v(xy3)     .ln().fi(); }
     template <typename T> Obj& f(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3  ) { return v(xyz1)    .ln().v(xyz2)    .ln().v(xyz3)    .ln().fi(); }
-
 
     // Add a box.
     template <typename T> Obj& lbox(Vec2<T> min,    Vec2<T> max,   std::string annotation = "") { return segment_box_min_max(min, max, annotation); }
@@ -437,7 +413,7 @@ void example_advanced_api(bool write_file) {
     obj.point(3., 3.).an("Point 4");
     obj.polygon2( 5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
     obj.polyline2(5, 10., 10.,     11., 10.,     11., 11.,     10., 11.,     10., 10.).ln();
-    obj.polygon3(5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.).ln();
+    obj.polygon3( 5, 10., 10., 2., 11., 10., 2., 11., 11., 2., 10., 11., 2., 10., 10., 2.).ln();
 
     std::string wanted = R"DONE(v 0 0
 v 1 0
