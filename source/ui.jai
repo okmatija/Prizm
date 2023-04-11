@@ -83,6 +83,7 @@ show_tools_ui :: () {
     do_tree := ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     if do_tree {
         defer ImGui.TreePop();
+        show_api_ui();
         show_select_ui();
         show_preset_ui();
     }
@@ -697,6 +698,26 @@ show_item_selection_ui :: () {
             }
             show_tooltip("Toggle auto-reload state on selected items");
         }
+    }
+}
+
+show_api_ui :: () {
+    do_tree := ImGui.TreeNodeEx("API", ImGui.TreeNodeFlags.SpanAvailWidth);
+    show_tooltip("Tools to interface between Prism and your program");
+    if do_tree {
+        defer ImGui.TreePop();
+        if ImGui.Button("Copy C++ #include Path") {
+            exe_directory : string = get_directory(get_path_of_running_executable());
+            include : string = sprint("#include \"%/cpp/prism.h\"", exe_directory);
+            path_overwrite_separators(include, #char "/");
+            SDL_SetClipboardText(temp_c_string(include));
+        }
+        show_tooltip(#string DONE
+This button copies the Prism C++ api #include line to your clipboard.
+You can paste it into your program and use it to write .obj files.
+Having a debug API separate from your project source like this should
+mean your CI/CD pipeline will catch forgotten/leftover debug code.
+DONE); 
     }
 }
 
