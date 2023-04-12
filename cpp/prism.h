@@ -1,7 +1,3 @@
-// TODO Add a Count type that does not cast from a float to prevent errors in the first argument
-// TODO Polygons/Polylines should be implemented with variadic vertex function and single argument l or f function where the argument is the point count to write that many negative indices, or variadic to write that many explicit ints
-// TODO annotation(foo).annotation(bar) will NOT show bar in prism. Maybe we should make this work by tracking if we have a # written?
-
 #if 1  // Prism debug code begins (fold this in your IDE)
 
 // By default enable the Unreal API
@@ -39,10 +35,10 @@
 
 namespace prism {
 
-// Prism internal vector types. For now we hardcode constructors from Unreal types, but eventually this will need to be
-// added by defining PRISM_VEC2_CLASS_EXTRA, PRISM_VEC3_CLASS_EXTRA, PRISM_VEC4_CLASS_EXTRA respectively. These macros
-// are inspired by ImGui and are used to define additional constructors and implicit casts to convert back and forth
-// between the user's custom math types and Vec2/Vec3/Vec4
+// Prism internal vector types.
+// You can add use the PRISM_VEC2_CLASS_EXTRA, PRISM_VEC3_CLASS_EXTRA, PRISM_VEC4_CLASS_EXTRA macros
+// (inspired by Dear ImGui) to define additional constructors and implicit casts to convert back and
+// forth between the your custom math types and Vec2/Vec3/Vec4
 template <typename T> struct Vec2;
 template <typename T> struct Vec3;
 template <typename T> struct Vec4;
@@ -65,7 +61,9 @@ void example_printf_logging(bool write_file = false); // An example that demos u
 // f 4 5 6 7 # Triangle fan
 // l -4 -3 -2 -2 # Triangle fan border
 //
-// In many functions no newline so the caller can add an annotation. Need to write explicit ln()
+// Note: You can extend this class by defining a PRISM_OBJ_CLASS_EXTRA macros, this is mostly useful if you want to add
+// functions which return an Obj& so you can chain calls. If you don't care about this then you can just make a regular
+// since all the members of Obj are public.
 struct Obj {
 
     std::stringstream obj;
