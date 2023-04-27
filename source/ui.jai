@@ -708,7 +708,7 @@ show_api_ui :: () {
         defer ImGui.TreePop();
 
         exe_directory : string = get_directory(get_path_of_running_executable());
-        include : string = sprint("#include \"%/cpp/prism.h\"", exe_directory);
+        include : string = sprint("#include \"%/cpp/prism.h\" // See prism::usage_example()", exe_directory);
         path_overwrite_separators(include, #char "/");
 
         if ImGui.Button("Copy C++ #include") {
@@ -716,11 +716,11 @@ show_api_ui :: () {
         }
 
         show_tooltip(tprint("%\n%", #string DONE
-This button copies the Prism C++ api #include line to your clipboard.
+This button copies the Prism C++ API #include line to your clipboard.
 You can paste it into your program and use it to write .obj files.
 Having a debug API separate from your project source like this should
-mean your CI/CD pipeline will catch forgotten/leftover debug code.
-The copied path will be:
+mean your CI system will catch forgotten/leftover debug code.
+The copied string will be:
 DONE, include)); 
     }
 }

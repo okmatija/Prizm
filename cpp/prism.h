@@ -1,9 +1,3 @@
-// nocommit remove the functions taking floats separately, and make curly braces work
-// nocommit remove the space saving, format it normally since you can just include the absolute path
-// nocommit Add the dimension suffixes everywhere!
-// nocommit If there is no selection and you add files make them selected
-// nocommit If you press the buttons with no selection make that noticable
-
 #if 1  // Prism debug code begins (here to help you fold this in your IDE if you copied the contents directly)
 
 // By default enable the Unreal API
@@ -35,17 +29,12 @@
 #include <limits>
 #include <sstream>
 #include <string>
-#include <cassert>
 #include <stdarg.h> // for va_arg(), va_list()
-#include <iostream> // for std::cout, used in tests
+#include <iostream> // for std::cout, only used in usage_example()
 
 namespace prism {
 
-// Prism internal vector types.
-// You can add use the PRISM_VEC2_CLASS_EXTRA, PRISM_VEC3_CLASS_EXTRA, PRISM_VEC4_CLASS_EXTRA macros
-// (inspired by Dear ImGui) to define additional constructors and implicit casts to convert back and
-// forth between the your custom math types and Vec2/Vec3/Vec4
-
+// A 2D vector type. Use PRISM_VEC2_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec2 {
     union { struct { T x; T y; }; T xy[2]; };
@@ -65,6 +54,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec2<T>& 
     return os;
 }
 
+// A 3D vector type. Use PRISM_VEC3_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec3 {
     union { struct { T x; T y; T z; }; T xyz[3]; };
@@ -84,6 +74,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec3<T>& 
     return os;
 }
 
+// A 4D vector type. Use PRISM_VEC4_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec4 {
     union { struct { T x; T y; T z; T w; }; T xyzw[4]; };
@@ -103,289 +94,545 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec4<T>& 
     return os;
 }
 
+//
+// Convenience aliases for VecN types
+//
+
 using V2 = Vec2<double>;
 using V3 = Vec3<double>;
 using V4 = Vec4<double>;
 using V2f = Vec2<float>;
 using V3f = Vec3<float>;
 using V4f = Vec4<float>;
+// TODO Add integer variants, note they must be separate to accomodate Unreal types which have a static assert on T
 
-void example_basic_api(bool write_file = false);    // An example of writing a file using the Basic API
-void example_advanced_api(bool write_file = false); // An example of writing a file using the Advanced API
-void example_concise_api(bool write_file = false);  // An example of writing a file using the Concise API (very short function names)
-void example_printf_logging(bool write_file = false); // An example that demos using the prism::Obj struct for general printf debugging
 
-// Overview of Prism obj extensions
+// An example using the API
+void usage_example(bool write_files = false);
+
 //
-// v 0 0 0 # Annotated origin # Text after a second hash is ignored
-// v 1 0 0 ## This text is ignored, this vertex has no annotation
-// v 0 1 0
-// f -3 -2 -1 # This triangle is annotated
-// v 0 0 1
-// v 1 0 1
-// v 0 1 1
-// v 1 1 1
-// f 4 5 6 7 # Triangle fan
-// l -4 -3 -2 -2 # Triangle fan border
+// Writes obj files and Prism-specific extensions.
 //
-// Note: You can extend this class by defining a PRISM_OBJ_CLASS_EXTRA macros, this is mostly useful if you want to add
-// functions which return an Obj& so you can chain calls. If you don't care about this then you can just make a regular
-// since all the members of Obj are public.
+// See usage_example() function for a demo of the api, athough it should be self-explanatory.
+//
+// The following page was the reference for the .obj format: http://paulbourke.net/dataformats/obj/
+// (not everything on that page is implemented). Note Prism-specific extensions are designed so that
+// .obj files containing such extensions will always open in other obj viewers.
+//
+// You can extend this class by defining a PRISM_OBJ_CLASS_EXTRA macro, this is mostly useful if
+// you want to add functions chain calls (i.e., obj.function1().function2()). If you don't care
+// about this you can make a regular function
+//
 struct Obj {
 
     //
     // State
-    //////////////////////////////////////////////////////////////////////////
+    //
     
     // Current contents of the .obj file
     std::stringstream obj;
 
-    // Number of hash characters on a line. 0 => writing geometry, 1 => writing an annotation, 2 => writing a comment ignored by Prism
-    int hash_count = 0;
+    // Number of hash characters on a line, these are significant for Prism:
+    // 0 hash characters => writing geometry
+    // 1 hash character  => writing an annotation. Prism stores the text between the first # and a newline/second # as an annotation
+    // 2 hash characters => writing a comment. Prism ignores everything following the second # character on a line
+    unsigned hash_count = 0;
+
+
+
 
     //
-    // Basic API. This API is small and verbose but it lets you do everything.
-    //////////////////////////////////////////////////////////////////////////
+    // Basic functions
+    //
 
-    // By default write float data with enough precision to make it possible to round trip from float64 to decimal and back
-    // Note: Prism 0.5.1 stores mesh data using float32, we will move to float64 so we can show coordinate labels at full precision
+    // Construtor. By default write with enough precision to round trip from float64 to decimal and back
+    // nocommit Note: Prism 0.5.1 stores mesh data using float32, we will move to float64 so we can show coordinate labels at full precision
     Obj() {
         set_precision_max_digits10<double>();
     }
 
-    // Start a new line and set hash_count to 0
-    Obj& newline() {
-        return ln();
-    }
-
-    // Add anything with an operator<< to the obj file.
-    // Note: If you want to write '\n' or '#' use the newline(), annotation() or comment() functions since these properly update hash_count
-    template <typename T> Obj& insert(T anything) {
-        obj << " " << anything;
-        return *this;
-    }
-
-    // Add a vector to the obj file
-    template <typename T> Obj& vector(T x, T y)           { obj << " " << x << " " << y; return *this; }
-    template <typename T> Obj& vector(T x, T y, T z)      { obj << " " << x << " " << y << " " << z; return *this; }
-    template <typename T> Obj& vector(T x, T y, T z, T w) { obj << " " << x << " " << y << " " << z << " " << w; return *this; }
-    template <typename T> Obj& vector(Vec2<T> v) { return insert(v); }
-    template <typename T> Obj& vector(Vec3<T> v) { return insert(v); }
-    template <typename T> Obj& vector(Vec4<T> v) { return insert(v); }
-
-    // Add 'v' to the obj. Should be followed with a 2D/3D position vector
-    // Note: You probably want to use vertex2, vertex3 instead
-    Obj& vertex()                                         { return v(); }
-
-    // Add 'p' to the obj followed by i.
-    // If i > 0  the point refers to the ith added vertex
-    // If i < 0  the point refers to ith preceeding vertex relative to this call
-    // if i == 0 this is silent error
-    Obj& point(int i = -1)                                { return pi(i); }
-
-    // Add 'l' to the obj followed by i and j which should not be zero, see documentation for point()
-    Obj& segment(int i = -2, int j = -1)                  { return li(i, j); }
-
-    // Add 'f' to the obj followed by i, j and k which should not be zero, see documentation for point()
-    Obj& triangle(int i = -3, int j = -2, int k = -1)     { return fi(i, j, k); }
-    // TODO polygon variadic function
-
-    Obj& annotation() { if (hash_count == 0) { obj << "#"; hash_count++; } return *this; }
-    template <typename T> Obj&
-    annotation(T a) { return annotation().insert(a); }
-
-    Obj&                       comment()    { while (hash_count < 2) { obj << "#"; hash_count++; } return *this; }
-    template <typename T> Obj& comment(T anything) { return comment().insert(anything); }
-
-    // Write data in .obj format. Tip: Use format string "%05d" to write an int padded with zeros to width 5
-    void write(std::string filename) const {
+    // Write data in .obj format.
+    // Tip: Use format string "%05d" to write an int padded with zeros to width 5
+    void write(std::string filename, bool skip = false) const {
+        if (skip) return;
         std::ofstream file;
         file.open(filename, std::ofstream::out | std::ofstream::trunc);
         file << obj.str();
         file.close();
     }
 
-    //
-    // Advanced API. These are convenience functions
-    //////////////////////////////////////////////////////////////////////////
-
-    // Add an annotation. This short form also starts a newline
-    Obj&                       an(std::string a = "") { return a == "" ? ln() : an(a); }
-    template <typename T> Obj& an(T a)                { return annotation(a).ln(); }
-
-    // Add a vertex/position.
-    // template <typename T> Obj& vertex(T x,T y)     { return v(x,y); }
-    // template <typename T> Obj& vertex(T x,T y,T z) { return v(x,y,z); }
-    template <typename T> Obj& vertex(Vec2<T> xy)  { return v(xy); }
-    template <typename T> Obj& vertex(Vec3<T> xyz) { return v(xyz); }
-
-    // Add a point.
-    // template <typename T> Obj& point(T x,T y)     { return p(x,y); }
-    // template <typename T> Obj& point(T x,T y,T z) { return p(x,y,z); }
-    template <typename T> Obj& point(Vec2<T> xy)  { return p(xy); }
-    template <typename T> Obj& point(Vec3<T> xyz) { return p(xyz); }
-
-    // Add a segment.
-    // template <typename T> Obj& segment(T x1,T y1,      T x2,T y2)      { return l(x1,y1,    x2,y2);    }
-    // template <typename T> Obj& segment(T x1,T y1,T z1, T x2,T y2,T z2) { return l(x1,y1,z1, x2,y2,z2); }
-    template <typename T> Obj& segment(Vec2<T> xy1,    Vec2<T> xy2)    { return l(xy1,      xy2);      }
-    template <typename T> Obj& segment(Vec3<T> xyz1,   Vec3<T> xyz2)   { return l(xyz1,     xyz2);     }
-
-    // Add a triangle.
-    // template <typename T> Obj& triangle(T x1,T y1,      T x2,T y2,      T x3,T y3)      { return f(x1,y1,    x2,y2,    x3,y3);    }
-    // template <typename T> Obj& triangle(T x1,T y1,T z1, T x2,T y2,T z2, T x3,T y3,T z3) { return f(x1,y1,z1, x2,y2,z2, x3,y3,z3); }
-    template <typename T> Obj& triangle(Vec2<T> xy1,    Vec2<T> xy2,    Vec2<T> xy3)    { return f(xy1,      xy2,      xy3);      }
-    template <typename T> Obj& triangle(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3)   { return f(xyz1,     xyz2,     xyz3);     }
-
-    // Add a 2D polygon. Ex. (write a square) float square[4][2] = {{0,0},{1,0},{1,1},{0,1}}; polygon2(*square,4);
-    template <typename T> Obj& polygon2(int point_count, T* xy_coords) { return poly_impl('f', point_count, xy_coords, 2); }
-    template <typename T> Obj& polygon2(int point_count, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
-        va_list va;
-        va_start(va, p3);
-        vertex2_variadic(point_count, p1, p2, p3, va);
-        va_end(va);
-        return fis(point_count);
+    // Returns the current state of the obj file as a std::string
+    std::string to_std_string() const {
+        return obj.str();
     }
 
-    // Add a 3D polygon.
-    template <typename T> Obj& polygon3(int point_count, T* xyz_coords) { return poly_impl('f', point_count, xyz_coords, 3); }
-    template <typename T> Obj& polygon3(int point_count, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
-        va_list va;
-        va_start(va, p3);
-        vertex3_variadic(point_count, p1, p2, p3, va);
-        va_end(va);
-        return fis(point_count);
+    // @Incomplete Removes negative indices and polylines/triangle fans to reduce the set of features other obj viewers need to support.
+    // MeshLab for example does not support negative indices
+    //Obj& simplify_obj() {} // @Incomplete
+
+    // Add anything to the obj file with a given prefix, which defaults to space
+    // Note: This function is intended to write structs the obj using operator<< e.g., for annotations
+    template <typename T> Obj& insert(const T& anything, const std::string& prefix = " ") {
+        obj << prefix << anything;
+        return *this;
     }
 
-
-    // Add a 2D polyline
-    template <typename T> Obj& polyline2(int point_count, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
-        va_list va;
-        va_start(va, p3);
-        vertex2_variadic(point_count, p1, p2, p3, va);
-        va_end(va);
-        return lis(point_count);
-    }
-	// nocommit implement polyline3
-
-    template <typename T> Obj& insert(T* data, int count) { 
-        if (data == nullptr || count <= 0) {
+    // Add an array of anything to the obj file with a given prefix
+    template <typename T> Obj& insert(T* anything_array, int count, const std::string& prefix = " ") { 
+        if (anything_array == nullptr || count <= 0) {
             return;
         }
 
         for (int i = 0; i < count; i++) {
-            insert(data[i]);
+            insert(anything_array[i], prefix);
         }
 
         return *this;
     }
 
-    // Add a box.
-    template <typename T> Obj& segment_box_min_max(Vec2<T> min, Vec2<T> max) {
-        return v(5, min, Vec2<T>{max.x,min.y}, max, Vec2<T>{min.x,max.y}, min).lis(5);
-        // return v(5, min, {max.x,min.y}, max, {min.x,max.y}, min).lis(5); // TODO Make this work..!
-    }
-    template <typename T> Obj& segment_box_centered(Vec2<T> center, T side_length) {
-        return segment_box_min_max<T>(
-            {center.x - side_length/2, center.y - side_length/2},
-            {center.x + side_length/2, center.y + side_length/2});
+    // Append the other Obj to this one
+    // Note: For this to work properly other must be using negative (aka relative) indices
+    Obj& append(const Obj& other_obj) {
+    	newline();
+    	obj << other_obj.obj.rdbuf();
+    	return newline();
+        // return newline().insert(other.to_std_string(), "").newline();
     }
 
-    // Set the precision used when writing floats to the obj.
-    // Use the max_digits10 variant to round-trip from float to decimal and back
-    // More details here: https://randomascii.wordpress.com/2012/02/11/they-sure-look-equal/
-    Obj&                       set_precision(int n = 6)     { obj.precision(n); return *this; }
-    template <typename T> Obj& set_precision_digits10()     { return set_precision(std::numeric_limits<T>::digits10); }
+
+
+
+
+    //
+    // Directives and special characters
+    //
+
+    // Add a newline to the obj and reset hash_count
+    Obj& newline() { obj << "\n"; hash_count = 0; return *this; }
+
+    // An abbreviated version of the newline function
+    Obj& ln() { return newline(); }
+
+    // Add a # character to the current line, this is used for annotations, comments and attributes
+    Obj& hash() { obj << "#"; hash_count++; return *this; }
+
+    // Add a vertex directive to start a vertex on the current line
+    Obj& v() { obj << "v"; return *this; }
+
+    // Add a vertex normal directive to the current line
+    Obj& vn() { obj << "vn"; return *this; }
+
+    // Add a vertex tangent directive to the current line
+    Obj& vt() { obj << "vt"; return *this; }
+
+    // Add a point directive to start a point on the current line
+    Obj& p() { obj << "p"; return *this;  }
+
+    // Add a line directive to start a segment/polyline on the current line
+    Obj& l() { obj << "l"; return *this; }
+
+    // Add a face directive to start a triangle/polygon on the current line
+    Obj& f() { obj << "f"; return *this; }
+
+    // Add a group directive. @Incomplete Currently Prism ignores these
+    Obj& g() { obj << "g"; return *this; }
+
+
+
+    //
+    // Annotations. In Prism the text between the first # and a newline or second # is an 'annotation' and can be shown in the viewport
+    //
+
+    // If there is no # character on the current line add one, otherwise do nothing
+    Obj& annotation() { if (hash_count == 0) { hash(); } return *this; }
+
+    // If there is no # character on the current line add one, otherwise do nothing. Then add " anything" to the obj
+    template <typename T> Obj& annotation(const T& anything) { return annotation().insert(anything); }
+
+    // Convenience function to write a newline if the given text is empty and write the text annotation followed by a newline otherwise
+    Obj& an(const std::string& text = "") { return text == "" ? newline() : annotation(text).newline(); }
+
+    // Convenience function to write a generic annotation followed by a newline
+    template <typename T> Obj& an(const T& anything) { return annotation(anything).newline(); }
+
+    // Add an annotation prefixed with an @ character.
+    //
+    // In a future version of Prism there will be function to parse numerical data types/colors written to
+    // annotations in order to display or process them specially. Multiple distinct data types placed on
+    // the same geometry element will be supported and the @ character will be used parse them.  Until this
+    // is implemented you might still want to use this function rather than the plain annotation one if you
+    // find having the @ prefix helps you read your annotations more clearly.
+    template <typename T> Obj& attribute(const T& data) { return annotation().insert(data, " @ "); }
+
+
+
+
+
+    //
+    // Comments. In Prism the text following the second # on a line is considered a comment and is totally ignored
+    //
+
+    // Ensure there are two # characters on the current line
+    Obj& comment() { while (hash_count < 2) { hash(); } return *this; }
+
+    // Ensure there are two # characters on the current line then add "anything" to the obj
+    template <typename T> Obj& comment(T anything) { return comment().insert(anything, ""); }
+
+
+
+
+    //
+    // Vectors. Note the preceeding space and no newline
+    //
+
+    // Add 2D vector
+    // Note: writes " x y" to the obj
+    template <typename T> Obj& vector2(T x, T y) { return vector2(Vec2<T>(x, y)); }
+
+    // Add 2D vector
+    // Note: writes " v.x v.y" to the obj
+    template <typename T> Obj& vector2(Vec2<T> v) { return insert(v); }
+
+    // Add 3D vector
+    // Note: writes " x y z" to the obj
+    template <typename T> Obj& vector3(T x, T y, T z) { return vector3(Vec3<T>(x, y, z)); }
+
+    // Add 3D vector
+    // Note: writes " v.x v.y v.z" to the obj
+    template <typename T> Obj& vector3(Vec3<T> v) { return insert(v); }
+
+    // Add 4D vector
+    // Note: writes " x y z w" to the obj
+    template <typename T> Obj& vector4(T x, T y, T z, T w) { return vector4(Vec4<T>(x, y, z, w)); }
+
+    // Add 4D vector
+    // Note: writes " v.x v.y v.z v.w" to the obj
+    template <typename T> Obj& vector4(Vec4<T> v) { return insert(v); }
+
+
+
+
+    //
+    // Vertices/positions.
+    //
+    // :ObjIndexing Vertex indexing is 1-based and can be negative:
+    // * If index >  0 the index refers to the index-th added vertex
+    // * If index <  0 the index refers to index-th preceeding vertex relative to line containing the element with the reference
+    // * if index == 0 the index is invalid, this is a silent error
+    // Vertices should be referenced by elements that are written later in the obj file
+    //
+
+    // Add a 2D position
+    // Note: writes "v a.x a.y" to the obj
+    template <typename T> Obj& vertex2(Vec2<T> a) { return v().vector2(a); }
+
+    // Add a 3D position
+    // Note: writes "v a.x a.y a.z" to the obj
+    template <typename T> Obj& vertex3(Vec3<T> a) { return v().vector3(a); }
+
+
+
+
+    //
+    // Normals and tangents. Indexing is 1-based, see comment tagged :ObjIndexing
+    //
+
+    // Add a 3D normal
+    // Note: writes "vn n.x n.y n.z" to the obj
+    template <typename T> Obj& normal3(Vec3<T> n) { return vn().vector3(n); }
+
+    // Add a 3D tangent
+    // Note: writes "vt t.x t.y t.z" to the obj
+    template <typename T> Obj& tangent3(Vec3<T> t) { return vt().vector3(t); }
+
+
+
+    //
+    // Point elements.  Indices are 1-based, see the comment marked :ObjIndexing
+    //
+
+    // Add a point element at i-th vertex
+    // Note: writes "p i" to the obj
+    Obj& point(int i = -1) { return p().insert(i); }
+
+    // Add a position and a point element that references it
+    // Note: writes "v a.x a.y\np -1" to the obj
+    template <typename T> Obj& point2(Vec2<T> a) { return vertex2(a).newline().point(); }
+
+    // Add a position and a point element that references it
+    // Note: writes "v a\np -1" to the obj
+    template <typename T> Obj& point3(Vec3<T> a) { return vertex3(a).newline().point(); }
+
+
+
+
+    //
+    // Segments elements.  Indices are 1-based, see the comment marked :ObjIndexing
+    //
+
+    // Add a segment element connecting vertices i and j
+    // Note: writes "l i j" to the obj
+    Obj& segment(int i = -2, int j = -1) { return l().insert(i).insert(j); }
+
+    // Add a 2D segment
+    // Note: writes "v a.x a.y\nv b.x b.y\nl -2 -1" to the obj
+    template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b) { return vertex2(a).newline().vertex2(b).newline().segment(); }
+
+    // Add a 3D segment == 3D positions and a segment element
+    // Note: writes "v a.x a.y a.z\nv b.x b.y b.z\nl -2 -1" to the obj
+    template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) { return vertex2(a).newline().vertex2(b).newline().segment(); }
+
+
+
+
+    //
+    // Triangle elements.  Indices are 1-based, see the comment marked :ObjIndexing
+    //
+
+    // Add a triangle element connecting vertices vi, vj and vk
+    // Note: with no parameters writes "f -3 -2 -1" to the obj to refernce the previous 3 vertices
+    Obj& triangle(int vi = -3, int vj = -2, int vk = -1) {
+        return f().insert(vi).insert(vj).insert(vk);
+    }
+
+    // Add a 2D triangle as vertex positions and a face element
+    template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
+        vertex2(va).newline();
+        vertex2(vb).newline();
+        vertex2(vc).newline();
+        return triangle();
+    }
+
+    // Add a 3D triangle as vertex positions and a face element
+    template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
+        vertex3(va).newline();
+        vertex3(vb).newline();
+        vertex3(vc).newline();
+        return triangle();
+    }
+
+    // Add a triangle element connecting vertices vi, vj and vk, with vertex normals ni, nj and nk
+    // Note: with no parameters writes "f -3//-3 -2//-2 -1//-1" to the obj to reference the previous 3 vertices and normals
+    Obj& triangle_vn(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1) {
+        f();
+        insert(vi).insert("//", "").insert(ni, "");
+        insert(vj).insert("//", "").insert(nj, "");
+        insert(vk).insert("//", "").insert(nk, "");
+        return *this;
+    }
+
+    // Add a triangle element connecting vertices vi, vj and vk with vertex normals ni, nj and nk and tangents ti, tj and tk
+    // Note: with no parameters writes "f -3/-3/-3 -2/-2/-2 -1/-1/-1" to the obj to reference the previous 3 vertices, normals and tangents
+    Obj& triangle_vnt(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1, int ti = -3, int tj = -2, int tk = -1) {
+        f();
+        insert(vi).insert("/", "").insert(ti).insert("/", "").insert(ni, "");
+        insert(vj).insert("/", "").insert(tj).insert("/", "").insert(nj, "");
+        insert(vk).insert("/", "").insert(tk).insert("/", "").insert(nk, "");
+        return *this;
+    }
+
+    // Add a 3D triangle as vertex positions, vertex normals and a face element
+    template <typename T> Obj& triangle3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc) {
+        vertex3(va).newline().vn().vector3(na).newline();
+        vertex3(vb).newline().vn().vector3(nb).newline();
+        vertex3(vc).newline().vn().vector3(nc).newline();
+        return triangle_vn();
+    }
+
+    // Add a 3D triangle as vertex positions, normals, tangents and a face element
+    template <typename T> Obj& triangle3_vnt(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc, Vec3<T> ta, Vec3<T> tb, Vec3<T> tc) {
+        vertex3(va).newline().vn().vector3(na).newline().vt().vector3(ta).newline();
+        vertex3(vb).newline().vn().vector3(nb).newline().vt().vector3(tb).newline();
+        vertex3(vc).newline().vn().vector3(nc).newline().vt().vector3(tc).newline();
+        return triangle_vnt();
+    }
+
+
+
+
+
+    //
+    // Polylines. These are sequences of segment elements
+    //
+
+    // Add a polyline element to the obj which refers to the previous N vertices
+    Obj& polyline(int N) {
+        l();
+        for (int i = -N; i < 0; i++) insert(i);
+        return *this;
+    }
+
+    // Add a polyline element to the obj which refers to the given vertex indices
+    Obj& polyline(int N, int i, int j, ...) {
+        segment(i, j);
+        va_list va;
+        va_start(va, j);
+        for (int n = 0; n < N-2; n++) insert(va_arg(va, int));
+        va_end(va);
+        return *this;
+    }
+
+    // Add a 2D polyline as a point count and a pointer to a [X1, Y1, X2, Y2, ... XN, YN] coordinate buffer.
+    // If closed write the first point index again at the end o the l-directive
+    template <typename T> Obj& polyline2(int N, T* XYs, bool closed = false) {
+        return poly_impl('l', N, XYs, 2, closed);
+    }
+
+    // Add a 3D polyline as a point count and a pointer to a [X1, Y1, Z1, X2, Y2, Z2, ... XN, YN, ZN] coordinate buffer.
+    // If closed write the first point index again at the end of the l-directive
+    template <typename T> Obj& polyline3(int N, T* XYs, bool closed = false) {
+        return poly_impl('l', N, XYs, 3, closed);
+    }
+
+    // Add a 2D polyline [p1, p2, p3, ... pN] as a variadic call
+    template <typename T> Obj& polyline2(int N, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
+        va_list va;
+        va_start(va, p3);
+        vertex2_variadic(N, p1, p2, p3, va);
+        va_end(va);
+        return polyline(N);
+    }
+
+    // Add a 3D polyline [p1, p2, p3, ... pN] as a variadic call
+    template <typename T> Obj& polyline3(int N, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
+        va_list va;
+        va_start(va, p3);
+        vertex3_variadic(N, p1, p2, p3, va);
+        va_end(va);
+        return polyline(N);
+    }
+
+
+
+
+
+    //
+    // Axis-aligned boxes.
+    //
+
+    // Add a box region defined by min/max visualized with edges (default) or single polygon
+    template <typename T> Obj& box2_min_max(Vec2<T> min, Vec2<T> max, bool use_segments = true) {
+        if (use_segments) {
+            return polyline2(5, min, Vec2<T>{max.x,min.y}, max, Vec2<T>{min.x,max.y}, min);
+        }
+        return polygon2(5, min, Vec2<T>{max.x,min.y}, max, Vec2<T>{min.x,max.y}, min);
+    }
+
+    // Add a box region defined by min/max visualized with edges (default) or single polygon
+    // Note: This function 
+    template <typename T> Obj& box3_min_max(Vec3<T> min, Vec3<T> max, bool use_segments = true) {
+        if (use_segments) {
+        	// This has some redundant edges but having them means we can annotate the shape conveniently
+            Vec3<T> p000{min.x, min.y, min.z}, p100{max.x, min.y, min.z}, p010{min.x, max.y, min.z}, p110{max.x, max.y, min.z};
+            Vec3<T> p001{min.x, min.y, max.z}, p101{max.x, min.y, max.z}, p011{min.x, max.y, max.z}, p111{max.x, max.y, max.z};
+        	polyline3(16, p000, p100, p110, p010, p000, p001, p101, p100, p101, p111, p110, p111, p011, p010, p011, p001);
+            return *this;
+        }
+        // polygon3().newline();
+        // polygon3().newline();
+        // polygon3().newline();
+        // polygon3().newline();
+        // polygon3().newline();
+        // polygon3().newline();
+        return *this;
+    }
+
+    // Add a box region defined by a center point and extents vector (the side lengths of the box)
+    template <typename T> Obj& box2_center_extents(Vec2<T> center, Vec2<T> extents, bool use_segments = true) {
+        if (use_segments) {
+            return polyline2<T>({center.x - extents.x/2, center.y - extents.y/2}, {center.x + extents.x/2, center.y + extents.y/2});
+        }
+        return polygon2<T>({center.x - extents.x/2, center.y - extents.y/2}, {center.x + extents.x/2, center.y + extents.y/2});
+    }
+
+
+
+
+    //
+    // Polygons. These are sequences of triangle elements aka triangle fans
+    //
+
+    // Add a polygon element to the obj which refers to the previous N vertices
+    Obj& polygon(int N) {
+        f();
+        for (int i = -N; i < 0; i++) insert(i);
+        return *this;
+    }
+
+    // Add a polygon element to the obj which refers to the given vertex indices
+    Obj& polygon(int N, int i, int j, int k, ...) {
+        triangle(i, j, k);
+        va_list va;
+        va_start(va, k);
+        for (int n = 0; n < N-3; n++) insert(va_arg(va, int));
+        va_end(va);
+        return *this;
+    }
+
+    // Add a 2D polygon as a point count and a pointer to a [X1, Y1, X2, Y2, ... XN, YN] coordinate buffer
+    template <typename T> Obj& polygon2(int N, T* XYs) { return poly_impl('f', N, XYs, 2); }
+
+    // Add a 3D polygon as a point count and a pointer to a [X1, Y1, Z1, X2, Y2, Z2, ... XN, YN, ZN] coordinate buffer
+    template <typename T> Obj& polygon3(int N, T* XYs) { return poly_impl('f', N, XYs, 3); }
+
+    // Add a 2D polygon [p1, p2, p3, ... pN] as a variadic call
+    template <typename T> Obj& polygon2(int N, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
+        va_list va;
+        va_start(va, p3);
+        vertex2_variadic(N, p1, p2, p3, va);
+        va_end(va);
+        return polygon(N);
+    }
+
+    // Add a 3D polygon [p1, p2, p3, ... pN] as a variadic call
+    template <typename T> Obj& polygon3(int N, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
+        va_list va;
+        va_start(va, p3);
+        vertex3_variadic(N, p1, p2, p3, va);
+        va_end(va);
+        return polygon(N);
+    }
+
+
+
+
+
+    //
+    // Configuration functions
+    //
+
+    // Set the precision used to write floats to the obj
+    Obj& set_precision(int n = 6) { obj.precision(n); return *this; }
+
+    // Set the precision used to write floats to the obj
+    template <typename T> Obj& set_precision_digits10() { return set_precision(std::numeric_limits<T>::digits10); }
+
+    // Set the precision used to write floats to the obj. Use this function to ensure you can round-trip from float to decimal and back
+    // See https://randomascii.wordpress.com/2012/02/11/they-sure-look-equal/ for details
     template <typename T> Obj& set_precision_max_digits10() { return set_precision(std::numeric_limits<T>::max_digits10); }
 
+	// struct Item_Style
+ //    {
+	//     Vec4 Color;
+ //    };
+
+
+
     //
-    // Concise API.
+    // Implementation methods
     //
 
-    // Start a new line and set hash_count to 0
-    Obj& ln() { obj << "\n"; hash_count = 0; return *this; }
-
-    // Add positions.
-    Obj&                       v()            { obj << "v"; return *this; }
-    // template <typename T> Obj& v(T x,T y)     { return v().vector(x,y);   }
-    // template <typename T> Obj& v(T x,T y,T z) { return v().vector(x,y,z); }
-    template <typename T> Obj& v(Vec2<T> xy)  { return v().vector(xy);    }
-    template <typename T> Obj& v(Vec3<T> xyz) { return v().vector(xyz);   }
-    template <typename T> Obj& v(int point_count, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
-        va_list va;
-        va_start(va, p3);
-        vertex2_variadic(point_count, p1, p2, p3, va);
-        va_end(va);
-        return *this;
-    }
-    template <typename T> Obj& v(int point_count, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
-        va_list va;
-        va_start(va, p3);
-        vertex3_variadic(point_count, p1, p2, p3, va);
-        va_end(va);
-        return *this;
-    }
-
-    // TODO Add normals.
-
-    // TODO Add tangents.
-
-    // TODO Add groups.
-
-    // Add a point (index only)
-    Obj& p()            { obj << "p"; return *this;  }
-    Obj& pi(int i = -1) { return p().insert(i);      }
-
-    // Add a segment/polyline (indices only)
-    Obj& l()                               { obj << "l"; return *this; }
-    Obj& li(int i = -2, int j = -1)        { return l().vector(i, j);   }
-    Obj& lis(int count)                    { l(); for (int i = -count; i < 0; i++) insert(i); return *this; }
-    Obj& lis(int count, int i, int j, ...) { li(i, j); va_list va; va_start(va, j); for (int n = 0; n < count-2; n++) insert(va_arg(va, int)); va_end(va); return *this; }
-
-    // Add a triangle/polygon (indices only)
-    Obj& f()                                      { obj << "f"; return *this; }
-    Obj& fi(int i = -3, int j = -2, int k = -1)   { return f().vector(i, j, k); }
-    Obj& fis(int count)                           { f(); for (int i = -count; i < 0; i++) insert(i); return *this; }
-    Obj& fis(int count, int i, int j, int k, ...) { fi(i, j, k); va_list va; va_start(va, k); for (int n = 0; n < count-3; n++) insert(va_arg(va, int)); va_end(va); return *this; }
-
-    // Add a point (position and index)
-    // template <typename T> Obj& p(T x, T y)      { return v(x,y)  .ln().pi(); }
-    // template <typename T> Obj& p(T x, T y, T z) { return v(x,y,z).ln().pi(); }
-    template <typename T> Obj& p(Vec2<T> xy)    { return v(xy)   .ln().pi(); }
-    template <typename T> Obj& p(Vec3<T> xyz)   { return v(xyz)  .ln().pi(); }
-
-    // Add a segment/polyline (positions and indices)
-    // template <typename T> Obj& l(T x1,T y1,      T x2,T y2     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().li(); }
-    // template <typename T> Obj& l(T x1,T y1,T z1, T x2,T y2,T z2) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().li(); }
-    template <typename T> Obj& l(Vec2<T> xy1,      Vec2<T> xy2 ) { return v(xy1)     .ln().v(xy2)     .ln().li(); }
-    template <typename T> Obj& l(Vec3<T> xyz1,     Vec3<T> xyz2) { return v(xyz1)    .ln().v(xyz2)    .ln().li(); }
-
-    // Add a triangle/polygon (positions and indices)
-    // template <typename T> Obj& f(T x1,T y1,      T x2,T y2,      T x3,T y3     ) { return v(x1,y1)   .ln().v(x2,y2)   .ln().v(x3,y3)   .ln().fi(); }
-    // template <typename T> Obj& f(T x1,T y1,T z1, T x2,T y2,T z2, T x3,T y3,T z3) { return v(x1,y1,z1).ln().v(x2,y2,z2).ln().v(x3,y3,z3).ln().fi(); }
-    template <typename T> Obj& f(Vec2<T> xy1,    Vec2<T> xy2,    Vec2<T> xy3   ) { return v(xy1)     .ln().v(xy2)     .ln().v(xy3)     .ln().fi(); }
-    template <typename T> Obj& f(Vec3<T> xyz1,   Vec3<T> xyz2,   Vec3<T> xyz3  ) { return v(xyz1)    .ln().v(xyz2)    .ln().v(xyz3)    .ln().fi(); }
-
-    // Add a box.
-    template <typename T> Obj& lbox(Vec2<T> min,    Vec2<T> max) { return segment_box_min_max(min, max); }
-    template <typename T> Obj& lbox(Vec2<T> center, T side_length) { return segment_box_centered(center, side_length); }
-
-    // TODO fbox, l/frect, l/faabb, l/fcircle, l/fball, l/fsphere, l/ftetrahedron, polyline, star (defined to neatly fit into a box or a circle with the same number of points)
-    // TODO Add functions corresponding to command annotations e.g., to set item state/prism application state
-    // TODO Template the above on the annotation type?
-
-    // Implementation methods. Not private but you probably don't want to use them
-
-    template <typename T> Obj& poly_impl(char directive, int point_count, T* coord_buffer, uint8_t point_dimension) {
+    template <typename T> Obj& poly_impl(char directive, int point_count, T* coords, uint8_t point_dimension, bool repeat_last = false) {
         if (point_count <= 0) {
-            return;
+            return *this;
         }
 
         for (int i = 0; i < point_count; i++) {
             v();
             for (int d = 0; d < point_dimension; d++) {
-                insert(coord_buffer[i * point_dimension + d]).ln();
+                insert<T>(*(coords + i * point_dimension + d));
             }
+            newline();
         }
 
         directive == 'f' ? f() : l();
@@ -393,28 +640,39 @@ struct Obj {
             insert(i);
         }
 
+        if (repeat_last) insert(-point_count);
+
         // No newline so the caller can add an annotation
 
         return *this;
     }
 
     template <typename T> Obj& vertex2_variadic(int point_count, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, va_list va) {
-        vertex(p1).newline().vertex(p2).newline().vertex(p3).newline();
+        vertex2(p1).newline().vertex2(p2).newline().vertex2(p3).newline();
         for (int i = 0; i < point_count-3; i++) {
             Vec2<T> pn = va_arg(va, Vec2<T>);
-            vertex(pn).newline();
+            vertex2(pn).newline();
         }
         return *this;
     }
 
     template <typename T> Obj& vertex3_variadic(int point_count, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, va_list va) {
-        vertex(p1).newline().vertex(p2).newline().vertex(p3).newline();
+        vertex3(p1).newline().vertex3(p2).newline().vertex3(p3).newline();
         for (int i = 0; i < point_count-3; i++) {
             Vec3<T> pn = va_arg(va, Vec3<T>);
-            vertex(pn).newline();
+            vertex3(pn).newline();
         }
         return *this;
     }
+
+
+
+
+
+
+    //
+    // User-provided extension methods
+    //
 
 #ifdef PRISM_OBJ_CLASS_EXTRA
     PRISM_OBJ_CLASS_EXTRA
@@ -422,138 +680,160 @@ struct Obj {
 };
 
 
-namespace {
-bool check_and_or_write(const Obj& obj, std::string wanted, std::string test_name, bool write_file) {
+void usage_example(bool write_files) {
 
-    bool passed = true;
+    auto test = [&write_files](std::string filename, std::string got, std::string wanted) {
+        bool passed = true;
+        if (wanted == got) {
+            std::cout << "Test " << filename << "() PASSED..." << std::endl;
+        } else {
+            std::cout << "Test " << filename << "() FAILED..." << std::endl;
+            std::cout << "Wanted:" << wanted << "\nGot:" << got << std::endl;
+            passed = false;
+        }
+        if (!passed || write_files) {
+            std::ofstream file;
+            file.open(filename, std::ofstream::out | std::ofstream::trunc);
+            file << got;
+            file.close();
+            std::cout << "Wrote " << filename << std::endl;
+        }
+    };
 
-    std::string got = obj.obj.str();
-    if (wanted == got) {
-        std::cout << "Test " << test_name << "() PASSED..." << std::endl;
-    } else {
-        std::cout << "Test " << test_name << "() FAILED..." << std::endl;
-        std::cout << "Wanted:\n" << wanted << "\nGot:\n" << got << std::endl;
-        passed = false;
+    // Basic example
+    {
+        using namespace prism; // Access Obj struct and vector typedefs
+
+        // Data for a star-shape. Use a union so we can demo two different APIs
+        union {
+            double coords[8*2] = {
+                2, 2, 10, 0, 2, -2, 0, -10, -2, -2, -10, 0, -2, 2, 0, 10
+            };
+            struct {
+                V2 a, b, c, d, e, f, g, h;
+            } points;
+        } star;
+
+    	// First create an Obj and add a comment at the top of the file
+        Obj obj;
+        obj.comment("This file tests a the Prism C++ API").newline();
+
+        // Now we'll write 3 vertices and a triangle element in a very verbose way
+        obj.vertex2(V2{0., 0.}).newline();
+        obj.vertex2(V2{1., 0.}).newline();
+        obj.vertex2(V2{1., 1.}).newline();
+        obj.triangle().annotation("2D triangle").newline();
+
+        // That was a lot of typing... you can do something similar in 1 line.
+        obj.triangle3(V3{0., 0., 2.}, V3{1., 0., 2.}, V3{1., 1., 2.}).an("3D triangle");
+        // (You would need to use the verbose version if you wanted to annotate the triangle vertices)
+
+        // Write a star shaped polygon written using a variadic function call
+        obj.polygon2(8, star.points.a, star.points.b, star.points.c, star.points.d, star.points.e, star.points.f, star.points.g, star.points.h).an("star polygon");
+        
+        // Write the boundary of the above polygon using a pointer-to-buffer API 
+        obj.polyline2(8, star.coords, true).an("star boundary");
+
+    	obj.box3_min_max(V3{3, 3, 3}, V3{7, 7, 7}).newline();
+
+        // Here we'll write a 2D point with some attributes, which are annotations prefixed with an @ to
+        // make them distinguishable. Note that both the annotation and attribute functions support any
+        // type which has an operator<< defined.
+    	V2 bla;
+        obj.point2(V2{3., 3.}).attribute("some string").attribute(42).attribute(V2{0.,0.}).newline();
+
+
+    	std::string wanted = R"DONE(##This file tests a the Prism C++ API
+v 0 0
+v 1 0
+v 1 1
+f -3 -2 -1# 2D triangle
+v 0 0 2
+v 1 0 2
+v 1 1 2
+f -3 -2 -1# 3D triangle
+v 2 2
+v 10 0
+v 2 -2
+v 0 -10
+v -2 -2
+v -10 0
+v -2 2
+v 0 10
+f -8 -7 -6 -5 -4 -3 -2 -1# star polygon
+v 2 2
+v 10 0
+v 2 -2
+v 0 -10
+v -2 -2
+v -10 0
+v -2 2
+v 0 10
+l -8 -7 -6 -5 -4 -3 -2 -1 -8# star boundary
+v 3 3
+p -1# @ some string @ 42 @ 0 0
+)DONE";
+
+        test("prism_example_overview_api.obj", obj.to_std_string(), wanted);
     }
 
-    std::string filename = "prism_" + test_name + ".obj";
-    if (write_file || !passed) {
-        obj.write(filename);
-        std::cout << "  Wrote " << filename << std::endl;
-    } else {
-        std::cout << "  Write " << filename << " by passing true to the test function" << std::endl;
+    // If you use relative indexing you can use the append function to concatenate different obj files
+    {
+        using namespace prism; // Access Obj struct and vector typedefs
+
+        Obj first, second;
+    	
+		// Add some geometry to the first obj
+    	first.segment2(V2{0, 0}, V2{1, 0});
+    	
+		// Add some geometry to the second obj
+    	second.point3(V3{1, 2, 3});
+
+    	// Concatenate the first and second obj
+    	Obj combined;
+    	combined.comment("The first obj:").append(first).comment("The second obj:").append(second);
+
+    	std::string wanted = R"DONE(##The first obj:
+v 0 0
+v 1 0
+l -2 -1
+##The second obj:
+v 1 2 3
+p -1
+)DONE";
+    
+        test("prism_example_combined.obj", combined.to_std_string(), wanted);
     }
 
-    return passed;
-}
-}
+    // One-liner example
+    {
+        using namespace prism; // Access Obj and vector typedefs
 
-void example_verbose_api(bool write_file) {
-    Obj obj;
-    obj.vertex().vector(V2{0., 0.}).newline().point().newline();
-    obj.vertex().vector(V2{1., 0.}).newline().point().newline();
-    obj.vertex().vector(V2{1., 1.}).newline().point().newline();
-    obj.triangle().annotation("Tri(1,2,3)").newline();
-    obj.vertex().vector(V2{3., 3.}).newline().point().annotation("Point 4").newline();
-
-    std::string wanted = R"DONE(v 0 0
-p -1
-v 1 0
-p -1
-v 1 1
-p -1
-f -3 -2 -1# Tri(1,2,3)
-v 3 3
-p -1# Point 4
-)DONE";
-
-    assert(check_and_or_write(obj, wanted, "example_basic_api", write_file));
-}
-
-void example_basic_api(bool write_file) {
-    Obj obj;
-    obj.vertex(V2{0., 0.}).newline().point().newline();
-    obj.vertex(V2{1., 0.}).newline().point().newline();
-    obj.vertex(V2{1., 1.}).newline().point().newline();
-    obj.triangle().annotation("Tri(1,2,3)").newline();
-    obj.vertex(V2{3., 3.}).newline().point().annotation("Point 4").newline();
-
-    std::string wanted = R"DONE(v 0 0
-p -1
-v 1 0
-p -1
-v 1 1
-p -1
-f -3 -2 -1# Tri(1,2,3)
-v 3 3
-p -1# Point 4
-)DONE";
-
-    assert(check_and_or_write(obj, wanted, "example_basic_api", write_file));
-}
-
-void example_advanced_api(bool write_file) {
-    Obj obj;
-    obj.triangle(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).an("Tri2D 1");
-    obj.point(V2{3., 3.}).an("Point 4");
-    obj.polygon2(5, V2{10.,10.}, V2{11.,10.}, V2{11.,11.}, V2{10.,11.}, V2{10.,10.}).ln();
-    obj.polyline2(5, V2{10.,10.}, V2{11.,10.}, V2{11.,11.}, V2{10.,11.}, V2{10.,10.}).ln();
-    obj.polygon3( 5, V3{10.,10.,2.}, V3{11.,10.,2.}, V3{11.,11.,2.}, V3{10.,11.,2.}, V3{10.,10.,2.}).ln();
-
-    std::string wanted = R"DONE(v 0 0
-v 1 0
-v 1 1
-f -3 -2 -1# Tri2D 1
-v 3 3
-p -1# Point 4
-v 10 10
-v 11 10
-v 11 11
-v 10 11
-v 10 10
-f -5 -4 -3 -2 -1
-v 10 10
-v 11 10
-v 11 11
-v 10 11
-v 10 10
-l -5 -4 -3 -2 -1
-v 10 10 2
-v 11 10 2
-v 11 11 2
-v 10 11 2
-v 10 10 2
-f -5 -4 -3 -2 -1
-)DONE";
-
-    assert(check_and_or_write(obj, wanted, "example_advanced_api", write_file));
-}
-
-void example_concise_api(bool write_file) {
-    Obj obj; // If we didn't need to pass this variable to the check function below we could use Obj() in the line below (and also add a `write` call to create and log a file in one line)
-    obj.f(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).an("Tri(1,2,3)").p(V2{3., 3.}).an("Point 4");
-
-    std::string wanted = R"DONE(v 0 0
-v 1 0
-v 1 1
-f -3 -2 -1# Tri(1,2,3)
-v 3 3
-p -1# Point 4
-)DONE";
-
-    assert(check_and_or_write(obj, wanted, "example_concise_api", write_file));
-}
-
-void example_printf_logging(bool write_file) {
-    Obj obj;
-    obj.insert("some int = ").insert(5).ln();
-    if (true) {
-        obj.insert("condition passed on line ").insert(__LINE__).ln();
+        // We don't test this function to keep everything on a single line
+        if (write_files) {
+            std::string filename = "prism_example_oneliner.obj";
+            Obj().triangle2(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).an("triangle").point2(V2{3., 3.}).an("point").write(filename);
+            std::cout << "Wrote " << filename << std::endl;
+        }
     }
 
-    // Do not test this function, since __LINE__ above will result in frequent breaking changes
-    if (write_file) {
-        obj.write("prism_example_printf_logging.obj");
+    // This is a bit wacky but you could also use the Obj class as a file logger
+	// that has nothing to do with the obj format
+    {
+        Obj obj;
+        obj.insert("some int = ").insert(5).newline();
+        obj.insert("some type with operator<< = ").insert(V2{2, 3}).newline();
+        if (true) {
+            obj.insert("condition passed on line ").insert(__LINE__);
+            obj.insert("\n"); // We don't care about tracking # chars so just log special characters directly
+        }
+
+        // We don't test this function because the __LINE__ macro makes it brittle
+        if (write_files) {
+            std::string filename = "prism_example_printf_logging.obj";
+            obj.write(filename);
+            std::cout << "Wrote " << filename << std::endl;
+        }
     }
 }
 
