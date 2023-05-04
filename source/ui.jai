@@ -708,7 +708,7 @@ show_api_ui :: () {
         defer ImGui.TreePop();
 
         exe_directory : string = get_directory(get_path_of_running_executable());
-        include : string = sprint("#include \"%/cpp/prism.h\" // See prism::usage_example()", exe_directory);
+        include : string = sprint("#include \"%/cpp/prism.h\" // See prism::documentation()", exe_directory);
         path_overwrite_separators(include, #char "/");
 
         if ImGui.Button("Copy C++ #include") {

@@ -4,7 +4,7 @@
 int main() {
 
     constexpr bool write_files = true;
-    prism::usage_example(write_files);
+    prism::documentation(write_files);
 
     return 0;
 }

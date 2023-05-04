@@ -178,10 +178,10 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
                 entity.display_info =          found.display_info;
                 entity.is_selected =           found.is_selected;
 
-                entity_source := isa(entity.source, Entity_Source_File);
-                found_source :=  isa(found.source,  Entity_Source_File);
-                if entity_source && found_source {
-                    entity_source.auto_reload = found_source.auto_reload;
+                entity_file_source := isa(entity.source, Entity_Source_File);
+                found_file_source :=  isa(found.source,  Entity_Source_File);
+                if entity_file_source && found_file_source {
+                    entity_file_source.auto_reload = found_file_source.auto_reload;
                 }
 
                 deinit(found);
@@ -224,6 +224,10 @@ temp_selected_entities :: () -> [..]*Entity {
     selected : [..]*Entity = temp_array(*Entity);
     for :Selected app.entities array_add(*selected, it);
     return selected;
+}
+
+count_selected_entities :: () -> s64 {
+    return temp_selected_entities().count;
 }
 
 compute_entity_primary_color :: (using entity : Entity) -> Vector4 {
