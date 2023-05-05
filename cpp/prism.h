@@ -21,11 +21,13 @@ namespace prism {
 #if PRISM_FOR_UNREAL
 #include <VectorTypes.h>
 
+// nocommit Add more types here
+
 #define PRISM_VEC2_CLASS_EXTRA\
-    Vec2(UE::Math::TVector2<T>   p) : Vec2(p.X, p.Y) {}
+    Vec2(UE::Math::TVector2<T> p) : Vec2(p.X, p.Y) {}
 
 #define PRISM_VEC3_CLASS_EXTRA\
-    Vec3(UE::Math::TVector<T>    p) : Vec3(p.X, p.Y, p.Z) {}
+    Vec3(UE::Math::TVector<T> p) : Vec3(p.X, p.Y, p.Z) {}
 
 #define PRISM_VEC4_CLASS_EXTRA\
     Vec4(UE::Math::TVector4<T> p) : Vec4(p.X, p.Y, p.Z, p.W) {}
@@ -118,12 +120,15 @@ std::ostream& operator<<(std::ostream& os, const Color& v) {
 }
 
 // Convenience aliases for VecN types
-using V2 = Vec2<double>;
-using V3 = Vec3<double>;
-using V4 = Vec4<double>;
 using V2f = Vec2<float>;
 using V3f = Vec3<float>;
 using V4f = Vec4<float>;
+using V2d = Vec2<double>;
+using V3d = Vec3<double>;
+using V4d = Vec4<double>;
+using V2 = V2d;
+using V3 = V3d;
+using V4 = V4d;
 
 // Built-in Colors
 const Color BLACK{0, 0, 0, 255};
@@ -193,7 +198,7 @@ struct Obj {
     // Add a newline, then add the other_obj and then add another newline
     // Note: For this to work properly other must be using negative (aka relative) indices
     Obj& append(const Obj& other_obj) {
-    return newline().add(other_obj.obj.rdbuf()).newline();
+        return newline().add(other_obj.obj.rdbuf()).newline();
     }
 
 
@@ -227,40 +232,66 @@ struct Obj {
     //
 
     // Add a vertex directive to start a vertex on the current line
-    Obj& v() { return add("v"); }
+    Obj& v() {
+        return add("v");
+    }
 
     // Add a vertex normal directive to the current line
-    Obj& vn() { return add("vn"); }
+    Obj& vn() {
+        return add("vn");
+    }
 
     // Add a vertex tangent directive to the current line
-    Obj& vt() { return add("vt"); }
+    Obj& vt() {
+        return add("vt");
+    }
 
     // Add a point directive to start a point on the current line
-    Obj& p() { return add("p");  }
+    Obj& p() {
+        return add("p");
+    }
 
     // Add a line directive to start a segment/polyline on the current line
-    Obj& l() { return add("l"); }
+    Obj& l() {
+        return add("l");
+    }
 
     // Add a face directive to start a triangle/polygon on the current line
-    Obj& f() { return add("f"); }
+    Obj& f() {
+        return add("f");
+    }
 
     // Add a group directive. @Incomplete Currently Prism ignores these
-    Obj& g() { return add("g"); }
+    Obj& g() {
+        return add("g");
+    }
 
     // Add a # character to the current line, this is used for annotations, comments and attributes
-    Obj& hash() { hash_count++; return add("#"); }
+    Obj& hash() {
+        hash_count++;
+        return add("#");
+    }
 
     // Add a #! character sequence on a newline, this is used to start command annotations
-    Obj& hashbang() {return newline().hash().add("!"); }
+    Obj& hashbang() {
+        return newline().hash().add("!");
+    }
 
     // Add a newline to the obj and reset hash_count
-    Obj& newline() { hash_count = 0; return add("\n"); }
+    Obj& newline() {
+        hash_count = 0;
+        return add("\n");
+    }
 
     // Add an @ character to the current line, this is used for attributes
-    Obj& at() { return add("@"); }
+    Obj& at() {
+        return add("@");
+    }
 
     // An abbreviated version of the newline function
-    Obj& ln() { return newline(); }
+    Obj& ln() {
+        return newline();
+    }
 
 
 
@@ -274,16 +305,27 @@ struct Obj {
     //
 
     // If there is no # character on the current line add one, otherwise do nothing
-    Obj& annotation() { if (hash_count == 0) { hash(); } return *this; }
+    Obj& annotation() {
+        if (hash_count == 0) {
+            hash();
+        }
+        return *this;
+    }
 
     // If there is no # character on the current line add one, otherwise do nothing. Then add " anything" to the obj
-    template <typename T> Obj& annotation(const T& anything) { return annotation().insert(anything); }
+    template <typename T> Obj& annotation(const T& anything) {
+        return annotation().insert(anything);
+    }
 
     // Convenience function to write a newline if the given text is empty and write the text annotation followed by a newline otherwise
-    Obj& an(const std::string& text = "") { return text == "" ? newline() : annotation(text).newline(); }
+    Obj& an(const std::string& text = "") {
+        return text == "" ? newline() : annotation(text).newline();
+    }
 
     // Convenience function to write a generic annotation followed by a newline
-    template <typename T> Obj& an(const T& anything) { return annotation(anything).newline(); }
+    template <typename T> Obj& an(const T& anything) {
+        return annotation(anything).newline();
+    }
 
     // Add the data, prefixed with an @, to the current annotation string (start a new annotation if necessary)
     //
@@ -293,7 +335,9 @@ struct Obj {
     // to use this function rather than the plain annotation one if you find having the @ prefix helps you read your
     // annotations more clearly. See documentation() for more details.
     // 
-    template <typename T> Obj& attribute(const T& data) { return annotation().at().insert(data); }
+    template <typename T> Obj& attribute(const T& data) {
+        return annotation().at().insert(data);
+    }
 
 
 
@@ -306,10 +350,17 @@ struct Obj {
     //
 
     // Ensure there are two # characters on the current line
-    Obj& comment() { while (hash_count < 2) { hash(); } return *this; }
+    Obj& comment() {
+        while (hash_count < 2) {
+            hash();
+        }
+        return *this;
+    }
 
     // Ensure there are two # characters on the current line then add "anything" to the obj
-    template <typename T> Obj& comment(T anything) { return comment().add(anything); }
+    template <typename T> Obj& comment(T anything) {
+        return comment().add(anything);
+    }
 
 
 
@@ -320,27 +371,39 @@ struct Obj {
 
     // Add 2D vector
     // Note: writes " x y" to the obj
-    template <typename T> Obj& vector2(T x, T y) { return vector2(Vec2<T>(x, y)); }
+    template <typename T> Obj& vector2(T x, T y) {
+        return vector2(Vec2<T>(x, y));
+    }
 
     // Add 2D vector
     // Note: writes " v.x v.y" to the obj
-    template <typename T> Obj& vector2(Vec2<T> v) { return insert(v); }
+    template <typename T> Obj& vector2(Vec2<T> v) {
+        return insert(v);
+    }
 
     // Add 3D vector
     // Note: writes " x y z" to the obj
-    template <typename T> Obj& vector3(T x, T y, T z) { return vector3(Vec3<T>(x, y, z)); }
+    template <typename T> Obj& vector3(T x, T y, T z) {
+        return vector3(Vec3<T>(x, y, z));
+    }
 
     // Add 3D vector
     // Note: writes " v.x v.y v.z" to the obj
-    template <typename T> Obj& vector3(Vec3<T> v) { return insert(v); }
+    template <typename T> Obj& vector3(Vec3<T> v) {
+        return insert(v);
+    }
 
     // Add 4D vector
     // Note: writes " x y z w" to the obj
-    template <typename T> Obj& vector4(T x, T y, T z, T w) { return vector4(Vec4<T>(x, y, z, w)); }
+    template <typename T> Obj& vector4(T x, T y, T z, T w) {
+        return vector4(Vec4<T>(x, y, z, w));
+    }
 
     // Add 4D vector
     // Note: writes " v.x v.y v.z v.w" to the obj
-    template <typename T> Obj& vector4(Vec4<T> v) { return insert(v); }
+    template <typename T> Obj& vector4(Vec4<T> v) {
+        return insert(v);
+    }
 
 
 
@@ -357,11 +420,15 @@ struct Obj {
 
     // Add a 2D position
     // Note: writes "v a.x a.y" to the obj
-    template <typename T> Obj& vertex2(Vec2<T> a) { return v().vector2(a); }
+    template <typename T> Obj& vertex2(Vec2<T> a) {
+        return v().vector2(a);
+    }
 
     // Add a 3D position
     // Note: writes "v a.x a.y a.z" to the obj
-    template <typename T> Obj& vertex3(Vec3<T> a) { return v().vector3(a); }
+    template <typename T> Obj& vertex3(Vec3<T> a) {
+        return v().vector3(a);
+    }
 
 
 
@@ -372,11 +439,21 @@ struct Obj {
 
     // Add a 3D normal
     // Note: writes "vn n.x n.y n.z" to the obj
-    template <typename T> Obj& normal3(Vec3<T> n) { return vn().vector3(n); }
+    template <typename T> Obj& normal3(Vec3<T> n) {
+        return vn().vector3(n);
+    }
+
+    // Add a UV coordinate
+    // Note: writes "vt t.x t.y" to the obj
+    template <typename T> Obj& uv2(Vec2<T> t) {
+        return vt().vector2(t);
+    }
 
     // Add a 3D tangent
     // Note: writes "vt t.x t.y t.z" to the obj
-    template <typename T> Obj& tangent3(Vec3<T> t) { return vt().vector3(t); }
+    template <typename T> Obj& tangent3(Vec3<T> t) {
+        return vt().vector3(t);
+    }
 
 
 
@@ -386,15 +463,21 @@ struct Obj {
 
     // Add a point element at i-th vertex
     // Note: writes "p i" to the obj
-    Obj& point(int i = -1) { return p().insert(i); }
+    Obj& point(int i = -1) {
+        return p().insert(i);
+    }
 
     // Add a position and a point element that references it
     // Note: writes "v a.x a.y\np -1" to the obj
-    template <typename T> Obj& point2(Vec2<T> a) { return vertex2(a).newline().point(); }
+    template <typename T> Obj& point2(Vec2<T> a) {
+        return vertex2(a).newline().point();
+    }
 
     // Add a position and a point element that references it
     // Note: writes "v a\np -1" to the obj
-    template <typename T> Obj& point3(Vec3<T> a) { return vertex3(a).newline().point(); }
+    template <typename T> Obj& point3(Vec3<T> a) {
+        return vertex3(a).newline().point();
+    }
 
 
 
@@ -434,6 +517,36 @@ struct Obj {
         return f().insert(vi).insert(vj).insert(vk);
     }
 
+    // Add a triangle element connecting vertices vi, vj and vk, with vertex normals ni, nj and nk
+    // Note: with no parameters writes "f -3//-3 -2//-2 -1//-1" to the obj to reference the previous 3 vertices and normals
+    Obj& triangle_vn(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1) {
+        f();
+        insert(vi).add("//").add(ni);
+        insert(vj).add("//").add(nj);
+        insert(vk).add("//").add(nk);
+        return *this;
+    }
+
+    // Add a triangle element connecting vertices vi, vj and vk, with vertex tangents ti, tj and tk
+    // Note: with no parameters writes "f -3/-3 -2/-2 -1/-1" to the obj to reference the previous 3 vertices and tangents
+    Obj& triangle_vt(int vi = -3, int vj = -2, int vk = -1, int ti = -3, int tj = -2, int tk = -1) {
+        f();
+        insert(vi).add("/").add(ti);
+        insert(vj).add("/").add(tj);
+        insert(vk).add("/").add(tk);
+        return *this;
+    }
+
+    // Add a triangle element connecting vertices vi, vj and vk with vertex normals ni, nj and nk and tangents ti, tj and tk
+    // Note: with no parameters writes "f -3/-3/-3 -2/-2/-2 -1/-1/-1" to the obj to reference the previous 3 vertices, normals and tangents
+    Obj& triangle_vnt(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1, int ti = -3, int tj = -2, int tk = -1) {
+        f();
+        insert(vi).add("/").add(ti).add("/").add(ni);
+        insert(vj).add("/").add(tj).add("/").add(nj);
+        insert(vk).add("/").add(tk).add("/").add(nk);
+        return *this;
+    }
+
     // Add a 2D triangle as vertex positions and a face element
     template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
         vertex2(va).newline();
@@ -450,24 +563,20 @@ struct Obj {
         return triangle();
     }
 
-    // Add a triangle element connecting vertices vi, vj and vk, with vertex normals ni, nj and nk
-    // Note: with no parameters writes "f -3//-3 -2//-2 -1//-1" to the obj to reference the previous 3 vertices and normals
-    Obj& triangle_vn(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1) {
-        return f().insert(vi).add("//").add(ni).insert(vj).add("//").add(nj).insert(vk).add("//").add(nk);
-    }
-
-    // Add a triangle element connecting vertices vi, vj and vk with vertex normals ni, nj and nk and tangents ti, tj and tk
-    // Note: with no parameters writes "f -3/-3/-3 -2/-2/-2 -1/-1/-1" to the obj to reference the previous 3 vertices, normals and tangents
-    Obj& triangle_vnt(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1, int ti = -3, int tj = -2, int tk = -1) {
-        return f().insert(vi).add("/").add(ti).add("/").add(ni).insert(vj).add("/").add(tj).add("/").add(nj).insert(vk).add("/").add(tk).add("/").add(nk);
-    }
-
     // Add a 3D triangle as vertex positions, vertex normals and a face element
     template <typename T> Obj& triangle3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc) {
         vertex3(va).newline().vn().vector3(na).newline();
         vertex3(vb).newline().vn().vector3(nb).newline();
         vertex3(vc).newline().vn().vector3(nc).newline();
         return triangle_vn();
+    }
+
+    // Add a 3D triangle as vertex positions, vertex tangents and a face element
+    template <typename T> Obj& triangle3_vt(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> ta, Vec3<T> tb, Vec3<T> tc) {
+        vertex3(va).newline().vt().vector3(ta).newline();
+        vertex3(vb).newline().vt().vector3(tb).newline();
+        vertex3(vc).newline().vt().vector3(tc).newline();
+        return triangle_vt();
     }
 
     // Add a 3D triangle as vertex positions, normals, tangents and a face element
@@ -662,19 +771,19 @@ struct Obj {
 
     // Set visibility of annotations
     Obj& set_annotations_visible(bool visible) {
-        return command1("item_set_annotations_visible", (int)visible);
+        return command1("set_annotations_visible", (int)visible);
     }
 
     // Set color of annotation text
     Obj& set_annotations_color(Color color) {
-        return command1("item_set_annotations_color", color);
+        return command1("set_annotations_color", color);
     }
 
     // Set scale of annotation text
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4.
     // TODO :FixScaleParameter The scale parameter is weird, use size in pixels instead
     Obj& set_annotations_scale(float scale) {
-        return command1("item_set_annotations_scale", scale);
+        return command1("set_annotations_scale", scale);
     }
 
 
@@ -682,23 +791,23 @@ struct Obj {
 
     // Set visibility of vertex index labels i.e., 0-based indices into the obj file v-directive data
     Obj& set_vertex_index_labels_visible(bool visible) {
-        return command1("item_set_vertex_index_labels_visible", (int)visible);
+        return command1("set_vertex_index_labels_visible", (int)visible);
     }
 
     // Set visibility of vertex position labels i.e., the coordinates of the obj file v-directive data
     Obj& set_vertex_position_labels_visible(bool visible) {
-        return command1("item_set_vertex_position_labels_visible", (int)visible);
+        return command1("set_vertex_position_labels_visible", (int)visible);
     }
 
     // Set color of vertex index/position labels
     Obj& set_vertex_label_color(Color color) {
-        return command1("item_set_vertex_label_color", color);
+        return command1("set_vertex_label_color", color);
     }
 
     // Set scale of vertex index/position labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     Obj& set_vertex_label_scale(float scale) {
-        return command1("item_set_vertex_label_scale", scale);
+        return command1("set_vertex_label_scale", scale);
     }
 
 
@@ -707,20 +816,20 @@ struct Obj {
     // Set visibility of point element index labels i.e., 0-based indices into the obj file p-directive data
     // Note: set_vertex_index_labels_visible is probably the function you want!
     Obj& set_point_index_labels_visible(bool visible) {
-        return command1("item_set_point_index_labels_visible", (int)visible);
+        return command1("set_point_index_labels_visible", (int)visible);
     }
 
     // Set color of point index labels
     // Note: set_vertex_label_color is probably the function you want!
     Obj& set_point_label_color(Color color) {
-        return command1("item_set_point_label_color", color);
+        return command1("set_point_label_color", color);
     }
 
     // Set scale of point index labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     // Note: set_vertex_label_scale is probably the function you want!
     Obj& set_point_label_scale(float scale) {
-        return command1("item_set_point_label_scale", scale);
+        return command1("set_point_label_scale", scale);
     }
 
 
@@ -728,18 +837,18 @@ struct Obj {
 
     // Set visibility of segment element index labels i.e., 0-based indices into the obj file l-directive data
     Obj& set_segment_index_labels_visible(bool visible) {
-        return command1("item_set_segment_index_labels_visible", (int)visible);
+        return command1("set_segment_index_labels_visible", (int)visible);
     }
 
     // Set color of segment index labels
     Obj& set_segment_label_color(Color color) {
-        return command1("item_set_segment_label_color", color);
+        return command1("set_segment_label_color", color);
     }
 
     // Set scale of segment index labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     Obj& set_segment_label_scale(float scale) {
-        return command1("item_set_segment_label_scale", scale);
+        return command1("set_segment_label_scale", scale);
     }
 
 
@@ -747,18 +856,18 @@ struct Obj {
 
     // Set visibility of triangle element index labels i.e., 0-based indices into the obj file f-directive data
     Obj& set_triangle_index_labels_visible(bool visible) {
-        return command1("item_set_triangle_index_labels_visible", (int)visible);
+        return command1("set_triangle_index_labels_visible", (int)visible);
     }
 
     // Set color of triangle index labels
     Obj& set_triangle_label_color(Color color) {
-        return command1("item_set_triangle_label_color", color);
+        return command1("set_triangle_label_color", color);
     }
 
     // Set scale of triangle index labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     Obj& set_triangle_label_scale(float scale) {
-        return command1("item_set_triangle_label_scale", scale);
+        return command1("set_triangle_label_scale", scale);
     }
 
 
@@ -766,17 +875,17 @@ struct Obj {
 
     // Set visibility of vertices i.e., obj file v-directive data
     Obj& set_vertices_visible(bool visible) {
-        return command1("item_set_vertices_visible", (int)visible);
+        return command1("set_vertices_visible", (int)visible);
     }
 
     // Set color of vertices i.e., obj file v-directive data
     Obj& set_vertices_color(Color color) {
-        return command1("item_set_vertices_color", color);
+        return command1("set_vertices_color", color);
     }
 
     // Set size/radius of vertices i.e., obj file v-directive data
     Obj& set_vertices_size(int size) {
-        return command1("item_set_vertices_size", size);
+        return command1("set_vertices_size", size);
     }
 
 
@@ -785,19 +894,19 @@ struct Obj {
     // Set visibility of points i.e., obj file p-directive data
     // Note: set_vertices_visible is probably the function you want!
     Obj& set_points_visible(bool visible) {
-        return command1("item_set_points_visible", (int)visible);
+        return command1("set_points_visible", (int)visible);
     }
 
     // Set color of points i.e., obj file p-directive data
     // Note: set_vertices_color is probably the function you want!
     Obj& set_points_color(Color color) {
-        return command1("item_set_points_color", color);
+        return command1("set_points_color", color);
     }
 
     // Set size/radius of points i.e., obj file p-directive data
     // Note: set_vertices_size is probably the function you want!
     Obj& set_points_size(int size) {
-        return command1("item_set_points_size", size);
+        return command1("set_points_size", size);
     }
 
 
@@ -805,17 +914,17 @@ struct Obj {
 
     // Set visibility of segments i.e., obj file l-directive data
     Obj& set_segments_visible(bool visible) {
-        return command1("item_set_segments_visible", (int)visible);
+        return command1("set_segments_visible", (int)visible);
     }
 
     // Set color of segments i.e., obj file l-directive data
     Obj& set_segments_color(Color color) {
-        return command1("item_set_segments_color", color);
+        return command1("set_segments_color", color);
     }
 
     // Set width of segments i.e., obj file l-directive data
     Obj& set_segments_width(float width) {
-        return command1("item_set_segments_width", width);
+        return command1("set_segments_width", width);
     }
 
 
@@ -823,17 +932,17 @@ struct Obj {
 
     // Set visibility of triangle edges i.e., obj file f-directive data
     Obj& set_edges_visible(bool visible) {
-        return command1("item_set_edges_visible", (int)visible);
+        return command1("set_edges_visible", (int)visible);
     }
 
     // Set color of triangle edges i.e., obj file f-directive data
     Obj& set_edges_color(Color color) {
-        return command1("item_set_edges_color", color);
+        return command1("set_edges_color", color);
     }
 
     // Set width of triangle edges i.e., obj file f-directive data
     Obj& set_edges_width(float width) {
-        return command1("item_set_edges_width", width);
+        return command1("set_edges_width", width);
     }
 
 
@@ -841,12 +950,12 @@ struct Obj {
 
     // Set visibility of triangles i.e., obj file f-directive data
     Obj& set_triangles_visible(bool visible) {
-        return command1("item_set_triangles_visible", (int)visible);
+        return command1("set_triangles_visible", (int)visible);
     }
 
     // Set color of triangles i.e., obj file f-directive data
     Obj& set_triangles_color(Color color) {
-        return command1("item_set_triangles_color", color);
+        return command1("set_triangles_color", color);
     }
 
 
@@ -948,12 +1057,16 @@ bool documentation(bool write_files) {
     {
         using namespace prism; // Access Obj struct and typedefs
 
-        // Create an Obj instance
+        // Create an Obj instance and start the file with a newline to make formatting of the raw string literal
+        // `output` a bit nicer
         Obj obj;
+        obj.newline();
 
         // First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
-        // the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment
-        obj.comment("This file tests a the Prism C++ API").newline();
+        // the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment. Note that most
+        // functions in the `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your
+        // debugging code to be concise
+        obj.comment("This file tests the Prism C++ API").newline();
 
         // Now we'll write 3 vertices and a triangle element in a very verbose way
         obj.vertex3(V3{0., 0., 1.}).annotation("Vertex A").newline();
@@ -1010,9 +1123,10 @@ bool documentation(bool write_files) {
         // positive ones and converting l-/f-directives with more than 2/3 indices on a single line into a list of
         // l-/f-directives with exactly 2/3 indices on each line.
 
-        // In general functions ending with a number have 2D/3D vector arguments and write both v-directives
-        // and the relevant element directives. If you want to just write the element directive you can use
-        // the functions with no number postfix.
+        // In general functions ending with a number have 2D/3D vector arguments and write both v-directives and the
+        // relevant element directives. If you want to just write the element directive you can use the functions with
+        // no number postfix. Note for some functions the number indicating dimension is redundant but we write it
+        // anyway for consistency.
 
         // Here we write a bounding box for the star we just logged:
         constexpr double inf = std::numeric_limits<double>::infinity();
@@ -1060,15 +1174,15 @@ bool documentation(bool write_files) {
         // execute console commands immediately after the file is loaded.
         //
         // For the obj we have been creating so far we are probably only interested in seeing the annotations we added,
-        // so we would probably only want to call the following function...
+        // so in practice we would probably only want to call the following functions...
         obj.set_annotations_visible(true);
         obj.set_annotations_scale(1.);
         obj.set_annotations_color(BLUE);
         
         // ...but since we are using this documentation for testing as well we'll just call all the config functions
-        // to verify they are executed with no errors.  Note we set false for some arguments to avoid visual clutter if
-        // you inspect the output, we are just trying to check if the commands run.
-        obj.set_precision(2); // So we don't write too many decimal places for float arguments
+        // to verify they are executed with no errors.  First we'll set the precision of the floats we write to the obj
+        // file so that the `output` string looks a bit nicer.
+        obj.set_precision(2);
         obj.set_vertex_index_labels_visible(false);
         obj.set_vertex_position_labels_visible(false);
         obj.set_vertex_label_color(BLACK);
@@ -1096,6 +1210,8 @@ bool documentation(bool write_files) {
         obj.set_edges_width(4.);
         obj.set_triangles_visible(true);
         obj.set_triangles_color(GREEN);
+
+        // End the obj with a newline to make the formatting of the `output` string nicer
         obj.newline();
 
         // Once we have finished adding to the obj file we can write it out using the `write` function. If we called
@@ -1103,7 +1219,8 @@ bool documentation(bool write_files) {
         // convenient when working in Unreal because I can never remember the directory the Editor is running in.
         // obj.write("C:/path/to/my/debug/folder/debug_file.obj");
 
-        std::string output = R"DONE(##This file tests a the Prism C++ API
+        std::string output = R"DONE(
+##This file tests the Prism C++ API
 v 0 0 1# Vertex A
 v 3 0 1# Vertex B
 v 3 3 1# Vertex C
@@ -1142,36 +1259,36 @@ p -1# these are concatenated
 v 3 3
 p -1# some string@ 42@ 0 0
 
-#! item_set_annotations_visible 0 1
-#! item_set_annotations_scale 0 1
-#! item_set_annotations_color 0 0 0 255 255
-#! item_set_vertex_index_labels_visible 0 0
-#! item_set_vertex_position_labels_visible 0 0
-#! item_set_vertex_label_color 0 0 0 0 255
-#! item_set_vertex_label_scale 0 0.4
-#! item_set_point_index_labels_visible 0 0
-#! item_set_point_label_color 0 255 0 0 255
-#! item_set_point_label_scale 0 0.4
-#! item_set_segment_index_labels_visible 0 0
-#! item_set_segment_label_color 0 0 255 0 255
-#! item_set_segment_label_scale 0 0.4
-#! item_set_triangle_index_labels_visible 0 0
-#! item_set_triangle_label_color 0 0 0 255 255
-#! item_set_triangle_label_scale 0 0.4
-#! item_set_vertices_visible 0 1
-#! item_set_vertices_color 0 0 0 255 255
-#! item_set_vertices_size 0 7
-#! item_set_points_visible 0 1
-#! item_set_points_color 0 255 0 0 255
-#! item_set_points_size 0 3
-#! item_set_segments_visible 0 1
-#! item_set_segments_color 0 255 0 0 255
-#! item_set_segments_width 0 3
-#! item_set_edges_visible 0 1
-#! item_set_edges_color 0 0 0 0 255
-#! item_set_edges_width 0 4
-#! item_set_triangles_visible 0 1
-#! item_set_triangles_color 0 0 255 0 255
+#! set_annotations_visible 0 1
+#! set_annotations_scale 0 1
+#! set_annotations_color 0 0 0 255 255
+#! set_vertex_index_labels_visible 0 0
+#! set_vertex_position_labels_visible 0 0
+#! set_vertex_label_color 0 0 0 0 255
+#! set_vertex_label_scale 0 0.4
+#! set_point_index_labels_visible 0 0
+#! set_point_label_color 0 255 0 0 255
+#! set_point_label_scale 0 0.4
+#! set_segment_index_labels_visible 0 0
+#! set_segment_label_color 0 0 255 0 255
+#! set_segment_label_scale 0 0.4
+#! set_triangle_index_labels_visible 0 0
+#! set_triangle_label_color 0 0 0 255 255
+#! set_triangle_label_scale 0 0.4
+#! set_vertices_visible 0 1
+#! set_vertices_color 0 0 0 255 255
+#! set_vertices_size 0 7
+#! set_points_visible 0 1
+#! set_points_color 0 255 0 0 255
+#! set_points_size 0 3
+#! set_segments_visible 0 1
+#! set_segments_color 0 255 0 0 255
+#! set_segments_width 0 3
+#! set_edges_visible 0 1
+#! set_edges_color 0 0 0 0 255
+#! set_edges_width 0 4
+#! set_triangles_visible 0 1
+#! set_triangles_color 0 0 255 0 255
 )DONE";
 
         // Since this` documentation` function you are reading is used for testing we actually call the `to_std_string`
@@ -1200,9 +1317,10 @@ p -1# some string@ 42@ 0 0
 
         // Concatenate the first and second obj
         Obj combined;
-        combined.comment("The first obj:").append(first).comment("The second obj:").append(second);
+        combined.newline().comment("The first obj:").append(first).comment("The second obj:").append(second);
 
-        std::string output = R"DONE(##The first obj:
+        std::string output = R"DONE(
+##The first obj:
 v 0 0
 v 1 0
 l -2 -1
@@ -1268,8 +1386,16 @@ bool documentation_for_unreal(bool write_files) {
     Obj obj;
 
     // Unfortunately you need to explicitly pass the template parameter
-    obj.triangle2<double>(FVector2d(0,0), FVector2d(1,0), FVector2d(0,1));
-    obj.triangle3<double>(FVector(0,0,1), FVector(1,0,1), FVector(0,1,1));
+    FVector2d A2(0,0), B2(1,0), C2(0,1);
+    obj.triangle2<double>(A2, B2, C2);
+
+    // Alternative
+    FVector3d A3(0,0,1), B3(1,0,1), C3(0,1,1);
+    obj.triangle3(V3(A3), V3(B3), V3(C3));
+
+    // Write a triangle with some vertex normals
+    FVector3f N0(1,0), N1(0,1), N2(0,1);
+    obj.triangle3(V3(A3), V3(B3), V3(C3));
 
     // Enable label visibility and test FColor apis
     obj.set_vertex_index_labels_visible(true);
