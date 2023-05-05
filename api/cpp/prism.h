@@ -1,4 +1,5 @@
-#if 1  // Prism debug code begins (this #if is intended to help you fold this in your IDE if you copied the contents directly)
+#ifndef PRISM_CPP_API
+#define PRISM_CPP_API
 
 #include <fstream>
 #include <iomanip>
@@ -12,32 +13,6 @@
 #include <cmath> // for std::max, std::min
 
 namespace prism {
-
-// By default enable the Unreal API
-#ifndef PRISM_FOR_UNREAL
-#define PRISM_FOR_UNREAL 1
-#endif
-
-#if PRISM_FOR_UNREAL
-#include <VectorTypes.h>
-
-// nocommit Add more types here
-
-#define PRISM_VEC2_CLASS_EXTRA\
-    Vec2(UE::Math::TVector2<T> p) : Vec2(p.X, p.Y) {}
-
-#define PRISM_VEC3_CLASS_EXTRA\
-    Vec3(UE::Math::TVector<T> p) : Vec3(p.X, p.Y, p.Z) {}
-
-#define PRISM_VEC4_CLASS_EXTRA\
-    Vec4(UE::Math::TVector4<T> p) : Vec4(p.X, p.Y, p.Z, p.W) {}
-
-#define PRISM_COLOR_CLASS_EXTRA\
-    Color(FColor c) : Color(c.R, c.G, c.B, c.A) {}
-
-#define PRISM_OBJ_CLASS_EXTRA\
-    void write_fstring(const FString& filename) { return write(TCHAR_TO_UTF8(*filename)); } // not named `write` to prevent infinite recursion
-#endif // PRISM_FOR_UNREAL
 
 // A 2D vector type. Use PRISM_VEC2_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
@@ -767,23 +742,43 @@ struct Obj {
     // to this->obj at the point you call them but Prism will defer execution until the entire file has been parsed.
     //
 
+    // Start a command annotation, arguments should be `insert`ed after this
+    Obj& command(const std::string& command_name) {
+        return hashbang().insert(command_name);
+    }
+
+    // (Advanced) Start a command annotation whose first argument is the Prism item index
+    //
+    // The Prism application has a global array of items (aka shapes/geometry) the index into this list is often used as
+    // the first argument in console commands.  When console commands are executed by the function which load .obj
+    // files as command annotations a _local_ array of items is created, the item with local index 0 is the item with
+    // geometry given in the .obj, if a console command which has a side effect of generating a new item is executed as
+    // a command annotation then this item will have index >0 and you can pass that value as `item_index` to run a
+    // console command of one of these generated items which are not explicitly in the .obj file.
+    //
+    // Note: This complexity is intentionally avoided in the prism::Obj command annotation API, so the rest of the
+    // functions below work with `item_index == 0`.
+    Obj& item_command(const std::string& command_name, int item_index = 0) {
+        return command(command_name).insert(item_index);
+    }
+
     // Annotation labels
 
     // Set visibility of annotations
     Obj& set_annotations_visible(bool visible) {
-        return command1("set_annotations_visible", (int)visible);
+        return item_command("set_annotations_visible").insert((int)visible);
     }
 
     // Set color of annotation text
     Obj& set_annotations_color(Color color) {
-        return command1("set_annotations_color", color);
+        return item_command("set_annotations_color").insert(color);
     }
 
     // Set scale of annotation text
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4.
     // TODO :FixScaleParameter The scale parameter is weird, use size in pixels instead
     Obj& set_annotations_scale(float scale) {
-        return command1("set_annotations_scale", scale);
+        return item_command("set_annotations_scale").insert(scale);
     }
 
 
@@ -791,23 +786,23 @@ struct Obj {
 
     // Set visibility of vertex index labels i.e., 0-based indices into the obj file v-directive data
     Obj& set_vertex_index_labels_visible(bool visible) {
-        return command1("set_vertex_index_labels_visible", (int)visible);
+        return item_command("set_vertex_index_labels_visible").insert((int)visible);
     }
 
     // Set visibility of vertex position labels i.e., the coordinates of the obj file v-directive data
     Obj& set_vertex_position_labels_visible(bool visible) {
-        return command1("set_vertex_position_labels_visible", (int)visible);
+        return item_command("set_vertex_position_labels_visible").insert((int)visible);
     }
 
     // Set color of vertex index/position labels
     Obj& set_vertex_label_color(Color color) {
-        return command1("set_vertex_label_color", color);
+        return item_command("set_vertex_label_color").insert(color);
     }
 
     // Set scale of vertex index/position labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     Obj& set_vertex_label_scale(float scale) {
-        return command1("set_vertex_label_scale", scale);
+        return item_command("set_vertex_label_scale").insert(scale);
     }
 
 
@@ -816,76 +811,76 @@ struct Obj {
     // Set visibility of point element index labels i.e., 0-based indices into the obj file p-directive data
     // Note: set_vertex_index_labels_visible is probably the function you want!
     Obj& set_point_index_labels_visible(bool visible) {
-        return command1("set_point_index_labels_visible", (int)visible);
+        return item_command("set_point_index_labels_visible").insert((int)visible);
     }
 
     // Set color of point index labels
     // Note: set_vertex_label_color is probably the function you want!
     Obj& set_point_label_color(Color color) {
-        return command1("set_point_label_color", color);
+        return item_command("set_point_label_color").insert(color);
     }
 
     // Set scale of point index labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     // Note: set_vertex_label_scale is probably the function you want!
     Obj& set_point_label_scale(float scale) {
-        return command1("set_point_label_scale", scale);
+        return item_command("set_point_label_scale").insert(scale);
     }
 
 
     // Segment labels
 
     // Set visibility of segment element index labels i.e., 0-based indices into the obj file l-directive data
-    Obj& set_segment_index_labels_visible(bool visible) {
-        return command1("set_segment_index_labels_visible", (int)visible);
+    Obj& set_segment_index_labels_visible(bool visible = true) {
+        return item_command("set_segment_index_labels_visible").insert((int)visible);
     }
 
     // Set color of segment index labels
     Obj& set_segment_label_color(Color color) {
-        return command1("set_segment_label_color", color);
+        return item_command("set_segment_label_color").insert(color);
     }
 
     // Set scale of segment index labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     Obj& set_segment_label_scale(float scale) {
-        return command1("set_segment_label_scale", scale);
+        return item_command("set_segment_label_scale").insert(scale);
     }
 
 
     // Triangle labels
 
     // Set visibility of triangle element index labels i.e., 0-based indices into the obj file f-directive data
-    Obj& set_triangle_index_labels_visible(bool visible) {
-        return command1("set_triangle_index_labels_visible", (int)visible);
+    Obj& set_triangle_index_labels_visible(bool visible = true) {
+        return item_command("set_triangle_index_labels_visible").insert((int)visible);
     }
 
     // Set color of triangle index labels
     Obj& set_triangle_label_color(Color color) {
-        return command1("set_triangle_label_color", color);
+        return item_command("set_triangle_label_color").insert(color);
     }
 
     // Set scale of triangle index labels
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
     Obj& set_triangle_label_scale(float scale) {
-        return command1("set_triangle_label_scale", scale);
+        return item_command("set_triangle_label_scale").insert(scale);
     }
 
 
     // Vertex rendering
 
     // Set visibility of vertices i.e., obj file v-directive data
-    Obj& set_vertices_visible(bool visible) {
-        return command1("set_vertices_visible", (int)visible);
+    Obj& set_vertices_visible(bool visible = true) {
+        return item_command("set_vertices_visible").insert((int)visible);
     }
 
     // Set color of vertices i.e., obj file v-directive data
     Obj& set_vertices_color(Color color) {
-        return command1("set_vertices_color", color);
+        return item_command("set_vertices_color").insert(color);
     }
 
     // Set size/radius of vertices i.e., obj file v-directive data
     Obj& set_vertices_size(int size) {
-        return command1("set_vertices_size", size);
+        return item_command("set_vertices_size").insert(size);
     }
 
 
@@ -894,19 +889,19 @@ struct Obj {
     // Set visibility of points i.e., obj file p-directive data
     // Note: set_vertices_visible is probably the function you want!
     Obj& set_points_visible(bool visible) {
-        return command1("set_points_visible", (int)visible);
+        return item_command("set_points_visible").insert((int)visible);
     }
 
     // Set color of points i.e., obj file p-directive data
     // Note: set_vertices_color is probably the function you want!
     Obj& set_points_color(Color color) {
-        return command1("set_points_color", color);
+        return item_command("set_points_color").insert(color);
     }
 
     // Set size/radius of points i.e., obj file p-directive data
     // Note: set_vertices_size is probably the function you want!
     Obj& set_points_size(int size) {
-        return command1("set_points_size", size);
+        return item_command("set_points_size").insert(size);
     }
 
 
@@ -914,17 +909,17 @@ struct Obj {
 
     // Set visibility of segments i.e., obj file l-directive data
     Obj& set_segments_visible(bool visible) {
-        return command1("set_segments_visible", (int)visible);
+        return item_command("set_segments_visible").insert((int)visible);
     }
 
     // Set color of segments i.e., obj file l-directive data
     Obj& set_segments_color(Color color) {
-        return command1("set_segments_color", color);
+        return item_command("set_segments_color").insert(color);
     }
 
     // Set width of segments i.e., obj file l-directive data
     Obj& set_segments_width(float width) {
-        return command1("set_segments_width", width);
+        return item_command("set_segments_width").insert(width);
     }
 
 
@@ -932,17 +927,17 @@ struct Obj {
 
     // Set visibility of triangle edges i.e., obj file f-directive data
     Obj& set_edges_visible(bool visible) {
-        return command1("set_edges_visible", (int)visible);
+        return item_command("set_edges_visible").insert((int)visible);
     }
 
     // Set color of triangle edges i.e., obj file f-directive data
     Obj& set_edges_color(Color color) {
-        return command1("set_edges_color", color);
+        return item_command("set_edges_color").insert(color);
     }
 
     // Set width of triangle edges i.e., obj file f-directive data
     Obj& set_edges_width(float width) {
-        return command1("set_edges_width", width);
+        return item_command("set_edges_width").insert(width);
     }
 
 
@@ -950,12 +945,12 @@ struct Obj {
 
     // Set visibility of triangles i.e., obj file f-directive data
     Obj& set_triangles_visible(bool visible) {
-        return command1("set_triangles_visible", (int)visible);
+        return item_command("set_triangles_visible").insert((int)visible);
     }
 
     // Set color of triangles i.e., obj file f-directive data
     Obj& set_triangles_color(Color color) {
-        return command1("set_triangles_color", color);
+        return item_command("set_triangles_color").insert(color);
     }
 
 
@@ -1010,8 +1005,8 @@ struct Obj {
     // Write a command annotation for a command with 1 argument (in addition to the typical item index argument)
     // Note: item_index != 0 is an advanced use-case that you would only use if you want the command to affect an item
     // which was created by running a previous command annotation
-    template <typename T> Obj& command1(const std::string& command_name, T arg1, int item_index = 0) {
-        return hashbang().insert(command_name).insert(item_index).insert(arg1);
+    template <typename T> Obj& item_command(const std::string& command_name, int item_index = 0) {
+        return command(command_name).insert(item_index);
     }
 
 
@@ -1377,45 +1372,6 @@ p -1
     return tests_pass;
 }
 
-#ifdef PRISM_FOR_UNREAL
-
-// This tests the PRISM_FOR_UNREAL extensions
-bool documentation_for_unreal(bool write_files) {
-
-    using namespace prism;
-    Obj obj;
-
-    // Unfortunately you need to explicitly pass the template parameter
-    FVector2d A2(0,0), B2(1,0), C2(0,1);
-    obj.triangle2<double>(A2, B2, C2);
-
-    // Alternative
-    FVector3d A3(0,0,1), B3(1,0,1), C3(0,1,1);
-    obj.triangle3(V3(A3), V3(B3), V3(C3));
-
-    // Write a triangle with some vertex normals
-    FVector3f N0(1,0), N1(0,1), N2(0,1);
-    obj.triangle3(V3(A3), V3(B3), V3(C3));
-
-    // Enable label visibility and test FColor apis
-    obj.set_vertex_index_labels_visible(true);
-    obj.set_triangle_index_labels_visible(true);
-    obj.set_vertex_label_color(FColor::Red);
-    obj.set_triangle_label_color(FColor::Blue);
-
-    if (write_files) {
-        obj.write("prism_example_for_unreal.obj");
-    }
-
-    return true;
-}
-
-#endif
-
-#ifdef PRISM_FOR_UNREAL
-#undef PRISM_FOR_UNREAL
-#endif
-
 #ifdef PRISM_VEC2_CLASS_EXTRA
 #undef PRISM_VEC2_CLASS_EXTRA
 #endif
@@ -1438,4 +1394,4 @@ bool documentation_for_unreal(bool write_files) {
 
 } // end namespace prism
 
-#endif // Prism debug code ends
+#endif // PRISM_CPP_API

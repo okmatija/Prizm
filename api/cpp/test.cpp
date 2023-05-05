@@ -1,4 +1,3 @@
-#define PRISM_FOR_UNREAL 0
 #include "prism.h"
 
 int main() {

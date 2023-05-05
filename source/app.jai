@@ -131,6 +131,12 @@ App :: struct {
     // The user can change this coordinate if the default zero value is inconvenient, reloading the file will show the new result
     invalid_point : Vector3 = .{0, 0, 0};
 
+    API :: struct {
+        using_unreal := true;
+        using_unreal_geometrycore := true;
+    }
+    api : API;
+
     Version :: struct {
         name : string;
         date : string;

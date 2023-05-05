@@ -312,7 +312,7 @@ item_flip_normals :: (id : int) {
 
 
 // Set the color of the highest-dimensional element (triangle > segment > point) in the given item's mesh
-item_set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -324,7 +324,7 @@ item_set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
 
 
 // visible is a boolean
-item_set_visible :: (id : int, visible : int) {
+set_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.is_visible = xx visible;
@@ -334,13 +334,13 @@ item_set_visible :: (id : int, visible : int) {
 
 
 // visible is a boolean
-item_set_annotations_visible :: (id : int, visible : int) {
+set_annotations_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
-item_set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -348,7 +348,7 @@ item_set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 25
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
-item_set_annotations_scale :: (id : int, scale : float) {
+set_annotations_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.annotation_label_theme.label_scale = scale;
@@ -358,20 +358,20 @@ item_set_annotations_scale :: (id : int, scale : float) {
 
 
 // visible is a boolean
-item_set_vertex_index_labels_visible :: (id : int, visible : int) {
+set_vertex_index_labels_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.vertex_label_theme.show_index = xx visible;
 } @RegisterCommand
 
 // visible is a boolean
-item_set_vertex_position_labels_visible :: (id : int, visible : int) {
+set_vertex_position_labels_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.vertex_label_theme.show_position = xx visible;
 } @RegisterCommand
 
-item_set_vertex_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_vertex_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -379,7 +379,7 @@ item_set_vertex_label_color :: (id : int, r : int, g : int, b : int, a : int = 2
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
-item_set_vertex_label_scale :: (id : int, scale : float) {
+set_vertex_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.vertex_label_theme.label_scale = scale;
@@ -389,13 +389,13 @@ item_set_vertex_label_scale :: (id : int, scale : float) {
 
 
 // visible is a boolean
-item_set_point_index_labels_visible :: (id : int, visible : int) {
+set_point_index_labels_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.point_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-item_set_point_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_point_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -403,7 +403,7 @@ item_set_point_label_color :: (id : int, r : int, g : int, b : int, a : int = 25
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
-item_set_point_label_scale :: (id : int, scale : float) {
+set_point_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.point_label_theme.label_scale = scale;
@@ -413,13 +413,13 @@ item_set_point_label_scale :: (id : int, scale : float) {
 
 
 // visible is a boolean
-item_set_segment_index_labels_visible :: (id : int, visible : int) {
+set_segment_index_labels_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.segment_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-item_set_segment_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_segment_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -427,7 +427,7 @@ item_set_segment_label_color :: (id : int, r : int, g : int, b : int, a : int = 
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
-item_set_segment_label_scale :: (id : int, scale : float) {
+set_segment_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.segment_label_theme.label_scale = scale;
@@ -437,13 +437,13 @@ item_set_segment_label_scale :: (id : int, scale : float) {
 
 
 // visible is a boolean
-item_set_triangle_index_labels_visible :: (id : int, visible : int) {
+set_triangle_index_labels_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.triangle_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-item_set_triangle_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_triangle_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -451,7 +451,7 @@ item_set_triangle_label_color :: (id : int, r : int, g : int, b : int, a : int =
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
-item_set_triangle_label_scale :: (id : int, scale : float) {
+set_triangle_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.triangle_label_theme.label_scale = scale;
@@ -460,20 +460,20 @@ item_set_triangle_label_scale :: (id : int, scale : float) {
 
 
 // visible is a boolean
-item_set_vertices_visible :: (id : int, visible : int) {
+set_vertices_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.positions_visible = xx visible;
 } @RegisterCommand
 
-item_set_vertices_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_vertices_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
     entity.display_info.positions_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-item_set_vertices_size :: (id : int, size : int = 4) {
+set_vertices_size :: (id : int, size : int = 4) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.positions_size = xx size;
@@ -481,24 +481,24 @@ item_set_vertices_size :: (id : int, size : int = 4) {
 
 
 
-// You probably want to use the item_set_vertices_visible function
+// You probably want to use the set_vertices_visible function
 // visible is a boolean
-item_set_points_visible :: (id : int, visible : int) {
+set_points_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.points_visible = xx visible;
 } @RegisterCommand
 
-// You probably want to use the item_set_vertices_color function
-item_set_points_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+// You probably want to use the set_vertices_color function
+set_points_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
     entity.display_info.points_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// You probably want to use the item_set_vertices_size function
-item_set_points_size :: (id : int, size : int = 4) {
+// You probably want to use the set_vertices_size function
+set_points_size :: (id : int, size : int = 4) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.points_size = xx size;
@@ -507,20 +507,20 @@ item_set_points_size :: (id : int, size : int = 4) {
 
 
 // visible is a boolean
-item_set_segments_visible :: (id : int, visible : int) {
+set_segments_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.segments_visible = xx visible;
 } @RegisterCommand
 
-item_set_segments_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_segments_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
     entity.display_info.segments_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-item_set_segments_width :: (id : int, width : float = 1.) {
+set_segments_width :: (id : int, width : float = 1.) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.segments_width = width;
@@ -529,13 +529,13 @@ item_set_segments_width :: (id : int, width : float = 1.) {
 
 
 // visible is a boolean
-item_set_triangles_visible :: (id : int, visible : int) {
+set_triangles_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.triangles_visible = xx visible;
 } @RegisterCommand
 
-item_set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
@@ -545,20 +545,20 @@ item_set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255)
 
 
 // visible is a boolean
-item_set_edges_visible :: (id : int, visible : int) {
+set_edges_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.edges_visible = xx visible;
 } @RegisterCommand
 
-item_set_edges_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+set_edges_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
     entity.display_info.edges_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-item_set_edges_width :: (id : int, width : float = 1.) {
+set_edges_width :: (id : int, width : float = 1.) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.edges_width = width;

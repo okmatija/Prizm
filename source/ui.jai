@@ -707,8 +707,51 @@ show_api_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
 
-        exe_directory : string = get_directory(get_path_of_running_executable());
-        include : string = sprint("#include \"%/cpp/prism.h\" // See prism::documentation()", exe_directory);
+        // BoxSection(); // @FIXME ImGui bug?
+
+        show_cpp_api_ui();
+        show_python_api_ui();
+    }
+}
+
+show_cpp_api_ui :: () {
+    do_tree := ImGui.TreeNodeEx("C++", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+    show_tooltip("Tools to interface between Prism and your C++ program");
+    if do_tree {
+        defer ImGui.TreePop();
+
+        ImGui.Checkbox("Using Unreal", *app.api.using_unreal);
+        show_tooltip("You can turn this off if you're working in project\noutside Unreal. The only dependency will be C++ STL\nheaders, in future we will try to eliminate this");
+
+        if !app.api.using_unreal ImGui.BeginDisabled();
+        ImGui.Checkbox("Using Unreal GeometryCore", *app.api.using_unreal_geometrycore);
+        show_tooltip("You can turn this off if you're working in a module\nwhich doesn't include the GeometryCore module");
+        if !app.api.using_unreal ImGui.EndDisabled();
+
+        exe_directory := get_directory(get_path_of_running_executable());
+
+        include : string;
+        if app.api.using_unreal {
+            unreal_include := tprint("#include \"%/api/cpp/PrismForUnreal.h\"", exe_directory);
+
+            if app.api.using_unreal_geometrycore {
+                include = tprint("%\n%\n%\n",
+                    "// See prism::documentation()",
+                    "// See prism::DocumentationForUnreal()",
+                    unreal_include);
+            } else {
+                include = tprint("%\n%\n%\n%\n",
+                    "// See prism::documentation()",
+                    "// See prism::DocumentationForUnreal()",
+                    "#define PRISM_FOR_UNREAL_EXCLUDE_GEOMETRYCORE",
+                    unreal_include);
+            }
+        } else {
+            basic_include :=  tprint("#include \"%/api/cpp/prism.h\"", exe_directory);
+            include = tprint("%\n%\n",
+                "// See prism::documentation()",
+                basic_include);
+        }
         path_overwrite_separators(include, #char "/");
 
         if ImGui.Button("Copy C++ #include") {
@@ -722,6 +765,16 @@ Having a debug API separate from your project source like this should
 mean your CI system will catch forgotten/leftover debug code.
 The copied string will be:
 DONE, include)); 
+    }
+}
+
+show_python_api_ui :: () {
+    do_tree := ImGui.TreeNodeEx("Python", ImGui.TreeNodeFlags.SpanAvailWidth);
+    show_tooltip("Tools to interface between Prism and your python program");
+    if do_tree {
+        defer ImGui.TreePop();
+
+        ImGui.Text("This is incomplete");
     }
 }
 
