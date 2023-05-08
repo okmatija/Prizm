@@ -581,7 +581,7 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
         }
 
         // FIXME Enable attributes when they are working properly
-        /*
+        #if false {
         for base_attribute : entity.mesh.attributes {
             if ImGui.BeginTabItem(imgui_label(base_attribute.name, base_attribute)) {
                 defer ImGui.EndTabItem();
@@ -589,7 +589,7 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
                 display_attribute(entity, entity_index, base_attribute);
             }
         }
-        */
+        }
     }
 }
 

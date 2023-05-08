@@ -301,6 +301,7 @@ Simple_Mesh_Attribute_Base :: struct {
     render_info : Attribute_Render_Info;
 }
 
+/// Maybe we need a Simple_Mesh_Attribute_Element which only has point,segment, triangle members, to constrain what can have an annotation
 Simple_Mesh_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_Element) {
     using #as base : Simple_Mesh_Attribute_Base;
     base.type = Simple_Mesh_Attribute(Value_Type, Element_Kind);

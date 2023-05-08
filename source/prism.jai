@@ -8,7 +8,7 @@ main :: () {
     app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
-                                  SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+                                  SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE/*|SDL_WINDOW_BORDERLESS*/); // FIXME can't move the window when its borderless
 
     // Check that the window was successfully created
     if app.window == null {

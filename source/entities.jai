@@ -1019,9 +1019,10 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
         case .Entity_Source_Preset;
 
             #if false {
-                if entity.preset_proc() {
+                entity_source := isa(entity.source, Entity_Source_Preset);
+                if entity_source {
                     log("Reloading preset shape '%'... ", entity_name(entity));
-                    new_entity := entity.preset_proc();
+                    new_entity := entity_source.preset_proc();
                     assert(new_entity != null);
 
                     // Set generation_index before adding to overwrite the correct entity

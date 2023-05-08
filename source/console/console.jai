@@ -71,7 +71,7 @@ console_save_history :: () {
 }
 
 console_load_history :: () {
-    console_history_file, ok := read_entire_file("console_history.txt", zero_terminated=true);
+    console_history_file, ok := read_entire_file("console_history.txt", zero_terminated=true, log_errors=false);
     if ok {
         file_lines := split(console_history_file, "\n");
         for file_lines {

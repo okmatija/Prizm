@@ -102,6 +102,7 @@ parse_face :: (p : *Parser) -> Obj_Face {
                     array_add(*face.normal, parse_obj_index(p));
                 } else {
                     // case v/vt
+                    // do nothing, already parsed v and vt
                 }
             }
         } else {

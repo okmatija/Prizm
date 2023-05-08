@@ -136,7 +136,7 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
-    is_visible := true; // Is the item visible overall?
+    is_visible := true; // Is the item visible overall? so we can turn off visibility without clobbering the individual settings
     display_mode := Display_Mode.BLINN_PHONG;
     backface_mode := Backface_Mode.FIXED;
     flat_shading := true;
