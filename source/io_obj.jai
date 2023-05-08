@@ -10,9 +10,9 @@ Don't remove leading spaces from BLOCK type annotations, so that formatting is b
 
 */
 
-ISSUE_005 :: "The .obj loader interprets face directives 'i//j' and 'i/j/k' as 'i//i' and 'i/i/i' e.g., 'f 4//1 5//2 6//3' is loaded as if it were 'f 4//4 5//5 6//6'. Will fix soon."; @KnownIssue
+ISSUE_005 :: ".objs with face directives where position and normal indices dont match e.g., 'f 4//1 5//2 6//3' do not show normals correctly."; @KnownIssue
 //ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
-ISSUE_007 :: "The .obj loader currently ignores texture information. Will fix soon."; @KnownIssue
+ISSUE_007 :: "The .obj loader currently ignores texture vertex information (vt-directives)"; @KnownIssue
 
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Parameter to enable objs with segments to not get converted to polylines?
@@ -148,6 +148,8 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "p") {
 
+            // @FIXME Support multiple indices on one line here
+
             missing, index := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
             array_add(*mesh.points, index);
             if missing {
@@ -168,8 +170,10 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
+            // @FIXME Support texture vertices here 
+
             polyline : [..]Obj_Index = parse_polyline(*parser);
-            if polyline.count < 2 { // nocommit Check other error conditions
+            if polyline.count < 2 { // @FIXME Check other error conditions
                 log_warning("Ignoring invalid l-directive on line %\n", current_line);
                 // Do not error here! 
             } else {
@@ -205,7 +209,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         } else if eat_possible_identifier(*parser, "f") {
 
             face : Obj_Face = parse_face(*parser);
-            if face.indices.count < 3 { // nocommit Check other error conditions
+            if face.indices.count < 3 { // @FIXME Check other error conditions
                 log_warning("Ignoring invalid f-directive on line %\n", current_line);
                 // Do not error here! 
             } else {
@@ -222,7 +226,12 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
-                AddFace :: (vids : [3]int, face : Obj_Face, mesh : *Simple_Mesh, annotation : *Annotation) #expand {
+                for f : 0..face.indices.count-2-1 {
+                    vids : [3]int;
+                    vids[0] = 0;
+                    vids[1] = f + 1;
+                    vids[2] = f + 2;
+
                     if face.normal.count {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
@@ -231,31 +240,29 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                         for i : 0..2 {
                             missing : bool;
                             missing, normals.v[i] = obj_value(scratch_vn, face.normal[vids[i]], MISSING_NORMAL_FALLBACK);
-                            if missing `missing_normals_count += 1;
+                            if missing {
+                                missing_normals_count += 1;
+                            }
                         }
                     }
 
+                    // Add the triangle before the annotation
                     triangle_tuple : Tuple3(u32) = ---;
                     for i : 0..2 {
                         missing, index := obj_index(mesh.positions.count, face.indices[vids[i]], MISSING_VERTEX_INDEX);
-                        if missing `missing_vertices_count += 1;
+                        if missing {
+                            missing_vertices_count += 1;
+                        }
 
                         triangle_tuple.component[i] = index;
                     }
-
                     array_add(*mesh.triangles, triangle_tuple);
-                    if annotation {
-                        annotation.id = mesh.triangles.count - 1;
-                        array_add(*face_annotations, <<annotation);
-                    }
-                }
 
-                for f : 0..face.indices.count-2-1 {
-                    vids : [3]int;
-                    vids[0] = 0;
-                    vids[1] = f + 1;
-                    vids[2] = f + 2;
-                    AddFace(vids, face, *mesh, ifx has_annotation then *annotation else null);
+                    // After adding the triangle we can add the annotation
+                    if has_annotation {
+                        annotation.id = mesh.triangles.count - 1;
+                        array_add(*face_annotations, annotation);
+                    }
                 }
             }
 
