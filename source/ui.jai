@@ -730,27 +730,18 @@ show_cpp_api_ui :: () {
 
         exe_directory := get_directory(get_path_of_running_executable());
 
+        // Warning! Do not change this code without THOROUGH testing! e.g., Prism_Unreal.h is mutually exclusive with Prism.h!
         include : string;
         if app.api.using_unreal {
-            unreal_include := tprint("#include \"%/api/cpp/PrismForUnreal.h\"", exe_directory);
+            include_unreal := tprint("#include \"%/api/cpp/Prism_Unreal.h\" // See Prism::documentation() and Prism::DocumentationForUnreal()", exe_directory);
+            include = tprint("%\n%", include, include_unreal);
 
             if app.api.using_unreal_geometrycore {
-                include = tprint("%\n%\n%\n",
-                    "// See prism::documentation()",
-                    "// See prism::DocumentationForUnreal()",
-                    unreal_include);
-            } else {
-                include = tprint("%\n%\n%\n%\n",
-                    "// See prism::documentation()",
-                    "// See prism::DocumentationForUnreal()",
-                    "#define PRISM_FOR_UNREAL_EXCLUDE_GEOMETRYCORE",
-                    unreal_include);
+                include_geometrycore := tprint("#include \"%/api/cpp/Prism_Unreal_GeometryCore.h\" // Convert GeometryCore types to Prism::Obj", exe_directory);
+                include = tprint("%\n%", include, include_geometrycore);
             }
         } else {
-            basic_include :=  tprint("#include \"%/api/cpp/prism.h\"", exe_directory);
-            include = tprint("%\n%\n",
-                "// See prism::documentation()",
-                basic_include);
+            include = tprint("#include \"%/api/cpp/Prism.h\" // See Prism::documentation()", exe_directory);
         }
         path_overwrite_separators(include, #char "/");
 

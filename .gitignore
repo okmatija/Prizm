@@ -14,7 +14,8 @@ console_history.txt
 shapes-novc/
 
 # Ignore the example files written by the c++ api test exe
-cpp/*.obj
+api/cpp/*.obj
+api/cpp/.vs/
 
 # Ignore the windows icon file which is generated in build.jai
 *.ico
