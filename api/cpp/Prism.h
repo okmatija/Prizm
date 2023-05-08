@@ -170,11 +170,25 @@ struct Obj {
         return add(' ').add(anything);
     }
 
-    // Add a newline, then add the other_obj and then add another newline
-    // Note: For this to work properly other must be using negative (aka relative) indices
-    Obj& append(const Obj& other_obj) {
-        return newline().add(other_obj.obj.rdbuf()).newline();
+    // Add a newline, then add the `other` obj and then add another newline
+    // Note: For this to work properly `other` must exclusively use negative (aka relative) indices
+    Obj& append(const Obj& other) {
+        return newline().add(other.obj.rdbuf()).newline();
     }
+
+    // Simplifies the obj so that it can be opened in more obj viewers. I have found viewers which are stumped by each
+    // of these features:
+    //
+    // * Replaces negative indices with positive indices (some viewers do not support negative indices)
+    // * Replace polyline and polygon elements with segment and triangle elements (some viewers do not support them)
+    // * Reindexes normals and texture vertices so that f-directives have common indicies for positions/textures/normals
+    //   e.g., `f 1/2/3 11/12/13 21/22/23` -> `f 1/1/1 2/2/2 3/3/3`
+    //
+    // This will work by parsing the obj and fixing it up, and we can port the Prism parser and use it to load objs in
+    // C++ as well, then this API could be used to fixup and rewrite objs
+    //Obj& simplify_obj() {
+    //    return *this;
+    //}
 
 
 
@@ -719,7 +733,8 @@ struct Obj {
     //
 
     // Set the precision used to write floats to the obj.
-    // Note: This is useful to improve readability if you're writing float data to annotations
+    // Note: This is useful to improve readability if you're writing float data to annotations, after doing that you
+    // will probably want to restore the previous precision e.g., by calling `set_precision_max_digits10<double>()`
     Obj& set_precision(int n = 6) {
         obj.precision(n); return *this;
     }

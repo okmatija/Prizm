@@ -623,7 +623,7 @@ show_item_selection_ui :: () {
             if entity_name(entity).count {
 
                 // @Volatile :FocusItemBehavior Sync with focus items shortcut
-                if ImGui.Button(imgui_label("Focus", entity)) {
+                if ImGui.Button(imgui_label("Focus ", entity)) {
                     almost_equal :: (a : Camera, b : Camera) -> bool {
                         return
                             almost_equal(a.eye_position, b.eye_position) &&
@@ -670,8 +670,9 @@ show_item_selection_ui :: () {
             }
         }
 
-        if temp_selected_entities().count > 1 {
-            if ImGui.Button("Reload Selection  ") {
+        // Show these buttons for a single item as well
+        {
+            if ImGui.Button("Reload") {
                 for :Selected entity : app.entities {
                     reload_entity(entity, triggered_by_button=true);
                 }
@@ -732,25 +733,30 @@ show_cpp_api_ui :: () {
 
         // Warning! Do not change this code without THOROUGH testing! e.g., Prism_Unreal.h is mutually exclusive with Prism.h!
         include : string;
-        if app.api.using_unreal {
-            include_unreal := tprint("#include \"%/api/cpp/Prism_Unreal.h\" // See Prism::documentation() and Prism::DocumentationForUnreal()", exe_directory);
-            include = tprint("%\n%", include, include_unreal);
-
-            if app.api.using_unreal_geometrycore {
-                include_geometrycore := tprint("#include \"%/api/cpp/Prism_Unreal_GeometryCore.h\" // Convert GeometryCore types to Prism::Obj", exe_directory);
-                include = tprint("%\n%", include, include_geometrycore);
-            }
+        if app.api.using_unreal && app.api.using_unreal_geometrycore {
+            include = tprint("%\n%\n%",
+                "// See Prism::documentation()",
+                "// See Prism::DocumentationForUnreal()",
+                tprint("#include \"%/api/cpp/Prism_Unreal.h\"", exe_directory));
+        } else if app.api.using_unreal {
+            include = tprint("%\n%\n%\n%",
+                "// See Prism::documentation()",
+                "// See Prism::DocumentationForUnreal()",
+                "#define PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE",
+                tprint("#include \"%/api/cpp/Prism_Unreal.h\"", exe_directory));
         } else {
-            include = tprint("#include \"%/api/cpp/Prism.h\" // See Prism::documentation()", exe_directory);
+            include = tprint("%\n%",
+                "// See Prism::documentation()",
+                tprint("#include \"%/api/cpp/Prism.h\"", exe_directory));
         }
         path_overwrite_separators(include, #char "/");
 
-        if ImGui.Button("Copy C++ #include") {
+        if ImGui.Button("Copy #include API") {
             SDL_SetClipboardText(temp_c_string(include));
         }
 
         show_tooltip(tprint("%\n%", #string DONE
-This button copies the Prism C++ API #include line to your clipboard.
+This button copies the Prism C++ API #include line(s) to your clipboard.
 You can paste it into your program and use it to write .obj files.
 Having a debug API separate from your project source like this should
 mean your CI system will catch forgotten/leftover debug code.
@@ -1046,7 +1052,8 @@ Action_Button :: (_label : string, action_set : *Action_Set) #expand {
 
 
 show_item_list_actions_ui :: () {
-    if app.console.show_ui {
+    // Hide buttons with no selection. See :DisableUpdateButtonsIfNoSelection 
+    if app.console.show_ui || count_selected_entities() == 0{
         return;
     }
 

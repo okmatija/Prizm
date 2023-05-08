@@ -1,4 +1,4 @@
-PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
+PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
 - New Feature: Attributes TODO Add a feature flag for enabling this
 
   - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -7,26 +7,28 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_0_5_2 :: App.Version.{"0.5.2", "WIP", #string DONE
-- Added a C++ api for writing .obj files with functions that write Prism-specific annotations
-  - Use the "Prism > Tools > API > Copy C++ #include" button to get the path the new prism.h C++ api file copied to your clipboard, you can then paste it into your project in the file you want to debug
+PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "8 May 2023", #string DONE
+- Added a C++ API for writing .obj files with Prism-specific extensions
+
+  - Usage: Navigate to the "Prism > Tools > API > C++", configure the API by pressing checkboxes and then press the button to copy the relevant string (containing #includes and config #defines) to your clipboard which you can then paste into in the file you want to debug
+  - The API has functions to write geometry in plain .obj format as well as functions to write Prism-specific .obj format extensions e.g., annotations and command annotations. See the Prism::documentation() function for more info
+  - The API supports working in Unreal and care is taken to make module dependencies optional (e.g., API functions using types/headers from the GeometryCore module can be excluded if you want to use the API in a module which doesn't depend on GeometryCore)
+  - The API can be configured to be usable with small standalone projects in which case the it will only depend on the C++ STL (future work could remove this)
   - Having this debug code outside your project is a feature: if you accidentally commmit it your CI/CD pipeline should fail to compile
-  - TLDR; paste contents of prism.h into your files, read the prism_example_XXX functions for usage examples
-  - Write vertices/points/lines/faces (v,p,l,f-directives)
-  - Write 2D/3D boxes, circles, spheres, crosses/stars
-  - Functions can be iterated to make a single line concise
-  - Redundancy in the api to make things concise
-  - Variadic versions of functions
-  - Write annotations and command annotations
-  - Note: One goal with Prism-specific extensions is that they are for convenience and should not require an .obj file that cannot be loaded in other viewers
 
-- Added support for obj files with f-directives connecting more than 4 vertices and l-directives with more than 2 vertices
+- Improved behavior of ribbon buttons along the bottom of the screen
 
-  - This geometry is represented as a triangle fan/segment soup and any annotation on the end of line is added to each triangle/segment separately
+  - Buttons are now hidden when bottom of the screen when there is no selection since they work only when there is a selection
+  - The implementation has been reworked in various ways to achieve a more do-what-I-mean behavior
 
 - Fixed a bug where annotation labels were not show when only annotation labels were requested
+- Added support for obj files with f-directives connecting more than 3 vertices (aka polygon elements represented as triangle fans). Any annotation will be is added to each triangle separately
+- Added support for obj files with l-directives connecting more than 2 vertices (aka polyline elements). Any annotation will be is added to each segment element separately
 - Added a build warning when the compiler version used to compile Prism is different from the expected one (aka the one Matija is using)
 - Added a suggestion to the file written by the button "Help > Changelog > Save to CHANGELOG.md" to suggest you read the changelog on https://markdownlivepreview.com
+- Added a bunch of `set_XXX` console commands to configure display/rendering state for items loaded in Prism e.g., `set_annotation_visible` to set annotation label visibility for a given item
+- Added a Reload button under "Details > Display > Selection" which now always appears, not just when more than one item is selected
+- Removed `item_` prefix for some console commands, e.g., `item_set_primary_color` -> `set_primary_color`
 DONE};
 
 PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE
@@ -473,8 +475,8 @@ DONE
 };
 
 init_changelog :: () {
-    //array_add(*app.changelog, PRISM_VERSION_0_6_0);
-    array_add(*app.changelog, PRISM_VERSION_0_5_2);
+    //array_add(*app.changelog, PRISM_VERSION_0_7_0);
+    array_add(*app.changelog, PRISM_VERSION_0_6_0);
     array_add(*app.changelog, PRISM_VERSION_0_5_1);
     array_add(*app.changelog, PRISM_VERSION_0_5_0);
     array_add(*app.changelog, PRISM_VERSION_0_4_0);
