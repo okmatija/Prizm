@@ -22,6 +22,96 @@ Action_Set :: struct {
     hovered_duration_secs : float; // @Cleanup When switching to ImGui 1.88 which natively supports timed tooltips
 }
 
+// @Cleanup decapitalize non-constant action sets
+
+// Note: no action button
+CLEAR_LABELS_ACTION_SET :: Action_Set.{
+    proc=clear_all_labels_proc,
+    desc="Clear labels for selected items",
+    key=#char "x"
+};
+
+TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
+    proc=toggle_clipping_proc,
+    progress_proc=()=>toggle_clipping_progress_proc(),
+    desc="Toggle clipping on selected items",
+    key=#char "c",
+};
+
+CYCLE_VERTEX_SIZE_ACTION_SET := Action_Set.{
+    proc=cycle_vertex_size_proc,
+    progress_proc=cycle_vertex_size_progress_proc_const,
+    desc="Cycle vertex/positions size for selected items",
+    key=#char "v",
+};
+
+CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
+    proc=cycle_wireframe_width_proc,
+    progress_proc=cycle_wireframe_width_progress_proc_const,
+    desc="Cycle line width (triangle edges and segments) for selected items",
+    key=#char "l",
+};
+
+TOGGLE_NORMALS_ACTION_SET := Action_Set.{
+    proc=toggle_normals_visibility_proc,
+    progress_proc=toggle_normals_visibility_progress_proc_const,
+    desc="Toggle normals visibility for selected items",
+    key=#char "n",
+};
+
+CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
+    proc=cycle_vertex_label_proc,
+    progress_proc=()=>cycle_vertex_label_progress_proc(),
+    desc="Cycle vertex labels for selected items",
+    key=#char "j",
+};
+
+CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
+    proc=cycle_element_label_proc,
+    progress_proc=()=>cycle_element_label_progress_proc(),
+    desc="Toggle point/segment/triangle labels for selected items",
+    key=#char "i",
+};
+
+CYCLE_OPACITY_ACTION_SET := Action_Set.{
+    proc=cycle_opacity_proc,
+    progress_proc=cycle_opacity_progress_proc_const,
+    desc="Cycle opacity for selected items",
+    key=#char "o",
+};
+
+CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
+    proc=cycle_annotation_proc,
+    progress_proc=cycle_annotation_progress_proc,
+    desc="Toggle annotations for selected items",
+    key=#char "k",
+};
+
+CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
+    proc=cycle_backface_mode_proc,
+    progress_proc=cycle_backface_mode_progress_proc_const,
+    desc="Cycle backface rendering mode for selected items",
+    key=#char "b",
+};
+
+RELOAD_ITEMS_ACTION_SET := Action_Set.{
+    proc=reload_items_proc,
+    desc="Reload selected items",
+    key=cast(u32) Special_Key_Code.F5,
+    regular_button=true,
+    override_WantCaptureKeyboard=true,
+};
+
+FOCUS_ITEMS_ACTION_SET := Action_Set.{
+    proc=focus_items_proc,
+    desc="Focus camera on selected items",
+    key=#char "f",
+    regular_button=true,
+};
+
+
+#scope_file
+
 //
 // Toggle clipping
 //
@@ -68,13 +158,6 @@ toggle_clipping_progress_proc :: () -> Fraction {
     }
     return .{0,1};
 }
-
-TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
-    proc=toggle_clipping_proc,
-    progress_proc=()=>toggle_clipping_progress_proc(),
-    desc="Toggle clipping on selected items",
-    key=#char "c",
-};
 
 
 
@@ -125,14 +208,6 @@ cycle_vertex_size_progress_proc_const :: () -> Fraction {
     app_info_copy := app.template_display_info;
     return cycle_vertex_size_progress_proc(*app_info_copy);
 }
-
-
-CYCLE_VERTEX_SIZE_ACTION_SET := Action_Set.{
-    proc=cycle_vertex_size_proc,
-    progress_proc=cycle_vertex_size_progress_proc_const,
-    desc="Cycle vertex/positions size for selected items",
-    key=#char "v",
-};
 
 
 
@@ -194,13 +269,6 @@ cycle_wireframe_width_progress_proc_const :: () -> Fraction {
     return cycle_wireframe_width_progress_proc(*app_info_copy);
 }
 
-CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
-    proc=cycle_wireframe_width_proc,
-    progress_proc=cycle_wireframe_width_progress_proc_const,
-    desc="Cycle line width (triangle edges and segments) for selected items",
-    key=#char "l",
-};
-
 
 
 //
@@ -238,13 +306,6 @@ toggle_normals_visibility_progress_proc_const :: () -> Fraction {
     app_info_copy := app.template_display_info;
     return toggle_normals_visibility_progress_proc(*app_info_copy);
 }
-
-TOGGLE_NORMALS_ACTION_SET := Action_Set.{
-    proc=toggle_normals_visibility_proc,
-    progress_proc=toggle_normals_visibility_progress_proc_const,
-    desc="Toggle normals visibility for selected items",
-    key=#char "n",
-};
 
 
 
@@ -307,15 +368,6 @@ cycle_vertex_label_progress_proc :: () -> Fraction {
     return cycle_vertex_label_theme(*app_info_copy.vertex_label_theme);
 }
 
-// @Cleanup decapitalize non-constant action sets
-
-CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
-    proc=cycle_vertex_label_proc,
-    progress_proc=()=>cycle_vertex_label_progress_proc(),
-    desc="Cycle vertex labels for selected items",
-    key=#char "j",
-};
-
 
 
 
@@ -376,13 +428,6 @@ cycle_element_label_progress_proc :: () -> Fraction {
     return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
-CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
-    proc=cycle_element_label_proc,
-    progress_proc=()=>cycle_element_label_progress_proc(),
-    desc="Toggle point/segment/triangle labels for selected items",
-    key=#char "i",
-};
-
 
 
 
@@ -439,14 +484,6 @@ cycle_annotation_progress_proc :: () -> Fraction {
     return cycle_annotation_theme(*app_info_copy.annotation_label_theme);
 }
 
-CYCLE_ANNOTATION_ACTION_SET := Action_Set.{
-    proc=cycle_annotation_proc,
-    progress_proc=cycle_annotation_progress_proc,
-    desc="Toggle annotations for selected items",
-    key=#char "k",
-};
-
-
 
 
 
@@ -489,12 +526,6 @@ cycle_opacity_progress_proc_const :: () -> Fraction {
     return cycle_opacity_progress_proc(*app_info_copy);
 }
 
-CYCLE_OPACITY_ACTION_SET := Action_Set.{
-    proc=cycle_opacity_proc,
-    progress_proc=cycle_opacity_progress_proc_const,
-    desc="Cycle opacity for selected items",
-    key=#char "o",
-};
 
 
 
@@ -540,12 +571,6 @@ cycle_backface_mode_progress_proc_const :: () -> Fraction {
     return cycle_backface_mode_progress_proc(*app_info_copy.backface_mode);
 }
 
-CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
-    proc=cycle_backface_mode_proc,
-    progress_proc=cycle_backface_mode_progress_proc_const,
-    desc="Cycle backface rendering mode for selected items",
-    key=#char "b",
-};
 
 
 
@@ -578,13 +603,6 @@ reload_items_proc :: (unused : *void) {
     }
 }
 
-RELOAD_ITEMS_ACTION_SET := Action_Set.{
-    proc=reload_items_proc,
-    desc="Reload selected items",
-    key=cast(u32) Special_Key_Code.F5,
-    regular_button=true,
-    override_WantCaptureKeyboard=true,
-};
 
 
 
@@ -621,12 +639,6 @@ focus_items_proc :: (unused : *void) {
     }
 }
 
-FOCUS_ITEMS_ACTION_SET := Action_Set.{
-    proc=focus_items_proc,
-    desc="Focus camera on selected items",
-    key=#char "f",
-    regular_button=true,
-};
 
 
 
@@ -655,11 +667,3 @@ clear_all_labels_proc :: (unused : *void) {
     display_info.triangle_label_theme.show_index = false;
     display_info.annotation_label_theme.visible = false;
 }
-
-
-// Note: no action button
-CLEAR_LABELS_ACTION_SET :: Action_Set.{
-    proc=clear_all_labels_proc,
-    desc="Clear labels for selected items",
-    key=#char "x"
-};
