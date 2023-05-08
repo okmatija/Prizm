@@ -1,5 +1,5 @@
-#ifndef PRISM_CPP_API
-#define PRISM_CPP_API
+#ifndef PRISM_API
+#define PRISM_API
 
 #include <fstream>
 #include <iomanip>
@@ -699,14 +699,14 @@ struct Obj {
 
     // Add a 2D box region defined by a center point and extents vector (box side lengths), visualized with segment elements
     template <typename T> Obj& box2_center_extents(Vec2<T> center, Vec2<T> extents) {
-        return polyline2<T>(
+        return box2_min_max<T>(
             {center.x - extents.x/2, center.y - extents.y/2},
             {center.x + extents.x/2, center.y + extents.y/2});
     }
 
     // Add a 3D box region defined by a center point and extents vector (box side lengths), visualized with segment elements
     template <typename T> Obj& box3_center_extents(Vec3<T> center, Vec3<T> extents) {
-        return polyline3<T>(
+        return box3_min_max<T>(
             {center.x - extents.x/2, center.y - extents.y/2, center.z - extents.z/2},
             {center.x + extents.x/2, center.y + extents.y/2, center.z + extents.z/2});
     }
@@ -718,7 +718,8 @@ struct Obj {
     // Obj file configuration functions
     //
 
-    // Set the precision used to write floats to the obj
+    // Set the precision used to write floats to the obj.
+    // Note: This is useful to improve readability if you're writing float data to annotations
     Obj& set_precision(int n = 6) {
         obj.precision(n); return *this;
     }
@@ -1409,4 +1410,4 @@ p -1
 
 } // namespace Prism
 
-#endif // PRISM_CPP_API
+#endif // PRISM_API
