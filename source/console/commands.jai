@@ -755,6 +755,50 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
 // } @RegisterCommand
 
+// Adds an item containing a soup of segments indicating the normals
+item_make_normals_segment_soup :: (id : int) {
+    // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    entity : *Entity = app.entities[id];
+    mesh : Simple_Mesh = entity.mesh;
+    vn : *Simple_Mesh_Normals = find_mesh_attribute(entity, "vn", Simple_Mesh_Normals);
+    if vn == null {
+        log("# Mesh has no normals.");
+        return;
+    }
+
+    new_mesh : Simple_Mesh;
+    for vn.values { // it has type Matrix3, it_index is the triangle index
+        triangle : Triangle3 = mesh_triangle_world(mesh, it_index);
+        for i : 0..2 {
+            segment := Segment3.{start=triangle.v[i], end=triangle.v[i] + it.v[i]};
+            add_segment(*new_mesh, segment);
+        }
+    }
+
+    // Add a new item
+    new_entity := New(Entity);
+    new_entity.mesh = new_mesh;
+    set_entity_source_from_command(new_entity, tprint("%_normals", entity_name(entity)), app.console.history[app.console.history.count - 1], mesh.positions.count);
+    set_entity_display_info(new_entity);
+
+    maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
+    new_entity.display_info.segments_width = 3;
+
+    // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
+    new_entity.generation_index = entity.generation_index;
+    add_entity(new_entity, .OVERWRITE);
+
+    // log("# Added % edge% to the new item '%'",
+    //     new_mesh.segments.count,
+    //     plural_suffix(new_mesh.segments.count > 1),
+    //     entity_name(new_entity));
+} @RegisterCommand
+
+
 // Finds triangle edges which are not shared by two triangles in the item with the given `id`
 // If `new_item` is 0 the edges are added to the target item segments container
 // If `new_item` is 1 adds an item containing a segment soup with the given `id`
