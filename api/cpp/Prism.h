@@ -6,13 +6,13 @@
 #include <limits>
 #include <sstream>
 #include <string>
-#include <stdarg.h> // for va_arg(), va_list()
+#include <stdarg.h> // va_arg, va_list, va_end
 
 // The following are only used in the documentation() function
-#include <iostream> // for std::cout
-#include <cmath> // for std::max, std::min
+#include <iostream> // std::cout
+#include <cmath> // std::max, std::min
 
-namespace prism {
+namespace Prism {
 
 // A 2D vector type. Use PRISM_VEC2_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
@@ -153,7 +153,7 @@ struct Obj {
     // Basic functions
     //
 
-    // Construtor. By default write with enough precision to round trip from float64 to decimal and back
+    // Constructor. By default write with enough precision to round trip from float64 to decimal and back
     // Note: Prism currently stores mesh data using float32, we will move to float64 so we can show coordinate labels at full precision
     Obj() {
         set_precision_max_digits10<double>();
@@ -185,9 +185,12 @@ struct Obj {
     //
 
     // Write data to a file
-    // Tip: Use format string "%05d" to write an int padded with zeros to width 5
-    void write(std::string filename, bool skip = false) const {
-        if (skip) return;
+    //
+    // Tip: Use format string "%05d" to write an int padded with zeros to width 5. This is useful for logging the
+    // progress of an algorithm, you will also need to use the same prefix and you may need to run the
+    // `sort_by_name` console command in Prism to put the item list into a state where you can use Ctrl LMB or
+    // Shift LMB while sweeping the cursor over the visibility checkboxes to create a progress animation.
+    void write(std::string filename) const {
         std::ofstream file;
         file.open(filename, std::ofstream::out | std::ofstream::trunc);
         file << obj.str();
@@ -216,7 +219,7 @@ struct Obj {
         return add("vn");
     }
 
-    // Add a vertex tangent directive to the current line
+    // Add a texture vertex directive to the current line
     Obj& vt() {
         return add("vt");
     }
@@ -236,7 +239,8 @@ struct Obj {
         return add("f");
     }
 
-    // Add a group directive. @Incomplete Currently Prism ignores these
+    // Add a group directive.
+    // Note: Currently Prism ignores these
     Obj& g() {
         return add("g");
     }
@@ -418,13 +422,13 @@ struct Obj {
         return vn().vector3(n);
     }
 
-    // Add a UV coordinate
+    // Add a UV coordinate (2D texture vertex)
     // Note: writes "vt t.x t.y" to the obj
     template <typename T> Obj& uv2(Vec2<T> t) {
         return vt().vector2(t);
     }
 
-    // Add a 3D tangent
+    // Add a 3D tangent (3D texture vertex)
     // Note: writes "vt t.x t.y t.z" to the obj
     template <typename T> Obj& tangent3(Vec3<T> t) {
         return vt().vector3(t);
@@ -436,19 +440,19 @@ struct Obj {
     // Point Elements.  Indices are 1-based, see :ObjIndexing
     //
 
-    // Add a point element at i-th vertex
+    // Add a point element referencing the i-th vertex position
     // Note: writes "p i" to the obj
     Obj& point(int i = -1) {
         return p().insert(i);
     }
 
-    // Add a position and a point element that references it
+    // Add a vertex position and a point element that references it
     // Note: writes "v a.x a.y\np -1" to the obj
     template <typename T> Obj& point2(Vec2<T> a) {
         return vertex2(a).newline().point();
     }
 
-    // Add a position and a point element that references it
+    // Add a vertex position and a point element that references it
     // Note: writes "v a\np -1" to the obj
     template <typename T> Obj& point3(Vec3<T> a) {
         return vertex3(a).newline().point();
@@ -467,13 +471,13 @@ struct Obj {
         return l().insert(i).insert(j);
     }
 
-    // Add a 2D segment
+    // Add 2 vertex positions and a segment element referencing them
     // Note: writes "v a.x a.y\nv b.x b.y\nl -2 -1" to the obj
     template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b) {
         return vertex2(a).newline().vertex2(b).newline().segment();
     }
 
-    // Add a 3D segment == 3D positions and a segment element
+    // Add 2 vertex positions and a segment element referencing them
     // Note: writes "v a.x a.y a.z\nv b.x b.y b.z\nl -2 -1" to the obj
     template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) {
         return vertex2(a).newline().vertex2(b).newline().segment();
@@ -486,14 +490,14 @@ struct Obj {
     // Triangle Elements.  Indices are 1-based, see :ObjIndexing
     //
 
-    // Add a triangle element connecting vertices vi, vj and vk
-    // Note: with no parameters writes "f -3 -2 -1" to the obj to refernce the previous 3 vertices
+    // Add a triangle element referencing the 3 previous vertex positions (default).
+    // The user can provide explicit indicies to reference vertices vi, vj and vk
     Obj& triangle(int vi = -3, int vj = -2, int vk = -1) {
         return f().insert(vi).insert(vj).insert(vk);
     }
 
-    // Add a triangle element connecting vertices vi, vj and vk, with vertex normals ni, nj and nk
-    // Note: with no parameters writes "f -3//-3 -2//-2 -1//-1" to the obj to reference the previous 3 vertices and normals
+    // Add a triangle element referencing the 3 previous vertex positions and normals (default).
+    // The user can provide explicit indicies to reference vertices vi, vj and vk; and normals ni, nj and nk
     Obj& triangle_vn(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1) {
         f();
         insert(vi).add("//").add(ni);
@@ -502,8 +506,8 @@ struct Obj {
         return *this;
     }
 
-    // Add a triangle element connecting vertices vi, vj and vk, with vertex tangents ti, tj and tk
-    // Note: with no parameters writes "f -3/-3 -2/-2 -1/-1" to the obj to reference the previous 3 vertices and tangents
+    // Add a triangle element referencing the 3 previous vertex positions and texture vertices (default).
+    // The user can provide explicit indices to reference vertices vi, vj and vk; and texture vertices ti, tj and tk
     Obj& triangle_vt(int vi = -3, int vj = -2, int vk = -1, int ti = -3, int tj = -2, int tk = -1) {
         f();
         insert(vi).add("/").add(ti);
@@ -512,8 +516,8 @@ struct Obj {
         return *this;
     }
 
-    // Add a triangle element connecting vertices vi, vj and vk with vertex normals ni, nj and nk and tangents ti, tj and tk
-    // Note: with no parameters writes "f -3/-3/-3 -2/-2/-2 -1/-1/-1" to the obj to reference the previous 3 vertices, normals and tangents
+    // Add a triangle element referencing the 3 previous vertex positions, vertex normals and texture vertices (default).
+    // The user can provide explicit indices reference vertices vi, vj and vk; normals ni, nj and nk; and texture vertices ti, tj and tk
     Obj& triangle_vnt(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1, int ti = -3, int tj = -2, int tk = -1) {
         f();
         insert(vi).add("/").add(ti).add("/").add(ni);
@@ -522,7 +526,7 @@ struct Obj {
         return *this;
     }
 
-    // Add a 2D triangle as vertex positions and a face element
+    // Add 3 vertex positions and a triangle element referencing them
     template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
         vertex2(va).newline();
         vertex2(vb).newline();
@@ -530,7 +534,7 @@ struct Obj {
         return triangle();
     }
 
-    // Add a 3D triangle as vertex positions and a face element
+    // Add 3 vertex positions and a triangle element referencing them
     template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
         vertex3(va).newline();
         vertex3(vb).newline();
@@ -538,7 +542,7 @@ struct Obj {
         return triangle();
     }
 
-    // Add a 3D triangle as vertex positions, vertex normals and a face element
+    // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them
     template <typename T> Obj& triangle3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc) {
         vertex3(va).newline().vn().vector3(na).newline();
         vertex3(vb).newline().vn().vector3(nb).newline();
@@ -546,7 +550,7 @@ struct Obj {
         return triangle_vn();
     }
 
-    // Add a 3D triangle as vertex positions, vertex tangents and a face element
+    // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
     template <typename T> Obj& triangle3_vt(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> ta, Vec3<T> tb, Vec3<T> tc) {
         vertex3(va).newline().vt().vector3(ta).newline();
         vertex3(vb).newline().vt().vector3(tb).newline();
@@ -554,7 +558,7 @@ struct Obj {
         return triangle_vt();
     }
 
-    // Add a 3D triangle as vertex positions, normals, tangents and a face element
+    // Add 3 vertex positions, 3 vertex normals, 3 texture vertices and a triangle element referencing them
     template <typename T> Obj& triangle3_vnt(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc, Vec3<T> ta, Vec3<T> tb, Vec3<T> tc) {
         vertex3(va).newline().vn().vector3(na).newline().vt().vector3(ta).newline();
         vertex3(vb).newline().vn().vector3(nb).newline().vt().vector3(tb).newline();
@@ -570,38 +574,38 @@ struct Obj {
     // Polylines. These are sequences of segment elements
     //
 
-    // Add a polyline element to the obj which refers to the previous N vertices
+    // Add a polyline element referencing the previous N vertex positions
     Obj& polyline(int N, bool closed = false) {
         if (N < 2) return *this;
-        l();
-        for (int i = -N; i < 0; i++) insert(i);
-        if (closed) insert(-N);
+        l(); // Start the element
+        for (int i = -N; i < 0; i++) insert(i); // Continue the element
+        if (closed) insert(-N); // Close the polyline
         return *this;
     }
 
-    // Add a polyline element to the obj which refers to the given vertex indices
+    // Add a polyline element referencing the vertices with the given indicies
     Obj& polyline(int N, int i, int j, ...) {
-        segment(i, j);
+        segment(i, j); // Start the element
         va_list va;
         va_start(va, j);
-        for (int n = 0; n < N-2; n++) insert(va_arg(va, int));
+        for (int n = 0; n < N-2; n++) insert(va_arg(va, int)); // Continue the element
         va_end(va);
         return *this;
     }
 
-    // Add a 2D polyline as a point count and a pointer to a [X1, Y1, X2, Y2, ... XN, YN] coordinate buffer.
-    // If closed write the first point index again at the end o the l-directive
+    // Add N vertex positions, described by the given 2D coordinate buffer, and a polyline element referencing them.
+    // If closed is true write the first point index again to close the polyline
     template <typename T> Obj& polyline2(int N, T* XYs, bool closed = false) {
         return poly_impl('l', N, XYs, 2, closed);
     }
 
-    // Add a 3D polyline as a point count and a pointer to a [X1, Y1, Z1, X2, Y2, Z2, ... XN, YN, ZN] coordinate buffer.
-    // If closed write the first point index again at the end of the l-directive
-    template <typename T> Obj& polyline3(int N, T* XYs, bool closed = false) {
-        return poly_impl('l', N, XYs, 3, closed);
+    // Add N vertex positions, described by the given 3D coordinate buffer, and a polyline element referencing them.
+    // If closed is true write the first point index again to close the polyline
+    template <typename T> Obj& polyline3(int N, T* XYZs, bool closed = false) {
+        return poly_impl('l', N, XYZs, 3, closed);
     }
 
-    // Add a 2D polyline [p1, p2, p3, ... pN] as a variadic call
+    // Add the given 2D vertex positions and a polyline element referencing them
     template <typename T> Obj& polyline2(int N, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
         va_list va;
         va_start(va, p3);
@@ -610,7 +614,7 @@ struct Obj {
         return polyline(N);
     }
 
-    // Add a 3D polyline [p1, p2, p3, ... pN] as a variadic call
+    // Add the given 3D vertex positions and a polyline element referencing them
     template <typename T> Obj& polyline3(int N, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
         va_list va;
         va_start(va, p3);
@@ -624,67 +628,37 @@ struct Obj {
 
 
     //
-    // Axis-aligned Boxes.
-    //
-
-    // Add a 2D box region defined by min/max visualized using segments
-    template <typename T> Obj& box2_min_max(Vec2<T> min, Vec2<T> max) {
-        return polyline2(5, min, Vec2<T>{max.x,min.y}, max, Vec2<T>{min.x,max.y}, min);
-    }
-
-    // Add a 3D box region defined by min/max visualized using segments
-    template <typename T> Obj& box3_min_max(Vec3<T> min, Vec3<T> max, bool use_segments = true) {
-        // This has some redundant edges but having them means we can annotate all sgements in the shape conveniently
-        Vec3<T> p000{min.x, min.y, min.z}, p100{max.x, min.y, min.z}, p010{min.x, max.y, min.z}, p110{max.x, max.y, min.z};
-        Vec3<T> p001{min.x, min.y, max.z}, p101{max.x, min.y, max.z}, p011{min.x, max.y, max.z}, p111{max.x, max.y, max.z};
-        return polyline3(16, p000, p100, p110, p010, p000, p001, p101, p100, p101, p111, p110, p111, p011, p010, p011, p001);
-    }
-
-    // Add a 2D box region defined by a center point and extents vector (the side lengths of the box)
-    template <typename T> Obj& box2_center_extents(Vec2<T> center, Vec2<T> extents) {
-        return polyline2<T>({center.x - extents.x/2, center.y - extents.y/2}, {center.x + extents.x/2, center.y + extents.y/2});
-    }
-
-    // Add a 3D box region defined by a center point and extents vector (the side lengths of the box)
-    template <typename T> Obj& box3_center_extents(Vec3<T> center, Vec3<T> extents) {
-        return polyline3<T>({center.x - extents.x/2, center.y - extents.y/2, center.z - extents.z/2}, {center.x + extents.x/2, center.y + extents.y/2, center.z + extents.z/2});
-    }
-
-
-
-
-    //
     // Polygons. These are sequences of triangle elements aka triangle fans
     //
 
-    // Add a polygon element to the obj, referring to the previous N vertices
+    // Add a polygon element referencing the previous N vertices
     Obj& polygon(int N) {
-        f();
-        for (int i = -N; i < 0; i++) insert(i);
+        f(); // Start the element
+        for (int i = -N; i < 0; i++) insert(i); // Continue the element
         return *this;
     }
 
-    // Add a polygon element to the obj, referring to the vertices with the given indices
+    // Add a polygon element referencing the vertices with the given indices
     Obj& polygon(int N, int i, int j, int k, ...) {
-        triangle(i, j, k);
+        triangle(i, j, k); // Start the element
         va_list va;
         va_start(va, k);
-        for (int n = 0; n < N-3; n++) insert(va_arg(va, int));
+        for (int n = 0; n < N-3; n++) insert(va_arg(va, int)); // Continue the element
         va_end(va);
         return *this;
     }
 
-    // Add a 2D polygon as a point count and a pointer to a [X1, Y1, X2, Y2, ... XN, YN] coordinate buffer
+    // Add N vertex positions, described by the given 2D coordinate buffer, and a polygon element referencing them
     template <typename T> Obj& polygon2(int N, T* XYs) {
         return poly_impl('f', N, XYs, 2);
     }
 
-    // Add a 3D polygon as a point count and a pointer to a [X1, Y1, Z1, X2, Y2, Z2, ... XN, YN, ZN] coordinate buffer
-    template <typename T> Obj& polygon3(int N, T* XYs) {
-        return poly_impl('f', N, XYs, 3);
+    // Add N vertex positions, described by the given 3D coordinate buffer, and a polygon element referencing them
+    template <typename T> Obj& polygon3(int N, T* XYZs) {
+        return poly_impl('f', N, XYZs, 3);
     }
 
-    // Add a 2D polygon [p1, p2, p3, ... pN] as a variadic call
+    // Add the given 2D vertex positions and a polygon element referencing them
     template <typename T> Obj& polygon2(int N, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
         va_list va;
         va_start(va, p3);
@@ -693,7 +667,7 @@ struct Obj {
         return polygon(N);
     }
 
-    // Add a 3D polygon [p1, p2, p3, ... pN] as a variadic call
+    // Add the given 3D vertex positions and a polygon element referencing them
     template <typename T> Obj& polygon3(int N, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
         va_list va;
         va_start(va, p3);
@@ -702,6 +676,40 @@ struct Obj {
         return polygon(N);
     }
 
+
+
+
+
+    //
+    // Axis-aligned Boxes.
+    //
+
+    // Add a 2D box region defined by min/max, visualized with segment elements
+    template <typename T> Obj& box2_min_max(Vec2<T> min, Vec2<T> max) {
+        return polyline2(5, min, Vec2<T>{max.x,min.y}, max, Vec2<T>{min.x,max.y}, min);
+    }
+
+    // Add a 3D box region defined by min/max, visualized with segment elements
+    template <typename T> Obj& box3_min_max(Vec3<T> min, Vec3<T> max, bool use_segments = true) {
+        // This has some redundant edges but having them means we can annotate all sgements in the shape conveniently
+        Vec3<T> p000{min.x, min.y, min.z}, p100{max.x, min.y, min.z}, p010{min.x, max.y, min.z}, p110{max.x, max.y, min.z};
+        Vec3<T> p001{min.x, min.y, max.z}, p101{max.x, min.y, max.z}, p011{min.x, max.y, max.z}, p111{max.x, max.y, max.z};
+        return polyline3(16, p000, p100, p110, p010, p000, p001, p101, p100, p101, p111, p110, p111, p011, p010, p011, p001);
+    }
+
+    // Add a 2D box region defined by a center point and extents vector (box side lengths), visualized with segment elements
+    template <typename T> Obj& box2_center_extents(Vec2<T> center, Vec2<T> extents) {
+        return polyline2<T>(
+            {center.x - extents.x/2, center.y - extents.y/2},
+            {center.x + extents.x/2, center.y + extents.y/2});
+    }
+
+    // Add a 3D box region defined by a center point and extents vector (box side lengths), visualized with segment elements
+    template <typename T> Obj& box3_center_extents(Vec3<T> center, Vec3<T> extents) {
+        return polyline3<T>(
+            {center.x - extents.x/2, center.y - extents.y/2, center.z - extents.z/2},
+            {center.x + extents.x/2, center.y + extents.y/2, center.z + extents.z/2});
+    }
 
 
 
@@ -756,7 +764,7 @@ struct Obj {
     // a command annotation then this item will have index >0 and you can pass that value as `item_index` to run a
     // console command of one of these generated items which are not explicitly in the .obj file.
     //
-    // Note: This complexity is intentionally avoided in the prism::Obj command annotation API, so the rest of the
+    // Note: This complexity is intentionally avoided in the Prism::Obj command annotation API, so the rest of the
     // functions below work with `item_index == 0`.
     Obj& item_command(const std::string& command_name, int item_index = 0) {
         return command(command_name).insert(item_index);
@@ -800,7 +808,7 @@ struct Obj {
     }
 
     // Set scale of vertex index/position labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
     Obj& set_vertex_label_scale(float scale) {
         return item_command("set_vertex_label_scale").insert(scale);
     }
@@ -821,7 +829,7 @@ struct Obj {
     }
 
     // Set scale of point index labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
     // Note: set_vertex_label_scale is probably the function you want!
     Obj& set_point_label_scale(float scale) {
         return item_command("set_point_label_scale").insert(scale);
@@ -841,7 +849,7 @@ struct Obj {
     }
 
     // Set scale of segment index labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
     Obj& set_segment_label_scale(float scale) {
         return item_command("set_segment_label_scale").insert(scale);
     }
@@ -860,7 +868,7 @@ struct Obj {
     }
 
     // Set scale of triangle index labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4. See :FixScaleParameter
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
     Obj& set_triangle_label_scale(float scale) {
         return item_command("set_triangle_label_scale").insert(scale);
     }
@@ -959,6 +967,7 @@ struct Obj {
     // Implementation methods
     //
 
+    // Writes a polyline or a triangle fan
     template <typename T> Obj& poly_impl(char directive, int point_count, T* coords, uint8_t point_dimension, bool repeat_last = false) {
         if (point_count <= 0) {
             return *this;
@@ -984,6 +993,7 @@ struct Obj {
         return *this;
     }
 
+    // Write 2D vertex positions as a variadic call
     template <typename T> Obj& vertex2_variadic(int point_count, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, va_list va) {
         vertex2(p1).newline().vertex2(p2).newline().vertex2(p3).newline();
         for (int i = 0; i < point_count-3; i++) {
@@ -993,6 +1003,7 @@ struct Obj {
         return *this;
     }
 
+    // Write 3D vertex positions as a variadic call
     template <typename T> Obj& vertex3_variadic(int point_count, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, va_list va) {
         vertex3(p1).newline().vertex3(p2).newline().vertex3(p3).newline();
         for (int i = 0; i < point_count-3; i++) {
@@ -1002,9 +1013,10 @@ struct Obj {
         return *this;
     }
 
-    // Write a command annotation for a command with 1 argument (in addition to the typical item index argument)
-    // Note: item_index != 0 is an advanced use-case that you would only use if you want the command to affect an item
-    // which was created by running a previous command annotation
+    // Write a command name and an item index.  In Prism many console commands have the index of the item on which they
+    // operate as the first argument.  In the context of command annotations written to an .obj file this index is
+    // usually 0 to refer to the item described by the .obj file.  Using item_index != 0 is an advanced use-case which
+    // you would encounter if you intend to target an item which was created by running a previous command annotation
     template <typename T> Obj& item_command(const std::string& command_name, int item_index = 0) {
         return command(command_name).insert(item_index);
     }
@@ -1050,7 +1062,7 @@ bool documentation(bool write_files) {
 
     // This block illustrates most of the API
     {
-        using namespace prism; // Access Obj struct and typedefs
+        using namespace Prism; // Access Obj struct and typedefs
 
         // Create an Obj instance and start the file with a newline to make formatting of the raw string literal
         // `output` a bit nicer
@@ -1205,6 +1217,9 @@ bool documentation(bool write_files) {
         obj.set_edges_width(4.);
         obj.set_triangles_visible(true);
         obj.set_triangles_color(GREEN);
+        
+        // Note we didn't need to explicitly call newline() after each command annotation. Command annotations must be
+        // on a newline so this is called internally by the implementation
 
         // End the obj with a newline to make the formatting of the `output` string nicer
         obj.newline();
@@ -1300,7 +1315,7 @@ p -1# some string@ 42@ 0 0
     // This block illustrates how, if you use only relative indexing for point/segment/triangle elements, you can use
     // the `append` function to concatenate different obj files
     {
-        using namespace prism;
+        using namespace Prism;
 
         Obj first, second;
 
@@ -1335,7 +1350,7 @@ p -1
 
     // This block illustrates a possibly handy use-case where you can create and write an obj file in one line
     {
-        using namespace prism;
+        using namespace Prism;
 
         // We don't test this function to keep everything on a single line
         if (write_files) {
@@ -1392,6 +1407,6 @@ p -1
 #undef PRISM_OBJ_CLASS_EXTRA
 #endif
 
-} // end namespace prism
+} // namespace Prism
 
 #endif // PRISM_CPP_API

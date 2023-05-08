@@ -1,39 +1,17 @@
-// This file uses the Unreal coding standards
+// This file uses Unreal Engine 5.0 coding standards https://docs.unrealengine.com/5.0/en-US/epic-cplusplus-coding-standard-for-unreal-engine/
 
-#ifndef PRISM_FOR_UNREAL_CPP_API
-#define PRISM_FOR_UNREAL_APP_API
+#ifndef PRISM_UNREAL_GEOMETRYCORE_CPP_API
+#define PRISM_UNREAL_GEOMETRYCORE_CPP_API
 
-#include <VectorTypes.h>
+#include "Prism_Unreal.h"
 
-#ifndef PRISM_FOR_UNREAL_EXCLUDE_GEOMETRYCORE
 #include <DynamicMesh/DynamicMesh3.h>
 #include <DynamicMesh/DynamicMeshOverlay.h>
 #include <DynamicMesh/DynamicMeshAttributeSet.h>
 #include <Util/CompactMaps.h>
-#endif // PRISM_FOR_UNREAL_EXCLUDE_GEOMETRYCORE
 
-#define PRISM_VEC2_CLASS_EXTRA\
-    Vec2(UE::Math::TVector2<T> p) : Vec2(p.X, p.Y) {}
-
-#define PRISM_VEC3_CLASS_EXTRA\
-    Vec3(UE::Math::TVector<T> p) : Vec3(p.X, p.Y, p.Z) {}
-
-#define PRISM_VEC4_CLASS_EXTRA\
-    Vec4(UE::Math::TVector4<T> p) : Vec4(p.X, p.Y, p.Z, p.W) {}
-
-#define PRISM_COLOR_CLASS_EXTRA\
-    Color(FColor c) : Color(c.R, c.G, c.B, c.A) {}
-
-#define PRISM_OBJ_CLASS_EXTRA\
-    void Write(const FString& filename) { return write(TCHAR_TO_UTF8(*filename)); } // not named `write` to prevent infinite recursion
-
-// Include the basic API after defining the macros above
-#include "prism.h"
-
-namespace prism
+namespace Prism
 {
-
-#ifndef PRISM_FOR_UNREAL_EXCLUDE_GEOMETRYCORE
 
 using namespace UE::Geometry;
 
@@ -43,9 +21,11 @@ struct FMakeDynamicMeshObjSettings
 	bool bReverseOrientation = true;
 
 	// If true will attempt to write the per-vertex normals and UVs to the OBJ instead of the per-element values
-	bool bWritePerVertexValues = true;
+	bool bWritePerVertexValues = false;
 };
 
+
+// nocommit This function uses only negative index references which means the result is usable with Prism::Obj::append
 Obj MakeDynamicMeshObj(const FDynamicMesh3& InMesh, FMakeDynamicMeshObjSettings Settings = FMakeDynamicMeshObjSettings{})
 {
 	Obj Result;
@@ -99,8 +79,7 @@ Obj MakeDynamicMeshObj(const FDynamicMesh3& InMesh, FMakeDynamicMeshObjSettings 
 		ensure(InMeshVID0 != nullptr);
         
 		FVector3d Pos = Mesh.GetVertex(VID);
-		Result.vertex3(V3(Pos));
-		Result.annotation("VID").insert(*InMeshVID0).newline();
+		Result.vertex3(V3(Pos)).annotation("VID").insert(*InMeshVID0).newline();
 
 		if (bHasVertexNormals) 
 		{
@@ -182,8 +161,8 @@ Obj MakeDynamicMeshObj(const FDynamicMesh3& InMesh, FMakeDynamicMeshObjSettings 
 		}
 		else 
 		{
-			bool bHaveUV = UVs != nullptr && UVs->IsSetTriangle(TID);
-			bool bHaveNormal = Normals != nullptr && Normals->IsSetTriangle(TID);
+			bool bHaveUV = UVs && UVs->IsSetTriangle(TID);
+			bool bHaveNormal = Normals && Normals->IsSetTriangle(TID);
 
 			FIndex3i TriUVs = bHaveUV ? UVs->GetTriangle(TID) : FIndex3i::Invalid();
 			FIndex3i TriNormals = bHaveNormal ? Normals->GetTriangle(TID) : FIndex3i::Invalid();
@@ -224,39 +203,25 @@ Obj MakeDynamicMeshObj(const FDynamicMesh3& InMesh, FMakeDynamicMeshObjSettings 
 	return Result;
 }
 
-#endif // PRISM_FOR_UNREAL_EXCLUDE_GEOMETRYCORE
+// nocommit Write Overlay function
 
-bool DocumentationForUnreal(bool WriteFiles)
+// Returns an Obj
+// This function only uses negative indices so that Impl
+Obj WriteImageDimensions(FImageDimensions Dims)
 {
-	using namespace prism;
-	prism::Obj Obj;
+	Obj Result;
 
-	// This the recommended way of using Unreal types
-	FVector3d A3(0,0,1), B3(1,0,1), C3(0,1,1);
-	Obj.triangle3(V3(A3), V3(B3), V3(C3));
-
-	// You could also pass them without constructing Prism's vector type but then you need to specify the template parameter
-	FVector2d A2(0,0), B2(1,0), C2(0,1);
-	Obj.triangle2<double>(A2, B2, C2);
-
-	// Note that if you use the insert function you should construct Prism's vector types
-	// nocommit
-	// FVector3f N0(1,0,0), N1(0,1,0), N2(0,0,1);
-	// obj.triangle3(V3(A3), V3(B3), V3(C3), V3());
-
-	// Enable label visibility and test FColor apis
-	Obj.set_vertex_index_labels_visible(true);
-	Obj.set_triangle_index_labels_visible(true);
-	Obj.set_vertex_label_color(FColor::Red);
-	Obj.set_triangle_label_color(FColor::Blue);
-
-	if (WriteFiles) {
-		Obj.write("prism_example_for_unreal.obj");
+	for (int i = 0; i < Dims.GetWidth(); i++)
+	{
+		for (int j = 0; j < Dims.GetWidth(); j++)
+		{
+			// Slightly inset the grid cells so that we can see the annotations containing the grid index
+		}
 	}
-
-	return true;
+	
+	return Result;
 }
 
-} // namespace prism
+} // namespace Prism
 
-#endif // PRISM_FOR_UNREAL_CPP_API
+#endif // PRISM_UNREAL_GEOMETRYCORE_CPP_API
