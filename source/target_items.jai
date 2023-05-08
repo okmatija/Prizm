@@ -109,12 +109,34 @@ FOCUS_ITEMS_ACTION_SET := Action_Set.{
     regular_button=true,
 };
 
+// @TODO Add some visual feedback for when an item has state updated?
 
 #scope_file
+
+maybe_cycle_state :: (progress_proc : (*Display_Info) -> Fraction) -> *Display_Info {
+
+    selected : [..]*Entity = temp_selected_entities();
+
+    app_info : *Display_Info = *app.template_display_info;
+
+    // Don't modify template state if exactly one item is selected
+    if selected.count == 1 {
+        app_info = *selected[0].display_info;
+    }
+
+     // We dont want to change the template state if nothing will change
+    if selected.count > 0 {
+        progress_proc(app_info);
+    }
+
+    return app_info;
+}
 
 //
 // Toggle clipping
 //
+
+// @FIXME This does not cycle as expected since template state is always cycled even with no selection and when one item is selected the template changes
 
 any_active_clipping :: () -> bool {
     clip_active := false;
@@ -169,8 +191,7 @@ toggle_clipping_progress_proc :: () -> Fraction {
 
 cycle_vertex_size :: () {
 
-    app_info := *app.template_display_info;
-    cycle_vertex_size_progress_proc(app_info);
+    app_info : *Display_Info = maybe_cycle_state(cycle_vertex_size_progress_proc);
 
     for :Selected app.entities {
         it.display_info.positions_visible = app_info.positions_visible;
@@ -213,15 +234,13 @@ cycle_vertex_size_progress_proc_const :: () -> Fraction {
 
 
 
-
 //
 // Cycle wireframe width
 //
 
 cycle_wireframe_width :: () {
 
-    app_info := *app.template_display_info;
-    cycle_wireframe_width_progress_proc(app_info);
+    app_info : *Display_Info = maybe_cycle_state(cycle_wireframe_width_progress_proc);
 
     for :Selected app.entities {
         it.display_info.segments_visible = app_info.segments_visible;
@@ -278,8 +297,7 @@ cycle_wireframe_width_progress_proc_const :: () -> Fraction {
 
 toggle_normals_visibility :: () {
 
-    app_info := *app.template_display_info;
-    toggle_normals_visibility_progress_proc(app_info);
+    app_info : *Display_Info = maybe_cycle_state(toggle_normals_visibility_progress_proc);
 
     for :Selected app.entities {
         it.display_info.normals_visible = app_info.normals_visible;
@@ -343,10 +361,28 @@ cycle_vertex_label_theme :: (theme : *Vertex_Label_Theme) -> Fraction {
     return result;
 }
 
+maybe_cycle_vertex_theme :: () -> *Vertex_Label_Theme {
+
+    selected : [..]*Entity = temp_selected_entities();
+
+    theme : *Vertex_Label_Theme = *app.template_display_info.vertex_label_theme;
+
+    // Don't modify template state if exactly one item is selected
+    if selected.count == 1 {
+        theme = *selected[0].display_info.vertex_label_theme;
+    }
+
+     // We dont want to change the template state if nothing will change
+    if selected.count > 0 {
+        cycle_vertex_label_theme(theme);
+    }
+
+    return theme;
+}
+
 cycle_vertex_label :: () {
 
-    theme := *app.template_display_info.vertex_label_theme;
-    cycle_vertex_label_theme(theme);
+    theme : *Vertex_Label_Theme = maybe_cycle_vertex_theme();
 
     for :Selected app.entities {
         it.display_info.vertex_label_theme.show_position = theme.show_position;
@@ -401,14 +437,32 @@ cycle_element_label_theme :: (theme : *Element_Label_Theme) -> Fraction {
     return result;
 }
 
+maybe_cycle_element_label_theme :: () -> *Element_Label_Theme {
+
+    selected : [..]*Entity = temp_selected_entities();
+
+    theme : *Element_Label_Theme = *app.template_display_info.point_label_theme;
+
+    // Don't modify template state if exactly one item is selected
+    if selected.count == 1 {
+        theme = *selected[0].display_info.point_label_theme;
+    }
+
+     // We dont want to change the template state if nothing will change
+    if selected.count > 0 {
+        cycle_element_label_theme(theme);
+        // All element types are kept in sync with the point one
+        app.template_display_info.segment_label_theme.show_index = theme.show_index;
+        app.template_display_info.triangle_label_theme.show_index = theme.show_index;
+    }
+
+    return theme;
+}
+
 cycle_element_label :: () {
     // All element types are kept in sync with the point one
-    theme := *app.template_display_info.point_label_theme;
-    cycle_element_label_theme(theme);
+    theme := maybe_cycle_element_label_theme();
 
-    // All element types are kept in sync with the point one
-    app.template_display_info.segment_label_theme.show_index = theme.show_index;
-    app.template_display_info.triangle_label_theme.show_index = theme.show_index;
     for :Selected app.entities {
         it.display_info.point_label_theme.show_index = theme.show_index;
         it.display_info.segment_label_theme.show_index = theme.show_index;
@@ -462,12 +516,30 @@ cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
     return result;
 }
 
-cycle_annotation :: () {
-    theme := *app.template_display_info.annotation_label_theme;
+maybe_cycle_annotation_label_theme :: () -> *Annotation_Label_Theme {
 
-    cycle_annotation_theme(theme);
+    selected : [..]*Entity = temp_selected_entities();
+
+    theme : *Annotation_Label_Theme = *app.template_display_info.annotation_label_theme;
+
+    // Don't modify template state if exactly one item is selected
+    if selected.count == 1 {
+        theme = *selected[0].display_info.annotation_label_theme;
+    }
+
+     // We dont want to change the template state if nothing will change
+    if selected.count > 0 {
+        cycle_annotation_theme(theme);
+    }
+
+    return theme;
+}
+
+cycle_annotation :: () {
+    theme := maybe_cycle_annotation_label_theme();
 
     for :Selected app.entities {
+        // @Cleanup Rename the cycle function to mention only visibility is cycled?
         it.display_info.annotation_label_theme.visible = theme.visible;
     }
 }
@@ -493,8 +565,7 @@ cycle_annotation_progress_proc :: () -> Fraction {
 
 cycle_opacity :: () {
 
-    app_info := *app.template_display_info;
-    cycle_opacity_progress_proc(app_info);
+    app_info : *Display_Info = maybe_cycle_state(cycle_opacity_progress_proc);
 
     for :Selected app.entities {
         it.display_info.triangles_color.w = app_info.triangles_color.w;
@@ -534,6 +605,8 @@ cycle_opacity_progress_proc_const :: () -> Fraction {
 //
 // Cycle backface mode
 //
+
+// @FIXME This does not cycle as expected since template state is always cycled even with no selection and when one item is selected the template changes
 
 cycle_backface_mode :: () {
 

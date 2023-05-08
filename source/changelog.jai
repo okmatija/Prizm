@@ -16,10 +16,11 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "8 May 2023", #string DONE
   - The API can be configured to be usable with small standalone projects in which case the it will only depend on the C++ STL (future work could remove this)
   - Having this debug code outside your project is a feature: if you accidentally commmit it your CI/CD pipeline should fail to compile
 
-- Improved behavior of ribbon buttons along the bottom of the screen
+- Improved behavior of buttons along the bottom of the screen
 
   - Buttons are now hidden when bottom of the screen when there is no selection since they work only when there is a selection
   - The implementation has been reworked in various ways to achieve a more do-what-I-mean behavior
+  - The changes also affect the corresponding shortcuts
 
 - Fixed a bug where annotation labels were not show when only annotation labels were requested
 - Added support for obj files with f-directives connecting more than 3 vertices (aka polygon elements represented as triangle fans). Any annotation will be is added to each triangle separately
