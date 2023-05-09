@@ -182,10 +182,10 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
 
                 // Parse annotation before adding faces so we add the annotation to each face
-                annotation : Annotation;
+                annotation_string : string;
                 if has_annotation {
-                    annotation.kind = .LINE;
-                    if !set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
+                    annotation_string = string_between_hashes(tok.string_value);
+                    if annotation_string.count == 0 {
                         has_annotation = false;
                     }
                     eat_token(*parser);
@@ -199,8 +199,14 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     if missing2 missing_vertices_count += 1;
 
                     array_add(*mesh.segments, make_Tuple2(index1, index2));
+
+                    // After adding the segment we can add the annotation
                     if has_annotation {
+                        annotation : Annotation;
+                        annotation.kind = .LINE;
                         annotation.id = mesh.segments.count - 1;
+                        // Important that each annotation allocates its own string value, not doing this caused a crash
+                        assert(set_annotation_value(*annotation, annotation_string));
                         array_add(*line_annotations, annotation);
                     }
                 }
@@ -217,10 +223,10 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
 
                 // Parse annotation before adding faces so we add the annotation to each face
-                annotation : Annotation;
+                annotation_string : string;
                 if has_annotation {
-                    annotation.kind = .TRIANGLE;
-                    if !set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
+                    annotation_string = string_between_hashes(tok.string_value);
+                    if annotation_string.count == 0 {
                         has_annotation = false;
                     }
                     eat_token(*parser);
@@ -260,7 +266,11 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
                     // After adding the triangle we can add the annotation
                     if has_annotation {
+                        annotation : Annotation;
+                        annotation.kind = .TRIANGLE;
                         annotation.id = mesh.triangles.count - 1;
+                        // Important that each annotation allocates its own string value, not doing this caused a crash
+                        assert(set_annotation_value(*annotation, annotation_string));
                         array_add(*face_annotations, annotation);
                     }
                 }

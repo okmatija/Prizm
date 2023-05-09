@@ -146,6 +146,7 @@ set_annotation_value :: (annotation : *Annotation, _string_value : string) -> bo
     return true;
 }
 
+// This returns is a string view into `input`
 string_between_hashes :: (input : string) -> string {
     assert(input[0] == #char "#");
     result : string = advance(input, 1);
