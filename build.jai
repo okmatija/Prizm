@@ -64,6 +64,12 @@ build :: () {
             lazy_foreign_function_lookups = true;
             output_executable_name        = OUTPUT_EXE_NAME;
             set_optimization_level(*mode.build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
+
+            // This disables the runtime console.
+            // Warning: Enabling this hides prints to the console!
+            // :DisableRuntimeConsoleCleanup This used to work via a #run but that broke at some point...? @CompilerBug?
+            // but doing things this way seems fine anyway!
+            additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"];
         }
         table_add(*preset_build_modes, "release", mode);
     }
@@ -121,6 +127,8 @@ build :: () {
                 // @Cleanup If this fails (why does it fail?) we need to sit through the entire compilation again, can it be made to fail sooner?
                 if build_mode.set_icon {
                     print("[%] Setting application icon\n", OUTPUT_EXE_NAME);
+
+                    // @CompilerBug I had a problem where I hit the "Failure to set the icon." compilation error here because I had an empty icon.ico file. ie it was read correctly but had zero bytes. To fix the problem I deleted icon.ico, the icon module could do a better job of error messages in this case
                     set_icon_and_manifest(build_mode.build_options);
                 }
                 break;
@@ -511,6 +519,7 @@ check_compiler_version :: () {
 
 // @Cleanup Make this run in release and OS console disabled
 // Warning: Enabling this hides prints to the console!
+// See :DisableRuntimeConsoleCleanup
 // #run { #if OS == .WINDOWS { disable_runtime_console(); } }
 
 plugins: [..] *Metaprogram_Plugin;
