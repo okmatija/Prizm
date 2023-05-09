@@ -1116,7 +1116,7 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
                     remove it;
                 }
             }
-            remove_directory(path);
+            remove_directory_if_unwatched(path);
         }
     }
 }

@@ -94,7 +94,7 @@ clear :: (using entity : *Entity) {
 remove_entity_by_index :: (entity_to_remove_index : int) {
     if entity_to_remove_index >= 0 && entity_to_remove_index < app.entities.count {
         entity_to_remove : *Entity = app.entities[entity_to_remove_index];
-        remove_directory(get_directory(get_entity_source(entity_to_remove).path));
+        remove_directory_if_unwatched(get_directory(get_entity_source(entity_to_remove).path));
         deinit(entity_to_remove);
         free(entity_to_remove);
         array_ordered_remove_by_index(*app.entities, entity_to_remove_index);
@@ -102,11 +102,23 @@ remove_entity_by_index :: (entity_to_remove_index : int) {
 }
 
 remove_entities_if_selected :: () {
-    for :Selected app.entities {
-        remove_directory(get_directory(get_entity_source(it).path));
+    maybe_remove_folders : [..]string = temp_array(string);
+    selected_entities : [..]*Entity = temp_selected_entities();
+
+    for selected_entities {
+        entity_path := get_entity_source(it).path;
+        log("Removed item with path '%'", entity_path);
+
+        array_add(*maybe_remove_folders, get_directory(entity_path));
         deinit(it);
         free(it);
-        remove it; // @FIXME this screws up the order of items in the list, this function should do an ordered remove
+
+        removed := array_ordered_remove_by_value(*app.entities, it);
+        assert(removed);
+    }
+
+    for maybe_remove_folders {
+        remove_directory_if_unwatched(it);
     }
 }
 

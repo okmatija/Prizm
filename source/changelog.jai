@@ -7,29 +7,30 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "8 May 2023", #string DONE
-- Added a C++ API for writing .obj files with Prism-specific extensions
+PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
+- Added a header-only C++ API for writing .obj files with Prism-specific extensions
 
-  - Usage: Navigate to the "Prism > Tools > API > C++", configure the API by pressing checkboxes and then press the button to copy the relevant string (containing #includes and config #defines) to your clipboard which you can then paste into in the file you want to debug
-  - The API has functions to write geometry in plain .obj format as well as functions to write Prism-specific .obj format extensions e.g., annotations and command annotations. See the Prism::documentation() function for more info
-  - The API supports working in Unreal and care is taken to make module dependencies optional (e.g., API functions using types/headers from the GeometryCore module can be excluded if you want to use the API in a module which doesn't depend on GeometryCore)
+  - Usage: Navigate to the "Prism > Tools > API > C++", configure the API by pressing checkboxes and press the button to copy the relevant string (containing #includes and config #defines) to your clipboard, then paste that string into the file you want to debug
+  - The API has functions to write geometry in plain .obj format (see http://paulbourke.net/dataformats/obj/) as well as functions to write Prism-specific extensions e.g., annotations and command annotations. See the Prism::documentation() function for more info
+  - The API optionally supports working with Unreal data types and module dependencies are optional (e.g., API functions using types/headers from the GeometryCore module can be excluded if you want to use the API in a module which doesn't depend on GeometryCore)
   - The API can be configured to be usable with small standalone projects in which case the it will only depend on the C++ STL (future work could remove this)
-  - Having this debug code outside your project is a feature: if you accidentally commmit it your CI/CD pipeline should fail to compile
+  - Having this debug code live outside your project is a feature since it ensures you can't accidentally commit code which writes out objs to production: your CI/CD pipeline should fail to compile because it won't be able to find the Prism API headers
 
 - Improved behavior of buttons along the bottom of the screen
 
-  - Buttons are now hidden when bottom of the screen when there is no selection since they work only when there is a selection
+  - Buttons are now hidden when bottom of the screen when there is no selection since they require a selection to work. We could have just disabled them but we chose to hide them instead..
   - The implementation has been reworked in various ways to achieve a more do-what-I-mean behavior
   - The changes also affect the corresponding shortcuts
 
-- Fixed a bug where annotation labels were not show when only annotation labels were requested
 - Added support for obj files with f-directives connecting more than 3 vertices (aka polygon elements represented as triangle fans). Any annotation will be is added to each triangle separately
 - Added support for obj files with l-directives connecting more than 2 vertices (aka polyline elements). Any annotation will be is added to each segment element separately
 - Added a build warning when the compiler version used to compile Prism is different from the expected one (aka the one Matija is using)
 - Added a suggestion to the file written by the button "Help > Changelog > Save to CHANGELOG.md" to suggest you read the changelog on https://markdownlivepreview.com
-- Added a bunch of `set_XXX` console commands to configure display/rendering state for items loaded in Prism e.g., `set_annotation_visible` to set annotation label visibility for a given item
-- Added a Reload button under "Details > Display > Selection" which now always appears, not just when more than one item is selected
+- Added a bunch of `set_XXX` console commands to configure display/rendering state for items loaded in Prism e.g., `set_annotation_visible` to set annotation label visibility for a given item.  These functions are callable as command annotations in the C++ API
+- Added a Reload button under "Details > Display > Selection" which now always appears. Previously it was only visible when more than one item was selected
 - Removed `item_` prefix for some console commands, e.g., `item_set_primary_color` -> `set_primary_color`
+- Fixed a bug where annotation labels were not show when only annotation labels were requested
+- Fixed a minor bug where the order of items changed when items were deleted, previously the last item in the list would replace the deleted item
 DONE};
 
 PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE

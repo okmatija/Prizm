@@ -218,9 +218,9 @@ folder_exists_on_disk :: (directory : string) -> bool {
     return true;
 }
 
-remove_directory :: (directory : string) {
+remove_directory_if_unwatched :: (directory : string) {
     if !folder_exists_on_disk(directory) {
-        return; // Do not allow these directories to be removed
+        return; // Do not allow these item folders to be removed
     }
 
     // Check if no other entities will need to watch this directory
