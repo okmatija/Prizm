@@ -230,9 +230,7 @@ show_items_ui :: () {
         }
     }
 
-    if entity_to_remove >= 0 && entity_to_remove < app.entities.count {
-        remove_entity_by_index(entity_to_remove);
-    }
+    remove_entity_by_index(entity_to_remove);
 
     if any_visibility_changed {
         // See :PreserveCameraPositionWithNoVisibleItems, we want to keep that behaviour here too
@@ -942,7 +940,7 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
     return prev_color, prev_size;
 }
 
-Action_Button :: (_label : string, action_set : *Action_Set) #expand {
+ActionButton :: (_label : string, action_set : *Action_Set) #expand {
     label := copy_string(_label, temp);
     mod := current_modifier_flags(); 
 
@@ -1077,23 +1075,15 @@ show_item_list_actions_ui :: () {
         ImGui.Begin("target_items_ribbon", flags=window_flags);
         defer ImGui.End();
 
-        Action_Button("Backface", *CYCLE_BACKFACE_MODE_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Opacity", *CYCLE_OPACITY_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Clipping", *TOGGLE_CLIPPING_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Normals", *TOGGLE_NORMALS_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Line Width", *CYCLE_LINE_WIDTH_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Vertex Size", *CYCLE_VERTEX_SIZE_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Vertex Labels", *CYCLE_VERTEX_LABEL_ACTION_SET);
-        ImGui.SameLine();
-        Action_Button("Annotations", *CYCLE_ANNOTATION_ACTION_SET);
+        ActionButton("Backface",       *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
+        ActionButton("Opacity",        *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
+        ActionButton("Clipping",       *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
+        ActionButton("Normals",        *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
+        ActionButton("Line Width",     *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
+        ActionButton("Vertex Size",    *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
+        ActionButton("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
+        ActionButton("Vertex Labels",  *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
+        ActionButton("Annotations",    *CYCLE_ANNOTATION_ACTION_SET);
     }
 }
 
