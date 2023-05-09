@@ -203,25 +203,6 @@ Obj MakeDynamicMeshObj(const FDynamicMesh3& InMesh, FMakeDynamicMeshObjSettings 
 	return Result;
 }
 
-// nocommit Write Overlay function
-
-// Returns an Obj
-// This function only uses negative indices so that Impl
-Obj WriteImageDimensions(FImageDimensions Dims)
-{
-	Obj Result;
-
-	for (int i = 0; i < Dims.GetWidth(); i++)
-	{
-		for (int j = 0; j < Dims.GetWidth(); j++)
-		{
-			// Slightly inset the grid cells so that we can see the annotations containing the grid index
-		}
-	}
-	
-	return Result;
-}
-
 } // namespace Prism
 
 #endif // PRISM_UNREAL_GEOMETRYCORE_CPP_API
