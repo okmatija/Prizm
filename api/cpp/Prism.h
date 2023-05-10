@@ -327,7 +327,7 @@ struct Obj {
     // will be supported and the @ character will be used parse them.  Until this is implemented you might still want
     // to use this function rather than the plain annotation one if you find having the @ prefix helps you read your
     // annotations more clearly. See documentation() for more details.
-    // 
+    //
     template <typename T> Obj& attribute(const T& data) {
         return annotation().at().insert(data);
     }
@@ -1179,7 +1179,7 @@ bool documentation(bool write_files) {
         // and as part of the attribute extraction the relevant portion of the annotation string will be trimmed.
         // After extraction, the data structure you can inspect in Prism will have typed attributes as well as
         // annotations corresponding to the part of the raw in-file annotation strings before the first @.
-        // 
+        //
         // Although there is no special rendering/UI for attributes yet (you can only view attributes as the raw
         // annotation strings) you might still prefer to call the attribute function when adding multiple pieces
         // of data to a geometric entity because the @'s make the separate data more distinguishable. Here is an
@@ -1201,7 +1201,7 @@ bool documentation(bool write_files) {
         obj.set_annotations_visible(true);
         obj.set_annotations_scale(1.);
         obj.set_annotations_color(BLUE);
-        
+
         // ...but since we are using this documentation for testing as well we'll just call all the config functions
         // to verify they are executed with no errors.  First we'll set the precision of the floats we write to the obj
         // file so that the `output` string looks a bit nicer.
@@ -1233,7 +1233,7 @@ bool documentation(bool write_files) {
         obj.set_edges_width(4.);
         obj.set_triangles_visible(true);
         obj.set_triangles_color(GREEN);
-        
+
         // Note we didn't need to explicitly call newline() after each command annotation. Command annotations must be
         // on a newline so this is called internally by the implementation
 

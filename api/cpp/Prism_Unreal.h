@@ -97,17 +97,17 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 
 	Obj Result;
 
-	// We should compact the mesh to make sure the order that we write the vertex/normal/uv indices into obj is 
-	// consistent with the storage order 
+	// We should compact the mesh to make sure the order that we write the vertex/normal/uv indices into obj is
+	// consistent with the storage order
 	FDynamicMesh3 Mesh;
 	FCompactMaps CompactInfo;
 	Mesh.CompactCopy(InMesh, true, true, true, true, &CompactInfo);
 
-	// Compute an additional mapping from the compact mesh triangles to the input mesh triangles 
+	// Compute an additional mapping from the compact mesh triangles to the input mesh triangles
 	// i.e the inverse of the FCompactMaps
 	TMap<int32, int32> CompactToInputTriangles; // Mesh -> InMesh
 	CompactToInputTriangles.Reserve(Mesh.TriangleCount());
-	for (int32 TriangleID : InMesh.TriangleIndicesItr()) 
+	for (int32 TriangleID : InMesh.TriangleIndicesItr())
 	{
 		const int32 CompactTriangleID = CompactInfo.GetTriangleMapping(TriangleID);
 		if (CompactTriangleID != FCompactMaps::InvalidID)
@@ -128,7 +128,7 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 		}
 	}
 	checkSlow(CompactToInputVertices.Num() == Mesh.VertexCount());
-    
+
 	if (Options.bReverseOrientation)
 	{
 		Mesh.ReverseOrientation();
@@ -148,13 +148,13 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 		FVector3d Pos = Mesh.GetVertex(VID);
 		Result.vertex3(V3(Pos)).annotation("VID").insert(*InMeshVID0).newline();
 
-		if (bHasVertexNormals) 
+		if (bHasVertexNormals)
 		{
 			FVector3f Normal = Mesh.GetVertexNormal(VID);
 			Result.normal3(V3f(Normal)).newline();
 		}
 
-		if (bHasVertexUVs) 
+		if (bHasVertexUVs)
 		{
 			FVector2f UV = Mesh.GetVertexUV(VID);
 			Result.uv2(V2f(UV)).newline();
@@ -164,14 +164,14 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 	const FDynamicMeshUVOverlay* UVs = nullptr;
 	const FDynamicMeshNormalOverlay* Normals = nullptr;
 
-	if (Options.bWritePerVertexValues == false && Mesh.Attributes()) 
+	if (Options.bWritePerVertexValues == false && Mesh.Attributes())
 	{
 		UVs = Mesh.Attributes()->PrimaryUV();
 		if (UVs)
 		{
 			for (int32 UI = 0; UI < UVs->ElementCount(); ++UI)
 			{
-				check(UVs->IsElement(UI)) 
+				check(UVs->IsElement(UI))
 				FVector2f UV = UVs->GetElement(UI);
 				Result.uv2(V2f(UV)).newline();
 			}
@@ -181,7 +181,7 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 		if (Normals)
 		{
 			for (int32 NI = 0; NI < Normals->ElementCount(); ++NI)
-			{    
+			{
 				check(Normals->IsElement(NI));
 				FVector3f Normal = Normals->GetElement(NI);
 				Result.normal3(V3f(Normal)).newline();
@@ -199,20 +199,20 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 
 		FIndex3i TriVertices = Mesh.GetTriangle(TID);
 
-		if (Options.bWritePerVertexValues) 
+		if (Options.bWritePerVertexValues)
 		{
-			if (bHasVertexNormals == false && bHasVertexUVs == false) 
+			if (bHasVertexNormals == false && bHasVertexUVs == false)
 			{
 				Result.triangle(
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1);
 			}
-			else if (bHasVertexNormals == true && bHasVertexUVs == false) 
+			else if (bHasVertexNormals == true && bHasVertexUVs == false)
 			{
 				Result.triangle_vn(
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1,
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1);
 			}
-			else if (bHasVertexNormals == false && bHasVertexUVs == true) 
+			else if (bHasVertexNormals == false && bHasVertexUVs == true)
 			{
 				Result.triangle_vt(
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1,
