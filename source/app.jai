@@ -104,6 +104,7 @@ App :: struct {
     }
 
     // Used when more than one item is selected/edited via shortcuts
+    // @FIXME @Cleanup Rework this template stuff. When we first start a selection that items state should become the template, and then we edit that, this is easy for users to understand and I think it would simplify the action buttons in target_items.jai
     template_display_info : Display_Info;
     template_aabb_world : AxisBox3;
 

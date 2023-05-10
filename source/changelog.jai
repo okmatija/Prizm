@@ -19,6 +19,7 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
 - Improved behavior of buttons along the bottom of the screen
 
   - Buttons are now hidden when bottom of the screen when there is no selection since they require a selection to work. We could have just disabled them but we chose to hide them instead..
+  - Buttons are now colored to reflect the underlying state. Different hues represent different states, when the buttons are transparent they are in the default state.
   - The implementation has been reworked in various ways to achieve a more do-what-I-mean behavior
   - The changes also affect the corresponding shortcuts
 

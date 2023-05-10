@@ -113,25 +113,6 @@ FOCUS_ITEMS_ACTION_SET := Action_Set.{
 
 #scope_file
 
-maybe_cycle_state :: (progress_proc : (*Display_Info) -> Fraction) -> *Display_Info {
-
-    selected : [..]*Entity = temp_selected_entities();
-
-    app_info : *Display_Info = *app.template_display_info;
-
-    // Don't modify template state if exactly one item is selected
-    if selected.count == 1 {
-        app_info = *selected[0].display_info;
-    }
-
-     // We dont want to change the template state if nothing will change
-    if selected.count > 0 {
-        progress_proc(app_info);
-    }
-
-    return app_info;
-}
-
 //
 // Toggle clipping
 //
@@ -189,6 +170,32 @@ toggle_clipping_progress_proc :: () -> Fraction {
 // Cycle vertex/position size
 //
 
+get_display_info :: () -> *Display_Info, int {
+    selected : [..]*Entity = temp_selected_entities();
+
+    info : *Display_Info = *app.template_display_info;
+
+    // Don't modify template state if exactly one item is selected
+    if selected.count == 1 {
+        info = *selected[0].display_info;
+    }
+
+    return info, selected.count;
+}
+
+maybe_cycle_state :: (progress_proc : (*Display_Info) -> Fraction) -> *Display_Info {
+
+    app_info, selected_count : /*Display_Info, int*/ = get_display_info();
+
+     // We dont want to change the template state if nothing will change
+    if selected_count > 0 {
+        progress_proc(app_info);
+    }
+
+    return app_info;
+}
+
+
 cycle_vertex_size :: () {
 
     app_info : *Display_Info = maybe_cycle_state(cycle_vertex_size_progress_proc);
@@ -226,7 +233,8 @@ cycle_vertex_size_progress_proc :: (using app_info : *Display_Info) -> Fraction 
 }
 
 cycle_vertex_size_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.template_display_info;
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info;
     return cycle_vertex_size_progress_proc(*app_info_copy);
 }
 
@@ -284,7 +292,8 @@ cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fract
 }
 
 cycle_wireframe_width_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.template_display_info;
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info;
     return cycle_wireframe_width_progress_proc(*app_info_copy);
 }
 
@@ -321,7 +330,8 @@ toggle_normals_visibility_progress_proc :: (using app_info : *Display_Info) -> F
 
 
 toggle_normals_visibility_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.template_display_info;
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info;
     return toggle_normals_visibility_progress_proc(*app_info_copy);
 }
 
@@ -400,7 +410,8 @@ cycle_vertex_label_proc :: (last_interaction_time : *void) {
 
 
 cycle_vertex_label_progress_proc :: () -> Fraction {
-    app_info_copy := app.template_display_info; // We just want to get the fraction, not modify the display info
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
     return cycle_vertex_label_theme(*app_info_copy.vertex_label_theme);
 }
 
@@ -478,7 +489,8 @@ cycle_element_label_proc :: (last_interaction_time : *void) {
 }
 
 cycle_element_label_progress_proc :: () -> Fraction {
-    app_info_copy := app.template_display_info; // We just want to get the fraction, not modify the display info
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
     return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
@@ -552,7 +564,8 @@ cycle_annotation_proc :: (last_interaction_time : *void) {
 }
 
 cycle_annotation_progress_proc :: () -> Fraction {
-    app_info_copy := app.template_display_info;
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
     return cycle_annotation_theme(*app_info_copy.annotation_label_theme);
 }
 
@@ -593,7 +606,8 @@ cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 }
 
 cycle_opacity_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.template_display_info;
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
     return cycle_opacity_progress_proc(*app_info_copy);
 }
 
@@ -640,7 +654,8 @@ cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
 }
 
 cycle_backface_mode_progress_proc_const :: () -> Fraction {
-    app_info_copy := app.template_display_info;
+    app_info, selected_count := get_display_info();
+    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
     return cycle_backface_mode_progress_proc(*app_info_copy.backface_mode);
 }
 
@@ -666,12 +681,9 @@ reload_items_proc :: (unused : *void) {
         return 0;
     }
 
-    tmp : [..]*Entity;
-    array_copy(*tmp, app.entities);
-    defer array_free(tmp);
+    tmp : [..]*Entity = temp_selected_entities();
     quick_sort(tmp, no_dependencies_first_then_chronological);
-
-    for :Selected tmp {
+    for tmp {
         reload_entity(it);
     }
 }
@@ -723,6 +735,7 @@ focus_items_proc :: (unused : *void) {
 
 clear_all_labels_proc :: (unused : *void) {
     for :Selected app.entities {
+        // @Cleanup Add a label theme iterator?
         it.display_info.vertex_label_theme.show_index = false;
         it.display_info.vertex_label_theme.show_position = false;
         it.display_info.point_label_theme.show_index = false;

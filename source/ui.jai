@@ -959,37 +959,19 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
         do_style := !action_set.regular_button ; // && progress.denom != 0;
 
         if do_style {
+            using button_color;
+
             progress := action_set.progress_proc();
 
-            delta_time_s := to_float64_seconds(current_time_consensus() - action_set.last_interaction_time);
-            fade :: FADE_TIME_SECS / 2;
-            if delta_time_s < fade {
-                using button_color;
+            // The buttons are fully transparent in their default state
+            w = ifx progress.numer == 0 then 0. else .7;
 
-                // alpha fades with time
-                alpha := clamp(delta_time_s / fade, 0., 1.);
-                w = lerp(base_color.w, 0., xx alpha);
-
-                // hue cycles with progress @Cleanup I think this code is slightly incorrect but its not noticabl
-                hsva := color_convert_RGB_to_HSV(x, y, z, w);
-                hue := cast(u16)(hsva.x * 255);
-                hue = (hue + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
-                button_color = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
-
-                // Show the text "Default" when we're back to the default setting
-                if progress.numer == 0 {
-                    default := "Default";
-                    for 0..label.count-1 {
-                        if it < default.count {
-                            label.data[it] = default[it];
-                        } else {
-                            label.data[it] = #char " ";
-                        }
-                    }
-                }
-            } else {
-                button_color.w = 0.;
-            }
+            // hue cycles with progress @Cleanup I think this code is slightly incorrect but its not noticabl
+            // Note: We used to change the text depending on the state but IIRC some clicks don't get registered, maybe because the ImGui ID depends on the label?
+            hsva := color_convert_RGB_to_HSV(x, y, z, w);
+            hue := cast(u16)(hsva.x * 255);
+            hue = (hue + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
+            button_color = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
 
             ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive,  button_color);
