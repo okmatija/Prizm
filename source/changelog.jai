@@ -11,14 +11,14 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
 - Added a header-only C++ API for writing .obj files with Prism-specific extensions
 
   - Usage: Navigate to the "Prism > Tools > API > C++", configure the API by pressing checkboxes and press the button to copy the relevant string (containing #includes and config #defines) to your clipboard, then paste that string into the file you want to debug
-  - The API has functions to write geometry in plain .obj format (see http://paulbourke.net/dataformats/obj/) as well as functions to write Prism-specific extensions e.g., annotations and command annotations. See the Prism::documentation() function for more info
+  - The API has functions to write geometry in plain .obj format (based on http://paulbourke.net/dataformats/obj/) as well as functions to write Prism-specific extensions e.g., annotations and command annotations. See the `Prism::documentation()` function for more info
   - The API optionally supports working with Unreal data types and module dependencies are optional (e.g., API functions using types/headers from the GeometryCore module can be excluded if you want to use the API in a module which doesn't depend on GeometryCore)
   - The API can be configured to be usable with small standalone projects in which case the it will only depend on the C++ STL (future work could remove this)
   - Having this debug code live outside your project is a feature since it ensures you can't accidentally commit code which writes out objs to production: your CI/CD pipeline should fail to compile because it won't be able to find the Prism API headers
 
 - Improved behavior of buttons along the bottom of the screen
 
-  - Buttons are now hidden when bottom of the screen when there is no selection since they require a selection to work. We could have just disabled them but we chose to hide them instead..
+  - Buttons are now hidden when bottom of the screen when there is no selection since they require a selection to work. We could have just disabled them but we chose to hide them instead.
   - Buttons are now colored to reflect the underlying state. Different hues represent different states, when the buttons are transparent they are in the default state.
   - The implementation has been reworked in various ways to achieve a more do-what-I-mean behavior
   - The changes also affect the corresponding shortcuts
