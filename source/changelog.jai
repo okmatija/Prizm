@@ -7,6 +7,9 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
+PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
+DONE};
+
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
 - Added a header-only C++ API for writing .obj files with Prism-specific extensions
 
@@ -479,6 +482,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*app.changelog, PRISM_VERSION_0_7_0);
+    array_add(*app.changelog, PRISM_VERSION_0_6_1);
     array_add(*app.changelog, PRISM_VERSION_0_6_0);
     array_add(*app.changelog, PRISM_VERSION_0_5_1);
     array_add(*app.changelog, PRISM_VERSION_0_5_0);

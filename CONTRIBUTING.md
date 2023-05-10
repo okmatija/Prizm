@@ -29,11 +29,11 @@ This tool is intended to be hackable and compiled from source as you use it. So 
 From the top-level project directory do the following:
 
 1. Update `changelog.jai` with the release date. Update `EXPECTED_COMPILER_VERSION_INFO`
-2. Disable the runtime console and compile using: `jai build.jai - release`
+2. Compile using: `jai build.jai - release`
 3. Test everything works. Include a test with a large (>200MB) file. Maybe reproduce the steps in the preset tooltips
-4. Copy the top-level directory and rename it `Prism-X.Y.Z`
+4. Copy the top-level directory and rename it `Prism_X.Y.Z`
 5. Delete the .git, data, source folder and other folders/files not to be distributed
-6. Zip the release folder
+6. Zip the release folder, do this by clicking on all the files to be included and then RMB > 7-zip > zip, otherwise you get nested folders when you unzip... but who really cares
 7. Unzip the release zip and test everything works
 8. Use the GitHub UI to complete the release: upload the release zip and copy the new section in the changelog to the description and set the git tag
 

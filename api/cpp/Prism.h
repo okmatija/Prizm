@@ -1045,13 +1045,6 @@ struct Obj {
         return *this;
     }
 
-    // Write a command name and an item index.  In Prism many console commands have the index of the item on which they
-    // operate as the first argument.  In the context of command annotations written to an .obj file this index is
-    // usually 0 to refer to the item described by the .obj file.  Using item_index != 0 is an advanced use-case which
-    // you would encounter if you intend to target an item which was created by running a previous command annotation
-    template <typename T> Obj& item_command(const std::string& command_name, int item_index = 0) {
-        return command(command_name).insert(item_index);
-    }
 
 
 
