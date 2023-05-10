@@ -30,7 +30,7 @@ struct Vec2 {
 };
 
 template <typename T> std::ostream& operator<<(std::ostream& os, const Vec2<T>& v) {
-    os << v.x << " " << v.y;
+    os << v.x << ' ' << v.y;
     return os;
 }
 
@@ -50,7 +50,7 @@ struct Vec3 {
 };
 
 template <typename T> std::ostream& operator<<(std::ostream& os, const Vec3<T>& v) {
-    os << v.x << " " << v.y << " " << v.z;
+    os << v.x << ' ' << v.y << ' ' << v.z;
     return os;
 }
 
@@ -70,7 +70,7 @@ struct Vec4 {
 };
 
 template <typename T> std::ostream& operator<<(std::ostream& os, const Vec4<T>& v) {
-    os << v.x << " " << v.y << " " << v.z << " " << v.w;
+    os << v.x << ' ' << v.y << ' ' << v.z << ' ' << v.w;
     return os;
 }
 
@@ -90,7 +90,7 @@ struct Color {
 
 std::ostream& operator<<(std::ostream& os, const Color& v) {
     // Cast to int so we don't write chars
-    os << (int)v.r << " " << (int)v.g << " " << (int)v.b << " " << (int)v.a;
+    os << (int)v.r << ' ' << (int)v.g << ' ' << (int)v.b << ' ' << (int)v.a;
     return os;
 }
 
@@ -167,7 +167,7 @@ struct Obj {
 
     // Add anything to the obj file using operator<< but prefix with a space character
     template <typename T> Obj& insert(const T& anything) {
-        return add(' ').add(anything);
+        return space().add(anything);
     }
 
     // Add a newline, then add the `other` obj and then add another newline
@@ -175,20 +175,6 @@ struct Obj {
     Obj& append(const Obj& other) {
         return newline().add(other.obj.rdbuf()).newline();
     }
-
-    // Simplifies the obj so that it can be opened in more obj viewers. I have found viewers which are stumped by each
-    // of these features:
-    //
-    // * Replaces negative indices with positive indices (some viewers do not support negative indices)
-    // * Replace polyline and polygon elements with segment and triangle elements (some viewers do not support them)
-    // * Reindexes normals and texture vertices so that f-directives have common indicies for positions/textures/normals
-    //   e.g., `f 1/2/3 11/12/13 21/22/23` -> `f 1/1/1 2/2/2 3/3/3`
-    //
-    // This will work by parsing the obj and fixing it up, and we can port the Prism parser and use it to load objs in
-    // C++ as well, then this API could be used to fixup and rewrite objs
-    //Obj& simplify_obj() {
-    //    return *this;
-    //}
 
 
 
@@ -225,7 +211,7 @@ struct Obj {
 
     // Add a vertex directive to start a vertex on the current line
     Obj& v() {
-        return add("v");
+        return add('v');
     }
 
     // Add a vertex normal directive to the current line
@@ -240,34 +226,23 @@ struct Obj {
 
     // Add a point directive to start a point on the current line
     Obj& p() {
-        return add("p");
+        return add('p');
     }
 
     // Add a line directive to start a segment/polyline on the current line
     Obj& l() {
-        return add("l");
+        return add('l');
     }
 
     // Add a face directive to start a triangle/polygon on the current line
     Obj& f() {
-        return add("f");
+        return add('f');
     }
 
     // Add a group directive.
     // Note: Currently Prism ignores these
     Obj& g() {
-        return add("g");
-    }
-
-    // Add a # character to the current line, this is used for annotations, comments and attributes
-    Obj& hash() {
-        hash_count++;
-        return add("#");
-    }
-
-    // Add a #! character sequence on a newline, this is used to start command annotations
-    Obj& hashbang() {
-        return newline().hash().add("!");
+        return add('g');
     }
 
     // Add a newline to the obj and reset hash_count
@@ -276,9 +251,25 @@ struct Obj {
         return add("\n");
     }
 
+    // Add a space to the obj
+    Obj& space() {
+        return add(' ');
+    }
+
+    // Add a # character to the current line, this is used for annotations, comments and attributes
+    Obj& hash() {
+        hash_count++;
+        return add('#');
+    }
+
+    // Add a ! character to the current line, this is used by command annotations
+    Obj& bang() {
+        return add('!');
+    }
+
     // Add an @ character to the current line, this is used for attributes
     Obj& at() {
-        return add("@");
+        return add('@');
     }
 
     // An abbreviated version of the newline function
@@ -300,7 +291,8 @@ struct Obj {
     // If there is no # character on the current line add one, otherwise do nothing
     Obj& annotation() {
         if (hash_count == 0) {
-            hash();
+            // Add a space here to help other obj viewers which might fail to parse numbers not delimited by whitespace
+            space().hash();
         }
         return *this;
     }
@@ -326,10 +318,11 @@ struct Obj {
     // in order to display or process them specially. Multiple distinct data types placed on the same geometry element
     // will be supported and the @ character will be used parse them.  Until this is implemented you might still want
     // to use this function rather than the plain annotation one if you find having the @ prefix helps you read your
-    // annotations more clearly. See documentation() for more details.
+    // annotations more clearly. See Prism::documentation() for more details.
     //
     template <typename T> Obj& attribute(const T& data) {
-        return annotation().at().insert(data);
+        // Add a space is for legibility.
+        return annotation().space().at().insert(data);
     }
 
 
@@ -768,7 +761,7 @@ struct Obj {
 
     // Start a command annotation, arguments should be `insert`ed after this
     Obj& command(const std::string& command_name) {
-        return hashbang().insert(command_name);
+        return newline().hash().bang().insert(command_name);
     }
 
     // (Advanced) Start a command annotation whose first argument is the Prism item index
@@ -978,6 +971,29 @@ struct Obj {
     }
 
 
+    // Miscellaneous
+
+    // Save a copy of the current obj *after it is loaded in Prism* but modify the contents to make the file work with
+    // more obj viewers/readers. This function works by applying the following simplifications:
+    //
+    // 1) Replace negative indices with positive indices (some viewers do not support negative indices)
+    //
+    // 2) Replace polyline/polygon elements (l-directives with >2 indices/f-directives with >4 indices respespectively)
+    //    with segment/triangle elements (l-directives with 2 indices/f-directives with 3 indices respectively)
+    //
+    // 3) Reindex positions/textures/normals so that directives referencing them have common indicies so that things
+    //    like f 1/2/3 2/7/3 3/18/77 become f 1/1/1 2/2/2 3/3/3.
+    //
+    // TODO Implement this command in Prism
+    // TODO Prism also doesn't support 3) so we should fix that as well...!
+    // TODO Maybe its a bit weird to expose this function as a command annotation since to get the simplified file you
+    //      need to load the current file in Prism. We could instead just mention it exists in Obj::write documentation?
+    //
+    //Obj& save_simplified_obj(std::string filename) {
+    //    return item_command("save_simplified_obj").insert(filename);
+    //}
+
+
 
     //
     // Implementation methods
@@ -1057,9 +1073,9 @@ bool documentation(bool write_files) {
     auto test = [&write_files](std::string filename, std::string got, std::string wanted) {
         bool passed = true;
         if (wanted == got) {
-            std::cout << "Test " << filename << "() PASSED..." << std::endl;
+            std::cout << "Test  " << filename << " PASSED..." << std::endl;
         } else {
-            std::cout << "Test " << filename << "() FAILED..." << std::endl;
+            std::cout << "Test  " << filename << " FAILED..." << std::endl;
             std::cout << "Wanted:" << wanted << "\nGot:" << got << std::endl;
             passed = false;
         }
@@ -1247,14 +1263,14 @@ bool documentation(bool write_files) {
 
         std::string output = R"DONE(
 ##This file tests the Prism C++ API
-v 0 0 1# Vertex A
-v 3 0 1# Vertex B
-v 3 3 1# Vertex C
-f -3 -2 -1# Triangle ABC
+v 0 0 1 # Vertex A
+v 3 0 1 # Vertex B
+v 3 3 1 # Vertex C
+f -3 -2 -1 # Triangle ABC
 v 0 0 2
 v 3 0 2
 v 3 3 2
-f -3 -2 -1# Triangle ABC
+f -3 -2 -1 # Triangle ABC
 v 2 2
 v 10 0
 v 2 -2
@@ -1263,7 +1279,7 @@ v -2 -2
 v -10 0
 v -2 2
 v 0 10
-l -8 -7 -6 -5 -4 -3 -2 -1 -8# star boundary
+l -8 -7 -6 -5 -4 -3 -2 -1 -8 # star boundary
 v 2 2
 v 10 0
 v 2 -2
@@ -1272,18 +1288,18 @@ v -2 -2
 v -10 0
 v -2 2
 v 0 10
-f -8 -7 -6 -5 -4 -3 -2 -1# star polygon
-f -8 -7 -6 -5 -4 -3 -2 -1# star polygon again
+f -8 -7 -6 -5 -4 -3 -2 -1 # star polygon
+f -8 -7 -6 -5 -4 -3 -2 -1 # star polygon again
 v -10 -10
 v 10 -10
 v 10 10
 v -10 10
 v -10 -10
-l -5 -4 -3 -2 -1# star bounding box
+l -5 -4 -3 -2 -1 # star bounding box
 v 4 7
-p -1# these are concatenated
+p -1 # these are concatenated
 v 3 3
-p -1# some string@ 42@ 0 0
+p -1 # some string @ 42 @ 0 0
 
 #! set_annotations_visible 0 1
 #! set_annotations_scale 0 1
@@ -1319,7 +1335,7 @@ p -1# some string@ 42@ 0 0
 
         // Since this` documentation` function you are reading is used for testing we actually call the `to_std_string`
         // function here to generate a string to compare with `output`
-        if (!test("prism_example_overview_api.obj", obj.to_std_string(), output)) {
+        if (!test("prism_documentation_ex1.obj", obj.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1355,7 +1371,7 @@ v 1 2 3
 p -1
 )DONE";
 
-        if (!test("prism_example_combined.obj", combined.to_std_string(), output)) {
+        if (!test("prism_documentation_ex2.obj", combined.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1370,7 +1386,7 @@ p -1
 
         // We don't test this function to keep everything on a single line
         if (write_files) {
-            std::string filename = "prism_example_oneliner.obj";
+            std::string filename = "prism_documentation_ex3.obj";
             Obj().triangle2(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).an("triangle").point2(V2{3., 3.}).an("point").write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }
@@ -1394,7 +1410,7 @@ p -1
 
         // We don't test this function because the __LINE__ macro makes it brittle
         if (write_files) {
-            std::string filename = "prism_example_printf_logging.obj";
+            std::string filename = "prism_documentation_ex4.obj";
             obj.write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }

@@ -6,8 +6,9 @@
 // #include <CoreMinimal.h>
 #include <VectorTypes.h>
 
-// We use excluding defines like to have everything in one file, which means that we can change the XXX_EXTRA macros
-// depending on the modules which get included
+// We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
+// depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
+// the code for different Unreal modules to be in separate files
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 #include <DynamicMesh/DynamicMesh3.h>
 #include <DynamicMesh/DynamicMeshOverlay.h>
@@ -40,39 +41,42 @@
 namespace Prism
 {
 
-bool DocumentationForUnreal(bool WriteFiles)
+bool DocumentationForUnreal(bool bWriteFiles)
 {
 	using namespace Prism;
 	Prism::Obj Obj;
 
 	// Define some Unreal data types
-	FVector2d A(0,0),    B(1,0),    C(0,1);
-	FVector3d D(0,0,1),  E(1,0,1),  F(0,1,1);
-	FVector3f N0(1,0,0), N1(0,1,0), N2(0,0,1);
+	FVector   A(0,0,1),  B(1,0,1),  C(0,1,1);
+	FVector3f D(0,0,2),  E(1,0,2),  F(0,1,2);
+	FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
 
 	// This is the recommended way of passing Unreal vectors to the Prism::Obj API
-	Obj.triangle2(V2(A), V2(B), V2(C)).newline();
+	Obj.triangle3(V3(A), V3(B), V3(C)).newline();
 
 	// You could also do the following but in this case you will need to specify the template parameter
-	Obj.triangle3<double>(D, E, F).newline();
+	Obj.triangle3<float>(D, E, F).newline();
 
-	// // Note that if you use Obj::add or Obj::insert you must construct Prism's vector types
-	// // nocommit
-	// Obj.vn().insert(N0).newline();
-	// Obj.vn().insert(N1).newline();
-	// Obj.vn().insert(N2).newline();
-	// Obj.triangle_vn();
+	// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
+	// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
+	Obj.v().insert(V3(G)).newline();
+	Obj.v().insert(V3(H)).newline();
+	Obj.v().insert(V3(I)).newline();
+	Obj.triangle();
+
+	// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
+	//Obj.v().insert(I).newline();
 
 	// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
 	// so both of the following work:
-	Obj.set_vertex_label_color(FColor::Red); // preferred
-	Obj.set_triangle_label_color(Color(FColor::Blue)); // works, but redundant and verbose
+	Obj.set_vertex_label_color(FColor::Red);
+	Obj.set_triangle_label_color(Color(FColor::Blue)); // Works, but redundant and verbose
 
 	Obj.set_vertex_index_labels_visible(true);
 	Obj.set_triangle_index_labels_visible(true);
 
-	if (WriteFiles) {
-		Obj.write("prism_example_for_unreal.obj");
+	if (bWriteFiles) {
+		Obj.write("prism_DocumentationForUnreal.obj");
 	}
 
 	return true;
@@ -262,7 +266,9 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 		Result.annotation("TID").insert(*InMeshTID0).newline();
 	}
 
-	// Set some useful item state in Prism
+	// Set some useful item state in Prism via command annotations
+ 	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Note the lines written by the following code are ignored by other obj viewers
 	Result.set_annotations_visible(true);
 	Result.set_edges_width(true);
 	Result.set_edges_visible(true);
@@ -318,7 +324,9 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 		Result.newline();
 	}
 
-	// Set some useful item state in Prism
+	// Set some useful item state in Prism via command annotations
+ 	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Note the lines written by the following code are ignored by other obj viewers
 	Result.set_annotations_visible(true);
 
 	return Result;
