@@ -8,6 +8,9 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
 DONE};
 
 PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
+- Changes to api/cpp/Prism.h
+
+  - Added index arguments to the point2/point3, segment2/segment3 and triangle2/triangle3 functions, all indices are defaulted to negative values which write the same string as before this change
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

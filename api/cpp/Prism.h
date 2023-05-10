@@ -454,15 +454,15 @@ struct Obj {
     }
 
     // Add a vertex position and a point element that references it
-    // Note: writes "v a.x a.y\np -1" to the obj
-    template <typename T> Obj& point2(Vec2<T> a) {
-        return vertex2(a).newline().point();
+    // Note: writes "v a.x a.y\np ia" to the obj
+    template <typename T> Obj& point2(Vec2<T> a, int ia = -1) {
+        return vertex2(a).newline().point(i);
     }
 
     // Add a vertex position and a point element that references it
-    // Note: writes "v a\np -1" to the obj
-    template <typename T> Obj& point3(Vec3<T> a) {
-        return vertex3(a).newline().point();
+    // Note: writes "v a\np ia" to the obj
+    template <typename T> Obj& point3(Vec3<T> a, int ia = -1) {
+        return vertex3(a).newline().point(i);
     }
 
 
@@ -479,15 +479,15 @@ struct Obj {
     }
 
     // Add 2 vertex positions and a segment element referencing them
-    // Note: writes "v a.x a.y\nv b.x b.y\nl -2 -1" to the obj
-    template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b) {
-        return vertex2(a).newline().vertex2(b).newline().segment();
+    // Note: writes "v a.x a.y\nv b.x b.y\nl ia ib" to the obj
+    template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b, int ia = -2, int ib = -1) {
+        return vertex2(a).newline().vertex2(b).newline().segment(ia, ib);
     }
 
     // Add 2 vertex positions and a segment element referencing them
-    // Note: writes "v a.x a.y a.z\nv b.x b.y b.z\nl -2 -1" to the obj
-    template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) {
-        return vertex2(a).newline().vertex2(b).newline().segment();
+    // Note: writes "v a.x a.y a.z\nv b.x b.y b.z\nl ia ib" to the obj
+    template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b, int ia = -2, int ib = -1) {
+        return vertex2(a).newline().vertex2(b).newline().segment(ia, ib);
     }
 
 
@@ -534,19 +534,19 @@ struct Obj {
     }
 
     // Add 3 vertex positions and a triangle element referencing them
-    template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
+    template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc, int ia = -3, int ib = -2, int ic = -1) {
         vertex2(va).newline();
         vertex2(vb).newline();
         vertex2(vc).newline();
-        return triangle();
+        return triangle(ia, ib, ic);
     }
 
     // Add 3 vertex positions and a triangle element referencing them
-    template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
+    template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, int ia = -3, int ib = -2, int ic = -1) {
         vertex3(va).newline();
         vertex3(vb).newline();
         vertex3(vc).newline();
-        return triangle();
+        return triangle(ia, ib, ic);
     }
 
     // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them
