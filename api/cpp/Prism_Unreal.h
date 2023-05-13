@@ -10,9 +10,11 @@
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
 // the code for different Unreal modules to be in separate files
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#include <BoxTypes.h>
 #include <DynamicMesh/DynamicMesh3.h>
 #include <DynamicMesh/DynamicMeshOverlay.h>
 #include <DynamicMesh/DynamicMeshAttributeSet.h>
+#include <Image/ImageDimensions.h>
 #include <Util/CompactMaps.h>
 #endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
@@ -20,6 +22,8 @@
 #ifdef PRISM_API
 #error Prism_Unreal.h must be included before Prism.h because it defines macros used by the Prism.h
 #endif
+
+// TODO Add a Vec3i? constructed from UE::Geometry::FIndex3i, in GeometryCore
 
 #define PRISM_VEC2_CLASS_EXTRA\
 	Vec2(UE::Math::TVector2<T> p) : Vec2(p.X, p.Y) {}
@@ -54,7 +58,8 @@ bool DocumentationForUnreal(bool bWriteFiles)
 	// This is the recommended way of passing Unreal vectors to the Prism::Obj API
 	Obj.triangle3(V3(A), V3(B), V3(C)).newline();
 
-	// You could also do the following but in this case you will need to specify the template parameter
+	// You could also do the following but in this case you will need to specify the template parameter, this is
+	// sometimes more convenient than wrapping everything in a V3
 	Obj.triangle3<float>(D, E, F).newline();
 
 	// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
@@ -84,6 +89,98 @@ bool DocumentationForUnreal(bool bWriteFiles)
 
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
+// Write overlay element ids and element values as annotations with the format "@ <ElementID> @ <ElementValue>"
+// The triangles of the Overlay.ParentMesh are split into 4 smaller triangles
+// This is appendable, so you can add it the dynamic mesh obj.  Maybe make the command annotations/config commands optional to make this more useful.
+template<typename RealType, int ElementSize>
+Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, ElementSize>& Overlay)
+{
+	using namespace UE::Geometry;
+
+	Obj Result;
+
+	if (Overlay.GetParentMesh() == nullptr)
+	{
+		return Result;
+	}
+
+	FAxisAlignedBox3d Bounds = Overlay.GetParentMesh()->GetBounds();
+	double Scale = Bounds.DiagonalLength();
+
+	for (int32 TID = 0; TID < Overlay.GetParentMesh()->TriangleCount(); ++TID)
+	{
+		if (Overlay.GetParentMesh()->IsTriangle(TID))
+		{
+			FIndex3i ElementIDs = Overlay.GetTriangle(TID);
+
+			RealType DataA[ElementSize];
+			Overlay.GetElement(ElementIDs.A, DataA);
+
+			RealType DataB[ElementSize];
+			Overlay.GetElement(ElementIDs.B, DataB);
+
+			RealType DataC[ElementSize];
+			Overlay.GetElement(ElementIDs.C, DataC);
+
+			FVector3d Centroid = Overlay.GetParentMesh()->GetTriCentroid(TID);
+			FIndex3i Verts = Overlay.GetParentMesh()->GetTriangle(TID);
+
+
+			FVector3d A = Overlay.GetParentMesh()->GetVertex(Verts.A);
+			FVector3d B = Overlay.GetParentMesh()->GetVertex(Verts.B);
+			FVector3d C = Overlay.GetParentMesh()->GetVertex(Verts.C);
+			/*
+			FVector3d AB = UE::Geometry::Lerp(A, B, .5);
+			FVector3d BC = UE::Geometry::Lerp(B, C, .5);
+			FVector3d CA = UE::Geometry::Lerp(C, A, .5);
+			*/
+
+			Result.triangle3<double>(A, B, C).newline(); // No annotation here, just for viz and to stop visibility checks
+
+			FVector3d Bias = Overlay.GetParentMesh()->GetTriNormal(TID) * 0.001 * Scale;
+			
+			// Result.polygon3(4, V3(A), V3(CA), V3(Centroid), V3(AB));
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, .9, .05, .05) + Bias);
+			Result.attribute(ElementIDs.A);
+			Result.attribute();
+			for (int i = 0; i < ElementSize; i++)
+			{
+				Result.set_precision(4);
+				Result.insert(DataA[i]);
+				Result.set_precision();
+			}
+			Result.newline();
+
+			// Result.polygon3(4, V3(B), V3(AB), V3(Centroid), V3(BC));
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, .05, .9, .05) + Bias);
+			Result.attribute(ElementIDs.B);
+			Result.attribute();
+			for (int i = 0; i < ElementSize; i++)
+			{
+				Result.set_precision(4);
+				Result.insert(DataB[i]);
+				Result.set_precision();
+			}
+			Result.newline();
+
+			// Result.polygon3(4, V3(C), V3(BC), V3(Centroid), V3(CA));
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, .05, .05, .9) + Bias);
+			Result.attribute(ElementIDs.B);
+			Result.attribute();
+			for (int i = 0; i < ElementSize; i++)
+			{
+				Result.set_precision(4);
+				Result.insert(DataC[i]);
+				Result.set_precision();
+			}
+			Result.newline();
+		}
+	}
+
+	return Result;
+}
+
+
 
 struct FMakeDynamicMeshObjOptions
 {
@@ -93,7 +190,6 @@ struct FMakeDynamicMeshObjOptions
 	// If true will attempt to write the per-vertex normals and UVs to the OBJ instead of the per-element values
 	bool bWritePerVertexValues = true;
 };
-
 
 Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMeshObjOptions Options = FMakeDynamicMeshObjOptions{})
 {
@@ -318,7 +414,7 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 		{
 			Result.set_precision(Options.UVAnnotationPrecision);
 			Result.annotation("UV(").add(V2(TexelCenterUV)).add(")");
-			Result.set_precision_max_digits10<double>(); // Restore max precision for Image coordinates geometry
+			Result.set_precision(); // Restore default precision
 		}
 
 		Result.newline();

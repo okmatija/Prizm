@@ -10,7 +10,16 @@ DONE};
 PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
 - Changes to api/cpp/Prism.h
 
+  - Changed the default value of set_precision() from 6 to std::numeric_limits<double>::max_digits10 so it can be used to restore the default precision (which is std::numeric_limits<double>::max_digits10). Also added an optional pointer argument which can return the previous precision.
+  - Renamed and renamed set_precision_max_digits10() function to set_precision_to_roundtrip_floats() and added an optional pointer argument which can return the previous precision.
+  - Removed the set_precision_digits10() since it doesn't guarantee round-trip float -> text -> float conversions
   - Added index arguments to the point2/point3, segment2/segment3 and triangle2/triangle3 functions, all indices are defaulted to negative values which write the same string as before this change
+  - Added an attribute() function with no arguments, similar to the annotation() function with no arguments, and move the attribute functions further down the function list to present simpler concepts on first reading
+  - Improved the documentation
+
+- Changes to api/cpp/Prism_Unreal.h
+
+  - Added a function to create an Obj from UE::Geometry::TDynamicMeshOverlay. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

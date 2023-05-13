@@ -6,6 +6,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <stdarg.h> // va_arg, va_list, va_end
 
 // The following are only used in the documentation() function
@@ -153,10 +154,10 @@ struct Obj {
     // Basic functions
     //
 
-    // Constructor. By default write with enough precision to round trip from float64 to decimal and back
+    // Constructor. By default write with enough precision to round-trip from float64 to decimal and back
     // Note: Prism currently stores mesh data using float32, we will move to float64 so we can show coordinate labels at full precision
     Obj() {
-        set_precision_max_digits10<double>();
+        set_precision();
     }
 
     // Add anything to the obj file using operator<<
@@ -285,10 +286,9 @@ struct Obj {
     //
     // Annotations.
     //
-    // In Prism the text between the first # and a newline or second # is an 'annotation string' and can be shown in the viewport
-    //
+    // In Prism the text between the first # and a newline or second # is an 'annotation string' and can be shown in the viewport.
 
-    // If there is no # character on the current line add one, otherwise do nothing
+    // Start an annotation: If there is no # character on the current line add one, otherwise do nothing
     Obj& annotation() {
         if (hash_count == 0) {
             // Add a space here to help other obj viewers which might fail to parse numbers not delimited by whitespace
@@ -297,32 +297,19 @@ struct Obj {
         return *this;
     }
 
-    // If there is no # character on the current line add one, otherwise do nothing. Then add " anything" to the obj
-    template <typename T> Obj& annotation(const T& anything) {
-        return annotation().insert(anything);
+    // Add an annotation containing the given data to the obj. See annotation()
+    template <typename T> Obj& annotation(const T& data) {
+        return annotation().insert(data);
     }
 
-    // Convenience function to write a newline if the given text is empty and write the text annotation followed by a newline otherwise
+    // Add an annotation containing the given text to the obj then start a newline, if the text is empty just start a newline. See annotation()
     Obj& an(const std::string& text = "") {
         return text == "" ? newline() : annotation(text).newline();
     }
 
-    // Convenience function to write a generic annotation followed by a newline
-    template <typename T> Obj& an(const T& anything) {
-        return annotation(anything).newline();
-    }
-
-    // Add the data, prefixed with an @, to the current annotation string (start a new annotation if necessary)
-    //
-    // In a future version of Prism there will be function to parse numerical data types/colors written to annotations
-    // in order to display or process them specially. Multiple distinct data types placed on the same geometry element
-    // will be supported and the @ character will be used parse them.  Until this is implemented you might still want
-    // to use this function rather than the plain annotation one if you find having the @ prefix helps you read your
-    // annotations more clearly. See Prism::documentation() for more details.
-    //
-    template <typename T> Obj& attribute(const T& data) {
-        // Add a space is for legibility.
-        return annotation().space().at().insert(data);
+    // Add an annotation containing the given data to the obj then start a newline. See annotation()
+    template <typename T> Obj& an(const T& data) {
+        return annotation(data).newline();
     }
 
 
@@ -456,13 +443,13 @@ struct Obj {
     // Add a vertex position and a point element that references it
     // Note: writes "v a.x a.y\np ia" to the obj
     template <typename T> Obj& point2(Vec2<T> a, int ia = -1) {
-        return vertex2(a).newline().point(i);
+        return vertex2(a).newline().point(ia);
     }
 
     // Add a vertex position and a point element that references it
     // Note: writes "v a\np ia" to the obj
     template <typename T> Obj& point3(Vec3<T> a, int ia = -1) {
-        return vertex3(a).newline().point(i);
+        return vertex3(a).newline().point(ia);
     }
 
 
@@ -725,38 +712,84 @@ struct Obj {
     // Obj file configuration functions
     //
 
-    // Set the precision used to write floats to the obj.
-    // Note: This is useful to improve readability if you're writing float data to annotations, after doing that you
-    // will probably want to restore the previous precision e.g., by calling `set_precision_max_digits10<double>()`
-    Obj& set_precision(int n = 6) {
-        obj.precision(n); return *this;
+    // Set the number of base-10 digits used to write floating-point numbers to the obj. By default this function is
+    // equivalent to calling `set_precision_to_roundtrip_floats<double>()`
+    //
+    // This function is useful to improve annotation readability by reducing the number of base-10 digits used to write
+    // float data.  After writing such an annotation you will probably want to restore the value used for coordinate
+    // data, probably by calling this function with no arguments, to restore the precision that round-trips from double
+    // to decimal text to double.
+    Obj& set_precision(int n = std::numeric_limits<double>::max_digits10, int* old_n = nullptr) {
+        std::streamsize old_precision = obj.precision(n);
+        if (old_n) *old_n = old_precision;
+        return *this;
     }
 
-    // Set the precision used to write floats to the obj
-    template <typename T> Obj& set_precision_digits10() {
-        return set_precision(std::numeric_limits<T>::digits10);
-    }
+    // Set the number of base-10 digits used to write floating-point numbers to the obj to a value which can round-trip
+    // from Float to decimal text to Float.
+    template <typename Float> Obj& set_precision_to_roundtrip_floats(int* old_n = nullptr) {
+        static_assert(std::is_floating_point<Float>::value);
 
-    // Set the precision used to write floats to the obj. Use this function to ensure you can round-trip from float to decimal and back
-    // See https://randomascii.wordpress.com/2012/02/11/they-sure-look-equal/ for details
-    template <typename T> Obj& set_precision_max_digits10() {
-        return set_precision(std::numeric_limits<T>::max_digits10);
+        // "Unlike most mathematical operations, the conversion of a floating-point value to text and back is exact as long
+        // as at least max_digits10 were used (9 for float, 17 for double): it is guaranteed to produce the same
+        // floating-point value, even though the intermediate text representation is not exact. It may take over a hundred
+        // decimal digits to represent the precise value of a float in decimal notation."
+        // https://en.cppreference.com/w/cpp/types/numeric_limits/max_digits10
+        return set_precision(std::numeric_limits<Float>::digits10, old_n);
     }
-
 
 
 
 
     //
-    // Command annotations (Prism post-load configuration functions)
+    // Attributes.
     //
-    // These functions configure the item's display settings after the obj file is loaded in Prism and are a convenient
-    // way to save you a few clicks.  The functions are implemented using Prism's notation of _Command Annotations_
-    // which is a facility in Prism which enables you to call any console command right after the entire file has been
-    // loaded. If you know you want to look annotations for a file you can call `set_annotation_label_visible(true)`
-    // to add a command annotation which will enable annotation visibility after the file is loaded (annotation
-    // labelling is off by default). Note: You can call these functions whenever you like, the command will be written
-    // to this->obj at the point you call them but Prism will defer execution until the entire file has been parsed.
+    // Attributes are special annotions which are intended to encode numerical data types/colors in annotation strings
+    // by prefixing them with an @ character.  In a future version of Prism there will be function to parse the encoded
+    // data in order to display or process them specially. Multiple distinct data types placed on the same geometry
+    // element will be supported and the @ character will be used parse them.  Even before this is implemented you might
+    // still prefer to use attributes to annotations if you find having the @ prefix helps you read your annotations
+    // strings more clearly. See Prism::documentation() for more details.
+    //
+
+    // Start an attribute: Start an annotation string if needed, then add an @ to introduce a new attribute
+    Obj& attribute()
+    {
+        return annotation().space().at();
+    }
+
+    // Add an attribute containing the given data to the obj.  Data should be a numerical data type, see attribute()
+    template <typename T> Obj& attribute(const T& data) {
+        // Add a space is for legibility.
+        return attribute().insert(data);
+    }
+
+
+
+
+    //
+    // Command Annotations.
+    //
+    // Command Annotations are special annotations which start with #! on a newline (this syntax is inspired by the
+    // "hashbang" character sequence used to introduce an interpreter directive on Unix) and allow you specify Prism
+    // console commands, with arguments, which should be executed immediately after an the obj file has been loaded.
+    // Command annotations provide a convenient way to configure the item display settings and save you a few clicks.
+    // For example, if you know you want to look annotations you can call `set_annotation_label_visible(true)` to add
+    // a command annotation which will enable annotation visibility after the file is loaded (annotation labelling is
+    // off by default). Note: You can call these functions whenever you like, the command will be written to this->obj
+    // at the point you call them but Prism will defer execution until the entire file has been parsed.
+    //
+    // (Advanced Note) If you look at the output obj file you will notice that command annotations which configure
+    // item state start with a 0, this is a Prism item index.  The Prism application has a global array of items
+    // (aka shapes/geometry) and the index into this list is often used as the first argument in console commands.
+    //  When console commands are executed by the function which load .obj files as command annotations a _local_
+    // array of items is created, the item with local index 0 is the item with geometry given in the .obj, if a console
+    // command which has a side effect of generating a new item is executed as a command annotation then this item will
+    // have index >0 and you can pass that value (e.g., to the `item_command` function) to run a console command on
+    // one of these generated items which are not explicitly in the .obj file.  Note: This complexity is intentionally
+    // avoided in the Prism::Obj command annotation API, so the functions below are hardcoded to work with item 0 only,
+    // but you can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command"
+    // on the item with index 1.
     //
 
     // Start a command annotation, arguments should be `insert`ed after this
@@ -764,17 +797,7 @@ struct Obj {
         return newline().hash().bang().insert(command_name);
     }
 
-    // (Advanced) Start a command annotation whose first argument is the Prism item index
-    //
-    // The Prism application has a global array of items (aka shapes/geometry) the index into this list is often used as
-    // the first argument in console commands.  When console commands are executed by the function which load .obj
-    // files as command annotations a _local_ array of items is created, the item with local index 0 is the item with
-    // geometry given in the .obj, if a console command which has a side effect of generating a new item is executed as
-    // a command annotation then this item will have index >0 and you can pass that value as `item_index` to run a
-    // console command of one of these generated items which are not explicitly in the .obj file.
-    //
-    // Note: This complexity is intentionally avoided in the Prism::Obj command annotation API, so the rest of the
-    // functions below work with `item_index == 0`.
+    // Start a command annotation whose first argument is a Prism item index (See the Advanced Note above)
     Obj& item_command(const std::string& command_name, int item_index = 0) {
         return command(command_name).insert(item_index);
     }
