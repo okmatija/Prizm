@@ -157,9 +157,11 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
 			{
-				Result.set_precision(4);
+				// nocommit Apply this to the others as well
+				int OldPrecision;
+				Result.set_precision(4, &OldPrecision);
 				Result.insert(DataB[i]);
-				Result.set_precision();
+				Result.set_precision(OldPrecision);
 			}
 			Result.newline();
 
