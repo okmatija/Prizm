@@ -532,11 +532,12 @@ maybe_cycle_annotation_label_theme :: () -> *Annotation_Label_Theme {
 
     selected : [..]*Entity = temp_selected_entities();
 
-    theme : *Annotation_Label_Theme = *app.template_display_info.annotation_label_theme;
+    log_warning("nocommit @Incomplete: Handle all annotations in %", #this);
+    theme : *Annotation_Label_Theme = *app.template_display_info.vertex_label_theme.annotation_label_theme; // nocommit Handle all these
 
     // Don't modify template state if exactly one item is selected
     if selected.count == 1 {
-        theme = *selected[0].display_info.annotation_label_theme;
+        theme = *selected[0].display_info.vertex_label_theme.annotation_label_theme;
     }
 
      // We dont want to change the template state if nothing will change
@@ -552,7 +553,8 @@ cycle_annotation :: () {
 
     for :Selected app.entities {
         // @Cleanup Rename the cycle function to mention only visibility is cycled?
-        it.display_info.annotation_label_theme.visible = theme.visible;
+        log_warning("nocommit @Incomplete: Handle all annotations in %", #this);
+        it.display_info.vertex_label_theme.annotation_label_theme.visible = theme.visible;
     }
 }
 
@@ -564,9 +566,10 @@ cycle_annotation_proc :: (last_interaction_time : *void) {
 }
 
 cycle_annotation_progress_proc :: () -> Fraction {
+    log_warning("nocommit @Incomplete: This should go through all the existing annotations in turn and default to off %", #this);
     app_info, selected_count := get_display_info();
     app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
-    return cycle_annotation_theme(*app_info_copy.annotation_label_theme);
+    return cycle_annotation_theme(*app_info_copy.vertex_label_theme.annotation_label_theme);
 }
 
 
@@ -594,7 +597,7 @@ cycle_opacity_proc :: (last_interaction_time : *void) {
 
 cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
     if triangles_color.w == 1.  {
-        triangles_color.w = .5;
+        triangles_color.w = .5; // This affects is_occluder
         return .{0, 2};
     } else if triangles_color.w >= .5 {
         triangles_color.w = .2;
@@ -738,18 +741,30 @@ clear_all_labels_proc :: (unused : *void) {
         // @Cleanup Add a label theme iterator?
         it.display_info.vertex_label_theme.show_index = false;
         it.display_info.vertex_label_theme.show_position = false;
+        it.display_info.vertex_label_theme.annotation_label_theme.visible = false;
+
         it.display_info.point_label_theme.show_index = false;
+        it.display_info.point_label_theme.annotation_label_theme.visible = false;
+
         it.display_info.segment_label_theme.show_index = false;
+        it.display_info.segment_label_theme.annotation_label_theme.visible = false;
+
         it.display_info.triangle_label_theme.show_index = false;
-        it.display_info.annotation_label_theme.visible = false;
+        it.display_info.triangle_label_theme.annotation_label_theme.visible = false;
     }
 
     // Also clear the display info used to set action button state
     display_info : *Display_Info = *app.template_display_info;
     display_info.vertex_label_theme.show_index = false;
     display_info.vertex_label_theme.show_position = false;
+    display_info.vertex_label_theme.annotation_label_theme.visible = false;
+
     display_info.point_label_theme.show_index = false;
+    display_info.point_label_theme.annotation_label_theme.visible = false;
+
     display_info.segment_label_theme.show_index = false;
+    display_info.segment_label_theme.annotation_label_theme.visible = false;
+
     display_info.triangle_label_theme.show_index = false;
-    display_info.annotation_label_theme.visible = false;
+    display_info.triangle_label_theme.annotation_label_theme.visible = false;
 }

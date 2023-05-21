@@ -568,8 +568,8 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
 
             maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-            aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
-            display_info_ui(*entity.display_info, aabb_world, entity_index);
+            //aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
+            //display_info_ui(*entity.display_info, aabb_world, entity_index);
         }
 
         if ImGui.BeginTabItem("Annotations") {
@@ -600,11 +600,13 @@ show_details_pane_ui_for_item_selection :: () {
 
             show_item_selection_ui();
 
-            app.template_aabb_world = entity_selection_aabb();
-            update := display_info_ui(*app.template_display_info, app.template_aabb_world);
-            for :Selected app.entities {
-                apply_update(update, app.template_display_info, *it.display_info);
-            }
+            // @Incomplete We should show the selection information here, helpful e.g., to select all items and know if there are any segment elements in the selection
+
+            //app.template_aabb_world = entity_selection_aabb();
+            //update := display_info_ui(*app.template_display_info, app.template_aabb_world);
+            //for :Selected app.entities {
+            //    apply_update(update, app.template_display_info, *it.display_info);
+            //}
         }
     }
 }
@@ -1643,16 +1645,16 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
 }
 
 
-display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index : int = -1) -> Display_Info_Update {
-
-    old_display_info := <<display_info;
-
-    show_rendering_ui(display_info);
-    show_clipping_ui(display_info, aabb);
-    show_labelling_ui(display_info, entity_index);
-
-    return get_update(old_display_info, display_info);
-}
+//display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index : int = -1) -> Display_Info_Update {
+//
+//    old_display_info := <<display_info;
+//
+//    show_rendering_ui(display_info);
+//    show_clipping_ui(display_info, aabb);
+//    show_labelling_ui(display_info, entity_index);
+//
+//    return get_update(old_display_info, display_info);
+//}
 
 display_information :: (entity : *Entity) {
     if ImGui.TreeNodeEx("Information", .SpanAvailWidth) {
@@ -1719,7 +1721,10 @@ display_annotations :: (entity : *Entity, entity_index : int) {
     if            annotation_count == 0 then ImGui.BeginDisabled();
     defer if      annotation_count == 0 then ImGui.EndDisabled();
 
-    show_annotation_theme_ui("Annotations", "Show annotations", *entity.display_info.annotation_label_theme);
+    show_annotation_theme_ui("Vertex Annotations  ", "Show annotations", *entity.display_info.vertex_label_theme.annotation_label_theme);
+    show_annotation_theme_ui("Point Annotations   ", "Show annotations", *entity.display_info.point_label_theme.annotation_label_theme);
+    show_annotation_theme_ui("Segment Annotations ", "Show annotations", *entity.display_info.segment_label_theme.annotation_label_theme);
+    show_annotation_theme_ui("Triangle Annotations", "Show annotations", *entity.display_info.triangle_label_theme.annotation_label_theme);
 
     if ImGui.TreeNodeEx(imgui_label(header), .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -1933,176 +1938,177 @@ DONE;
 last_frame_annotation_list_height_px : float;
 
 
-show_rendering_ui :: (display_info : *Display_Info) {
-    if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
-
-        ImGui.TableNextColumn();
-        show_rendering_triangles_ui(display_info);
-
-        ImGui.TableNextColumn();
-        show_rendering_segments_ui(display_info);
-
-        ImGui.TableNextColumn();
-        show_rendering_points_ui(display_info);
-
-        ImGui.TableNextColumn();
-        show_rendering_positions_ui(display_info);
-
-        ImGui.TableNextColumn();
-        show_rendering_edges_ui(display_info);
-
-        ImGui.TableNextColumn();
-        show_rendering_normals_ui(display_info);
-
-        if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            // FIXME FIXME: opacity should control wireframe??
-            ImGui.Text("Render Mode");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
-            show_tooltip("Flat Shading");
-            ImGui.SameLine();
-            ImGui.PushItemWidth(120);
-            combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
-            ImGui.PopItemWidth();
-
-            // This doesn't seem very useful so I removed it
-            //ImGui.SameLine();
-            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-            //show_tooltip("Deduce item primary colors from the file path");
-        }
-    }
-}
-
-
-show_rendering_triangles_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Triangles  ");
-
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
-    show_tooltip("Triangle visibility");
-
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
-    show_tooltip("Frontface Color");
-
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-    ImGui.PopItemWidth();
-    show_tooltip("Backface Render Mode");
-}
-
-show_rendering_segments_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Segments   ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
-    show_tooltip("Segment visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
-    show_tooltip("Width");
-    display_info.segments_width = clamp(display_info.segments_width, 1, 5);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_points_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Points     ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-    show_tooltip("Point visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.InputInt("##points_size", *display_info.points_size);
-    show_tooltip("Size");
-    display_info.points_size = clamp(display_info.points_size, 1, 10);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_positions_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Positions  ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
-    show_tooltip("Positions visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.InputInt("##positions_size", *display_info.positions_size);
-    show_tooltip("Size");
-    display_info.positions_size = clamp(display_info.positions_size, 1, 10);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_edges_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Edges      ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
-    show_tooltip("Triangle edges visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
-    show_tooltip("Width");
-    display_info.edges_width = clamp(display_info.edges_width, 1., 5);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_normals_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Normals    ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-    show_tooltip("Normal visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
-    show_tooltip("Length");
-    ImGui.PopItemWidth();
-}
-
-
-show_labelling_ui :: (display_info : *Display_Info, entity_index : int = -1) {
-    if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
-    }
-}
+//show_rendering_ui :: (display_info : *Display_Info) {
+//    if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
+//        defer ImGui.TreePop();
+//
+//        BoxSection();
+//
+//        ImGui.TableNextColumn();
+//        show_rendering_triangles_ui(display_info);
+//
+//        ImGui.TableNextColumn();
+//        show_rendering_segments_ui(display_info);
+//
+//        ImGui.TableNextColumn();
+//        show_rendering_points_ui(display_info);
+//
+//        ImGui.TableNextColumn();
+//        show_rendering_positions_ui(display_info);
+//
+//        ImGui.TableNextColumn();
+//        show_rendering_edges_ui(display_info);
+//
+//        ImGui.TableNextColumn();
+//        show_rendering_normals_ui(display_info);
+//
+//        if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
+//            defer ImGui.TreePop();
+//
+//            // FIXME FIXME: opacity should control wireframe??
+//            ImGui.Text("Render Mode");
+//            ImGui.SameLine();
+//            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
+//            show_tooltip("Flat Shading");
+//            ImGui.SameLine();
+//            ImGui.PushItemWidth(120);
+//            combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
+//            ImGui.PopItemWidth();
+//
+//            // This doesn't seem very useful so I removed it
+//            //ImGui.SameLine();
+//            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+//            //show_tooltip("Deduce item primary colors from the file path");
+//        }
+//    }
+//}
+//
+//
+//show_rendering_triangles_ui :: (display_info : *Display_Info) {
+//    ImGui.Text("Triangles  ");
+//
+//    ImGui.SameLine();
+//    ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
+//    show_tooltip("Triangle visibility");
+//
+//    ImGui.SameLine();
+//    ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
+//    show_tooltip("Frontface Color");
+//
+//    ImGui.SameLine();
+//    ImGui.PushItemWidth(70);
+//    combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
+//    ImGui.PopItemWidth();
+//    show_tooltip("Backface Render Mode");
+//}
+//
+//show_rendering_segments_ui :: (display_info : *Display_Info) {
+//    ImGui.Text("Segments   ");
+//    ImGui.SameLine();
+//    ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
+//    show_tooltip("Segment visibility");
+//    ImGui.SameLine();
+//    ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
+//    ImGui.SameLine();
+//    ImGui.PushItemWidth(70);
+//    ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
+//    show_tooltip("Width");
+//    display_info.segments_width = clamp(display_info.segments_width, 1, 5);
+//    ImGui.PopItemWidth();
+//}
+//
+//show_rendering_points_ui :: (display_info : *Display_Info) {
+//    ImGui.Text("Points     ");
+//    ImGui.SameLine();
+//    ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
+//    show_tooltip("Point visibility");
+//    ImGui.SameLine();
+//    ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
+//    ImGui.SameLine();
+//    ImGui.SameLine();
+//    ImGui.PushItemWidth(70);
+//    ImGui.InputInt("##points_size", *display_info.points_size);
+//    show_tooltip("Size");
+//    display_info.points_size = clamp(display_info.points_size, 1, 10);
+//    ImGui.PopItemWidth();
+//}
+//
+//show_rendering_positions_ui :: (display_info : *Display_Info) {
+//    ImGui.Text("Positions  ");
+//    ImGui.SameLine();
+//    ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
+//    show_tooltip("Positions visibility");
+//    ImGui.SameLine();
+//    ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
+//    ImGui.SameLine();
+//    ImGui.SameLine();
+//    ImGui.PushItemWidth(70);
+//    ImGui.InputInt("##positions_size", *display_info.positions_size);
+//    show_tooltip("Size");
+//    display_info.positions_size = clamp(display_info.positions_size, 1, 10);
+//    ImGui.PopItemWidth();
+//}
+//
+//show_rendering_edges_ui :: (display_info : *Display_Info) {
+//    ImGui.Text("Edges      ");
+//    ImGui.SameLine();
+//    ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
+//    show_tooltip("Triangle edges visibility");
+//    ImGui.SameLine();
+//    ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
+//    ImGui.SameLine();
+//    ImGui.PushItemWidth(70);
+//    ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
+//    show_tooltip("Width");
+//    display_info.edges_width = clamp(display_info.edges_width, 1., 5);
+//    ImGui.PopItemWidth();
+//}
+//
+//show_rendering_normals_ui :: (display_info : *Display_Info) {
+//    ImGui.Text("Normals    ");
+//    ImGui.SameLine();
+//    ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
+//    show_tooltip("Normal visibility");
+//    ImGui.SameLine();
+//    ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
+//    ImGui.SameLine();
+//    ImGui.PushItemWidth(70);
+//    ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
+//    show_tooltip("Length");
+//    ImGui.PopItemWidth();
+//}
 
 
+//show_labelling_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+//    if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
+//        defer ImGui.TreePop();
+//
+//        BoxSection();
+//
+//        ImGui.TableNextRow();
+//        ImGui.TableNextColumn();
+//        show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
+//
+//        ImGui.TableNextRow();
+//        ImGui.TableNextColumn();
+//        show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
+//
+//        ImGui.TableNextRow();
+//        ImGui.TableNextColumn();
+//        show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
+//
+//        ImGui.TableNextRow();
+//        ImGui.TableNextColumn();
+//        show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
+//
+//        ImGui.TableNextRow();
+//        ImGui.TableNextColumn();
+//        show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
+//    }
+//}
+
+
+// nocommit Show this somewhere
 show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
     if ImGui.TreeNodeEx("Clipping", .SpanAvailWidth) {

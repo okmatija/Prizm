@@ -1,3 +1,4 @@
+// @Cleanup Use a pool per entity? Store display info separate to entities so we don't trash cache when we check visibility
 // @Refactor Make AABB_Tree pointers, and default to brute force search if the pointer is null
 // @Refactor Maybe Entity should contain the mesh and the item variables, but data specific to rendering meshes should be in the mesh?
 
@@ -681,6 +682,36 @@ Closest_Point_Ray_Entity :: struct {
     entity_index : int = -1;
 }
 
+get_ray_parameter :: (using closest : Closest_Point_Ray_Entity) -> float {
+    if #complete closest_point_element == {
+        case .VERTEX; #through;
+        case .POINT;
+            return point.rayParameter;
+        case .SEGMENT;
+            return segment.parameter[0];
+        case .TRIANGLE;
+            return triangle.rayParameter;
+        case .MESH;
+            log_error("Unexpected enum value in get_ray_parameter");
+    }
+    return FLOAT32_INFINITY;
+}
+
+get_closest_point_on_ray :: (using closest : Closest_Point_Ray_Entity) -> Vector3 {
+    if #complete closest_point_element == {
+        case .VERTEX; #through;
+        case .POINT;
+            return point.rayClosest;
+        case .SEGMENT;
+            return segment.closest[0];
+        case .TRIANGLE;
+            return triangle.closestPoint[0];
+        case .MESH;
+            log_error("Unexpected enum value in get_closest_point_on_ray");
+    }
+    return .{};
+}
+
 get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Vector3 {
     if #complete closest_point_element == {
         case .VERTEX; #through;
@@ -698,6 +729,7 @@ get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Ve
 
 
 is_visible :: (e : *Entity) -> bool {
+    // @Thin
     return e.display_info.is_visible;
 }
 
@@ -727,7 +759,7 @@ find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_
                 continue;
             }
 
-            if OutsideScreenDist(vertex_world) {
+            if outside_screen_dist(vertex_world, projection_from_world, max_dist_px) {
                 continue;
             }
 
@@ -747,18 +779,18 @@ find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_
     return result;
 }
 
-// Return true if the given point is further than max_dist_px from the mouse position and false otherwise
-OutsideScreenDist :: (point_world : Vector3) -> bool #expand {
+// Return true if the given point is further than max_distance_px from the mouse position and false otherwise
+outside_screen_dist :: inline (point_world : Vector3, projection_from_world : Matrix4, max_distance_px : int) -> bool {
     mouse_px : Vector2 = ---;
     mouse_px.x = io().MousePos.x;
     mouse_px.y = io().MousePos.y;
 
     point_px : Vector2 = ---;
-    point_px_i : Tuple2i = to_screen_position(point_world, `projection_from_world);
+    point_px_i : Tuple2i = to_screen_position(point_world, projection_from_world);
     point_px.x = xx point_px_i.x;
     point_px.y = cast(float) app.current_window_height - xx point_px_i.y;
 
-    return distance(mouse_px, point_px) > xx `max_dist_px;
+    return distance(mouse_px, point_px) > xx max_distance_px;
 }
 
 // Return the model space query radius for a given bounding box and query radius in pixels
@@ -769,19 +801,32 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
     return min(distance_1, distance_2);
 }
 
+elements_targetted :: (entity : Entity) -> bool {
+    return true;
+}
+
+elements_not_targetted :: (entity : Entity) -> bool {
+    return true;
+}
+
+is_occluder :: (entity : Entity) -> bool {
+    return entity.display_info.is_visible &&
+        entity.display_info.triangles_visible &&
+        entity.mesh.positions.count &&
+        entity.mesh.triangles.count &&
+        entity.display_info.triangles_color.w >= .5;
+}
+
 // Result positions are in world space
+// Rename these to target_XXX? Since we want to visit triangles for occlusion purposes even if we are not searching for a closest point on triangles (aka targetting triangles)
 find_closest_element :: (
-    $entity_filter : Code = visit_visible,
-    visit_points := true,
-    visit_segments := true,
-    visit_triangles := true
+    target_points : (Entity)->bool = elements_targetted,
+    target_segments : (Entity)->bool = elements_targetted,
+    target_triangles : (Entity)->bool = elements_targetted
     ) -> Closest_Point_Ray_Entity {
 
-    // @Refactor to pass in the ray?
-    ray_world := make_camera_ray();
-
+    ray_world := make_camera_ray(); // @Refactor to pass in the ray?
     max_dist_px : int = app.settings.closest_point_query_max_dist_px;
-
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
     ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
@@ -794,7 +839,7 @@ find_closest_element :: (
             continue;
         }
 
-        if OutsideScreenDist(cp.closestPoint[1]) {
+        if outside_screen_dist(cp.closestPoint[1], `projection_from_world, `max_dist_px) {
             continue;
         }
 
@@ -813,10 +858,16 @@ find_closest_element :: (
 
     result : Closest_Point_Ray_Entity;
 
+    // Perpendicular distance from from ray to closest point on element
     d_min := FLOAT32_INFINITY;
 
-    FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
-    if visit_triangles for :FilterIterator entity, entity_index : app.entities {
+    max_query_ray_parameter := FLOAT32_INFINITY;
+
+    for entity, entity_index : app.entities {
+        if !is_occluder(entity) {
+            continue;
+        }
+
         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
 
         // Keep track of the best candidates (closest to the camera/ray origin) for intersected/hit triangles and missed ones
@@ -845,69 +896,86 @@ find_closest_element :: (
         }
 
         if best_ray_triangle_hit_index >= 0 {
+
             // If we hit a triangle in this entity, always update the result if the hit is closer because we prefer hits to misses
-            if best_ray_triangle_hit.rayParameter < d_min {
-                d_min = best_ray_triangle_hit.rayParameter;
+            if best_ray_triangle_hit.rayParameter < max_query_ray_parameter {
+
+                d_min = best_ray_triangle_hit.distance; // This should be zero
+                max_query_ray_parameter = best_ray_triangle_hit.rayParameter;
+
                 result.closest_point_element = .TRIANGLE;
                 result.closest_point.triangle = best_ray_triangle_hit;
                 result.element_index = best_ray_triangle_hit_index;
                 result.entity_index = entity_index;
             }
+
         } else if best_ray_triangle_miss_index >= 0 {
+
             // If we missed triangles in this entity, only update the result if its not storing a hit because we always prefer hits to misses
-            if (result.entity_index == -1 || (result.entity_index >= 0 && result.closest_point.triangle.distance > 0)) && best_ray_triangle_miss.rayParameter < d_min {
-                d_min = best_ray_triangle_miss.rayParameter;
+            if (result.entity_index == -1 || (result.entity_index >= 0 && result.closest_point.triangle.distance > 0)) &&
+               best_ray_triangle_miss.rayParameter < max_query_ray_parameter {
+
+                d_min = best_ray_triangle_miss.distance;
+
                 result.closest_point_element = .TRIANGLE;
                 result.closest_point.triangle = best_ray_triangle_miss;
                 result.element_index = best_ray_triangle_miss_index;
                 result.entity_index = entity_index;
             }
+
         }
     }
 
-    // Since we can only miss segments/points, and we always prefer hits to misses, return here if we have hit a triangle
-    if result.closest_point.triangle.distance == 0 {
-        return result;
+    hit_triangle := result.closest_point.triangle.distance == 0;
+    if hit_triangle {
+        if target_triangles(app.entities[result.entity_index]) {
+            // Since we can only miss segments/points, and we always prefer hits to misses, return here if we have hit a triangle
+            return result;
+        } else {
+            // Reset the result and d_min but keep max_query_ray_parameter
+            d_min = FLOAT32_INFINITY;
+            result = Closest_Point_Ray_Entity.{};
+        }
     }
 
     // @Speed Early out if the ray misses the entity AABB
     // @Incomplete When available, use the spatial index
 
     // Note: When we use Simple_Mesh we will make this iterator go over the point set with a p directive, not vertices set with a v directive
-    for :FilterIterator entity, entity_index : app.entities {
+    for entity, entity_index : app.entities {
         
-        if visit_points for :WorldPointIterator point_world, point_index : entity.mesh {
+        if target_points(entity) for :WorldPointIterator point_world, point_index : entity.mesh {
 
             cp_world : Closest_Point_Ray_Point = closest_point_ray_point(ray_world, point_world);
 
-            if cp_world.distance < d_min {
+            if cp_world.rayParameter < max_query_ray_parameter && cp_world.distance < d_min {
 
                 if is_clipped(entity.display_info, point_world) {
                     continue;
                 }
 
-                if OutsideScreenDist(point_world) {
+                if outside_screen_dist(point_world, projection_from_world, max_dist_px) {
                     continue;
                 }
 
                 d_min = cp_world.distance;
-                result.closest_point_element = .POINT;                        
+                result.closest_point_element = .POINT;
                 result.closest_point.point = cp_world;
                 result.element_index = point_index;
                 result.entity_index = entity_index;
             }
         }
 
-        if visit_segments for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
+        if target_segments(entity) for :WorldSegmentIterator segment_world, segment_index : entity.mesh {
             cp_world : Closest_Point_Ray_Segment = closest_point_ray_segment(ray_world, segment_world);
 
-            if cp_world.distance < d_min { // @CompilerBug When the body of the second for-loop was a macro it compiled without a backtick on d_min, which caused a bug!!!!! d_min wasn't locally declared in the macro either..!
+            if cp_world.parameter[0] < max_query_ray_parameter && cp_world.distance < d_min { // @CompilerBug When the body of the second for-loop was a macro it compiled without a backtick on d_min, which caused a bug!!!!! d_min wasn't locally declared in the macro either..!
 
                 if is_clipped(entity.display_info, cp_world.closest[1]) {
                     continue;
                 }
 
-                if OutsideScreenDist(cp_world.closest[1]) {
+                if outside_screen_dist(cp_world.closest[1], projection_from_world, max_dist_px) {
                     continue;
                 }
 

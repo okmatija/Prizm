@@ -337,21 +337,41 @@ set_visible :: (id : int, visible : int) {
 set_annotations_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.annotation_label_theme.visible = xx visible;
+
+    using entity.display_info;
+    vertex_label_theme.annotation_label_theme.visible = xx visible;
+    point_label_theme.annotation_label_theme.visible = xx visible;
+    segment_label_theme.annotation_label_theme.visible = xx visible;
+    triangle_label_theme.annotation_label_theme.visible = xx visible;
+
 } @RegisterCommand
 
 set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
-    if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.annotation_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+
+    if !check_color(r, g, b, a)  return;
+    color := Vector4.{r / 255., g / 255., b / 255., a / 255.};
+
+    using entity.display_info;
+    vertex_label_theme.annotation_label_theme.label_color = color;
+    point_label_theme.annotation_label_theme.label_color = color;
+    segment_label_theme.annotation_label_theme.label_color = color;
+    triangle_label_theme.annotation_label_theme.label_color = color;
+
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
 set_annotations_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.annotation_label_theme.label_scale = scale;
+
+    using entity.display_info;
+    vertex_label_theme.annotation_label_theme.label_scale = scale;
+    point_label_theme.annotation_label_theme.label_scale = scale;
+    segment_label_theme.annotation_label_theme.label_scale = scale;
+    triangle_label_theme.annotation_label_theme.label_scale = scale;
+
 } @RegisterCommand
 
 

@@ -103,7 +103,7 @@ do_geometry_selection_mode :: () {
 
     case .POINT;
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_segments=false, visit_triangles=false);
+        closest : Closest_Point_Ray_Entity = find_closest_element(target_segments=elements_not_targetted, target_triangles=elements_not_targetted);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             if mouse_set_geometry_selection() {
                 deinit(*app.select_tool.entity);
@@ -143,7 +143,7 @@ do_geometry_selection_mode :: () {
 
     case .SEGMENT;
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_triangles=false);
+        closest : Closest_Point_Ray_Entity = find_closest_element(target_points=elements_not_targetted, target_triangles=elements_not_targetted);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             if mouse_set_geometry_selection() {
                 deinit(*app.select_tool.entity);
@@ -183,7 +183,7 @@ do_geometry_selection_mode :: () {
 
     case .TRIANGLE;
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_segments=false);
+        closest : Closest_Point_Ray_Entity = find_closest_element(target_points=elements_not_targetted, target_segments=elements_not_targetted);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             if mouse_set_geometry_selection() {
                 deinit(*app.select_tool.entity);

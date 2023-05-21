@@ -157,6 +157,7 @@ Vertex_Label_Theme_Update :: struct {
     show_index : bool;
     label_scale : bool;
     label_color : Vector4_Update;
+    annotation_label_theme : Annotation_Label_Theme_Update;
 }
 
 get_update :: (old : Vertex_Label_Theme, new : Vertex_Label_Theme) -> Vertex_Label_Theme_Update {
@@ -166,6 +167,7 @@ get_update :: (old : Vertex_Label_Theme, new : Vertex_Label_Theme) -> Vertex_Lab
     result.show_index =    get_update(old.show_index, new.show_index);
     result.label_scale =   get_update(old.label_scale, new.label_scale);
     result.label_color =   get_update(old.label_color, new.label_color);
+    result.annotation_label_theme = get_update(old.annotation_label_theme, new.annotation_label_theme);
 
     return result;
 }
@@ -175,6 +177,7 @@ apply_update :: (update : Vertex_Label_Theme_Update, source : Vertex_Label_Theme
     apply_update(update.show_index, source.show_index, *target.show_index);
     apply_update(update.label_scale, source.label_scale, *target.label_scale);
     apply_update(update.label_color, source.label_color, *target.label_color);
+    apply_update(update.annotation_label_theme, source.annotation_label_theme, *target.annotation_label_theme);
 }
 
 //
@@ -185,6 +188,7 @@ Element_Label_Theme_Update :: struct {
     show_index : bool;
     label_scale : bool;
     label_color : Vector4_Update;
+    annotation_label_theme : Annotation_Label_Theme_Update;
 }
 
 get_update :: (old : Element_Label_Theme, new : Element_Label_Theme) -> Element_Label_Theme_Update {
@@ -193,6 +197,7 @@ get_update :: (old : Element_Label_Theme, new : Element_Label_Theme) -> Element_
     result.show_index =    get_update(old.show_index, new.show_index);
     result.label_scale =   get_update(old.label_scale, new.label_scale);
     result.label_color =   get_update(old.label_color, new.label_color);
+    result.annotation_label_theme = get_update(old.annotation_label_theme, new.annotation_label_theme);
 
     return result;
 }
@@ -201,6 +206,7 @@ apply_update :: (update : Element_Label_Theme_Update, source : Element_Label_The
     apply_update(update.show_index, source.show_index, *target.show_index);
     apply_update(update.label_scale, source.label_scale, *target.label_scale);
     apply_update(update.label_color, source.label_color, *target.label_color);
+    apply_update(update.annotation_label_theme, source.annotation_label_theme, *target.annotation_label_theme);
 }
 
 
@@ -315,7 +321,6 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.point_label_theme = get_update(old.point_label_theme, new.point_label_theme);
     result.segment_label_theme = get_update(old.segment_label_theme, new.segment_label_theme);
     result.triangle_label_theme = get_update(old.triangle_label_theme, new.triangle_label_theme);
-    result.annotation_label_theme = get_update(old.annotation_label_theme, new.annotation_label_theme);
 
     result.positions_visible = get_update(old.positions_visible, new.positions_visible);
     result.positions_color = get_update(old.positions_color, new.positions_color);
@@ -358,7 +363,6 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.point_label_theme, source.point_label_theme, *target.point_label_theme);
     apply_update(update.segment_label_theme, source.segment_label_theme, *target.segment_label_theme);
     apply_update(update.triangle_label_theme, source.triangle_label_theme, *target.triangle_label_theme);
-    apply_update(update.annotation_label_theme, source.annotation_label_theme, *target.annotation_label_theme);
 
     apply_update(update.positions_visible, source.positions_visible, *target.positions_visible);
     apply_update(update.positions_color, source.positions_color, *target.positions_color);

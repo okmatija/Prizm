@@ -7,6 +7,13 @@ Labelling_Mode :: enum {
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
 }
 
+Annotation_Label_Theme :: struct {
+    visible := false;
+    label_scale := DEFAULT_LABEL_SCALE;
+    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+}
+
+// @Think Perhaps this should be in the Element_Label_Theme too so you can visualize only the vertices associated with the elements, maybe Simple_Mesh should store vertices referenced by each element type separately?
 Vertex_Label_Theme :: struct {
     // @Cleanup replace with a combo box
     show_index := false;
@@ -14,6 +21,8 @@ Vertex_Label_Theme :: struct {
 
     label_scale := DEFAULT_LABEL_SCALE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+
+    annotation_label_theme : Annotation_Label_Theme;
 
     // world_space : bool = false; // @Incomplete
 }
@@ -23,25 +32,8 @@ Element_Label_Theme :: struct {
     show_index := false;
     label_scale := DEFAULT_LABEL_SCALE;
     label_color := Vector4.{1., 1., 0, 1};
-}
 
-
-is_visible :: (theme : Vertex_Label_Theme) -> bool {
-    return theme.show_position || theme.show_index;
-}
-
-is_visible :: (theme : Element_Label_Theme) -> bool {
-    return theme.show_index;
-}
-
-Annotation_Label_Theme :: struct {
-    visible := false;
-    label_scale := DEFAULT_LABEL_SCALE;
-    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-}
-
-is_visible :: (theme : Annotation_Label_Theme) -> bool {
-    return theme.visible;
+    annotation_label_theme : Annotation_Label_Theme;
 }
 
 Attribute_Theme :: struct {
@@ -136,7 +128,9 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
-    is_visible := true; // Is the item visible overall? so we can turn off visibility without clobbering the individual settings
+    // Set overall visibility without clobbering the individual settings. Considers both geometry and labels
+    is_visible := true;
+
     display_mode := Display_Mode.BLINN_PHONG;
     backface_mode := Backface_Mode.FIXED;
     flat_shading := true;
@@ -145,11 +139,13 @@ Display_Info :: struct {
     // Labeling members
     //
 
+    show_labels := true; // Sets overall text labels visibility without clobbering more granular settings. nocommit implement this
     vertex_label_theme : Vertex_Label_Theme;
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
     triangle_label_theme : Element_Label_Theme;
-    annotation_label_theme : Annotation_Label_Theme;
+
+    // These should be stored outside the vertex/point/segment/triangle_label_theme structs
     // attribute_theme : [..]Attribute_Theme;
 
     point_label_theme.label_color = .{1., 1., 0, 1};
@@ -168,6 +164,7 @@ Display_Info :: struct {
     points_color := Vector4.{.5, .5, .5, 1.};
     points_size : s32 = 4;
 
+    // @Cleanup These should go into some base attribute render theme?
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
@@ -206,58 +203,125 @@ Display_Info :: struct {
     clip_sphere_prev : Clip_Sphere;
 }
 
-is_any_label_theme_visible :: (using,except(is_visible) display_info : Display_Info) -> bool {
-    return is_visible(vertex_label_theme) ||
-           is_visible(point_label_theme) ||
-           is_visible(segment_label_theme) ||
-           is_visible(triangle_label_theme) ||
-           is_visible(annotation_label_theme);
+// Clipping and camera position are not checked here
+
+any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.positions_visible && entity.mesh.positions.count && (
+        (geometry_labels   && (entity.display_info.vertex_label_theme.show_index || entity.display_info.vertex_label_theme.show_position)) ||
+        (annotation_labels && entity.display_info.vertex_label_theme.annotation_label_theme.visible && entity.vertex_annotations.count)
+    );
 }
 
-Any_Label_Theme_Visible :: struct {
-    vertex_label_theme_visible : bool;
-    point_label_theme_visible : bool;
-    segment_label_theme_visible : bool;
-    triangle_label_theme_visible : bool;
-    annotation_label_theme_visible : bool;
-    any_visible : bool;
+any_point_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.points_visible && entity.mesh.positions.count && entity.mesh.points.count && (
+        (geometry_labels   && entity.display_info.point_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.point_label_theme.annotation_label_theme.visible && entity.point_annotations.count)
+    );
 }
 
-is_any_label_theme_visible :: ($entity_filter : Code) -> Any_Label_Theme_Visible {
-    result : Any_Label_Theme_Visible;
-
-    FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
-    for :FilterIterator entity, entity_index : app.entities {
-        using,except(is_visible) entity.display_info;
-
-        if is_visible(vertex_label_theme) && entity.mesh.positions.count {
-            result.vertex_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(point_label_theme) && entity.mesh.points.count {
-            result.point_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(segment_label_theme) && entity.mesh.segments.count {
-            result.segment_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(triangle_label_theme) && entity.mesh.triangles.count {
-            result.triangle_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(annotation_label_theme) && entity_annotation_count(entity, only_geometry_annotations=true) {
-            result.annotation_label_theme_visible = true;
-            result.any_visible = true;
-        }
-    }
-
-    return result;
+any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.segments_visible && entity.mesh.positions.count && entity.mesh.segments.count && (
+        (geometry_labels   && entity.display_info.segment_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.segment_label_theme.annotation_label_theme.visible && entity.line_annotations.count)
+    );
 }
+
+any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // @Think Maybe we should also check opacity here too
+    // @Think Maybe we should check edges_visible here?
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangles_visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
+        (geometry_labels   && entity.display_info.triangle_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.triangle_label_theme.annotation_label_theme.visible && entity.face_annotations.count)
+    );
+}
+
+
+// any_entity_labels_visible :: (using entity : Entity) -> bool {
+
+//     return is_visible && show_labels && (
+
+//         (positions_visible && mesh.positions.count && 
+//             vertex_geometry_labels_visible(vertex_label_theme) &&
+//          vertex_annotations.count && vertex_annotation_labels_visible(vertex_label_theme)) ||
+
+//         (points_visible && mesh.points.count && element_geometry_labels_visible(point_label_theme) &&
+//          point_annotations.count && element_annotation_labels_visible(point_label_theme)) ||
+
+//         (segments_visible && mesh.segments.count && element_geometry_labels_visible(segment_label_theme) &&
+//          line_annotations.count && element_annotation_labels_visible(segment_label_theme)) ||
+
+//         (triangles_visible && mesh.triangles.count && element_geometry_labels_visible(triangle_label_theme) &&
+//          face_annotations.count && element_annotation_labels_visible(triangle_label_theme))
+//     );
+// }
+
+// Any_Label_Theme_Visible :: struct {
+
+//     vertex_theme_visible : bool;
+//     point_theme_visible : bool;
+//     segment_theme_visible : bool;
+//     triangle_theme_visible : bool;
+
+//     // Any of the above visible?
+//     any_geometry_label_theme_visible : bool;
+
+//     vertex_annotation_theme_visible : bool;
+//     point_annotation_theme_visible : bool;
+//     segment_annotation_theme_visible : bool;
+//     triangle_annotation_theme_visible : bool;
+
+//     // Any of the annotation themes visible?
+//     any_annotation_theme_visible : bool;
+
+//     // Any of the above visible?
+//     any_visible : bool;
+// }
+
+// is_any_label_theme_visible :: ($entity_filter : Code) -> Any_Label_Theme_Visible {
+//     result : Any_Label_Theme_Visible;
+
+//     FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
+//     for :FilterIterator entity, entity_index : app.entities {
+//         using,except(is_visible) entity.display_info;
+
+//         vertex_geometry, vertex_annotations := is_visible(vertex_label_theme);
+//         if vertex_geometry && entity.mesh.positions.count {
+//             result.vertex_theme_visible = true;
+//         }
+//         if vertex_annotations && entity.vertex_annotations.count {
+//             result.any_annotation_visible = true;
+//         }
+
+//         point_geometry, point_annotations := is_visible(point_label_theme);
+//         if point_geometry && entity.mesh.points.count {
+//             result.point_theme_visible = true;
+//             result.any_visible = true;
+//         }
+//         if point_annotations && entity.point_annotations.count {
+//             result.any_annotation_visible = true;
+//             result.any_visible = true;
+//         }
+
+//         if is_visible(segment_label_theme) {
+//             if entity.mesh.segments.count || entity.line_annotations.count {
+//                 result.segment_theme_visible = true;
+//                 result.any_visible = true;
+//             }
+//         }
+
+//         if is_visible(triangle_label_theme) {
+//             if entity.mesh.triangles.count || entity.face_annotations.count {
+//                 result.triangle_theme_visible = true;
+//                 result.any_visible = true;
+//             }
+//         }
+//     }
+
+//     return result;
+// }
 
 is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere := true, test_ranges := true) -> bool {
     if test_sphere && is_clipped(display_info.clip_sphere, point_world) {
@@ -780,7 +844,11 @@ render_entities :: () {
             point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
             segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
             triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-            annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+
+            vertex_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            point_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            segment_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            triangle_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
             using,except(is_visible) entity.display_info;
 
@@ -789,34 +857,39 @@ render_entities :: () {
             //
 
             {
-                // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-                if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
-                    point_world, point_model : Vector3 = ---;
-                    if #complete annotation.kind == {
-                        case .VERTEX;
-                            point_model = mesh_position_model(entity.mesh, annotation.id);
-                            point_world = mesh_position_world(entity.mesh, annotation.id);
-                        case .POINT;
-                            point_model = mesh_point_model(entity.mesh, annotation.id);
-                            point_world = mesh_point_world(entity.mesh, annotation.id);
-                        case .LINE;
-                            point_model = centroid(mesh_segment3_model(entity.mesh, annotation.id));
-                            point_world = centroid(mesh_segment3_world(entity.mesh, annotation.id));
-                        case .TRIANGLE;
-                            point_model = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
-                            point_world = transform_point(entity.mesh.world_from_model, point_model);
-                        case .BLOCK; #through;
-                        case .COMMAND;
-                            continue;
-                    }
-
-                    if !is_clipped(entity.display_info, point_world) {
+                AddAnnotation :: (point_world : Vector3, annotation_labels : *[..]Label_Info) #expand {
+                    if !is_clipped(`entity.display_info, point_world) {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                            text : string = to_string(annotation);
-                            array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                            text : string = to_string(`annotation);
+                            array_add(annotation_labels, make_Label_Info(text_position_px, text));
                         }
                     }
+                }
+
+                // @Speed this should use the spatial index?? since annotations are sparse, maybe not
+                if any_vertex_label_visible(entity, geometry_labels=false) for annotation : entity.vertex_annotations {
+                    point_model := mesh_position_model(entity.mesh, annotation.id);
+                    point_world := mesh_position_world(entity.mesh, annotation.id);
+                    AddAnnotation(point_world, *vertex_annotation_labels);
+                }
+
+                if any_point_label_visible(entity, geometry_labels=false) for annotation : entity.point_annotations {
+                    point_model := mesh_point_model(entity.mesh, annotation.id);
+                    point_world := mesh_point_world(entity.mesh, annotation.id);
+                    AddAnnotation(point_world, *point_annotation_labels);
+                }
+
+                if any_segment_label_visible(entity, geometry_labels=false) for annotation : entity.line_annotations {
+                    point_model := centroid(mesh_segment3_model(entity.mesh, annotation.id));
+                    point_world := centroid(mesh_segment3_world(entity.mesh, annotation.id));
+                    AddAnnotation(point_world, *segment_annotation_labels);
+                }
+
+                if any_triangle_label_visible(entity, geometry_labels=false) for annotation : entity.face_annotations {
+                    point_model := compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
+                    point_world := transform_point(entity.mesh.world_from_model, point_model);
+                    AddAnnotation(point_world, *triangle_annotation_labels);
                 }
             }
 
@@ -827,7 +900,7 @@ render_entities :: () {
             // @continue FIXME Remove this and instead show the position data for vertices connected to displayed elements
             {
                 // @Speed this should use the spatial index??
-                if is_visible(vertex_label_theme) for :ModelVertexIterator position_model, position_index : entity.mesh {
+                if any_vertex_label_visible(entity, annotation_labels=false) for :ModelVertexIterator position_model, position_index : entity.mesh {
                     position_world := mesh_position_world(entity.mesh, position_index);
                     if !is_clipped(entity.display_info, position_world) {
                         text_position_px : Tuple2i = to_screen_position(position_world, projection_from_world);
@@ -845,7 +918,7 @@ render_entities :: () {
             //
 
             {
-                if is_visible(point_label_theme) for :ModelPointIterator position_model, point_index : entity.mesh {
+                if any_point_label_visible(entity, annotation_labels=false) for :ModelPointIterator position_model, point_index : entity.mesh {
                     position_world : Vector3 = transform_point(entity.mesh.world_from_model, position_model);
 
                     if !is_clipped(entity.display_info, position_world) {
@@ -863,7 +936,7 @@ render_entities :: () {
             //
 
             {
-                if is_visible(segment_label_theme) for :ModelSegmentIterator segment : entity.mesh {
+                if any_segment_label_visible(entity, annotation_labels=false) for :ModelSegmentIterator segment : entity.mesh {
                     point_model : Vector3 = centroid(segment);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
 
@@ -894,49 +967,63 @@ render_entities :: () {
                     }
                 }
 
-                if entity.spatial == null {
-                    // log_error("Use brute force");
+                if any_triangle_label_visible(entity, annotation_labels=false) {
+                    if entity.spatial == null {
 
-                    if is_visible(triangle_label_theme) {
+                        // log_error("Use brute force");
                         for :ModelTriangleIterator entity.mesh {
                             ProcessTriangle(it, it_index);
                         }
-                    }
-                } else {
-                    // log_error("Use spatial index");
 
-                    if is_visible(triangle_label_theme) {
+                    } else {
+
                         ray_world : Ray3 = make_camera_ray();
                         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
                         distance : float = get_model_space_query_radius(entity.render_info.bounding_aabb, app.settings.labelling_radius_px);
 
+                        // log_error("Use spatial index");
                         VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
                             #code ProcessTriangle(primitive, primitive_id)
                         );
+
                     }
                 }
             }
 
             // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
             draw_label_infos(vertex_labels, vertex_label_theme);
+            draw_label_infos(vertex_annotation_labels, vertex_label_theme.annotation_label_theme);
+
             draw_label_infos(point_labels, point_label_theme);
+            draw_label_infos(point_annotation_labels, point_label_theme.annotation_label_theme);
+
             draw_label_infos(segment_labels, segment_label_theme);
+            draw_label_infos(segment_annotation_labels, segment_label_theme.annotation_label_theme);
+
             draw_label_infos(triangle_labels, triangle_label_theme);
-            draw_label_infos(annotation_labels, annotation_label_theme);
+            draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
         }
     }
 
     render_entity_text_ray_cast :: ($entity_filter : Code) {
 
-        any_visible : Any_Label_Theme_Visible;
-        any_visible = is_any_label_theme_visible(entity_filter);
+        should_target_points :: (entity : Entity) -> bool {
+            return (any_vertex_label_visible(entity) || any_point_label_visible(entity));
+        }
 
-        visit_all : bool = any_visible.vertex_label_theme_visible || any_visible.annotation_label_theme_visible;
+        should_target_segments :: (entity : Entity) -> bool {
+            return (any_vertex_label_visible(entity) || any_segment_label_visible(entity));
+        }
+
+        should_target_triangles :: (entity : Entity) -> bool {
+            return (any_vertex_label_visible(entity) || any_triangle_label_visible(entity));
+        }
+
         closest_world : Closest_Point_Ray_Entity = find_closest_element(
-            entity_filter,
-            visit_points    = (visit_all || any_visible.point_label_theme_visible),
-            visit_segments  = (visit_all || any_visible.segment_label_theme_visible),
-            visit_triangles = (visit_all || any_visible.triangle_label_theme_visible));
+            target_points    = should_target_points,
+            target_segments  = should_target_segments,
+            target_triangles = should_target_triangles
+        );
 
         if closest_world.entity_index == -1 {
             return;
@@ -966,7 +1053,11 @@ render_entities :: () {
         point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+
+        vertex_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        point_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        segment_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        triangle_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
@@ -977,18 +1068,18 @@ render_entities :: () {
             // Note: Since we don't have a mapping from mesh.positions to mesh.points we can't easily add to the point_labels array in this function, but this is kindof an unusual case anyhow: it only occurs if you have a triangle element where the connected positions are also point elements
             //if is_visible(`point_label_theme) {...}
 
-            if is_visible(`vertex_label_theme) {
+            if any_vertex_label_visible(`entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(position_world, `projection_from_world);
                 text : string = get_point_text(position_model, position_index, `vertex_label_theme);
                 array_add(*`vertex_labels, make_Label_Info(text_position_px, text));
             }
 
             // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-            if is_visible(`annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_vertex_label_visible(`entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                 if annotation.kind == .VERTEX && annotation.id == position_index {
                     text_position_px : Tuple2i = to_screen_position(position_world, `projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*`annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*`vertex_annotation_labels, make_Label_Info(text_position_px, text));
                 }
             }
         }
@@ -1011,18 +1102,18 @@ render_entities :: () {
         case .POINT;
 
             // Point label
-            if is_visible(point_label_theme) {
+            if any_point_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, point_label_theme);
                 array_add(*point_labels, make_Label_Info(text_position_px, text));
             }
 
             // Point annotation label
-            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_point_label_visible(entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                if annotation.kind == .POINT && annotation.id == closest_world.element_index {
                    text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                    text : string = to_string(annotation);
-                   array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                   array_add(*point_annotation_labels, make_Label_Info(text_position_px, text));
                }
             }
 
@@ -1038,18 +1129,18 @@ render_entities :: () {
         case .SEGMENT;
 
             // Segment label
-            if is_visible(segment_label_theme) {
+            if any_segment_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, segment_label_theme);
                 array_add(*segment_labels, make_Label_Info(text_position_px, text));
             }
 
             // Segment annotation label
-            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_segment_label_visible(entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                 if annotation.kind == .LINE && annotation.id == closest_world.element_index {
                     text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*segment_annotation_labels, make_Label_Info(text_position_px, text));
                 }
             }
 
@@ -1068,18 +1159,18 @@ render_entities :: () {
         case .TRIANGLE;
 
             // Triangle label
-            if is_visible(triangle_label_theme) {
+            if any_triangle_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, triangle_label_theme);
                 array_add(*triangle_labels, make_Label_Info(text_position_px, text));
             }
 
             // Triangle annotation label
-            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_triangle_label_visible(entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                 if annotation.kind == .TRIANGLE && annotation.id == closest_world.element_index {
                     text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*triangle_annotation_labels, make_Label_Info(text_position_px, text));
                 }
             }
 
@@ -1101,12 +1192,20 @@ render_entities :: () {
 
         }
 
+        // @Cleanup The following block is duplicated in the labelling_mode functions
+
         // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
         draw_label_infos(vertex_labels, vertex_label_theme);
+        draw_label_infos(vertex_annotation_labels, vertex_label_theme.annotation_label_theme);
+
         draw_label_infos(point_labels, point_label_theme);
+        draw_label_infos(point_annotation_labels, point_label_theme.annotation_label_theme);
+
         draw_label_infos(segment_labels, segment_label_theme);
+        draw_label_infos(segment_annotation_labels, segment_label_theme.annotation_label_theme);
+
         draw_label_infos(triangle_labels, triangle_label_theme);
-        draw_label_infos(annotation_labels, annotation_label_theme);
+        draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
     }
 
     not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangles_color.w == 1.);
@@ -1129,16 +1228,14 @@ render_entities :: () {
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
-    visit_labelled :: #code !is_visible(it) || !is_any_label_theme_visible(it.display_info);
-
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
-            render_entity_text_ray_cast(visit_labelled);
+            render_entity_text_ray_cast(visit_visible);
 
         case .SPOTLIGHT;
 
-            render_entity_text_spotlight(visit_labelled);
+            render_entity_text_spotlight(visit_visible);
     }
 
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);

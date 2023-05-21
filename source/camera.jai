@@ -122,7 +122,7 @@ update_camera :: (delta_time : float) {
 
     if mouse_reposition_camera() {
 
-        closest_world : Closest_Point_Ray_Entity = find_closest_element(visit_visible);
+        closest_world : Closest_Point_Ray_Entity = find_closest_element();
         if closest_world.entity_index != -1 {
 
             // We want to shift the camera over to look at the new point but preserve the top/bottom/left/right planes
@@ -171,6 +171,8 @@ update_camera :: (delta_time : float) {
 
             camera.eye_position += increment;
             camera.look_position += increment;
+
+            // @continue nocommit We also need to adjust the near and far planes here! Currently when we pan and rotate things start getting clipped
         }
 
     } else if ImGui.IsMouseDragging(.Right, 0.) && !io().KeyCtrl && mouse_move_valid { // Orbit about the look position using right button. Make sure Ctrl is not down since Ctrl RMB sets the camera orbit and its annoying to have the camera start rotating after you do that..!
