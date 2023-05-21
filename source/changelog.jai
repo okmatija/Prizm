@@ -20,6 +20,9 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
 - Changes to api/cpp/Prism_Unreal.h
 
   - Added a function to create an Obj from UE::Geometry::TDynamicMeshOverlay. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
+
+- Replaced the single annotations settings which affected all annotations with separate settings for vertices/points/segments/triangles
+  - This change means it makes sense to consolidated the "Rendering" and "Labeling" into a single "Rendering and Labeling" section with sub-sections for vertices and point/segment/triangle elements
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
