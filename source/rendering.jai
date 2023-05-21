@@ -206,7 +206,8 @@ Display_Info :: struct {
 // Clipping and camera position are not checked here
 
 any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.positions_visible && entity.mesh.positions.count && (
+    // We do NOT check entity.display_info.positions_visible here, this option is usually off and we still want to see vertex labels
+    return entity.display_info.is_visible && entity.display_info.show_labels /*&& entity.display_info.positions_visible*/ && entity.mesh.positions.count && (
         (geometry_labels   && (entity.display_info.vertex_label_theme.show_index || entity.display_info.vertex_label_theme.show_position)) ||
         (annotation_labels && entity.display_info.vertex_label_theme.annotation_label_theme.visible && entity.vertex_annotations.count)
     );
@@ -238,90 +239,6 @@ any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annot
     );
 }
 
-
-// any_entity_labels_visible :: (using entity : Entity) -> bool {
-
-//     return is_visible && show_labels && (
-
-//         (positions_visible && mesh.positions.count && 
-//             vertex_geometry_labels_visible(vertex_label_theme) &&
-//          vertex_annotations.count && vertex_annotation_labels_visible(vertex_label_theme)) ||
-
-//         (points_visible && mesh.points.count && element_geometry_labels_visible(point_label_theme) &&
-//          point_annotations.count && element_annotation_labels_visible(point_label_theme)) ||
-
-//         (segments_visible && mesh.segments.count && element_geometry_labels_visible(segment_label_theme) &&
-//          line_annotations.count && element_annotation_labels_visible(segment_label_theme)) ||
-
-//         (triangles_visible && mesh.triangles.count && element_geometry_labels_visible(triangle_label_theme) &&
-//          face_annotations.count && element_annotation_labels_visible(triangle_label_theme))
-//     );
-// }
-
-// Any_Label_Theme_Visible :: struct {
-
-//     vertex_theme_visible : bool;
-//     point_theme_visible : bool;
-//     segment_theme_visible : bool;
-//     triangle_theme_visible : bool;
-
-//     // Any of the above visible?
-//     any_geometry_label_theme_visible : bool;
-
-//     vertex_annotation_theme_visible : bool;
-//     point_annotation_theme_visible : bool;
-//     segment_annotation_theme_visible : bool;
-//     triangle_annotation_theme_visible : bool;
-
-//     // Any of the annotation themes visible?
-//     any_annotation_theme_visible : bool;
-
-//     // Any of the above visible?
-//     any_visible : bool;
-// }
-
-// is_any_label_theme_visible :: ($entity_filter : Code) -> Any_Label_Theme_Visible {
-//     result : Any_Label_Theme_Visible;
-
-//     FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
-//     for :FilterIterator entity, entity_index : app.entities {
-//         using,except(is_visible) entity.display_info;
-
-//         vertex_geometry, vertex_annotations := is_visible(vertex_label_theme);
-//         if vertex_geometry && entity.mesh.positions.count {
-//             result.vertex_theme_visible = true;
-//         }
-//         if vertex_annotations && entity.vertex_annotations.count {
-//             result.any_annotation_visible = true;
-//         }
-
-//         point_geometry, point_annotations := is_visible(point_label_theme);
-//         if point_geometry && entity.mesh.points.count {
-//             result.point_theme_visible = true;
-//             result.any_visible = true;
-//         }
-//         if point_annotations && entity.point_annotations.count {
-//             result.any_annotation_visible = true;
-//             result.any_visible = true;
-//         }
-
-//         if is_visible(segment_label_theme) {
-//             if entity.mesh.segments.count || entity.line_annotations.count {
-//                 result.segment_theme_visible = true;
-//                 result.any_visible = true;
-//             }
-//         }
-
-//         if is_visible(triangle_label_theme) {
-//             if entity.mesh.triangles.count || entity.face_annotations.count {
-//                 result.triangle_theme_visible = true;
-//                 result.any_visible = true;
-//             }
-//         }
-//     }
-
-//     return result;
-// }
 
 is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere := true, test_ranges := true) -> bool {
     if test_sphere && is_clipped(display_info.clip_sphere, point_world) {

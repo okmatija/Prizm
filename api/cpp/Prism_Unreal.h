@@ -92,6 +92,7 @@ bool DocumentationForUnreal(bool bWriteFiles)
 // Write overlay element ids and element values as annotations with the format "@ <ElementID> @ <ElementValue>"
 // The triangles of the Overlay.ParentMesh are split into 4 smaller triangles
 // This is appendable, so you can add it the dynamic mesh obj.  Maybe make the command annotations/config commands optional to make this more useful.
+// nocommit This function needs to flip the normals, and maybe it should be implemented by appending to the other one?
 template<typename RealType, int ElementSize>
 Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, ElementSize>& Overlay)
 {
@@ -145,9 +146,10 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
 			{
-				Result.set_precision(4);
+				int OldPrecision;
+				Result.set_precision(4, &OldPrecision);
 				Result.insert(DataA[i]);
-				Result.set_precision();
+				Result.set_precision(OldPrecision);
 			}
 			Result.newline();
 
@@ -157,7 +159,6 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
 			{
-				// nocommit Apply this to the others as well
 				int OldPrecision;
 				Result.set_precision(4, &OldPrecision);
 				Result.insert(DataB[i]);
@@ -171,9 +172,10 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
 			{
-				Result.set_precision(4);
+				int OldPrecision;
+				Result.set_precision(4, &OldPrecision);
 				Result.insert(DataC[i]);
-				Result.set_precision();
+				Result.set_precision(OldPrecision);
 			}
 			Result.newline();
 		}

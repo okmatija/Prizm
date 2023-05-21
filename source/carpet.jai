@@ -212,6 +212,7 @@ ShowBinding :: (binding : string, description : string) #expand {
     ImGui.Text(description);
 }
 
+// Note: You need to use the ImGui.TableNextColumn apis after doing this
 BoxSection :: () #expand {
     table_flags := ImGui.TableFlags
         .BordersOuter;

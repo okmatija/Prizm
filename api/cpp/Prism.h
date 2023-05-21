@@ -802,19 +802,19 @@ struct Obj {
         return command(command_name).insert(item_index);
     }
 
-    // Annotation labels
+    // Annotation labels.  These functions affect annotations on every geometric entity, there are more granular functions as well
 
-    // Set visibility of annotations
+    // Set visibility of all annotations
     Obj& set_annotations_visible(bool visible) {
         return item_command("set_annotations_visible").insert((int)visible);
     }
 
-    // Set color of annotation text
+    // Set color of all annotation text
     Obj& set_annotations_color(Color color) {
         return item_command("set_annotations_color").insert(color);
     }
 
-    // Set scale of annotation text
+    // Set scale of all annotation text
     // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4.
     // TODO :FixScaleParameter The scale parameter is weird, use size in pixels instead
     Obj& set_annotations_scale(float scale) {
@@ -823,6 +823,15 @@ struct Obj {
 
 
     // Vertex labels
+
+    // nocommit implement this and call it in the tests
+    // Set visibility of vertex annotations i.e., annotations on obj file v-directive data
+    Obj& set_vertex_annotations_visible(bool visible) {
+        return item_command("set_vertex_annotations_visible").insert((int)visible);
+    }
+
+    //set_vertex_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    //set_vertex_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
 
     // Set visibility of vertex index labels i.e., 0-based indices into the obj file v-directive data
     Obj& set_vertex_index_labels_visible(bool visible) {
@@ -848,6 +857,15 @@ struct Obj {
 
     // Point labels
 
+    // nocommit implement this and call it in the tests
+    // Set visibility of point annotations i.e., annotations on obj file p-directive data
+    Obj& set_point_annotations_visible(bool visible) {
+        return item_command("set_point_annotations_visible").insert((int)visible);
+    }
+
+    //set_point_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    //set_point_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
+
     // Set visibility of point element index labels i.e., 0-based indices into the obj file p-directive data
     // Note: set_vertex_index_labels_visible is probably the function you want!
     Obj& set_point_index_labels_visible(bool visible) {
@@ -870,6 +888,15 @@ struct Obj {
 
     // Segment labels
 
+    // nocommit implement this and call it in the tests
+    // Set visibility of segment annotations i.e., annotations on obj file l-directive data
+    Obj& set_segment_annotations_visible(bool visible) {
+        return item_command("set_segment_annotations_visible").insert((int)visible);
+    }
+
+    //set_segment_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    //set_segment_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
+
     // Set visibility of segment element index labels i.e., 0-based indices into the obj file l-directive data
     Obj& set_segment_index_labels_visible(bool visible = true) {
         return item_command("set_segment_index_labels_visible").insert((int)visible);
@@ -888,6 +915,15 @@ struct Obj {
 
 
     // Triangle labels
+
+    // nocommit implement this and call it in the tests
+    // Set visibility of triangle annotations i.e., annotations on obj file f-directive data
+    Obj& set_triangle_annotations_visible(bool visible) {
+        return item_command("set_triangle_annotations_visible").insert((int)visible);
+    }
+
+    //set_triangle_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    //set_triangle_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
 
     // Set visibility of triangle element index labels i.e., 0-based indices into the obj file f-directive data
     Obj& set_triangle_index_labels_visible(bool visible = true) {
