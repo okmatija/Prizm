@@ -1,4 +1,4 @@
-// nocommit rename elements -> elements, make it only work with elements and add points to unreferenced vertex elements. Maybe also put the vertex theme into the element themes so that everything can work on element granularity
+// FIXME make it only work with elements and add points to unreferenced vertex elements. Maybe also put the vertex theme into the element themes so that everything can work on element granularity
 
 // Axis-Aligned Bounding Box tree to accelerate spatial queries.
 //
