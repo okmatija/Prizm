@@ -108,7 +108,7 @@ build_gui :: (
                 }
 
                 //output_type : enum;
-                Combo_Box(optimization_level);
+                // Combo_Box(optimization_level); // Commented out when upgrading to jai version 0.1.064
 
                 Check_Box(write_added_strings);
                 Check_Box(runtime_storageless_type_info);
@@ -118,7 +118,6 @@ build_gui :: (
                 Check_Box(lazy_foreign_function_lookups);
                 Check_Box(enable_bytecode_inliner);
                 Check_Box(stack_trace);
-                Check_Box(enable_auto_dereference);
 
                 Combo_Box(array_bounds_check);
                 Combo_Box(cast_bounds_check);
