@@ -872,14 +872,28 @@ render_entities :: () {
             //
 
             {
-                ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
+                Process_Triangle_Data :: struct {
+                    entity : *Entity;
+                    projection_from_world : *Matrix4;
+                    triangle_label_theme : *Element_Label_Theme;
+                    triangle_labels : *[..]Label_Info;
+                };
+
+                process_triangle_data : Process_Triangle_Data = ---;
+                process_triangle_data.entity                = entity;
+                process_triangle_data.projection_from_world = *projection_from_world;
+                process_triangle_data.triangle_label_theme  = *triangle_label_theme;
+                process_triangle_data.triangle_labels       = *triangle_labels;
+
+                process_triangle :: (triangle_model : Triangle3, triangle_index : int, data : *void) {
+                    using process_triangle_data := cast(*Process_Triangle_Data) data;
                     point_model : Vector3 = compute_centroid(triangle_model);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     if !is_clipped(entity.display_info, point_world) {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             text : string = get_point_text(triangle_index, triangle_label_theme);
-                            array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+                            array_add(triangle_labels, make_Label_Info(text_position_px, text));
                         }
                     }
                 }
@@ -889,7 +903,7 @@ render_entities :: () {
 
                         // log_error("Use brute force");
                         for :ModelTriangleIterator entity.mesh {
-                            ProcessTriangle(it, it_index);
+                            process_triangle(it, it_index, *process_triangle_data);
                         }
 
                     } else {
@@ -899,9 +913,7 @@ render_entities :: () {
                         distance : float = get_model_space_query_radius(entity.render_info.bounding_aabb, app.settings.labelling_radius_px);
 
                         // log_error("Use spatial index");
-                        VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
-                            #code ProcessTriangle(primitive, primitive_id)
-                        );
+                        visit_elements_near_ray(entity.spatial, ray_model, distance, process_triangle, *process_triangle_data);
 
                     }
                 }

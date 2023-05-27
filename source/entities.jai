@@ -27,7 +27,7 @@ Entity :: struct {
     // - Shape geometry in the specialized types
     // - Bounding shapes in render_info
     mesh : Simple_Mesh;
-    spatial : *AABB_Tree(Simple_Mesh);
+    spatial : *AABB_Tree;
 
     // @Incomplete Perhaps there should be a pool for the annotation strings?
     command_annotations : [..]Annotation;
@@ -729,7 +729,6 @@ get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Ve
 
 
 is_visible :: (e : *Entity) -> bool {
-    // @Thin
     return e.display_info.is_visible;
 }
 
@@ -825,36 +824,9 @@ find_closest_element :: (
     target_triangles : (Entity)->bool = elements_targetted
     ) -> Closest_Point_Ray_Entity {
 
-    ray_world := make_camera_ray(); // @Refactor to pass in the ray?
+    ray_world : Ray3 = make_camera_ray(); // @Refactor to pass in the ray?
     max_dist_px : int = app.settings.closest_point_query_max_dist_px;
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
-
-    ProcessTriangle :: (triangle_model : Triangle3, triangle_id : int) #expand {
-
-        triangle_world : Triangle3 = transform_triangle(`entity.mesh.world_from_model, triangle_model);
-
-        cp : Closest_Point_Ray_Triangle = closest_point_ray_triangle(`ray_world, triangle_world);
-
-        if is_clipped(`entity.display_info, cp.closestPoint[1]) {
-            continue;
-        }
-
-        if outside_screen_dist(cp.closestPoint[1], `projection_from_world, `max_dist_px) {
-            continue;
-        }
-
-        if cp.distance == 0 {
-            if cp.rayParameter < `best_ray_triangle_hit.rayParameter {
-                `best_ray_triangle_hit = cp;
-                `best_ray_triangle_hit_index = triangle_id;
-            }
-        } else {
-            if cp.rayParameter < `best_ray_triangle_miss.rayParameter {
-                `best_ray_triangle_miss = cp;
-                `best_ray_triangle_miss_index = triangle_id;
-            }
-        }
-    }
 
     result : Closest_Point_Ray_Entity;
 
@@ -879,20 +851,67 @@ find_closest_element :: (
         //     continue;
         // }
 
+        process_triangle_data : Process_Triangle_Data = ---;
+        process_triangle_data.entity                       = entity;
+        process_triangle_data.ray_world                    = ray_world;
+        process_triangle_data.projection_from_world        = *projection_from_world;
+        process_triangle_data.max_dist_px                  =  max_dist_px;
+        process_triangle_data.best_ray_triangle_hit        = *best_ray_triangle_hit;
+        process_triangle_data.best_ray_triangle_hit_index  = *best_ray_triangle_hit_index;
+        process_triangle_data.best_ray_triangle_miss       = *best_ray_triangle_miss;
+        process_triangle_data.best_ray_triangle_miss_index = *best_ray_triangle_miss_index;
+
+        Process_Triangle_Data :: struct {
+            entity : *Entity;
+            ray_world : Ray3;
+            projection_from_world : *Matrix4;
+            max_dist_px : int;
+            best_ray_triangle_hit : *Closest_Point_Ray_Triangle;
+            best_ray_triangle_hit_index : *int;
+            best_ray_triangle_miss : *Closest_Point_Ray_Triangle;
+            best_ray_triangle_miss_index : *int;
+        };
+
+        process_triangle :: (triangle_model : Triangle3, triangle_index : int, data : *void) {
+
+            using process_triangle_data := cast(*Process_Triangle_Data) data;
+
+            triangle_world : Triangle3 = transform_triangle(entity.mesh.world_from_model, triangle_model);
+
+            cp : Closest_Point_Ray_Triangle = closest_point_ray_triangle(ray_world, triangle_world);
+
+            if is_clipped(entity.display_info, cp.closestPoint[1]) {
+                return;
+            }
+
+            if outside_screen_dist(cp.closestPoint[1], projection_from_world, max_dist_px) {
+                return;
+            }
+
+            if cp.distance == 0 {
+                if cp.rayParameter < best_ray_triangle_hit.rayParameter {
+                    <<best_ray_triangle_hit = cp;
+                    <<best_ray_triangle_hit_index = triangle_index;
+                }
+            } else {
+                if cp.rayParameter < best_ray_triangle_miss.rayParameter {
+                    <<best_ray_triangle_miss = cp;
+                    <<best_ray_triangle_miss_index = triangle_index;
+                }
+            }
+        }
+
         if entity.spatial == null {
 
             // @Speed Early out using a ray-clipping sphere check, this should account for the pixel distance from the sphere silhouette
             for :ModelTriangleIterator triangle, triangle_index : entity.mesh {
-                ProcessTriangle(triangle, triangle_index);
+                process_triangle(triangle, triangle_index, *process_triangle_data);
             }
 
         } else {
 
             max_dist : float = get_model_space_query_radius(entity.render_info.bounding_aabb, max_dist_px);
-            VisitPrimitivesNearRay(entity.spatial, ray_model, max_dist,
-                 #code ProcessTriangle(primitive, primitive_id)
-            );
-
+            visit_elements_near_ray(entity.spatial, ray_model, max_dist, process_triangle, *process_triangle_data);
         }
 
         if best_ray_triangle_hit_index >= 0 {
@@ -1225,7 +1244,7 @@ set_entity_display_info :: (using entity : *Entity) {
 init_entity_spatial_index :: (using entity : *Entity) {
     assert(entity != null);
     if mesh.points.count == 0 && mesh.segments.count == 0 { // @Incomplete: Support points/segments in AABB tree
-        spatial = New(AABB_Tree(Simple_Mesh));
+        spatial = New(AABB_Tree);
         init(spatial, *mesh);
     } else {
         log_warning("@Incomplete Accelerated spatial queries only supported for triangle-only meshes");

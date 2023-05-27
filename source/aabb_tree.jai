@@ -1,3 +1,5 @@
+// nocommit rename primitives -> elements, make it only work with elements and add points to unreferenced vertex elements. Maybe also put the vertex theme into the element themes so that everything can work on element granularity
+
 // Axis-Aligned Bounding Box tree to accelerate spatial queries.
 //
 // To add support for a new `Shape` you need to implement the following functions:
@@ -18,21 +20,15 @@
 // find_closest_element
 //
 // @Incomplete maybe we should have function pointers stored in a struct for the above, could test if some operations are supported by checking if the pointer is null
-AABB_Tree :: struct(Shape : Type) {
+AABB_Tree :: struct {
 
-    // Implment round-robin object median split?
+    // Implement round-robin object median split?
 
     LEAF_MAX_PRIMITIVES_COUNT :: 32; // @Incomplete make this configurable e.g., see Hash_Table.jai implementation
 
     // Types that depend on the Shape (Index is included since its interpretation depends on the Shape)
     // @CompilerBug Unable to use #run syntactic abbreviation here
-    Primitive, Vector, AABB :: #run () -> (Type, Type, Type) {
-        if Shape == {
-            case; compiler_report(tprint("AABB_Tree unsupported for shape with type '%'.", Shape));
-            #through; // So all control paths return a value
-            case Simple_Mesh; return Triangle3, Vector3, AxisBox3;
-        }
-    }();
+    Primitive, Vector, AABB :: Triangle3, Vector3, AxisBox3; // nocommit @Cleanup
 
     // This is an index into `shape`, it is defined implicitly by the `get_primitive` function overload
     Primitive_Id :: int; // @Cleanup remove this typedef...
@@ -48,7 +44,7 @@ AABB_Tree :: struct(Shape : Type) {
     Intersection_Ray3_Primitive :: struct {
         t : float = FLOAT32_INFINITY;
         point : Vector;
-        primitive_id : Primitive_Id = -1;
+        primitive_id : int = -1;
     }
 
     Primitive_Info_Iterator :: (range : *Primitive_Range, body : Code, flags : For_Flags) #expand {
@@ -85,14 +81,14 @@ AABB_Tree :: struct(Shape : Type) {
 
     nodes : [..]Node;
     primitive_info : [..]Primitive_Info;
-    shape : *Shape; // Borrowed
+    shape : *Simple_Mesh; // Borrowed
 }
 
-init :: (tree : *AABB_Tree, target : *tree.Shape) {
+init :: (tree : *AABB_Tree, target : *Simple_Mesh) {
     tree.shape = target;
 
     // @Cleanup Implement this via an iterator over `target` rather than allocating primitive_ids array?
-    primitive_ids := get_primitive_index_array(target);
+    primitive_ids : [..]int = get_primitive_index_array(target);
     defer array_free(primitive_ids);
 
     for primitive_ids {
@@ -107,7 +103,9 @@ init :: (tree : *AABB_Tree, target : *tree.Shape) {
     root := array_add(*tree.nodes);
     root.range.first = 0;
     root.range.count = tree.primitive_info.count;
-    for :tree.Primitive_Info_Iterator root.range expand(*root.aabb, it.aabb);
+    for :tree.Primitive_Info_Iterator root.range {
+        expand(*root.aabb, it.aabb);
+    }
     build(tree, 0, 0);
 }
 
@@ -119,7 +117,12 @@ deinit :: (tree : *AABB_Tree) {
 }
 
 // @CompilerBug We need to pass a pointer to the tree here due to a bug??
-VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : Ray3, $VISIT_PRIMITIVE : Code) #expand {
+visit_elements_triangles_ray :: (
+    using tree : *AABB_Tree,
+    ray : Ray3,
+    visit_triangle : (Triangle3, int, *void)->(),
+    visit_triangle_data : *void) {
+
     if tree.nodes.count == 0 {
         return;
     }
@@ -142,12 +145,12 @@ VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : R
 
             // Visit primitives in leaf node
 
-            // Note: We don't use tree.Primitive_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
+            // nocommit Note: We don't use tree.Primitive_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
             for 0..node.range.count-1 {
 
-                `primitive_id := tree.primitive_info[node.range.first + it].primitive_id;
-                `primitive := get_primitive(tree, primitive_id);
-                #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
+                triangle_index : int = tree.primitive_info[node.range.first + it].primitive_id;
+                triangle : Triangle3 = get_primitive(tree, triangle_index);
+                visit_triangle(triangle, triangle_index, visit_triangle_data);
 
             }
         } else {
@@ -177,17 +180,23 @@ VisitPrimitivesIntersectingRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : R
 // Note: the ray is expected to be in the model space of the mesh, since the tree is constructed from the model space mesh
 // @Cleanup Look into refactoring this macro so it works like an iterator i.e., we'd like to write something like this instead:
 //
-// for :VisitPrimitivesNearRay tree {
+// for :visit_elements_near_ray tree {
 //     VISIT_PRIMITIVE(it, it_index);
 // }
 // 
-VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : Ray3, distance : float, $VISIT_PRIMITIVE : Code) #expand {
+visit_elements_near_ray :: (
+    using tree : *AABB_Tree,
+    ray : Ray3,
+    distance : float,
+    visit_triangle : (Triangle3, int, *void)->(),
+    visit_triangle_data : *void) {
+
     if tree.nodes.count == 0 || !is_finite(distance) {
         return;
     }
 
     if app.debug_frame {
-        log_error("Debugging VisitPrimitivesNearRay");
+        log_error("Debugging visit_elements_near_ray");
     }
 
     // Only nodes whose AABBs are intersected by the ray will be pushed onto the stack
@@ -206,8 +215,8 @@ VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : Ray3, dis
     }
 
     while stack.count {
-        node_index := pop(*stack);
-        node := nodes[node_index];
+        node_index : int = pop(*stack);
+        node : Node = nodes[node_index];
         if node.child_lhs == -1 {
             assert(node.child_rhs == -1); // @Refactor Implement an ensure-like macro which just logs a warning
 
@@ -216,9 +225,9 @@ VisitPrimitivesNearRay :: (using tree : *AABB_Tree(Simple_Mesh), ray : Ray3, dis
             // Note: We don't use tree.Primitive_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
             for 0..node.range.count-1 {
 
-                `primitive_id := tree.primitive_info[node.range.first + it].primitive_id;
-                `primitive := get_primitive(tree, primitive_id); // Model space
-                #insert VISIT_PRIMITIVE; // This can be a function/macro accepting primitive and primitive_id as arguments
+                triangle_index : int = tree.primitive_info[node.range.first + it].primitive_id;
+                triangle : Triangle3 = get_primitive(tree, triangle_index); // Model space
+                visit_triangle(triangle, triangle_index, visit_triangle_data);
 
             }
         } else {
@@ -294,9 +303,7 @@ depth_first_visit :: (using tree : AABB_Tree, visitor : tree.Node_Visitor) {
 
 
 
-// AABB_Tree(Simple_Mesh) implementation
-
-get_primitive :: (tree : AABB_Tree(Simple_Mesh), triangle_index : int) -> Triangle3 {
+get_primitive :: (tree : AABB_Tree, triangle_index : int) -> Triangle3 {
     return inline mesh_triangle_model(tree.shape, triangle_index);
 }
 

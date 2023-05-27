@@ -133,7 +133,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         Visitor_Data :: struct {
             entity_at_depth : *Table(int, *Entity);
             name : string;
-            tree : *AABB_Tree(Simple_Mesh); // Needed so iterator can work
+            tree : *AABB_Tree; // Needed so iterator can work
         }
         visitor_data : Visitor_Data;
         visitor_data.entity_at_depth = *entity_at_depth;
