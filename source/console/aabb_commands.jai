@@ -66,8 +66,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     {
                         using primitives : Simple_Mesh;
                         defer deinit(*primitives);
-                        for :spatial.Primitive_Info_Iterator info : node.range {
-                            tri := get_primitive(tree, info.primitive_id);
+                        for :spatial.Element_Info_Iterator info : node.range {
+                            tri := get_element(tree, info.element_id);
                             add_triangle(*primitives, tri);
                         }
                         primitives.world_from_model = tree.shape.world_from_model;
@@ -85,8 +85,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     {
                         using primitives : Simple_Mesh;
                         defer deinit(*primitives);
-                        for :spatial.Primitive_Info_Iterator info : node.range {
-                            tri := get_primitive(tree, info.primitive_id);
+                        for :spatial.Element_Info_Iterator info : node.range {
+                            tri := get_element(tree, info.element_id);
                             add_triangle(*primitives, tri);
                         }
                         primitives.world_from_model = tree.shape.world_from_model;
