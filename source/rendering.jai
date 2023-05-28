@@ -254,7 +254,8 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
-        if mesh.triangles.count && !mesh.normals.count {
+        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
+        if mesh.triangles.count && !vn.values.count {
             // log("Computing and assigning triangle normals to vertices\n");
             success, failure_reason := compute_vertex_normals_from_triangles(mesh);
             if !success {
@@ -269,14 +270,15 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
         NP := size_of(Vector3) * mesh.positions.count;
-        NN := size_of(Vector3) * mesh.normals.count;
+
+        NN := ifx vn then size_of(Matrix3) * mesh.triangles.count else 0;
 
         if !info.vbo glGenBuffers(1, *info.vbo);
 
         glBindBuffer(GL_ARRAY_BUFFER, info.vbo);
         glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
-        glBufferSubData(GL_ARRAY_BUFFER, NP, NN, mesh.normals.data);
+        glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
 
         if !info.points_ibo glGenBuffers(1, *info.points_ibo);
         if !info.segments_ibo glGenBuffers(1, *info.segments_ibo);
@@ -565,6 +567,7 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     glBindVertexArray(app.mesh_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
+    // postion_loc = glGetAttribLocation()
     ATTRIB_POSITION  :: 0;
     ATTRIB_NORMAL    :: 1;
 

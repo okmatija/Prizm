@@ -286,29 +286,30 @@ item_clear_triangles :: (id : int) {
     log("# Cleared item #% which had % triangles", id, count);
 } @RegisterCommand
 
-// Flip normals in the mesh item with the given `id`
-// Reverses the winding of triangles and multiplies vertex normals by -1
-item_flip_normals :: (id : int) {
-    if !check_geometry_index(id) {
-        return;
-    }
-
-    entity := app.entities[id];
-
-    // @Incomplete Transform attributes
-
-    for * entity.mesh.normals {
-        <<it *= -1;
-    }
-
-    for i : 0..entity.mesh.triangles.count-1 {
-        using entity.mesh;
-        tuple : *Tuple3(u32) = *triangles[i];
-        tuple.y, tuple.z = swap(tuple.y, tuple.z);
-    }
-
-    entity.render_info.is_dirty = true;
-} @RegisterCommand
+//nocommit
+// // Flip normals in the mesh item with the given `id`
+// // Reverses the winding of triangles and multiplies vertex normals by -1
+// item_flip_normals :: (id : int) {
+//     if !check_geometry_index(id) {
+//         return;
+//     }
+// 
+//     entity := app.entities[id];
+// 
+//     // @Incomplete Transform attributes
+// 
+//     for * entity.mesh.normals {
+//         <<it *= -1;
+//     }
+// 
+//     for i : 0..entity.mesh.triangles.count-1 {
+//         using entity.mesh;
+//         tuple : *Tuple3(u32) = *triangles[i];
+//         tuple.y, tuple.z = swap(tuple.y, tuple.z);
+//     }
+// 
+//     entity.render_info.is_dirty = true;
+// } @RegisterCommand
 
 
 // Set the color of the highest-dimensional element (triangle > segment > point) in the given item's mesh
@@ -784,7 +785,7 @@ item_make_normals_segment_soup :: (id : int) {
 
     entity : *Entity = app.entities[id];
     mesh : Simple_Mesh = entity.mesh;
-    vn : *Simple_Mesh_Normals = find_mesh_attribute(entity, "vn", Simple_Mesh_Normals);
+    vn : *Simple_Mesh_Normals = find_mesh_attribute(*entity.mesh, "vn", Simple_Mesh_Normals);
     if vn == null {
         log("# Mesh has no normals.");
         return;
@@ -1089,9 +1090,9 @@ item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : 
     // @cleanup generate this code
     if value_type == {
         case string;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(string, .TRIANGLE));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(string, .TRIANGLE));
         case Matrix3;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(Matrix3, .TRIANGLE));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(Matrix3, .TRIANGLE));
         case;
             // TODO Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);
@@ -1110,9 +1111,9 @@ item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Ty
     // @cleanup generate this code
     if value_type == {
         case string;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(string, .VERTEX));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(string, .VERTEX));
         case float;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(float, .VERTEX));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(float, .VERTEX));
         case;
             // TODO Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);

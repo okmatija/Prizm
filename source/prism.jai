@@ -33,17 +33,17 @@ main :: () {
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
-        print( "Could not create OpenGL context: %\n", to_string(SDL_GetError()));
+        print("Could not create OpenGL context: %\n", to_string(SDL_GetError()));
         return;
     }
 
     gl_load(*gl, SDL_GL_GetProcAddress);
 
-    // gl_enable_debug_output(true);
-    // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+    gl_enable_debug_output(true);
+    glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
 
     gl_version_major, gl_version_minor = gl_get_version();
-    print ("OpenGL %.%\n", gl_version_major, gl_version_minor);
+    print("OpenGL %.%\n", gl_version_major, gl_version_minor);
 
     // Prepare VAO for text quads.
     {
@@ -59,6 +59,7 @@ main :: () {
     }
 
     {
+        // @Cleanup This shader is used for point/segment rendering only, rename it!
         VERT, VERT_OK :: #run read_entire_file("source/shaders/simple_mesh.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/simple_mesh.frag"); #assert(FRAG_OK);
         app.simple_mesh_program = get_shader_program(VERT, FRAG);
@@ -74,6 +75,7 @@ main :: () {
     }
 
     {
+        // nocommit, move the normal rendering into the mesh_vao shader
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);

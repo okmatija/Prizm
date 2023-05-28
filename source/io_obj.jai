@@ -122,7 +122,6 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             }
 
             array_add(*scratch_vn, normal);
-            array_add(*mesh.normals, normal);
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
@@ -241,7 +240,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     if face.normal.count {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
-                        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(result, "vn", Simple_Mesh_Normals);
+                        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(*result.mesh, "vn", Simple_Mesh_Normals);
                         normals : *Matrix3 = array_add(*vn.values);
                         for i : 0..2 {
                             missing : bool;
