@@ -87,7 +87,6 @@ clear :: (using entity : *Entity) {
     if render_info.vbo           glDeleteBuffers(1, *render_info.vbo);
     if render_info.points_ibo    glDeleteBuffers(1, *render_info.points_ibo);
     if render_info.segments_ibo  glDeleteBuffers(1, *render_info.segments_ibo);
-    if render_info.triangles_ibo glDeleteBuffers(1, *render_info.triangles_ibo);
     render_info = .{};
 }
 
@@ -156,7 +155,6 @@ deinit :: (using entity : *Entity) {
     if render_info.vbo           glDeleteBuffers(1, *render_info.vbo);
     if render_info.points_ibo    glDeleteBuffers(1, *render_info.points_ibo);
     if render_info.segments_ibo  glDeleteBuffers(1, *render_info.segments_ibo);
-    if render_info.triangles_ibo glDeleteBuffers(1, *render_info.triangles_ibo);
     render_info = .{};
 }
 

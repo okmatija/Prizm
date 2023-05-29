@@ -10,7 +10,7 @@ Don't remove leading spaces from BLOCK type annotations, so that formatting is b
 
 */
 
-ISSUE_005 :: ".objs with face directives where position and normal indices dont match e.g., 'f 4//1 5//2 6//3' do not show normals correctly."; @KnownIssue
+//ISSUE_005 :: ".objs with face directives where position and normal indices dont match e.g., 'f 4//1 5//2 6//3' do not show normals correctly."; @KnownIssue
 //ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
 ISSUE_007 :: "The .obj loader currently ignores texture vertex information (vt-directives)"; @KnownIssue
 

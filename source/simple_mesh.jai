@@ -1,6 +1,8 @@
 Simple_Mesh :: struct {
     // Position
     positions : [..]Vector3;
+    // normals : [..]Vector3;
+    // tangents : [..]Vector3;
 
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
     // .obj loading will fill these in from p, l and f directives respectively
@@ -18,10 +20,8 @@ Simple_Mesh :: struct {
     // - vectors e.g., Vector2 for UVs, Vector3 for normals/tangents/displacements
     // - tensors e.g., Matrix4 for stresses
     // - string  e.g., debug comments
+    // @Think maybe its better to have separate containers: vertex_attributes, point_attributes etc
     attributes : [..]*Simple_Mesh_Attribute_Base;
-
-    // We still don't support f i//a j//b k//c with i/j/k != a/b/c 
-    // Normals should be dense attributes on faces, not verticies
 
     // @Volatile Code in various places may need to change if this changes distances so they are not the same in world/model space
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};
@@ -495,7 +495,7 @@ TriangleIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, 
 
     for i : 0..mesh.triangles.count-1 {
         `it_index := i;
-        `it := inline mesh_triangle_hack(mesh, i, world_space);
+        `it : Triangle3 = inline mesh_triangle_hack(mesh, i, world_space);
         #insert (remove=#assert(false)) body;
     }
 }

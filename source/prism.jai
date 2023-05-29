@@ -75,7 +75,6 @@ main :: () {
     }
 
     {
-        // nocommit, move the normal rendering into the mesh_vao shader
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
@@ -220,6 +219,7 @@ main :: () {
             console_draw();
             show_pending_directories_ui();
 
+            // inspect("Debug", app.entities[0], true);
             // inspect("Debug", *app.camera, true);
         }
 

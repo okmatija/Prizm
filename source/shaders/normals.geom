@@ -1,7 +1,7 @@
 #version 330 core
 
-layout (points) in;
-layout (line_strip, max_vertices = 2) out;
+layout (triangles) in;
+layout (line_strip, max_vertices = 6) out;
 
 in VERTEX_SHADER_OUT {
     vec3 normal;
@@ -28,4 +28,6 @@ void normal_segment(int index) {
 
 void main() {
     normal_segment(0);
+    normal_segment(1);
+    normal_segment(2);
 }

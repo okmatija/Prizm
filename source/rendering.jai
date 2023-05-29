@@ -80,7 +80,6 @@ Render_Info :: struct {
 
     points_ibo : GLuint;
     segments_ibo : GLuint;
-    triangles_ibo : GLuint;
 
     // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
     // @Cleanup Use a Box_Sphere here
@@ -269,20 +268,33 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
-        NP := size_of(Vector3) * mesh.positions.count;
-
-        NN := ifx vn then size_of(Matrix3) * mesh.triangles.count else 0;
+        // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
+        //
+        //  f 1//1 2//2 3//3
+        //  f 1//4 2//5 4//6
+        //
+        // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
 
         if !info.vbo glGenBuffers(1, *info.vbo);
-
         glBindBuffer(GL_ARRAY_BUFFER, info.vbo);
+
+        NP := 3 * size_of(Vector3) * mesh.triangles.count;
+        NN := ifx vn then size_of(Matrix3) * mesh.triangles.count else 0;
+
+        triangle_positions : [..]Vector3 = temp_array(Vector3);
+        array_reserve(*triangle_positions, 3 * mesh.triangles.count);
+        for :ModelTriangleIterator mesh {
+            array_add(*triangle_positions, it.a);
+            array_add(*triangle_positions, it.b);
+            array_add(*triangle_positions, it.c);
+        }
+
         glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
         glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
 
         if !info.points_ibo glGenBuffers(1, *info.points_ibo);
         if !info.segments_ibo glGenBuffers(1, *info.segments_ibo);
-        if !info.triangles_ibo glGenBuffers(1, *info.triangles_ibo);
 
         // @Cleanup consider doing something like, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
         // point_type : Type = get_type(type_info(mesh.points).element_type);
@@ -294,10 +306,6 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         size_segments := size_of(Tuple2(u32)) * mesh.segments.count;
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.segments_ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_segments, mesh.segments.data, GL_STATIC_DRAW);
-
-        size_triangles := size_of(Tuple3(u32)) * mesh.triangles.count;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.triangles_ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_triangles, mesh.triangles.data, GL_STATIC_DRAW);
 
         info.is_dirty = false;
     }
@@ -340,10 +348,10 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     glEnableVertexAttribArray(ATTRIB_POSITION);
     glEnableVertexAttribArray(ATTRIB_NORMAL);
 
-    NP := size_of(Vector3) * mesh.positions.count;
+    NP := 3 * size_of(Vector3) * mesh.triangles.count;
 
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0); // nocommit make all these nulls cast(*void)0
+    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -351,7 +359,7 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
-    glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
@@ -472,9 +480,8 @@ render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Ren
 
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, cast(GLsizei)(3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 render_mesh_triangles :: (
@@ -503,9 +510,8 @@ render_mesh_triangles :: (
     used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
     glUniform1f(glGetUniformLocation(app.mesh_program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDrawElements(GL_TRIANGLES, cast(GLsizei) (3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {

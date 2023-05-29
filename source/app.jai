@@ -49,7 +49,7 @@ App :: struct {
     text_vao : GLuint;
     text_vbo : GLuint;
 
-    // For triangle and solid wireframe rendering
+    // For triangle and solid wireframe rendering (anti-aliased triangle edges rendered on the actual triangle faces)
     mesh_program : GLuint;
     mesh_vao : GLuint;
 
@@ -57,6 +57,8 @@ App :: struct {
     simple_mesh_program : GLuint;
     simple_mesh_vao : GLuint;
 
+    // For rendering the triangle normals attribute
+    // nocommit rename to add triangle_ prefix
     normals_program : GLuint;
     normals_vao : GLuint;
 
