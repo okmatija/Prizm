@@ -84,9 +84,9 @@ clear :: (using entity : *Entity) {
     clear(*mesh);
 
     // Remove data from gpu memory as well
-    if render_info.vbo           glDeleteBuffers(1, *render_info.vbo);
-    if render_info.points_ibo    glDeleteBuffers(1, *render_info.points_ibo);
-    if render_info.segments_ibo  glDeleteBuffers(1, *render_info.segments_ibo);
+    if render_info.triangles_vbo glDeleteBuffers(1, *render_info.triangles_vbo);
+    if render_info.segments_vbo  glDeleteBuffers(1, *render_info.segments_vbo);
+    if render_info.points_vbo    glDeleteBuffers(1, *render_info.points_vbo);
     render_info = .{};
 }
 
@@ -152,9 +152,9 @@ deinit :: (using entity : *Entity) {
     }
 
     // Remove data from gpu memory as well
-    if render_info.vbo           glDeleteBuffers(1, *render_info.vbo);
-    if render_info.points_ibo    glDeleteBuffers(1, *render_info.points_ibo);
-    if render_info.segments_ibo  glDeleteBuffers(1, *render_info.segments_ibo);
+    if render_info.triangles_vbo glDeleteBuffers(1, *render_info.triangles_vbo);
+    if render_info.segments_vbo  glDeleteBuffers(1, *render_info.segments_vbo);
+    if render_info.points_vbo    glDeleteBuffers(1, *render_info.points_vbo);
     render_info = .{};
 }
 

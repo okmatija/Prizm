@@ -76,10 +76,13 @@ Clip_Mode :: enum #specified {
 Render_Info :: struct {
     is_dirty := true;
 
-    vbo : GLuint;
+    // @Speed Use a single vertex buffer object here. Store/compute the start point for each element type
+    // @Memory Remove the positions_vbo. It doubles the memory requirement, and adds a bunch of complexity. A better solution would be to points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
 
-    points_ibo : GLuint;
-    segments_ibo : GLuint;
+    positions_vbo : GLuint;
+    points_vbo : GLuint;
+    segments_vbo : GLuint;
+    triangles_vbo : GLuint;
 
     // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
     // @Cleanup Use a Box_Sphere here
@@ -253,14 +256,9 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
-        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
-        if mesh.triangles.count && !vn.values.count {
-            // log("Computing and assigning triangle normals to vertices\n");
-            success, failure_reason := compute_vertex_normals_from_triangles(mesh);
-            if !success {
-                log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
-            }
-        }
+
+        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
+        // point_type : Type = get_type(type_info(mesh.points).element_type);
 
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
         // stored separately to the raw position data so it can be changed efficiently
@@ -268,50 +266,92 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
-        // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
-        //
-        //  f 1//1 2//2 3//3
-        //  f 1//4 2//5 4//6
-        //
-        // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
+        {
+            // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
+            //
+            //  f 1//1 2//2 3//3
+            //  f 1//4 2//5 4//6
+            //
+            // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
 
-        if !info.vbo glGenBuffers(1, *info.vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, info.vbo);
+            if !info.triangles_vbo glGenBuffers(1, *info.triangles_vbo);
 
-        NP := 3 * size_of(Vector3) * mesh.triangles.count;
-        NN := ifx vn then size_of(Matrix3) * mesh.triangles.count else 0;
+            triangle_positions : [..]Vector3 = temp_array(Vector3);
+            array_reserve(*triangle_positions, 3 * mesh.triangles.count);
+            for :ModelTriangleIterator mesh {
+                array_add(*triangle_positions, it.a);
+                array_add(*triangle_positions, it.b);
+                array_add(*triangle_positions, it.c);
+            }
 
-        triangle_positions : [..]Vector3 = temp_array(Vector3);
-        array_reserve(*triangle_positions, 3 * mesh.triangles.count);
-        for :ModelTriangleIterator mesh {
-            array_add(*triangle_positions, it.a);
-            array_add(*triangle_positions, it.b);
-            array_add(*triangle_positions, it.c);
+            vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
+            if mesh.triangles.count && !vn.values.count {
+                // log("Computing and assigning triangle normals to vertices\n");
+                success, failure_reason := compute_vertex_normals_from_triangles(mesh);
+                if !success {
+                    log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
+                }
+            }
+
+            NP := 3 * size_of(Vector3) * mesh.triangles.count;
+            NN := ifx vn then size_of(Matrix3) * mesh.triangles.count else 0;
+
+            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+            glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
+            glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
+        }
+        
+        {
+            if !info.segments_vbo glGenBuffers(1, *info.segments_vbo);
+
+            segment_positions : [..]Vector3 = temp_array(Vector3);
+            array_reserve(*segment_positions, 2 * mesh.segments.count);
+            for :ModelSegmentIterator mesh {
+                array_add(*segment_positions, it.start);
+                array_add(*segment_positions, it.end);
+            }
+
+            // @Incomplete Add normals to segments
+
+            NP := 2 * size_of(Vector3) * mesh.segments.count;
+            glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+            glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
         }
 
-        glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
-        glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
+        {
+            if !info.points_vbo glGenBuffers(1, *info.points_vbo);
 
-        if !info.points_ibo glGenBuffers(1, *info.points_ibo);
-        if !info.segments_ibo glGenBuffers(1, *info.segments_ibo);
+            point_positions : [..]Vector3 = temp_array(Vector3);
+            array_reserve(*point_positions, mesh.points.count);
+            for :ModelPointIterator mesh {
+                array_add(*point_positions, it);
+            }
 
-        // @Cleanup consider doing something like, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
-        // point_type : Type = get_type(type_info(mesh.points).element_type);
+            // @Incomplete Does obj format support oriented points? I guess we can just support that anyway. 
 
-        size_points := size_of(u32) * mesh.points.count;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.points_ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_points, mesh.points.data, GL_STATIC_DRAW);
+            NP := size_of(Vector3) * mesh.points.count;
 
-        size_segments := size_of(Tuple2(u32)) * mesh.segments.count;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.segments_ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_segments, mesh.segments.data, GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+            glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
+        }
+
+        {
+            if !info.positions_vbo glGenBuffers(1, *info.positions_vbo);
+            NP := size_of(Vector3) * mesh.positions.count;
+            glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+            glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
+        }
 
         info.is_dirty = false;
     }
 }
 
 // @Cleanup consolidate this
+// nocommit rename to render_triangle_normals
 render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !normals_visible return;
 
@@ -340,7 +380,7 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     }
 
     glBindVertexArray(app.normals_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
 
     ATTRIB_POSITION  :: 0;
     ATTRIB_NORMAL    :: 1;
@@ -391,7 +431,7 @@ render_mesh_positions :: (
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe, positions_vbo);
 
     size := ifx clip_radius_mode_show_wireframe then 2 else positions_size;
     glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx size);
@@ -415,7 +455,7 @@ render_mesh_points :: (
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe, render_info.points_vbo);
 
     used_points_size := ifx clip_radius_mode_show_wireframe then 2 else points_size;
     glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx used_points_size);
@@ -423,8 +463,7 @@ render_mesh_points :: (
     used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else points_color;
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, points_ibo);
-    glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null);
+    glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
 }
 
 render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
@@ -436,7 +475,7 @@ render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, 
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode, render_info.segments_vbo);
 
     used_segments_width := ifx clip_radius_mode then 1. else segments_width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
@@ -446,9 +485,9 @@ render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, 
 
     glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), segments_color.x, segments_color.y, segments_color.z, segments_color.w);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, segments_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
-    glDrawElements(GL_LINES, cast(GLsizei)(2 * mesh.segments.count), GL_UNSIGNED_INT, null);
+
+    glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
 
@@ -470,7 +509,7 @@ render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Ren
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe, render_info.triangles_vbo);
 
     used_edges_width := max(edges_width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
@@ -571,7 +610,7 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     }
 
     glBindVertexArray(app.mesh_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
 
     // postion_loc = glGetAttribLocation()
     ATTRIB_POSITION  :: 0;
@@ -597,7 +636,8 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
 }
 
 // @Cleanup Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
-render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
+// nocommit Cleanup the vbo and attribute pointer stuff
+render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool, vbo : GLuint) {
 
     maybe_update_render_info(render_info, mesh);
 
