@@ -314,10 +314,14 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
             // @Incomplete Add normals to segments
 
+            vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+            NN := ifx mesh.segments.count && !vn.values.count then vn.values.count else 0;
+
             NP := 2 * size_of(Vector3) * mesh.segments.count;
             glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-            glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
+            glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
         }
 
         {
@@ -361,23 +365,10 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
 
     // @Incomplete handle wave?
     set_model_view_projection_uniforms(app.normals_program, mesh.world_from_model);
+    set_clip_ranges_uniforms(app.normals_program, display_info);
+    set_clip_sphere_uniforms(app.normals_program, display_info, prev_sphere=false);
     glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
     glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
-
-    {
-        for 0..clip_ranges.count-1 {
-            // @Cleanup We could use run directive here to get constant strings
-            using clip_ranges[it];
-            glUniform3f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
-            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
-            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-        }
-
-        glUniform3f(glGetUniformLocation(app.normals_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
-        glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.radius"), xx clip_sphere.radius);
-        glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-    }
 
     glBindVertexArray(app.normals_vao);
     glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
@@ -404,12 +395,12 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glUseProgram(app.aabb_program);
-    set_model_view_projection_uniforms(app.aabb_program, world_from_model);
 
     r, g, b, a : float = 0, 0, 1, 1;
     min := aabb_model.min_point;
     max := aabb_model.max_point;
 
+    set_model_view_projection_uniforms(app.aabb_program, world_from_model);
     glUniform4f(glGetUniformLocation(app.aabb_program, "color"), r, g, b, a);
     glUniform3f(glGetUniformLocation(app.aabb_program, "min"), min.x, min.y, min.z);
     glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
@@ -534,80 +525,30 @@ render_mesh_triangles :: (
         return;
     }
 
-    render_mesh_common(mesh, render_info, display_info, clip_radius_mode);
-
-    glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
-    glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
-    // @Cleanup Maybe colors should be passed to the shader program as vertex attributes rather than uniforms to make rendering triangle attributes using colors a bit easier
-    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
-    glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
-
-    used_edges_width := max(edges_width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
-    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
-    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
-    glUniform1f(glGetUniformLocation(app.mesh_program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
-}
-
-set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
-    {
-        loc := glGetUniformLocation(program, "world_from_model");
-        glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
-    }
-
-    {
-        loc := glGetUniformLocation(program, "view_from_world");
-        view_from_world := make_look_at_matrix(app.camera);
-        glUniformMatrix4fv(loc, 1, true, *view_from_world._11);
-    }
-
-    {
-        loc := glGetUniformLocation(program, "clip_from_view");
-        clip_from_view := make_orthographic_projection_matrix(app.camera);
-        glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
-    }
-}
-
-// @Cleanup
-render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
-
     maybe_update_render_info(render_info, mesh);
 
     glUseProgram(app.mesh_program);
 
     set_model_view_projection_uniforms(app.mesh_program, mesh.world_from_model);
+    set_hover_flash_uniform(app.mesh_program, display_info);
+    set_clip_ranges_uniforms(app.mesh_program, display_info);
+    set_clip_sphere_uniforms(app.mesh_program, display_info);
 
-    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
-    glUniform1f(glGetUniformLocation(app.mesh_program, "wave"), wave);
-    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     look_direction := current_look_direction();
+    used_edges_width := max(edges_width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
+    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
+    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
+
+    glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx clip_radius_mode);
+    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     glUniform3f(glGetUniformLocation(app.mesh_program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
-
-    {
-        for 0..clip_ranges.count-1 {
-            // @Cleanup We could use run directive here to get constant strings
-            using clip_ranges[it];
-            glUniform3f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-            glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
-            glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
-            glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-        }
-
-        glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-
-        glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.center"), clip_sphere_prev.center.x, clip_sphere_prev.center.y, clip_sphere_prev.center.z);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.radius"), xx clip_sphere_prev.radius);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.is_active"), xx clip_sphere_prev.is_active);
-
-        // Also check the entity index here so we only render the previous sphere when we're resizing the sphere
-        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx clip_radius_mode);
-    }
+    glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
+    glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
+    glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
+    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
+    glUniform4f(glGetUniformLocation(app.mesh_program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
+    glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
+    glUniform1f(glGetUniformLocation(app.mesh_program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
     glBindVertexArray(app.mesh_vao);
     glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
@@ -633,6 +574,9 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 // @Cleanup Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
@@ -643,29 +587,15 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_I
 
     glUseProgram(app.simple_mesh_program);
 
+    // @Cleanup Why is this different to e.g., normals
+    used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+
     set_model_view_projection_uniforms(app.simple_mesh_program, mesh.world_from_model);
-
-    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "wave"), wave);
+    set_hover_flash_uniform(app.simple_mesh_program, display_info);
+    set_clip_ranges_uniforms(app.simple_mesh_program, display_info);
+    set_clip_sphere_uniforms(app.simple_mesh_program, display_info, prev_sphere=false);
+    glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx used_clip_mode);
     glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx points_size);
-
-    {
-        for 0..clip_ranges.count-1 {
-            // @Cleanup We could use run directive here to get constant strings
-            using clip_ranges[it];
-            glUniform3f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
-            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
-            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-        }
-
-        glUniform3f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
-        glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
-        glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-
-        clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
-        glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx clip_mode);
-    }
 
     glBindVertexArray(app.simple_mesh_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -1413,5 +1343,57 @@ draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
 }
 
 
+#scope_file
+
+set_hover_flash_uniform :: (shader : GLuint, using display_info : Display_Info) {
+    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
+    glUniform1f(glGetUniformLocation(shader, "wave"), wave);
+}
+
+set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
+    {
+        loc := glGetUniformLocation(program, "world_from_model");
+        glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
+    }
+
+    {
+        loc := glGetUniformLocation(program, "view_from_world");
+        view_from_world := make_look_at_matrix(app.camera);
+        glUniformMatrix4fv(loc, 1, true, *view_from_world._11);
+    }
+
+    {
+        loc := glGetUniformLocation(program, "clip_from_view");
+        clip_from_view := make_orthographic_projection_matrix(app.camera);
+        glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
+    }
+}
+
+set_clip_ranges_uniforms :: (shader : GLuint, using display_info : Display_Info) {
+    for 0..clip_ranges.count-1 {
+        // @Cleanup We could use run directive here to get constant strings
+        using clip_ranges[it];
+        glUniform3f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
+        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].min", it))), xx min);
+        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].max", it))), xx max);
+        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
+    }
+}
+
+set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info, prev_sphere := true) {
+    {
+        using clip_sphere;
+        glUniform3f(glGetUniformLocation(shader, "clip_sphere.center"), center.x, center.y, center.z);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere.radius"), xx radius);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere.is_active"), xx is_active);
+    }
+
+    if prev_sphere {
+        using clip_sphere_prev;
+        glUniform3f(glGetUniformLocation(shader, "clip_sphere_prev.center"), center.x, center.y, center.z);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.radius"), xx radius);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.is_active"), xx is_active);
+    }
+}
 
 

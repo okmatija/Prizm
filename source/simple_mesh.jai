@@ -316,6 +316,24 @@ Simple_Mesh_Attribute :: struct (Value_Type : Type, Element_Kind : Simple_Mesh_E
     values : [..]Value_Type;
 }
 
+Matrix3x2 :: struct {
+    _11, _12, _13 : float;
+    _21, _22, _23 : float;
+
+    #place _11; v:      [2]    Vector3 = ---; // These are row vectors.
+    #place _11; coef:   [2][3] float   = ---;
+    #place _11; floats: [6]    float   = ---;
+
+    Row_Type    :: Vector3;
+    Column_Type :: Vector2;
+
+    IsMatrixFromMathModule :: false;
+} 
+
+SEGMENT_NORMALS_ATTRIBUTE_NAME :: "Obj Segment Normals";
+TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals"; // nocommit use this
+
+Simple_Mesh_Segment_Normals :: Simple_Mesh_Attribute(Matrix3x2, .SEGMENT);
 Simple_Mesh_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
 Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
 
