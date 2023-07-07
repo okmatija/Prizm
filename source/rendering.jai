@@ -361,16 +361,16 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
 
     maybe_update_render_info(render_info, mesh);
 
-    glUseProgram(app.normals_program);
+    glUseProgram(app.triangle_normals_program);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(app.normals_program, mesh.world_from_model);
-    set_clip_ranges_uniforms(app.normals_program, display_info);
-    set_clip_sphere_uniforms(app.normals_program, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
-    glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
+    set_model_view_projection_uniforms(app.triangle_normals_program, mesh.world_from_model);
+    set_clip_ranges_uniforms(app.triangle_normals_program, display_info);
+    set_clip_sphere_uniforms(app.triangle_normals_program, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(app.triangle_normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
+    glUniform1f(glGetUniformLocation(app.triangle_normals_program, "normal_length"), normals_length);
 
-    glBindVertexArray(app.normals_vao);
+    glBindVertexArray(app.triangle_normals_vao);
     glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
 
     ATTRIB_POSITION  :: 0;
@@ -1266,6 +1266,12 @@ render_background :: () {
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            /* nocommit This line triggers, will it go away if we use GL_TRIANGLES? But why??
+
+OGL: type = performance; source = API; id = 131218; severity = medium
+OGL: message = Program/shader state performance warning: Fragment shader in program 19 is being recompiled based on GL state.
+
+            */
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 }

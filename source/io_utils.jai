@@ -76,30 +76,32 @@ obj_value :: (array : []$T, obj_index : Obj_Index, fallback : T) -> is_fallback 
     return true, fallback;
 }
 
-Obj_Face :: struct {
+// @continue The following code should be reused/renamed so it applies to a list of points for point cloud/polyline/polygon
+
+Obj_Vertex_References :: struct {
     indices : [..]Obj_Index;
     texture : [..]Obj_Index;
     normal  : [..]Obj_Index;
 }
 
-parse_face :: (p : *Parser) -> Obj_Face {
-    face : Obj_Face;
+parse_vertex_references :: (p : *Parser) -> Obj_Vertex_References {
+    refs : Obj_Vertex_References;
 
     current_line := peek_token(p).line_number;
     while peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
-        array_add(*face.indices, parse_obj_index(p));
+        array_add(*refs.indices, parse_obj_index(p));
         slash : bool = eat_possible_token(p, #char "/");
         if slash {
             slash = eat_possible_token(p, #char "/");
             if slash {
                 // case v//vn
-                array_add(*face.normal, parse_obj_index(p));
+                array_add(*refs.normal, parse_obj_index(p));
             } else {
-                array_add(*face.texture, parse_obj_index(p));
+                array_add(*refs.texture, parse_obj_index(p));
                 slash = eat_possible_token(p, #char "/");
                 if slash {
                     // case v/vt/vn
-                    array_add(*face.normal, parse_obj_index(p));
+                    array_add(*refs.normal, parse_obj_index(p));
                 } else {
                     // case v/vt
                     // do nothing, already parsed v and vt
@@ -110,7 +112,7 @@ parse_face :: (p : *Parser) -> Obj_Face {
             continue;
         }
     }
-    return face;
+    return refs;
 }
 
 parse_polyline :: (p : *Parser) -> [..]Obj_Index {

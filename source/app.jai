@@ -58,9 +58,8 @@ App :: struct {
     simple_mesh_vao : GLuint;
 
     // For rendering the triangle normals attribute
-    // nocommit rename to add triangle_ prefix
-    normals_program : GLuint;
-    normals_vao : GLuint;
+    triangle_normals_program : GLuint;
+    triangle_normals_vao : GLuint;
 
     aabb_program : GLuint;
     aabb_vao : GLuint;

@@ -147,6 +147,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "p") {
 
+            // @FIXME Support texture vertices here? or log warning and ignore?
             // @FIXME Support multiple indices on one line here
 
             missing, index := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
@@ -169,10 +170,11 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
-            // @FIXME Support texture vertices here 
+            // @FIXME Support texture vertices here? or log warning and ignore?
+            // @FIXME Check other error conditions
 
-            polyline : [..]Obj_Index = parse_polyline(*parser);
-            if polyline.count < 2 { // @FIXME Check other error conditions
+            refs : Obj_Vertex_References = parse_vertex_references(*parser);
+            if refs.indices.count < 2 {
                 log_warning("Ignoring invalid l-directive on line %\n", current_line);
                 // Do not error here! 
             } else {
@@ -190,14 +192,34 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
-                for i : 0..polyline.count-2 {
-                    missing1, index1 := obj_index(mesh.positions.count, polyline[i], MISSING_VERTEX_INDEX);
-                    if missing1 missing_vertices_count += 1;
+                for i : 0..refs.indices.count-1-1 {
+                    vids : [2]int;
+                    vids[0] = i;
+                    vids[1] = i + 1;
 
-                    missing2, index2 := obj_index(mesh.positions.count, polyline[i+1], MISSING_VERTEX_INDEX);
-                    if missing2 missing_vertices_count += 1;
+                    if refs.normal.count {
+                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
+                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
+                        vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(*result.mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+                        normals : *Matrix3x2 = array_add(*vn.values);
+                        for i : 0..1 {
+                            missing : bool;
+                            missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
+                            if missing {
+                                missing_normals_count += 1;
+                            }
+                        }
+                    }
+                    
+                    // Add the segment before the annotation
+                    element : Tuple2(u32) = ---;
+                    for i : 0..1 {
+                        missing, index := obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
+                        if missing missing_vertices_count += 1;
 
-                    array_add(*mesh.segments, make_Tuple2(index1, index2));
+                        element.component[i] = index;
+                    }
+                    array_add(*mesh.segments, element);
 
                     // After adding the segment we can add the annotation
                     if has_annotation {
@@ -213,8 +235,8 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "f") {
 
-            face : Obj_Face = parse_face(*parser);
-            if face.indices.count < 3 { // @FIXME Check other error conditions
+            refs : Obj_Vertex_References = parse_vertex_references(*parser);
+            if refs.indices.count < 3 { // @FIXME Check other error conditions
                 log_warning("Ignoring invalid f-directive on line %\n", current_line);
                 // Do not error here! 
             } else {
@@ -231,20 +253,20 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
-                for f : 0..face.indices.count-2-1 {
+                for f : 0..refs.indices.count-2-1 {
                     vids : [3]int;
                     vids[0] = 0;
                     vids[1] = f + 1;
                     vids[2] = f + 2;
 
-                    if face.normal.count {
+                    if refs.normal.count {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
                         vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(*result.mesh, "vn", Simple_Mesh_Normals);
                         normals : *Matrix3 = array_add(*vn.values);
                         for i : 0..2 {
                             missing : bool;
-                            missing, normals.v[i] = obj_value(scratch_vn, face.normal[vids[i]], MISSING_NORMAL_FALLBACK);
+                            missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
                                 missing_normals_count += 1;
                             }
@@ -254,10 +276,8 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     // Add the triangle before the annotation
                     triangle_tuple : Tuple3(u32) = ---;
                     for i : 0..2 {
-                        missing, index := obj_index(mesh.positions.count, face.indices[vids[i]], MISSING_VERTEX_INDEX);
-                        if missing {
-                            missing_vertices_count += 1;
-                        }
+                        missing, index := obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
+                        if missing missing_vertices_count += 1;
 
                         triangle_tuple.component[i] = index;
                     }

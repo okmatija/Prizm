@@ -3,8 +3,8 @@
 #ifndef PRISM_UNREAL_API
 #define PRISM_UNREAL_API
 
-// #include <CoreMinimal.h>
-#include <VectorTypes.h>
+#include <CoreMinimal.h> // FString
+#include <VectorTypes.h> // nocommit What for?
 
 // We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
@@ -47,42 +47,63 @@ namespace Prism
 
 bool DocumentationForUnreal(bool bWriteFiles)
 {
-	using namespace Prism;
-	Prism::Obj Obj;
+	// This block shows how to work with Unreal vector types
+	{
+		using namespace Prism;
+		Prism::Obj Obj;
 
-	// Define some Unreal data types
-	FVector   A(0,0,1),  B(1,0,1),  C(0,1,1);
-	FVector3f D(0,0,2),  E(1,0,2),  F(0,1,2);
-	FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
+		// Define some Unreal data types
+		FVector   A(0,0,1),  B(1,0,1),  C(0,1,1);
+		FVector3f D(0,0,2),  E(1,0,2),  F(0,1,2);
+		FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
 
-	// This is the recommended way of passing Unreal vectors to the Prism::Obj API
-	Obj.triangle3(V3(A), V3(B), V3(C)).newline();
+		// This is the recommended way of passing Unreal vectors to the Prism::Obj API
+		Obj.triangle3(V3(A), V3(B), V3(C)).newline();
 
-	// You could also do the following but in this case you will need to specify the template parameter, this is
-	// sometimes more convenient than wrapping everything in a V3
-	Obj.triangle3<float>(D, E, F).newline();
+		// You could also do the following but in this case you will need to specify the template parameter, this is
+		// sometimes more convenient than wrapping everything in a V3
+		Obj.triangle3<float>(D, E, F).newline();
 
-	// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
-	// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
-	Obj.v().insert(V3(G)).newline();
-	Obj.v().insert(V3(H)).newline();
-	Obj.v().insert(V3(I)).newline();
-	Obj.triangle();
+		// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
+		// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
+		Obj.v().insert(V3(G)).newline();
+		Obj.v().insert(V3(H)).newline();
+		Obj.v().insert(V3(I)).newline();
+		Obj.triangle();
 
-	// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
-	//Obj.v().insert(I).newline();
+		// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
+		//Obj.v().insert(I).newline();
 
-	// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
-	// so both of the following work:
-	Obj.set_vertex_label_color(FColor::Red);
-	Obj.set_triangle_label_color(Color(FColor::Blue)); // Works, but redundant and verbose
+		// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
+		// so both of the following work:
+		Obj.set_vertex_label_color(FColor::Red);
+		Obj.set_triangle_label_color(Color(FColor::Blue)); // Works, but redundant and verbose
 
-	Obj.set_vertex_index_labels_visible(true);
-	Obj.set_triangle_index_labels_visible(true);
+		Obj.set_vertex_index_labels_visible(true);
+		Obj.set_triangle_index_labels_visible(true);
 
-	if (bWriteFiles) {
-		Obj.write("prism_DocumentationForUnreal.obj");
+		if (bWriteFiles) {
+			Obj.write("prism_DocumentationForUnreal_Ex1.obj");
+		}
 	}
+
+	// This is a handy way to write FStrings to files in Unreal
+	{
+		FString Data;
+		Data += "Here";
+		Data += "Comes";
+		Data += "Some Data";
+		if (bWriteFiles) {
+			Prism::Obj().add(std::string(TCHAR_TO_UTF8(*Data))).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
+		}
+	}
+
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+	// This block shows some of the provided functions for Geometry Core
+	{
+		// nocommit
+	}
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
 	return true;
 }
@@ -363,7 +384,7 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1);
 			}
 		}
-		Result.annotation("TID").insert(*InMeshTID0).newline();
+		Result.annotation("TID").insert(*InMeshTID0).newline(); // nocommit This should be an option, and by default it should be off
 	}
 
 	// Set some useful item state in Prism via command annotations

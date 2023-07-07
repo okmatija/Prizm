@@ -336,6 +336,8 @@ set_visible :: (id : int, visible : int) {
 
 // visible is a boolean
 set_annotations_visible :: (id : int, visible : int) {
+    compiler_report(#file, #line, 0, "nocommit: set_annotations should set all annotation", mode = .ERROR_CONTINUABLE);
+
     if !check_geometry_index(id) return;
     entity := app.entities[id];
 
@@ -348,6 +350,8 @@ set_annotations_visible :: (id : int, visible : int) {
 } @RegisterCommand
 
 set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
+    compiler_report(#file, #line, 0, "nocommit: set_annotations should set all annotation", mode = .ERROR_CONTINUABLE);
+
     if !check_geometry_index(id) return;
     entity := app.entities[id];
 
