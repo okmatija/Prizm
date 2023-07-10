@@ -151,10 +151,21 @@ deinit :: (using entity : *Entity) {
             free(source.console_command);
     }
 
-    // Remove data from gpu memory as well
-    if render_info.triangles_vbo glDeleteBuffers(1, *render_info.triangles_vbo);
-    if render_info.segments_vbo  glDeleteBuffers(1, *render_info.segments_vbo);
-    if render_info.points_vbo    glDeleteBuffers(1, *render_info.points_vbo);
+    if render_info.positions_vbo         glDeleteBuffers(1, *render_info.positions_vbo);
+    if render_info.positions_vao         glDeleteVertexArrays(1, *render_info.positions_vao);
+
+    if render_info.points_vbo            glDeleteBuffers(1, *render_info.points_vbo);
+    if render_info.points_vao            glDeleteVertexArrays(1, *render_info.points_vao);
+
+    if render_info.segments_vbo          glDeleteBuffers(1, *render_info.segments_vbo);
+    if render_info.segments_vao          glDeleteVertexArrays(1, *render_info.segments_vao);
+    if render_info.segments_normals_vao  glDeleteVertexArrays(1, *render_info.segments_normals_vao);
+
+    if render_info.triangles_vbo         glDeleteBuffers(1, *render_info.triangles_vbo);
+    if render_info.triangles_vao         glDeleteVertexArrays(1, *render_info.triangles_vao);
+    if render_info.triangles_edges_vao   glDeleteVertexArrays(1, *render_info.triangles_edges_vao);
+    if render_info.triangles_normals_vao glDeleteVertexArrays(1, *render_info.triangles_normals_vao);
+
     render_info = .{};
 }
 

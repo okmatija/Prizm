@@ -80,9 +80,19 @@ Render_Info :: struct {
     // @Memory Remove the positions_vbo. It doubles the memory requirement, and adds a bunch of complexity. A better solution would be to points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
 
     positions_vbo : GLuint;
+    positions_vao : GLuint;         // For rendering positions as squares
+
     points_vbo : GLuint;
+    points_vao : GLuint;            // For rendering points as squares
+
     segments_vbo : GLuint;
+    segments_vao : GLuint;          // For rendering segments as lines
+    segments_normals_vao : GLuint;  // For rendering segment normals as lines
+
     triangles_vbo : GLuint;
+    triangles_vao : GLuint;         // For rendering triangles
+    triangles_edges_vao : GLuint;   // For rendering triangles as lines (wireframe)
+    triangles_normals_vao : GLuint; // For rendering triangle normals as lines
 
     // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
     // @Cleanup Use a Box_Sphere here
@@ -254,8 +264,10 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
     return false;
 }
 
+// nocommit Only set the GLuints when something may be drawn, also update the rendering code to only render things which are non-empty as well
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
+        defer info.is_dirty = false;
 
         // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
         // point_type : Type = get_type(type_info(mesh.points).element_type);
@@ -285,6 +297,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             }
 
             vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
+            assert(vn != null);
             if mesh.triangles.count && !vn.values.count {
                 // log("Computing and assigning triangle normals to vertices\n");
                 success, failure_reason := compute_vertex_normals_from_triangles(mesh);
@@ -294,7 +307,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             }
 
             NP := 3 * size_of(Vector3) * mesh.triangles.count;
-            NN := ifx vn then size_of(Matrix3) * mesh.triangles.count else 0;
+            NN := size_of(Matrix3) * mesh.triangles.count;
 
             glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
             glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
@@ -315,9 +328,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             // @Incomplete Add normals to segments
 
             vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
-            NN := ifx mesh.segments.count && !vn.values.count then vn.values.count else 0;
+            assert(vn != null);
 
             NP := 2 * size_of(Vector3) * mesh.segments.count;
+            NN := size_of(Matrix3x2) * mesh.segments.count;
+
             glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
             glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
@@ -335,6 +350,8 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
             // @Incomplete Does obj format support oriented points? I guess we can just support that anyway. 
 
+            // nocommit Support oriented point clouds p 1//2 2//3 4//5 ...
+
             NP := size_of(Vector3) * mesh.points.count;
 
             glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
@@ -349,40 +366,92 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
         }
+    
+        if !info.positions_vao {
+            glGenVertexArrays(1, *info.positions_vao);
+            glBindVertexArray(info.positions_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+        }
 
-        info.is_dirty = false;
-    }
+        if !info.points_vao {
+            glGenVertexArrays(1, *info.points_vao);
+            glBindVertexArray(info.points_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+        }
+
+        if !info.segments_vao {
+            glGenVertexArrays(1, *info.segments_vao);
+            glBindVertexArray(info.segments_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+        }
+
+        if !info.segments_normals_vao {
+            glGenVertexArrays(1, *info.segments_normals_vao);
+            glBindVertexArray(info.segments_normals_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+
+            NP := 2 * size_of(Vector3) * mesh.segments.count;
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glEnableVertexAttribArray(ATTRIB_NORMAL);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+        }
+
+        if !info.triangles_vao {
+            glGenVertexArrays(1, *info.triangles_vao);
+            glBindVertexArray(info.triangles_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+
+            NP := size_of(Vector3) * mesh.positions.count;
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glEnableVertexAttribArray(ATTRIB_NORMAL);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+        }
+
+        if !info.triangles_edges_vao {
+            glGenVertexArrays(1, *info.triangles_edges_vao);
+            glBindVertexArray(info.triangles_edges_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+        }
+
+        if !info.triangles_normals_vao {
+            glGenVertexArrays(1, *info.triangles_normals_vao);
+            glBindVertexArray(info.triangles_normals_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+
+            NP := 3 * size_of(Vector3) * mesh.triangles.count;
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glEnableVertexAttribArray(ATTRIB_NORMAL);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+        }
+
+    } // end if info.is_dirty
 }
 
 // @Cleanup consolidate this
-// nocommit rename to render_triangle_normals
-render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_triangle_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
     if !normals_visible return;
 
     maybe_update_render_info(render_info, mesh);
 
-    glUseProgram(app.triangle_normals_program);
+    glUseProgram(app.triangles_normal_program);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(app.triangle_normals_program, mesh.world_from_model);
-    set_clip_ranges_uniforms(app.triangle_normals_program, display_info);
-    set_clip_sphere_uniforms(app.triangle_normals_program, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(app.triangle_normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
-    glUniform1f(glGetUniformLocation(app.triangle_normals_program, "normal_length"), normals_length);
-
-    glBindVertexArray(app.triangle_normals_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
-
-    ATTRIB_POSITION  :: 0;
-    ATTRIB_NORMAL    :: 1;
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    NP := 3 * size_of(Vector3) * mesh.triangles.count;
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0); // nocommit make all these nulls cast(*void)0
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+    set_model_view_projection_uniforms(app.triangles_normal_program, mesh.world_from_model);
+    set_clip_ranges_uniforms(app.triangles_normal_program, display_info);
+    set_clip_sphere_uniforms(app.triangles_normal_program, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(app.triangles_normal_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
+    glUniform1f(glGetUniformLocation(app.triangles_normal_program, "normal_length"), normals_length);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -390,7 +459,37 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
+    glBindVertexArray(render_info.triangles_normals_vao);
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
+}
+
+render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+    // @CompilerBug Add a return here and observe a compilation failure with message:
+    // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prism/.build/Prism_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
+
+    if !normals_visible return;
+
+
+    maybe_update_render_info(render_info, mesh);
+
+    program := app.segments_normal_program;
+    glUseProgram(program);
+
+    // @Incomplete handle wave?
+    set_model_view_projection_uniforms(program, mesh.world_from_model);
+    set_clip_ranges_uniforms(program, display_info);
+    set_clip_sphere_uniforms(program, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
+    glUniform1f(glGetUniformLocation(program, "normal_length"), normals_length);
+
+    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    glBindVertexArray(render_info.segments_normals_vao);
+    glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
@@ -422,14 +521,16 @@ render_mesh_positions :: (
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe, positions_vbo);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
     size := ifx clip_radius_mode_show_wireframe then 2 else positions_size;
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx size);
+    glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx size);
 
     color := ifx clip_radius_mode_show_wireframe then BLACK else positions_color;
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), color.x, color.y, color.z, color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), color.x, color.y, color.z, color.w);
 
+    glBindVertexArray(render_info.positions_vao);
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
@@ -446,14 +547,16 @@ render_mesh_points :: (
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe, render_info.points_vbo);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
     used_points_size := ifx clip_radius_mode_show_wireframe then 2 else points_size;
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx used_points_size);
+    glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx used_points_size);
 
     used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else points_color;
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
 
+    glBindVertexArray(render_info.points_vao);
     glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
 }
 
@@ -466,7 +569,8 @@ render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, 
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode, render_info.segments_vbo);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode);
 
     used_segments_width := ifx clip_radius_mode then 1. else segments_width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
@@ -474,10 +578,11 @@ render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, 
         glLineWidth(xx used_segments_width);
     }
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), segments_color.x, segments_color.y, segments_color.z, segments_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), segments_color.x, segments_color.y, segments_color.z, segments_color.w);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
 
+    glBindVertexArray(render_info.segments_vao);
     glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
@@ -500,7 +605,8 @@ render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Ren
         return;
     }
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe, render_info.triangles_vbo);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
     used_edges_width := max(edges_width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
@@ -508,9 +614,10 @@ render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Ren
     // See also glEnable(GL_LINE_SMOOTH);
     glLineWidth(xx used_edges_width);
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glBindVertexArray(render_info.triangles_edges_vao);
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
@@ -527,46 +634,30 @@ render_mesh_triangles :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    glUseProgram(app.mesh_program);
+    program := app.triangles_program;
+    glUseProgram(program);
 
-    set_model_view_projection_uniforms(app.mesh_program, mesh.world_from_model);
-    set_hover_flash_uniform(app.mesh_program, display_info);
-    set_clip_ranges_uniforms(app.mesh_program, display_info);
-    set_clip_sphere_uniforms(app.mesh_program, display_info);
+    set_model_view_projection_uniforms(program, mesh.world_from_model);
+    set_hover_flash_uniform(program, display_info);
+    set_clip_ranges_uniforms(program, display_info);
+    set_clip_sphere_uniforms(program, display_info);
 
     look_direction := current_look_direction();
     used_edges_width := max(edges_width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
     used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
 
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx clip_radius_mode);
-    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
-    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
-    glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
-    glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
-    glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
-    glUniform1f(glGetUniformLocation(app.mesh_program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
+    glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
+    glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+    glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+    glUniform1i(glGetUniformLocation(program, "display_mode"), xx display_mode);
+    glUniform1i(glGetUniformLocation(program, "backface_mode"), xx backface_mode);
+    glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx flat_shading);
+    glUniform4f(glGetUniformLocation(program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
+    glUniform4f(glGetUniformLocation(program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
+    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
+    glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
-    glBindVertexArray(app.mesh_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, triangles_vbo);
-
-    // postion_loc = glGetAttribLocation()
-    ATTRIB_POSITION  :: 0;
-    ATTRIB_NORMAL    :: 1;
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    // ATTRIB_TEXCOORDS :: 1;
-    // ATTRIB_COLOR     :: 2;
-
-    NP := size_of(Vector3) * mesh.positions.count;
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -576,43 +667,25 @@ render_mesh_triangles :: (
     glBlendEquation(GL_FUNC_ADD);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glBindVertexArray(render_info.triangles_vao);
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 // @Cleanup Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
-// nocommit Cleanup the vbo and attribute pointer stuff
-render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool, vbo : GLuint) {
+render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_Info, clip_radius_mode : bool) {
 
-    maybe_update_render_info(render_info, mesh);
-
-    glUseProgram(app.simple_mesh_program);
+    program := app.points_lines_program;
+    glUseProgram(program);
 
     // @Cleanup Why is this different to e.g., normals
     used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
 
-    set_model_view_projection_uniforms(app.simple_mesh_program, mesh.world_from_model);
-    set_hover_flash_uniform(app.simple_mesh_program, display_info);
-    set_clip_ranges_uniforms(app.simple_mesh_program, display_info);
-    set_clip_sphere_uniforms(app.simple_mesh_program, display_info, prev_sphere=false);
-    glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx used_clip_mode);
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx points_size);
-
-    glBindVertexArray(app.simple_mesh_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    ATTRIB_POSITION  :: 0;
-    ATTRIB_NORMAL    :: 1;
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    // ATTRIB_TEXCOORDS :: 1;
-    // ATTRIB_COLOR     :: 2;
-
-    NP := size_of(Vector3) * mesh.positions.count;
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+    set_model_view_projection_uniforms(program, mesh.world_from_model);
+    set_hover_flash_uniform(program, display_info);
+    set_clip_ranges_uniforms(program, display_info);
+    set_clip_sphere_uniforms(program, display_info, prev_sphere=false);
+    glUniform1i(glGetUniformLocation(program, "clip_mode"), xx used_clip_mode);
+    glUniform1f(glGetUniformLocation(program, "point_size"), xx points_size);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -709,10 +782,11 @@ render_entities :: () {
 
         render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
         render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_triangle_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
 
         if di.aabb_visible {
             render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
@@ -1171,9 +1245,10 @@ render_selections :: () {
     render_mesh_positions(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_points(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_segments(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_segment_normals(mesh, *entity.render_info, entity.display_info);
     render_mesh_triangles_as_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
-    render_normals(mesh, *entity.render_info, entity.display_info);
+    render_mesh_triangle_normals(mesh, *entity.render_info, entity.display_info);
 
     projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
 
@@ -1402,4 +1477,8 @@ set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info,
     }
 }
 
-
+// @Cleanup replace this with: postion_loc = glGetAttribLocation()
+ATTRIB_POSITION  :: 0;
+ATTRIB_NORMAL    :: 1;
+// ATTRIB_TEXCOORDS :: 2;
+// ATTRIB_COLOR     :: 3;

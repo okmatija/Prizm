@@ -49,20 +49,11 @@ App :: struct {
     text_vao : GLuint;
     text_vbo : GLuint;
 
-    // For triangle and solid wireframe rendering (anti-aliased triangle edges rendered on the actual triangle faces)
-    mesh_program : GLuint;
-    mesh_vao : GLuint;
-
-    // For point and line rendering
-    simple_mesh_program : GLuint;
-    simple_mesh_vao : GLuint;
-
-    // For rendering the triangle normals attribute
-    triangle_normals_program : GLuint;
-    triangle_normals_vao : GLuint;
-
     aabb_program : GLuint;
-    aabb_vao : GLuint;
+    triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
+    points_lines_program : GLuint;
+    triangles_normal_program : GLuint;
+    segments_normal_program : GLuint;
 
     Background_Style :: enum #specified {
         SOLID_COLOR :: 0;

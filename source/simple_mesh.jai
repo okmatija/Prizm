@@ -296,6 +296,7 @@ Simple_Mesh_Attribute_Base :: struct {
         theme : Attribute_Theme;
     }
 
+    // nocommit Remove this? Think about how attributes should be rendered, study the implementation in polyscope?
     // Rendering of attributes is @Incomplete
     Attribute_Render_Info :: struct {
         buffer : GLuint;
@@ -377,7 +378,7 @@ find_or_add_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $at
     return found;
 }
 
-//
+
 // Element/Vertex accessors
 //
 

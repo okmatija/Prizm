@@ -59,52 +59,44 @@ main :: () {
     }
 
     {
-        // @Cleanup This shader is used for point/segment rendering only, rename it!
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/simple_mesh.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/simple_mesh.frag"); #assert(FRAG_OK);
-        app.simple_mesh_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.simple_mesh_vao);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
+        app.points_lines_program = get_shader_program(VERT, FRAG);
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/mesh.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/mesh.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/mesh.frag"); #assert(FRAG_OK);
-        app.mesh_program = get_shader_program(VERT, FRAG, GEOM);
-        glGenVertexArrays(1, *app.mesh_vao);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/triangles.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
+        app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangle_normals.geom"); #assert(GEOM_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.triangle_normals_program = get_shader_program(VERT, FRAG, GEOM);
-        glGenVertexArrays(1, *app.triangle_normals_vao);
+        app.triangles_normal_program = get_shader_program(VERT, FRAG, GEOM);
     }
 
-    // nocommit implement this
-    // {
-    //     VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-    //     GEOM, GEOM_OK :: #run read_entire_file("source/shaders/segment_normals.geom"); #assert(GEOM_OK);
-    //     FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-    //     app.segment_normals_program = get_shader_program(VERT, FRAG, GEOM);
-    //     glGenVertexArrays(1, *app.segment_normals_vao);
-    // }
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.segments_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
 
     // nocommit implement this
     // {
     //     VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
     //     GEOM, GEOM_OK :: #run read_entire_file("source/shaders/point_normals.geom"); #assert(GEOM_OK);
     //     FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-    //     app.normals_program = get_shader_program(VERT, FRAG, GEOM);
-    //     glGenVertexArrays(1, *app.point_normals_vao);
+    //     app.point_normals_program = get_shader_program(VERT, FRAG, GEOM);
     // }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/aabb.frag"); #assert(FRAG_OK);
         app.aabb_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.aabb_vao);
     }
 
     {
