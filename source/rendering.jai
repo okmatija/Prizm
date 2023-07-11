@@ -72,30 +72,32 @@ Clip_Mode :: enum #specified {
 }
 
 // Things that needs updating when the geometry changes
-// @Cleanup Consider moving the is_dirty flag and bounding geometry data into the entity or mesh
 Render_Info :: struct {
     is_dirty := true;
 
-    // @Speed Use a single vertex buffer object here. Store/compute the start point for each element type
-    // @Memory Remove the positions_vbo. It doubles the memory requirement, and adds a bunch of complexity. A better solution would be to points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
-
+    // For rendering obj v-directive data
+    // @Cleanup Remove the positions_vbo. It doubles the memory requirement and adds complexity. We can just add points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
     positions_vbo : GLuint;
-    positions_vao : GLuint;         // For rendering positions as squares
+    positions_vao : GLuint;
 
+    // For rendering obj p-directive data
     points_vbo : GLuint;
-    points_vao : GLuint;            // For rendering points as squares
+    points_vao : GLuint;
 
+    // For rendering obj l-directive data
     segments_vbo : GLuint;
-    segments_vao : GLuint;          // For rendering segments as lines
-    segments_normals_vao : GLuint;  // For rendering segment normals as lines
+    segments_vao : GLuint;
+    segments_normals_vao : GLuint;
 
+    // For rendering obj f-directive data
     triangles_vbo : GLuint;
-    triangles_vao : GLuint;         // For rendering triangles
-    triangles_edges_vao : GLuint;   // For rendering triangles as lines (wireframe)
-    triangles_normals_vao : GLuint; // For rendering triangle normals as lines
+    triangles_vao : GLuint;
+    triangles_edges_vao : GLuint;
+    triangles_normals_vao : GLuint;
 
     // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
     // @Cleanup Use a Box_Sphere here
+    // @Cleanup Consider moving this into the mesh
     bounding_sphere : Sphere;
     bounding_aabb : AxisBox3;
 }

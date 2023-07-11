@@ -22,8 +22,14 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
   - Added a function to create an Obj from UE::Geometry::TDynamicMeshOverlay. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
 
 - Replaced the single annotations settings which affected all annotations with separate settings for vertices/points/segments/triangles
-  - This change means it makes sense to consolidated the "Rendering" and "Labeling" into a single "Rendering and Labeling" section with sub-sections for vertices and point/segment/triangle elements
-- Added support for faces like `f i//a j//b k//c` with i,j,k != a,b,c
+
+  - TODOOO This change means it makes sense to consolidated the old "Rendering" and "Labeling" sections of the Detail panel into sub-sections of separate "Vertices", "Points", "Segments", "Triangles" sections
+
+- Improved support for normals in obj files:
+
+  - Added support for `f i//a j//b k//c` where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
+  - Added support for `l i//a j//b k//c` a.k.a oriented polylines
+  - Added support for `p i//a j//b k//c` a.k.a oriented point clouds
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

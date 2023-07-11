@@ -73,6 +73,224 @@ show_right_window :: () {
     show_camera_controls();
 }
 
+show_item_list_actions_ui :: () {
+    // Hide buttons with no selection. See :DisableUpdateButtonsIfNoSelection 
+    if app.console.show_ui || count_selected_entities() == 0{
+        return;
+    }
+
+    // Try actions buttons on the bottom by the console
+    {
+        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+
+        console_top_y := app.current_window_height * .6;
+        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
+        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
+        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
+
+        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
+        if true {
+            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
+            // window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
+            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
+            window_flags |= .NoBackground;          // Makes the console log transparent
+        }
+
+        ImGui.Begin("target_items_ribbon", flags=window_flags);
+        defer ImGui.End();
+
+        ActionButton("Backface",       *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
+        ActionButton("Opacity",        *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
+        ActionButton("Clipping",       *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
+        ActionButton("Normals",        *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
+        ActionButton("Line Width",     *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
+        ActionButton("Vertex Size",    *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
+        ActionButton("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
+        ActionButton("Vertex Labels",  *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
+        ActionButton("Annotations",    *CYCLE_ANNOTATION_ACTION_SET);
+    }
+}
+
+show_pending_directories_ui :: () {
+    if app.pending_directories.count == 0 {
+        return;
+    }
+
+    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
+
+    if dir.loadable_files.count == 0 {
+        // Just watch the directory
+        new_folder : *app.Folder = add_directory(dir.path);
+        new_folder.auto_load_new_files = dir.auto_load_new_files;
+        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+        return;
+    }
+
+    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
+    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
+
+    // @Incomplete Could have a policy to just load everything rather than ask?
+
+    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags=window_flags);
+    defer ImGui.End();
+
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
+
+    ImGui.Text("Select files to load in:");
+    ImGui.SameLine();
+    ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
+    ImGui.Text(dir.path);
+    ImGui.PopStyleColor();
+
+    table_flags := ImGui.TableFlags.RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
+     | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
+     | .ScrollY; // Without this option the outer_size argument is ignored
+
+    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
+    outer_size := make_ImVec2(0, 400);
+    if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
+        defer ImGui.EndTable();
+
+        ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
+        ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
+        ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
+        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthFixed, 60);
+        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+        ImGui.TableHeadersRow();
+
+        // Sort our data if sort specs have been changed!
+        sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
+        if sort_specs && sort_specs.SpecsDirty {
+            if sort_specs.SpecsCount > 0 {
+                specs : []ImGui.TableColumnSortSpecs;
+                specs.data = sort_specs.Specs;
+                specs.count = sort_specs.SpecsCount;
+                for spec : specs { // @CompilerBug Should using work on a for loop?
+                    // @Cleanup Use a enum id here, ImGui has support for it
+                    direction := spec.SortDirection_;
+                    if spec.SortDirection_ == .Ascending {
+                        if spec.ColumnIndex == {
+                            case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                            case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
+                            case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                        }
+                    } else {
+                        if spec.ColumnIndex == {
+                            case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                            case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
+                            case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                        }
+                    }
+                }
+            }
+            sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
+        }
+
+        for * :ListClipperIterator loadable_file : dir.loadable_files {
+            using loadable_file;
+
+            ImGui.TableNextColumn();
+            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+
+            ImGui.TableNextColumn();
+            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
+
+            size, unit := readable_memory_size_decimal(size_in_bytes);
+            size_with_unit : string;
+            if      size < 10  size_with_unit = tprint("  % %", size, unit);
+            else if size < 100 size_with_unit = tprint( " % %", size, unit);
+            else               size_with_unit = tprint(  "% %", size, unit);
+            ImGui.TableNextColumn();
+            ImGui.Text(size_with_unit);
+
+            message : string;
+            ImGui.TableNextColumn();
+            if loadable_file.is_loaded {
+                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
+                message = "Already loaded";
+                ImGui.Text(message);
+                ImGui.PopStyleColor();
+            } else {
+                message = "(none)";
+                ImGui.TextDisabled(message);
+            }
+            show_tooltip(message);
+        }
+    }
+
+    if dir.unloadable_file_count {
+        ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
+    } 
+    
+    if ImGui.Button(imgui_label("Accept", xx *dir)) {
+
+        new_folder : *app.Folder = add_directory(dir.path);
+        new_folder.auto_load_new_files = dir.auto_load_new_files;
+        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+
+        for file : dir.loadable_files {
+            if !file.is_selected {
+                continue;
+            }
+
+            if file.is_loaded {
+                entity := find_entity(file.fully_pathed_filename, -1);
+                assert(entity != null);
+                reload_entity(entity);
+            } else {
+                // Note we use .IGNORE rather than app.settings.duplicate_file_behaviour here, the user can get the latter behaviour by dragging in files individually
+                entities := load_one_file(file.fully_pathed_filename, .IGNORE);
+                for entity : entities {
+                    add_entity(entity, .IGNORE); 
+                    source := isa(entity.source, Entity_Source_File);
+                    assert(source != null); // Expecte a file
+                    source.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
+                }
+            }
+        }
+
+        if app.settings.fit_to_screen_on_file_drop_event {
+            fit_scene_on_screen();
+        }
+
+        deinit(dir);
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+    show_tooltip("Load all selected/checked files");
+
+    ImGui.SameLine();
+
+    if ImGui.Button(imgui_label("Ignore", xx *dir)) {
+        deinit(dir);
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+    show_tooltip("Do not load any files");
+
+    ImGui.SameLine();
+
+    if app.pending_directories.count > 1 {
+        if ImGui.Button(imgui_label("Ignore All", xx *dir)) {
+            for *dir : app.pending_directories {
+                deinit(dir);
+            }
+            array_reset(*app.pending_directories);
+        }
+        show_tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
+    }
+}
+
+
+show_imgui_demo_window :: () {
+    if app.settings.show_imgui_demo_window {
+        ImGui.ShowDemoWindow(*app.settings.show_imgui_demo_window);
+    }
+}
+
+#scope_file
+
 show_prism_tab_ui :: () {
     show_tools_ui();
     show_items_ui();
@@ -1029,45 +1247,6 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
     }
 }
 
-
-show_item_list_actions_ui :: () {
-    // Hide buttons with no selection. See :DisableUpdateButtonsIfNoSelection 
-    if app.console.show_ui || count_selected_entities() == 0{
-        return;
-    }
-
-    // Try actions buttons on the bottom by the console
-    {
-        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
-
-        console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
-        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
-        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
-
-        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
-        if true {
-            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
-            // window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
-            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
-            window_flags |= .NoBackground;          // Makes the console log transparent
-        }
-
-        ImGui.Begin("target_items_ribbon", flags=window_flags);
-        defer ImGui.End();
-
-        ActionButton("Backface",       *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
-        ActionButton("Opacity",        *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
-        ActionButton("Clipping",       *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
-        ActionButton("Normals",        *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
-        ActionButton("Line Width",     *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
-        ActionButton("Vertex Size",    *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
-        ActionButton("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
-        ActionButton("Vertex Labels",  *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
-        ActionButton("Annotations",    *CYCLE_ANNOTATION_ACTION_SET);
-    }
-}
-
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
@@ -1369,188 +1548,6 @@ show_help_tab_ui :: () {
 
     // @Incomplete add a message about where the keymap is for editing
 }
-
-
-show_pending_directories_ui :: () {
-    if app.pending_directories.count == 0 {
-        return;
-    }
-
-    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
-
-    if dir.loadable_files.count == 0 {
-        // Just watch the directory
-        new_folder : *app.Folder = add_directory(dir.path);
-        new_folder.auto_load_new_files = dir.auto_load_new_files;
-        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
-        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
-        return;
-    }
-
-    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
-    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
-    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
-
-    // @Incomplete Could have a policy to just load everything rather than ask?
-
-    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags=window_flags);
-    defer ImGui.End();
-
-    // ScopedWindowBorderTheme(original_border_color, original_border_size);
-
-    ImGui.Text("Select files to load in:");
-    ImGui.SameLine();
-    ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
-    ImGui.Text(dir.path);
-    ImGui.PopStyleColor();
-
-    table_flags := ImGui.TableFlags.RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
-     | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
-     | .ScrollY; // Without this option the outer_size argument is ignored
-
-    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
-    outer_size := make_ImVec2(0, 400);
-    if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
-        defer ImGui.EndTable();
-
-        ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
-        ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
-        ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
-        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthFixed, 60);
-        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
-        ImGui.TableHeadersRow();
-
-        // Sort our data if sort specs have been changed!
-        sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
-        if sort_specs && sort_specs.SpecsDirty {
-            if sort_specs.SpecsCount > 0 {
-                specs : []ImGui.TableColumnSortSpecs;
-                specs.data = sort_specs.Specs;
-                specs.count = sort_specs.SpecsCount;
-                for spec : specs { // @CompilerBug Should using work on a for loop?
-                    // @Cleanup Use a enum id here, ImGui has support for it
-                    direction := spec.SortDirection_;
-                    if spec.SortDirection_ == .Ascending {
-                        if spec.ColumnIndex == {
-                            case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
-                            case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
-                            case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
-                        }
-                    } else {
-                        if spec.ColumnIndex == {
-                            case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
-                            case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
-                            case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
-                        }
-                    }
-                }
-            }
-            sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
-        }
-
-        for * :ListClipperIterator loadable_file : dir.loadable_files {
-            using loadable_file;
-
-            ImGui.TableNextColumn();
-            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
-
-            ImGui.TableNextColumn();
-            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
-
-            size, unit := readable_memory_size_decimal(size_in_bytes);
-            size_with_unit : string;
-            if      size < 10  size_with_unit = tprint("  % %", size, unit);
-            else if size < 100 size_with_unit = tprint( " % %", size, unit);
-            else               size_with_unit = tprint(  "% %", size, unit);
-            ImGui.TableNextColumn();
-            ImGui.Text(size_with_unit);
-
-            message : string;
-            ImGui.TableNextColumn();
-            if loadable_file.is_loaded {
-                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
-                message = "Already loaded";
-                ImGui.Text(message);
-                ImGui.PopStyleColor();
-            } else {
-                message = "(none)";
-                ImGui.TextDisabled(message);
-            }
-            show_tooltip(message);
-        }
-    }
-
-    if dir.unloadable_file_count {
-        ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
-    } 
-    
-    if ImGui.Button(imgui_label("Accept", xx *dir)) {
-
-        new_folder : *app.Folder = add_directory(dir.path);
-        new_folder.auto_load_new_files = dir.auto_load_new_files;
-        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
-
-        for file : dir.loadable_files {
-            if !file.is_selected {
-                continue;
-            }
-
-            if file.is_loaded {
-                entity := find_entity(file.fully_pathed_filename, -1);
-                assert(entity != null);
-                reload_entity(entity);
-            } else {
-                // Note we use .IGNORE rather than app.settings.duplicate_file_behaviour here, the user can get the latter behaviour by dragging in files individually
-                entities := load_one_file(file.fully_pathed_filename, .IGNORE);
-                for entity : entities {
-                    add_entity(entity, .IGNORE); 
-                    source := isa(entity.source, Entity_Source_File);
-                    assert(source != null); // Expecte a file
-                    source.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
-                }
-            }
-        }
-
-        if app.settings.fit_to_screen_on_file_drop_event {
-            fit_scene_on_screen();
-        }
-
-        deinit(dir);
-        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
-    }
-    show_tooltip("Load all selected/checked files");
-
-    ImGui.SameLine();
-
-    if ImGui.Button(imgui_label("Ignore", xx *dir)) {
-        deinit(dir);
-        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
-    }
-    show_tooltip("Do not load any files");
-
-    ImGui.SameLine();
-
-    if app.pending_directories.count > 1 {
-        if ImGui.Button(imgui_label("Ignore All", xx *dir)) {
-            for *dir : app.pending_directories {
-                deinit(dir);
-            }
-            array_reset(*app.pending_directories);
-        }
-        show_tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
-    }
-}
-
-
-
-show_imgui_demo_window :: () {
-    if app.settings.show_imgui_demo_window {
-        ImGui.ShowDemoWindow(*app.settings.show_imgui_demo_window);
-    }
-}
-
-#scope_file
 
 
 show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme) {
@@ -1923,18 +1920,25 @@ last_frame_annotation_list_height_px : float;
 
 
 show_rendering_and_labeling_ui :: (display_info : *Display_Info, entity_index : int) {
-   if ImGui.TreeNodeEx("Rendering and Labeling", .SpanAvailWidth) {
-       defer ImGui.TreePop();
-
-       show_rendering_positions_ui(display_info, entity_index);
-       show_rendering_points_ui(display_info);
-       show_rendering_segments_ui(display_info);
-       show_rendering_triangles_ui(display_info);
-    }
+    //if ImGui.TreeNodeEx("Rendering and Labeling", .SpanAvailWidth) {
+    //    defer ImGui.TreePop();
+    show_rendering_positions_ui(display_info, entity_index);
+    show_rendering_points_ui(display_info, entity_index);
+    show_rendering_segments_ui(display_info, entity_index);
+    show_rendering_triangles_ui(display_info, entity_index);
 }
 
 
-show_rendering_triangles_ui :: (display_info : *Display_Info) {
+show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.triangles.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Triangles (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
 
     if ImGui.TreeNodeEx("Triangles", .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -2013,7 +2017,16 @@ show_rendering_triangles_ui :: (display_info : *Display_Info) {
    }
 }
 
-show_rendering_segments_ui :: (display_info : *Display_Info) {
+show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.segments.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Segments (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
+
     if ImGui.TreeNodeEx("Segments", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
@@ -2044,7 +2057,16 @@ show_rendering_segments_ui :: (display_info : *Display_Info) {
     }
 }
 
-show_rendering_points_ui :: (display_info : *Display_Info) {
+show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.points.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Points (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
+
     if ImGui.TreeNodeEx("Points", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
@@ -2077,6 +2099,15 @@ show_rendering_points_ui :: (display_info : *Display_Info) {
 }
 
 show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.positions.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Vertices (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
+
     if ImGui.TreeNodeEx("Vertices", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
@@ -2250,8 +2281,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 }
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
-
-#scope_file
 
 display_action_buttons := true;
 
