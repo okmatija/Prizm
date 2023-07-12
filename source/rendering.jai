@@ -83,6 +83,7 @@ Render_Info :: struct {
     // For rendering obj p-directive data
     points_vbo : GLuint;
     points_vao : GLuint;
+    points_normals_vao : GLuint;
 
     // For rendering obj l-directive data
     segments_vbo : GLuint;
@@ -349,8 +350,6 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 array_add(*segment_positions, it.end);
             }
 
-            // @Incomplete Add normals to segments
-
             vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
             assert(vn != null);
 
@@ -372,15 +371,16 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 array_add(*point_positions, it);
             }
 
-            // @Incomplete Does obj format support oriented points? I guess we can just support that anyway. 
-
-            // nocommit Support oriented point clouds p 1//2 2//3 4//5 ...
+            vn : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+            assert(vn != null);
 
             NP := size_of(Vector3) * mesh.points.count;
+            NN := size_of(Vector3) * mesh.points.count;
 
             glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-            glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
+            glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
         }
 
         {
@@ -405,6 +405,18 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
             glEnableVertexAttribArray(ATTRIB_POSITION);
             glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+        }
+
+        if !info.points_normals_vao {
+            glGenVertexArrays(1, *info.points_normals_vao);
+            glBindVertexArray(info.points_normals_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+
+            NP := size_of(Vector3) * mesh.points.count;
+            glEnableVertexAttribArray(ATTRIB_POSITION);
+            glEnableVertexAttribArray(ATTRIB_NORMAL);
+            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
         }
 
         if !info.segments_vao {
@@ -516,7 +528,31 @@ render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render
     glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
-// nocommitttt render_mesh_point_normals
+render_mesh_point_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+
+    if !point_style.normal_style.visible return;
+
+    maybe_update_render_info(render_info, mesh);
+
+    p := app.points_normal_program;
+    glUseProgram(p);
+
+    // @Incomplete handle wave?
+    set_model_view_projection_uniforms(p, mesh.world_from_model);
+    set_clip_ranges_uniforms(p, display_info);
+    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(p, "normals_color"), point_style.normal_style.color.x, point_style.normal_style.color.y, point_style.normal_style.color.z, point_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_length"), point_style.normal_style.scale);
+
+    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    glBindVertexArray(render_info.points_normals_vao);
+    glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
+}
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glUseProgram(app.aabb_program);
@@ -812,6 +848,7 @@ render_entities :: () {
         render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
         render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_point_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
 
         if di.aabb_visible {
@@ -1267,9 +1304,9 @@ render_selections :: () {
     dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
     dummy_clip_radius_mode_show_wireframe := false; // @Incomplete Support this for the selection item when its the 0-th item?
 
-    // @Cleanup use ri and di aliases here
     render_mesh_positions(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_points(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_point_normals(*entity.mesh, *entity.render_info, entity.display_info); // Probably we want to pass clip_radius_mode here too?
     render_mesh_segments(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_segment_normals(mesh, *entity.render_info, entity.display_info);
     render_mesh_triangles_as_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);

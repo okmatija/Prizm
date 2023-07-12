@@ -72,6 +72,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         // array_free(scratch_vt);
     }
 
+    missing : bool;
     found_inf_or_nan : bool;
     missing_normals_count : int;
     missing_vertices_count : int;
@@ -148,24 +149,58 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         } else if eat_possible_identifier(*parser, "p") {
 
             // @FIXME Support texture vertices here? or log warning and ignore?
-            // @FIXME Support multiple indices on one line here
 
-            missing, index := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
-            array_add(*mesh.points, index);
-            if missing {
-                missing_vertices_count += 1;
-            }
+            refs : Obj_Vertex_References = parse_vertex_references(*parser);
+            if refs.indices.count < 1 {
+                log_warning("Ignoring invalid p-directive on line %\n", current_line);
+                // Do not error here! 
+            } else {
 
-            tok := peek_token(*parser);
-            if tok.type == .COMMENT && tok.line_number == current_line {
-                annotation : Annotation;
-                annotation.kind = .POINT;
-                annotation.id = mesh.points.count - 1;
-                if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
-                    array_add(*point_annotations, annotation);
+                tok := peek_token(*parser);
+                has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
+
+                // Parse annotation before adding faces so we add the annotation to each face
+                annotation_string : string;
+                if has_annotation {
+                    annotation_string = string_between_hashes(tok.string_value);
+                    if annotation_string.count == 0 {
+                        has_annotation = false;
+                    }
+                    eat_token(*parser);
                 }
 
-                eat_token(*parser);
+                for i : 0..refs.indices.count-1 {
+                    if refs.normal.count {
+                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
+                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
+                        vn : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(*result.mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+
+                        normal : *Vector3 = array_add(*vn.values);
+                        missing, <<normal = obj_value(scratch_vn, refs.normal[i], MISSING_NORMAL_FALLBACK);
+                        if missing {
+                            missing_normals_count += 1;
+                        }
+                    }
+                    
+                    // Add the point before the annotation
+                    {
+                        point : *u32 = array_add(*mesh.points);
+                        missing, <<point = obj_index(mesh.positions.count, refs.indices[i], MISSING_VERTEX_INDEX);
+                        if missing {
+                            missing_vertices_count += 1;
+                        }
+                    }
+
+                    // After adding the point we can add the annotation
+                    if has_annotation {
+                        annotation : Annotation;
+                        annotation.kind = .POINT;
+                        annotation.id = mesh.points.count - 1;
+                        // Important that each annotation allocates its own string value, not doing this caused a crash
+                        assert(set_annotation_value(*annotation, annotation_string));
+                        array_add(*point_annotations, annotation);
+                    }
+                }
             }
 
         } else if eat_possible_identifier(*parser, "l") {
@@ -201,9 +236,9 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                         // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
                         // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
                         vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(*result.mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+
                         normals : *Matrix3x2 = array_add(*vn.values);
                         for i : 0..1 {
-                            missing : bool;
                             missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
                                 missing_normals_count += 1;
@@ -212,14 +247,15 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     }
                     
                     // Add the segment before the annotation
-                    element : Tuple2(u32) = ---;
-                    for i : 0..1 {
-                        missing, index := obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
-                        if missing missing_vertices_count += 1;
-
-                        element.component[i] = index;
+                    {
+                        segment : *Tuple2(u32) = array_add(*mesh.segments);
+                        for i : 0..1 {
+                            missing, segment.component[i] = obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
+                            if missing {
+                                missing_vertices_count += 1;
+                            }
+                        }
                     }
-                    array_add(*mesh.segments, element);
 
                     // After adding the segment we can add the annotation
                     if has_annotation {
@@ -265,7 +301,6 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                         vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(*result.mesh, "vn", Simple_Mesh_Normals);
                         normals : *Matrix3 = array_add(*vn.values);
                         for i : 0..2 {
-                            missing : bool;
                             missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
                                 missing_normals_count += 1;
@@ -274,14 +309,15 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     }
 
                     // Add the triangle before the annotation
-                    triangle_tuple : Tuple3(u32) = ---;
-                    for i : 0..2 {
-                        missing, index := obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
-                        if missing missing_vertices_count += 1;
-
-                        triangle_tuple.component[i] = index;
+                    {
+                        triangle : *Tuple3(u32) = array_add(*mesh.triangles);
+                        for i : 0..2 {
+                            missing, triangle.component[i] = obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
+                            if missing {
+                                missing_vertices_count += 1;
+                            }
+                        }
                     }
-                    array_add(*mesh.triangles, triangle_tuple);
 
                     // After adding the triangle we can add the annotation
                     if has_annotation {

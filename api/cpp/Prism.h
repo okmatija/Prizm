@@ -452,7 +452,7 @@ struct Obj {
         return vertex3(a).newline().point(ia);
     }
 
-
+    // nocommitttt Add function to add points with normals here
 
 
     //
@@ -477,7 +477,7 @@ struct Obj {
         return vertex2(a).newline().vertex2(b).newline().segment(ia, ib);
     }
 
-
+    // nocommitttt Add function to add segments with normals here
 
 
     //

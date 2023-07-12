@@ -331,11 +331,13 @@ Matrix3x2 :: struct {
     IsMatrixFromMathModule :: false;
 } 
 
+POINT_NORMALS_ATTRIBUTE_NAME :: "Obj Point Normals";
 SEGMENT_NORMALS_ATTRIBUTE_NAME :: "Obj Segment Normals";
 TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals"; // nocommit use this
 
+Simple_Mesh_Point_Normals :: Simple_Mesh_Attribute(Vector3, .SEGMENT);
 Simple_Mesh_Segment_Normals :: Simple_Mesh_Attribute(Matrix3x2, .SEGMENT);
-Simple_Mesh_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
+Simple_Mesh_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // nocommitttt rename to Simple_Mesh_Triangle_Normals
 Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
 
 

@@ -85,13 +85,12 @@ main :: () {
         app.segments_normal_program = get_shader_program(VERT, FRAG, GEOM);
     }
 
-    // nocommit implement this
-    // {
-    //     VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-    //     GEOM, GEOM_OK :: #run read_entire_file("source/shaders/point_normals.geom"); #assert(GEOM_OK);
-    //     FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-    //     app.point_normals_program = get_shader_program(VERT, FRAG, GEOM);
-    // }
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.points_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);

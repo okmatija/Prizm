@@ -54,6 +54,7 @@ App :: struct {
     points_lines_program : GLuint;
     triangles_normal_program : GLuint;
     segments_normal_program : GLuint;
+    points_normal_program : GLuint;
 
     Background_Style :: enum #specified {
         SOLID_COLOR :: 0;
