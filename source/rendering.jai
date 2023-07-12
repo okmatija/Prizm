@@ -139,12 +139,58 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     return false;
 }
 
+Normal_Style :: struct {
+    normals_visible := false;
+    normals_color := Vector4.{0., 0., .8, 1.};
+    normals_length : float = 1.; // nocommittt rename to scale, which multiplies the length, if normalized then the scale is the length
+    //normalized : bool = false;
+}
+
+// Could also be used for tetrahedra edges when/if those are supported
+Edge_Style :: struct {
+    visible := false;
+    color : Vector4 = BLACK;
+    width : float = 1.;
+}
+
+
+Vertex_Style :: struct {
+    visible : bool;
+    color : Vector4 = BLACK;
+    size : s32 = 4; // @Cleanup Use float when we generate quads from coordinates
+}
+
+Point_Style :: struct {
+    using vertex_style : Vertex_Style;
+    vertex_style.color = Vector4.{.5, .5, .5, 1.};
+
+    normal_style : Normal_Style; // nocommitttt Use this
+}
+
+Segment_Style :: struct {
+    visible := false;
+    color : Vector4 = BLACK;
+    width : float = 1.;
+
+    normal_style : Normal_Style;
+}
+
+Triangle_Style :: struct {
+    visible := false;
+    color := Vector4.{1., 1., 1., 1.};
+
+    edge_style : Edge_Style;
+    normal_style : Normal_Style;
+}
+
+
 // Things that should be preserved when the geometry changes
 Display_Info :: struct {
 
     // Set overall visibility without clobbering the individual settings. Considers both geometry and labels
     is_visible := true;
 
+    // nocommittt: move into Triangle_Style
     display_mode := Display_Mode.BLINN_PHONG;
     backface_mode := Backface_Mode.FIXED;
     flat_shading := true;
@@ -170,15 +216,14 @@ Display_Info :: struct {
     //
 
     // Separate position display parameters from point display parameters. Make the position color black by default
-    positions_visible := false;
-    positions_color : Vector4 = BLACK;
-    positions_size : s32 = 4;
+    vertex_style : Vertex_Style;
 
     points_visible := false;
     points_color := Vector4.{.5, .5, .5, 1.};
     points_size : s32 = 4;
 
     // @Cleanup These should go into some base attribute render theme?
+    // nocommitttt These need to be associated with points, segments, triangles...
     normals_visible := false;
     normals_color := Vector4.{0., 0., .8, 1.};
     normals_length : float = 1.;
@@ -220,8 +265,8 @@ Display_Info :: struct {
 // Clipping and camera position are not checked here
 
 any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    // We do NOT check entity.display_info.positions_visible here, this option is usually off and we still want to see vertex labels
-    return entity.display_info.is_visible && entity.display_info.show_labels /*&& entity.display_info.positions_visible*/ && entity.mesh.positions.count && (
+    // We do NOT check entity.display_info.vertex_style.visible here, this option is usually off and we still want to see vertex labels
+    return entity.display_info.is_visible && entity.display_info.show_labels /*&& entity.display_info.vertex_style.visible*/ && entity.mesh.positions.count && (
         (geometry_labels   && (entity.display_info.vertex_label_theme.show_index || entity.display_info.vertex_label_theme.show_position)) ||
         (annotation_labels && entity.display_info.vertex_label_theme.annotation_label_theme.visible && entity.vertex_annotations.count)
     );
@@ -519,17 +564,17 @@ render_mesh_positions :: (
         return;
     }
 
-    if !positions_visible && !clip_radius_mode_show_wireframe {
+    if !vertex_style.visible && !clip_radius_mode_show_wireframe {
         return;
     }
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    size := ifx clip_radius_mode_show_wireframe then 2 else positions_size;
+    size := ifx clip_radius_mode_show_wireframe then 2 else vertex_style.size;
     glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx size);
 
-    color := ifx clip_radius_mode_show_wireframe then BLACK else positions_color;
+    color := ifx clip_radius_mode_show_wireframe then BLACK else vertex_style.color;
     glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), color.x, color.y, color.z, color.w);
 
     glBindVertexArray(render_info.positions_vao);
@@ -539,7 +584,7 @@ render_mesh_positions :: (
 render_mesh_points :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
-    using,except(positions_visible, positions_color, positions_size) display_info : Display_Info,
+    using display_info : Display_Info,
     clip_radius_mode_show_wireframe : bool) {
     if !mesh.points.count {
         return;

@@ -201,8 +201,8 @@ cycle_vertex_size :: () {
     app_info : *Display_Info = maybe_cycle_state(cycle_vertex_size_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.positions_visible = app_info.positions_visible;
-        it.display_info.positions_size    = app_info.positions_size;
+        it.display_info.vertex_style.visible = app_info.vertex_style.visible;
+        it.display_info.vertex_style.size    = app_info.vertex_style.size;
     }
 }
 
@@ -216,18 +216,18 @@ cycle_vertex_size_proc :: (last_interaction_time : *void) {
 
 cycle_vertex_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
     // Handle full range of points_size
-    if !positions_visible {
-        positions_visible = true;
-        positions_size = 2;
+    if !vertex_style.visible {
+        vertex_style.visible = true;
+        vertex_style.size = 2;
         return .{0,3};
-    } else if positions_size <= 2 {
-        positions_size = 4;
+    } else if vertex_style.size <= 2 {
+        vertex_style.size = 4;
         return .{1,3};
-    } else if positions_size <= 4 {
-        positions_size = 6;
+    } else if vertex_style.size <= 4 {
+        vertex_style.size = 6;
         return .{2,3};
     } else {
-        positions_visible = false;
+        vertex_style.visible = false;
         return .{3,3};
     }
 }

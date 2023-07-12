@@ -271,7 +271,7 @@ get_entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
         return *display_info.points_color, *display_info.points_visible;
     }
 
-    return *display_info.positions_color, *display_info.positions_visible;
+    return *display_info.vertex_style.color, *display_info.vertex_style.visible;
 }
 
 set_entity_primary_color :: (using entity : *Entity) {
@@ -1245,8 +1245,8 @@ set_entity_display_info :: (using entity : *Entity) {
     }
 
     if mesh.positions.count {
-        display_info.positions_color = primary_color;
-        //display_info.positions_visible = true; // All meshes have positions, and we don't want to show them always
+        display_info.vertex_style.color = primary_color;
+        //display_info.vertex_style.visible = true; // All meshes have positions, and we don't want to show them always
     }
 }
 

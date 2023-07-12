@@ -488,20 +488,20 @@ set_triangle_label_scale :: (id : int, scale : float) {
 set_vertices_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.positions_visible = xx visible;
+    entity.display_info.vertex_style.visible = xx visible;
 } @RegisterCommand
 
 set_vertices_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.positions_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.vertex_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 set_vertices_size :: (id : int, size : int = 4) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.positions_size = xx size;
+    entity.display_info.vertex_style.size = xx size;
 } @RegisterCommand
 
 

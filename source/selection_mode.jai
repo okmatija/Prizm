@@ -6,9 +6,9 @@ Geometry_Select_Tool :: struct {
     entity.display_info.vertex_label_theme.show_position = true;
     entity.display_info.vertex_label_theme.label_color = .{0, 0, 0, 1};
 
-    entity.display_info.positions_visible = true;
-    entity.display_info.positions_size = 6;
-    entity.display_info.positions_color = SELECT_VERTEX;
+    entity.display_info.vertex_style.visible = true;
+    entity.display_info.vertex_style.size = 6;
+    entity.display_info.vertex_style.color = SELECT_VERTEX;
 
     entity.display_info.points_visible = true;
     entity.display_info.points_size = 6;

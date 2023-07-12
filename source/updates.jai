@@ -1,4 +1,4 @@
-// @Incomplete Autogenerate this file!
+// @Incompleteeee Autogenerate this file!
 // - Sometimes we want just a single bool for an entire struct?
 // - Could make some of the functions private in an automatic way?
 
@@ -265,6 +265,32 @@ apply_update :: (update : Attribute_Theme_Update, source : Attribute_Theme, targ
 }
 
 //
+// Vertex_Style
+//
+
+Vertex_Style_Update :: struct {
+    visible : bool;
+    color : Vector4_Update;
+    size : bool;
+}
+
+get_update :: (old : Vertex_Style, new : Vertex_Style) -> Vertex_Style_Update {
+    result : Vertex_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.size = get_update(old.size, new.size);
+
+    return result;
+}
+
+apply_update :: (update : Vertex_Style_Update, source : Vertex_Style, target : *Vertex_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.size, source.size, *target.size);
+}
+
+//
 // Display_Info
 //
 
@@ -282,9 +308,7 @@ Display_Info_Update :: struct {
     triangle_label_theme : Element_Label_Theme_Update;
     annotation_label_theme : Annotation_Label_Theme_Update;
 
-    positions_visible : bool;
-    positions_color : Vector4_Update;
-    positions_size : bool;
+    vertex_style : Vertex_Style_Update;
 
     points_visible : bool;
     points_color : Vector4_Update;
@@ -322,9 +346,7 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.segment_label_theme = get_update(old.segment_label_theme, new.segment_label_theme);
     result.triangle_label_theme = get_update(old.triangle_label_theme, new.triangle_label_theme);
 
-    result.positions_visible = get_update(old.positions_visible, new.positions_visible);
-    result.positions_color = get_update(old.positions_color, new.positions_color);
-    result.positions_size = get_update(old.positions_size, new.positions_size);
+    result.vertex_style = get_update(old.vertex_style, new.vertex_style);
 
     result.points_visible = get_update(old.points_visible, new.points_visible);
     result.points_color = get_update(old.points_color, new.points_color);
@@ -364,9 +386,7 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.segment_label_theme, source.segment_label_theme, *target.segment_label_theme);
     apply_update(update.triangle_label_theme, source.triangle_label_theme, *target.triangle_label_theme);
 
-    apply_update(update.positions_visible, source.positions_visible, *target.positions_visible);
-    apply_update(update.positions_color, source.positions_color, *target.positions_color);
-    apply_update(update.positions_size, source.positions_size, *target.positions_size);
+    apply_update(update.vertex_style, source.vertex_style, *target.vertex_style);
 
     apply_update(update.points_visible, source.points_visible, *target.points_visible);
     apply_update(update.points_color, source.points_color, *target.points_color);

@@ -1067,9 +1067,9 @@ show_select_ui :: () {
                 *entity.display_info.points_visible);
             select_element(
                 "Positions", .VERTEX, "When chosen select vertices (obj v-directives)",
-                *entity.display_info.positions_color,
+                *entity.display_info.vertex_style.color,
                 *entity.display_info.vertex_label_theme.label_color,
-                *entity.display_info.positions_visible);
+                *entity.display_info.vertex_style.visible);
         }
 
         {
@@ -1947,48 +1947,40 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 
         ImGui.TableNextColumn();
         ImGui.Text(
-            "Tri Face Rendering");
+            "Face Style        ");
         ImGui.SameLine();
         ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
-        show_tooltip("Triangle visibility");
+        show_tooltip("Triangle Face Visibility");
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
-        show_tooltip("Frontface Color");
+        show_tooltip("Triangle Frontface Color");
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
         combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
         ImGui.PopItemWidth();
-        show_tooltip("Backface Render Mode");
+        show_tooltip("Triangle Backface Render Mode");
 
         ImGui.TableNextColumn();
         ImGui.Text(
-            "Tri Edge Rendering");
+            "Edge Style        ");
         ImGui.SameLine();
         ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
-        show_tooltip("Triangle edges visibility");
+        show_tooltip("Triangle Edges Visibility");
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
         ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
-        show_tooltip("Width");
+        show_tooltip("Triangle Edges Width");
         display_info.edges_width = clamp(display_info.edges_width, 1., 5);
         ImGui.PopItemWidth();
 
         ImGui.TableNextColumn();
-        show_element_label_theme_ui(
-            "Tri Index Labels  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
-
-        ImGui.TableNextColumn();
-        show_annotation_theme_ui(
-            "Annotation Labels ", "Show annotations", *display_info.triangle_label_theme.annotation_label_theme);
-
-        ImGui.TableNextColumn();
         ImGui.Text(
-            "Normals Rendering ");
+            "Normals Style     ");
         ImGui.SameLine();
         ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-        show_tooltip("Normal visibility");
+        show_tooltip("Normal Visibility");
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
         ImGui.SameLine();
@@ -1996,6 +1988,14 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
         show_tooltip("Length");
         ImGui.PopItemWidth();
+
+        ImGui.TableNextColumn();
+        show_element_label_theme_ui(
+            "Index Labels      ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
+
+        ImGui.TableNextColumn();
+        show_annotation_theme_ui(
+            "Annotation Labels ", "Show annotations", *display_info.triangle_label_theme.annotation_label_theme);
 
         if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
             defer ImGui.TreePop();
@@ -2034,10 +2034,10 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
 
         ImGui.TableNextColumn();
         ImGui.Text(
-            "Seg Elem Rendering");
+            "Segment Style     ");
         ImGui.SameLine();
         ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
-        show_tooltip("Segment visibility");
+        show_tooltip("Segment Visibility");
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
         ImGui.SameLine();
@@ -2049,7 +2049,7 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
 
         ImGui.TableNextColumn();
         show_element_label_theme_ui(
-            "Seg Index Labels  ", "Show index of .obj l-directives", *display_info.segment_label_theme);
+            "Index Labels      ", "Show index of .obj l-directives", *display_info.segment_label_theme);
 
         ImGui.TableNextColumn();
         show_annotation_theme_ui(
@@ -2074,10 +2074,10 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
 
         ImGui.TableNextColumn();
         ImGui.Text(
-            "Pnt Elem Rendering");
+            "Point Style       ");
         ImGui.SameLine();
         ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-        show_tooltip("Point visibility");
+        show_tooltip("Point Visibility");
         ImGui.SameLine();
         ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
         ImGui.SameLine();
@@ -2090,7 +2090,7 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
 
         ImGui.TableNextColumn();
         show_element_label_theme_ui(
-            "Pnt Index Labels  ", "Show index of .obj p-directives", *display_info.point_label_theme);
+            "Index Labels      ", "Show index of .obj p-directives", *display_info.point_label_theme);
 
         ImGui.TableNextColumn();
         show_annotation_theme_ui(
@@ -2115,23 +2115,23 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
 
         ImGui.TableNextColumn();
         ImGui.Text(
-            "Vtx Pos Rendering ");
+            "Vertex Style      ");
         ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
+        ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
         show_tooltip("Positions visibility.\nRender vertex positions as points");
         ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, ImGui.ColorEditFlags.NoInputs);
         ImGui.SameLine();
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
-        ImGui.InputInt("##positions_size", *display_info.positions_size);
+        ImGui.InputInt("##vertex_style.size", *display_info.vertex_style.size);
         show_tooltip("Size");
-        display_info.positions_size = clamp(display_info.positions_size, 1, 10);
+        display_info.vertex_style.size = clamp(display_info.vertex_style.size, 1, 10);
         ImGui.PopItemWidth();
 
         ImGui.TableNextColumn();
         show_vertex_label_theme_ui(
-            "Vtx Index Labels  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme);
+            "Index Labels      ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme);
 
         ImGui.TableNextColumn();
         show_annotation_theme_ui(
