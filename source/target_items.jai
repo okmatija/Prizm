@@ -251,10 +251,10 @@ cycle_wireframe_width :: () {
     app_info : *Display_Info = maybe_cycle_state(cycle_wireframe_width_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.segments_visible = app_info.segments_visible;
-        it.display_info.segments_width   = app_info.segments_width;
-        it.display_info.edges_visible = app_info.edges_visible;
-        it.display_info.edges_width   = app_info.edges_width;
+        it.display_info.segment_style.visible = app_info.segment_style.visible;
+        it.display_info.segment_style.width   = app_info.segment_style.width;
+        it.display_info.triangle_style.edge_style.visible = app_info.triangle_style.edge_style.visible;
+        it.display_info.triangle_style.edge_style.width   = app_info.triangle_style.edge_style.width;
     }
 }
 
@@ -269,24 +269,24 @@ cycle_wireframe_width_proc :: (last_interaction_time : *void) {
 cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 
     // We need to use edges_* rather than segments_* in the if conditions because segment visibility doesn't change in the else so the cycling would get stuck after we reach the else for first time
-    if !edges_visible {
-        segments_visible = true;
-        segments_width = 1;
-        edges_visible = true; // May as well let the cycling shortcut turn this on
-        edges_width = 1;
+    if !triangle_style.edge_style.visible {
+        segment_style.visible = true;
+        segment_style.width = 1;
+        triangle_style.edge_style.visible = true; // May as well let the cycling shortcut turn this on
+        triangle_style.edge_style.width = 1;
         return .{0,3};
-    } else if edges_width <= 1 {
-        segments_width = 2;
-        edges_width = 2;
+    } else if triangle_style.edge_style.width <= 1 {
+        segment_style.width = 2;
+        triangle_style.edge_style.width = 2;
         return .{1,3};
-    } else if edges_width <= 2 {
-        segments_width = 3;
-        edges_width = 3;
+    } else if triangle_style.edge_style.width <= 2 {
+        segment_style.width = 3;
+        triangle_style.edge_style.width = 3;
         return .{2,3};
     } else {
-        // segments_visible = false; // Intentionally leave segments visible, we don't want the cycling shortcut to affect visiblity of segments
-        segments_width = 1; // Duplicate the default state, it just feels better doing this
-        edges_visible = false;
+        // segment_style.visible = false; // Intentionally leave segments visible, we don't want the cycling shortcut to affect visiblity of segments
+        segment_style.width = 1; // Duplicate the default state, it just feels better doing this
+        triangle_style.edge_style.visible = false;
         return .{3,3};
     }
 }
@@ -309,7 +309,9 @@ toggle_normals_visibility :: () {
     app_info : *Display_Info = maybe_cycle_state(toggle_normals_visibility_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.normals_visible = app_info.normals_visible;
+        it.display_info.triangle_style.normal_style.visible  = app_info.triangle_style.normal_style.visible;
+        it.display_info.segment_style.normal_style.visible  = app_info.segment_style.normal_style.visible;
+        it.display_info.point_style.normal_style.visible  = app_info.point_style.normal_style.visible;
     }
 }
 
@@ -320,11 +322,19 @@ toggle_normals_visibility_proc :: (last_interaction_time : *void) {
     toggle_normals_visibility();
 }
 
-toggle_normals_visibility_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+toggle_normals_visibility_progress_proc :: (app_info : *Display_Info) -> Fraction {
+    // Start with the triangle normal visibility 
+    normals_visible : bool = app_info.triangle_style.normal_style.visible;
+
     result : Fraction;
     result.numer = xx normals_visible;
     result.denom = 1;
-    normals_visible = !normals_visible;
+
+    // Toggle the normals on all elements with normals
+    app_info.triangle_style.normal_style.visible = !normals_visible;
+    app_info.segment_style.normal_style.visible = !normals_visible;
+    app_info.point_style.normal_style.visible = !normals_visible;
+
     return result;
 }
 
@@ -576,7 +586,7 @@ cycle_annotation_progress_proc :: () -> Fraction {
 
 
 //
-// Cycle opacity
+// Cycle opacity @Think should this apply to elements other than triangles as well? Maybe when we make point/segment elements into quads
 //
 
 cycle_opacity :: () {
@@ -584,7 +594,7 @@ cycle_opacity :: () {
     app_info : *Display_Info = maybe_cycle_state(cycle_opacity_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.triangles_color.w = app_info.triangles_color.w;
+        it.display_info.triangle_style.color.w = app_info.triangle_style.color.w;
     }
 }
 
@@ -596,14 +606,14 @@ cycle_opacity_proc :: (last_interaction_time : *void) {
 }
 
 cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
-    if triangles_color.w == 1.  {
-        triangles_color.w = .5; // This affects is_occluder
+    if triangle_style.color.w == 1.  {
+        triangle_style.color.w = .5; // This affects is_occluder
         return .{0, 2};
-    } else if triangles_color.w >= .5 {
-        triangles_color.w = .2;
+    } else if triangle_style.color.w >= .5 {
+        triangle_style.color.w = .2;
         return .{1, 2};
     } else {
-        triangles_color.w = 1.;
+        triangle_style.color.w = 1.;
         return .{2, 2};
     }
 }
@@ -627,11 +637,11 @@ cycle_opacity_progress_proc_const :: () -> Fraction {
 
 cycle_backface_mode :: () {
 
-    mode := *app.template_display_info.backface_mode;
+    mode := *app.template_display_info.triangle_style.backface_mode;
     cycle_backface_mode_progress_proc(mode);
 
     for :Selected app.entities {
-        it.display_info.backface_mode = <<mode;
+        it.display_info.triangle_style.backface_mode = <<mode;
     }
 }
 
@@ -659,7 +669,7 @@ cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
 cycle_backface_mode_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
     app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
-    return cycle_backface_mode_progress_proc(*app_info_copy.backface_mode);
+    return cycle_backface_mode_progress_proc(*app_info_copy.triangle_style.backface_mode);
 }
 
 

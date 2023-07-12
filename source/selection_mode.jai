@@ -10,19 +10,19 @@ Geometry_Select_Tool :: struct {
     entity.display_info.vertex_style.size = 6;
     entity.display_info.vertex_style.color = SELECT_VERTEX;
 
-    entity.display_info.points_visible = true;
-    entity.display_info.points_size = 6;
-    entity.display_info.points_color = SELECT_POINT;
+    entity.display_info.point_style.visible = true;
+    entity.display_info.point_style.size = 6;
+    entity.display_info.point_style.color = SELECT_POINT;
 
-    entity.display_info.segments_visible = true;
-    entity.display_info.segments_width = 2;
-    entity.display_info.segments_color = SELECT_SEGMENT;
+    entity.display_info.segment_style.visible = true;
+    entity.display_info.segment_style.width = 2;
+    entity.display_info.segment_style.color = SELECT_SEGMENT;
 
-    entity.display_info.triangles_visible = true;
-    entity.display_info.triangles_color = SELECT_TRIANGLE;
-    entity.display_info.edges_visible = true;
-    entity.display_info.edges_color = BLACK;
-    entity.display_info.edges_width = 2.;
+    entity.display_info.triangle_style.visible = true;
+    entity.display_info.triangle_style.color = SELECT_TRIANGLE;
+    entity.display_info.triangle_style.edge_style.visible = true;
+    entity.display_info.triangle_style.edge_style.color = BLACK;
+    entity.display_info.triangle_style.edge_style.width = 2.;
 
     // Maybe we should default to vertex because all meshes have those...
     target_element : Simple_Mesh_Element = .TRIANGLE;

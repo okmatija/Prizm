@@ -511,7 +511,7 @@ set_vertices_size :: (id : int, size : int = 4) {
 set_points_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.points_visible = xx visible;
+    entity.display_info.point_style.visible = xx visible;
 } @RegisterCommand
 
 // You probably want to use the set_vertices_color function
@@ -519,14 +519,14 @@ set_points_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.points_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.point_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 // You probably want to use the set_vertices_size function
 set_points_size :: (id : int, size : int = 4) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.points_size = xx size;
+    entity.display_info.point_style.size = xx size;
 } @RegisterCommand
 
 
@@ -535,20 +535,20 @@ set_points_size :: (id : int, size : int = 4) {
 set_segments_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.segments_visible = xx visible;
+    entity.display_info.segment_style.visible = xx visible;
 } @RegisterCommand
 
 set_segments_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.segments_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.segment_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 set_segments_width :: (id : int, width : float = 1.) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.segments_width = width;
+    entity.display_info.segment_style.width = width;
 } @RegisterCommand
 
 
@@ -557,14 +557,14 @@ set_segments_width :: (id : int, width : float = 1.) {
 set_triangles_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.triangles_visible = xx visible;
+    entity.display_info.triangle_style.visible = xx visible;
 } @RegisterCommand
 
 set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.triangles_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.triangle_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 
@@ -573,20 +573,20 @@ set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
 set_edges_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.edges_visible = xx visible;
+    entity.display_info.triangle_style.edge_style.visible = xx visible;
 } @RegisterCommand
 
 set_edges_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.edges_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.triangle_style.edge_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 set_edges_width :: (id : int, width : float = 1.) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.edges_width = width;
+    entity.display_info.triangle_style.edge_style.width = width;
 } @RegisterCommand
 
 
@@ -613,7 +613,7 @@ item_copy_clipping_sphere :: (source_id : int, target_id : int) {
 // Sets the edge/wireframe color to the face/surface color for all items
 set_edge_color_to_face_color :: () {
     for :All app.entities {
-        it.display_info.segments_color = it.display_info.triangles_color;
+        it.display_info.segment_style.color = it.display_info.triangle_style.color;
     }
 } @RegisterCommand
 
@@ -811,7 +811,7 @@ item_make_normals_segment_soup :: (id : int) {
     set_entity_display_info(new_entity);
 
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
-    new_entity.display_info.segments_width = 3;
+    new_entity.display_info.segment_style.width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     new_entity.generation_index = entity.generation_index;
@@ -900,7 +900,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
         set_entity_display_info(new_entity);
 
         maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
-        new_entity.display_info.segments_width = 3;
+        new_entity.display_info.segment_style.width = 3;
 
         // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
         new_entity.generation_index = entity.generation_index;
@@ -915,7 +915,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
         merge(mesh, new_mesh);
 
         entity.render_info.is_dirty = true;
-        entity.display_info.segments_visible = true;
+        entity.display_info.segment_style.visible = true;
 
         log("# Added % edge% to the target item '%'",
             new_mesh.segments.count,
@@ -973,7 +973,7 @@ item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
     if unreferenced_positions.count {
         log("# Found % unreferenced positions, which were added to the meshes point element array", unreferenced_positions.count);
         entity.render_info.is_dirty = true;
-        entity.display_info.points_visible = true;
+        entity.display_info.point_style.visible = true;
     } else {
         log("# No unreferenced positions found");
     }
@@ -1019,7 +1019,7 @@ item_find_zero_area_triangles :: (id : int) {
     set_entity_display_info(result);
 
     maybe_update_render_info(*result.render_info, *result.mesh); // @Cleanup fishy, why do we do this
-    result.display_info.segments_width = 3;
+    result.display_info.segment_style.width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     result.generation_index = target.generation_index;

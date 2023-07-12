@@ -69,10 +69,10 @@ App :: struct {
     show_fps := false;
 
     triad : Axes_Triad;
-    // triad.origin.display_info.backface_mode = .FIXED;
-    // triad.x_axis.display_info.backface_mode = .FIXED;
-    // triad.y_axis.display_info.backface_mode = .FIXED;
-    // triad.z_axis.display_info.backface_mode = .FIXED;
+    // triad.origin.display_info.triangle_style.backface_mode = .FIXED;
+    // triad.x_axis.display_info.triangle_style.backface_mode = .FIXED;
+    // triad.y_axis.display_info.triangle_style.backface_mode = .FIXED;
+    // triad.z_axis.display_info.triangle_style.backface_mode = .FIXED;
 
     label_format : Label_Format;
     Label_Format :: struct {

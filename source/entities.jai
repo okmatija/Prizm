@@ -260,15 +260,15 @@ get_entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
     assert(entity != null);
 
     if mesh.triangles.count {
-        return *display_info.triangles_color, *display_info.triangles_visible;
+        return *display_info.triangle_style.color, *display_info.triangle_style.visible;
     }
 
     if mesh.segments.count {
-        return *display_info.segments_color, *display_info.segments_visible;
+        return *display_info.segment_style.color, *display_info.segment_style.visible;
     }
 
     if mesh.points.count {
-        return *display_info.points_color, *display_info.points_visible;
+        return *display_info.point_style.color, *display_info.point_style.visible;
     }
 
     return *display_info.vertex_style.color, *display_info.vertex_style.visible;
@@ -819,10 +819,10 @@ elements_not_targetted :: (entity : Entity) -> bool {
 
 is_occluder :: (entity : Entity) -> bool {
     return entity.display_info.is_visible &&
-        entity.display_info.triangles_visible &&
+        entity.display_info.triangle_style.visible &&
         entity.mesh.positions.count &&
         entity.mesh.triangles.count &&
-        entity.display_info.triangles_color.w >= .5;
+        entity.display_info.triangle_style.color.w >= .5;
 }
 
 // Result positions are in world space
@@ -1230,18 +1230,18 @@ set_entity_display_info :: (using entity : *Entity) {
     // @Cleanup Why are checking counts here? We could just remove all those ifs
 
     if mesh.triangles.count {
-        display_info.triangles_visible = true;
-        display_info.triangles_color = primary_color;
+        display_info.triangle_style.visible = true;
+        display_info.triangle_style.color = primary_color;
     }
 
     if mesh.segments.count {
-        display_info.segments_visible = true;
-        display_info.segments_color = primary_color;
+        display_info.segment_style.visible = true;
+        display_info.segment_style.color = primary_color;
     }
 
     if mesh.points.count {
-        display_info.points_visible = true;
-        display_info.points_color = primary_color;
+        display_info.point_style.visible = true;
+        display_info.point_style.color = primary_color;
     }
 
     if mesh.positions.count {

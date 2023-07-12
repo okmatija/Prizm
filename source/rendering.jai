@@ -140,10 +140,10 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 }
 
 Normal_Style :: struct {
-    normals_visible := false;
-    normals_color := Vector4.{0., 0., .8, 1.};
-    normals_length : float = 1.; // nocommittt rename to scale, which multiplies the length, if normalized then the scale is the length
-    //normalized : bool = false;
+    visible := false;
+    color := Vector4.{0., 0., .8, 1.};
+    scale : float = 1.; // Multiplies the length. If normalized then the scale is the length
+    //normalized : bool = false; // nocommitttt
 }
 
 // Could also be used for tetrahedra edges when/if those are supported
@@ -152,7 +152,6 @@ Edge_Style :: struct {
     color : Vector4 = BLACK;
     width : float = 1.;
 }
-
 
 Vertex_Style :: struct {
     visible : bool;
@@ -178,6 +177,9 @@ Segment_Style :: struct {
 Triangle_Style :: struct {
     visible := false;
     color := Vector4.{1., 1., 1., 1.};
+    display_mode := Display_Mode.BLINN_PHONG;
+    backface_mode := Backface_Mode.FIXED;
+    flat_shading := true;
 
     edge_style : Edge_Style;
     normal_style : Normal_Style;
@@ -189,11 +191,6 @@ Display_Info :: struct {
 
     // Set overall visibility without clobbering the individual settings. Considers both geometry and labels
     is_visible := true;
-
-    // nocommittt: move into Triangle_Style
-    display_mode := Display_Mode.BLINN_PHONG;
-    backface_mode := Backface_Mode.FIXED;
-    flat_shading := true;
 
     //
     // Labeling members
@@ -215,30 +212,10 @@ Display_Info :: struct {
     // Vertex/Element members
     //
 
-    // Separate position display parameters from point display parameters. Make the position color black by default
     vertex_style : Vertex_Style;
-
-    points_visible := false;
-    points_color := Vector4.{.5, .5, .5, 1.};
-    points_size : s32 = 4;
-
-    // @Cleanup These should go into some base attribute render theme?
-    // nocommitttt These need to be associated with points, segments, triangles...
-    normals_visible := false;
-    normals_color := Vector4.{0., 0., .8, 1.};
-    normals_length : float = 1.;
-
-    segments_visible := false;
-    segments_color : Vector4 = BLACK;
-    segments_width : float = 1.;
-
-    triangles_visible := false;
-    triangles_color := Vector4.{1., 1., 1., 1.};
-
-    // These can be used for tetrahedra edges when those are supported
-    edges_visible := false;
-    edges_color : Vector4 = BLACK;
-    edges_width : float = 1.;
+    point_style : Point_Style;
+    segment_style : Segment_Style;
+    triangle_style : Triangle_Style;
 
     //
     // Clipping
@@ -274,7 +251,7 @@ any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotat
 
 any_point_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
     // Also checking mesh.positions.count
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.points_visible && entity.mesh.positions.count && entity.mesh.points.count && (
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.point_style.visible && entity.mesh.positions.count && entity.mesh.points.count && (
         (geometry_labels   && entity.display_info.point_label_theme.show_index) ||
         (annotation_labels && entity.display_info.point_label_theme.annotation_label_theme.visible && entity.point_annotations.count)
     );
@@ -282,7 +259,7 @@ any_point_label_visible :: (entity : Entity, $geometry_labels := true, $annotati
 
 any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
     // Also checking mesh.positions.count
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.segments_visible && entity.mesh.positions.count && entity.mesh.segments.count && (
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.segment_style.visible && entity.mesh.positions.count && entity.mesh.segments.count && (
         (geometry_labels   && entity.display_info.segment_label_theme.show_index) ||
         (annotation_labels && entity.display_info.segment_label_theme.annotation_label_theme.visible && entity.line_annotations.count)
     );
@@ -290,9 +267,9 @@ any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annota
 
 any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
     // @Think Maybe we should also check opacity here too
-    // @Think Maybe we should check edges_visible here?
+    // @Think Maybe we should check triangle_style.edge_style.visible here?
     // Also checking mesh.positions.count
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangles_visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangle_style.visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
         (geometry_labels   && entity.display_info.triangle_label_theme.show_index) ||
         (annotation_labels && entity.display_info.triangle_label_theme.annotation_label_theme.visible && entity.face_annotations.count)
     );
@@ -487,18 +464,19 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
 // @Cleanup consolidate this
 render_mesh_triangle_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !normals_visible return;
+    if !triangle_style.normal_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
 
-    glUseProgram(app.triangles_normal_program);
+    p := app.triangles_normal_program;
+    glUseProgram(p);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(app.triangles_normal_program, mesh.world_from_model);
-    set_clip_ranges_uniforms(app.triangles_normal_program, display_info);
-    set_clip_sphere_uniforms(app.triangles_normal_program, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(app.triangles_normal_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
-    glUniform1f(glGetUniformLocation(app.triangles_normal_program, "normal_length"), normals_length);
+    set_model_view_projection_uniforms(p, mesh.world_from_model);
+    set_clip_ranges_uniforms(p, display_info);
+    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(p, "normals_color"), triangle_style.normal_style.color.x, triangle_style.normal_style.color.y, triangle_style.normal_style.color.z, triangle_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_length"), triangle_style.normal_style.scale);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -514,20 +492,19 @@ render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render
     // @CompilerBug Add a return here and observe a compilation failure with message:
     // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prism/.build/Prism_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
 
-    if !normals_visible return;
-
+    if !segment_style.normal_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
 
-    program := app.segments_normal_program;
-    glUseProgram(program);
+    p := app.segments_normal_program;
+    glUseProgram(p);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(program, mesh.world_from_model);
-    set_clip_ranges_uniforms(program, display_info);
-    set_clip_sphere_uniforms(program, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
-    glUniform1f(glGetUniformLocation(program, "normal_length"), normals_length);
+    set_model_view_projection_uniforms(p, mesh.world_from_model);
+    set_clip_ranges_uniforms(p, display_info);
+    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(p, "normals_color"), segment_style.normal_style.color.x, segment_style.normal_style.color.y, segment_style.normal_style.color.z, segment_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_length"), segment_style.normal_style.scale);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -538,6 +515,8 @@ render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render
     glBindVertexArray(render_info.segments_normals_vao);
     glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
+
+// nocommitttt render_mesh_point_normals
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glUseProgram(app.aabb_program);
@@ -557,7 +536,7 @@ render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
 render_mesh_positions :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
-    using,except(points_visible, points_color, points_size) display_info : Display_Info,
+    using display_info : Display_Info,
     clip_radius_mode_show_wireframe : bool) {
 
     if !mesh.positions.count {
@@ -590,17 +569,17 @@ render_mesh_points :: (
         return;
     }
 
-    if !points_visible && !clip_radius_mode_show_wireframe {
+    if !point_style.visible && !clip_radius_mode_show_wireframe {
         return;
     }
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    used_points_size := ifx clip_radius_mode_show_wireframe then 2 else points_size;
+    used_points_size := ifx clip_radius_mode_show_wireframe then 2 else point_style.size;
     glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx used_points_size);
 
-    used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else points_color;
+    used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else point_style.color;
     glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
 
     glBindVertexArray(render_info.points_vao);
@@ -612,20 +591,20 @@ render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, 
         return;
     }
 
-    if !segments_visible && !clip_radius_mode {
+    if !segment_style.visible && !clip_radius_mode {
         return;
     }
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode);
 
-    used_segments_width := ifx clip_radius_mode then 1. else segments_width; // ifx ensures that the min width is chosen for clip_radius_mode
+    used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
         // See also glEnable(GL_LINE_SMOOTH);
         glLineWidth(xx used_segments_width);
     }
 
-    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), segments_color.x, segments_color.y, segments_color.z, segments_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), segment_style.color.x, segment_style.color.y, segment_style.color.z, segment_style.color.w);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
 
@@ -648,20 +627,20 @@ render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Ren
         return;
     }
 
-    if !edges_visible && !clip_radius_mode_show_wireframe {
+    if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe {
         return;
     }
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    used_edges_width := max(edges_width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
+    used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
 
     // See also glEnable(GL_LINE_SMOOTH);
     glLineWidth(xx used_edges_width);
 
-    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glBindVertexArray(render_info.triangles_edges_vao);
@@ -675,7 +654,7 @@ render_mesh_triangles :: (
     clip_radius_mode : bool,
     clip_radius_mode_show_wireframe : bool) {
  
-    if !triangles_visible || mesh.triangles.count == 0 {
+    if !triangle_style.visible || mesh.triangles.count == 0 {
         return;
     }
 
@@ -690,18 +669,18 @@ render_mesh_triangles :: (
     set_clip_sphere_uniforms(program, display_info);
 
     look_direction := current_look_direction();
-    used_edges_width := max(edges_width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
+    used_edges_width := max(triangle_style.edge_style.width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
-    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
+    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else triangle_style.edge_style.visible;
 
     glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
     glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
-    glUniform1i(glGetUniformLocation(program, "display_mode"), xx display_mode);
-    glUniform1i(glGetUniformLocation(program, "backface_mode"), xx backface_mode);
-    glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx flat_shading);
-    glUniform4f(glGetUniformLocation(program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
-    glUniform4f(glGetUniformLocation(program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
+    glUniform1i(glGetUniformLocation(program, "display_mode"), xx triangle_style.display_mode);
+    glUniform1i(glGetUniformLocation(program, "backface_mode"), xx triangle_style.backface_mode);
+    glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
+    glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
+    glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
     glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
     glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
@@ -732,7 +711,7 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_
     set_clip_ranges_uniforms(program, display_info);
     set_clip_sphere_uniforms(program, display_info, prev_sphere=false);
     glUniform1i(glGetUniformLocation(program, "clip_mode"), xx used_clip_mode);
-    glUniform1f(glGetUniformLocation(program, "point_size"), xx points_size);
+    glUniform1f(glGetUniformLocation(program, "point_size"), xx point_style.size);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -1237,8 +1216,8 @@ render_entities :: () {
         draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
     }
 
-    not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangles_color.w == 1.);
-    not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangles_color.w != 1.);
+    not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
+    not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
     not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
 
     VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);

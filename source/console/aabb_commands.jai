@@ -79,8 +79,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     entity_base := <<found;
                     entity := entity_base;
                     entity.render_info.is_dirty = true; // Redundant
-                    entity.display_info.segments_visible = true;
-                    entity.display_info.segments_width = 2;
+                    entity.display_info.segment_style.visible = true;
+                    entity.display_info.segment_style.width = 2;
 
                     {
                         using primitives : Simple_Mesh;

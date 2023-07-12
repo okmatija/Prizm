@@ -265,6 +265,58 @@ apply_update :: (update : Attribute_Theme_Update, source : Attribute_Theme, targ
 }
 
 //
+// Normal_Style
+//
+
+Normal_Style_Update :: struct {
+    visible : bool;
+    color : Vector4_Update;
+    scale : bool;
+}
+
+get_update :: (old : Normal_Style, new : Normal_Style) -> Normal_Style_Update {
+    result : Normal_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.scale = get_update(old.scale, new.scale);
+
+    return result;
+}
+
+apply_update :: (update : Normal_Style_Update, source : Normal_Style, target : *Normal_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.scale, source.scale, *target.scale);
+}
+
+//
+// Edge_Style
+//
+
+Edge_Style_Update :: struct {
+    visible : bool;
+    color : Vector4_Update;
+    width : bool;
+}
+
+get_update :: (old : Edge_Style, new : Edge_Style) -> Edge_Style_Update {
+    result : Edge_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.width = get_update(old.width, new.width);
+
+    return result;
+}
+
+apply_update :: (update : Edge_Style_Update, source : Edge_Style, target : *Edge_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.width, source.width, *target.width);
+}
+
+//
 // Vertex_Style
 //
 
@@ -291,6 +343,96 @@ apply_update :: (update : Vertex_Style_Update, source : Vertex_Style, target : *
 }
 
 //
+// Point_Style
+//
+
+Point_Style_Update :: struct {
+    vertex_style : Vertex_Style_Update;
+    normal_style : Normal_Style_Update;
+}
+
+get_update :: (old : Point_Style, new : Point_Style) -> Point_Style_Update {
+    result : Point_Style_Update;
+
+    result.vertex_style = get_update(old.vertex_style, new.vertex_style);
+    result.normal_style = get_update(old.normal_style, new.normal_style);
+
+    return result;
+}
+
+apply_update :: (update : Point_Style_Update, source : Point_Style, target : *Point_Style) {
+    apply_update(update.vertex_style, source.vertex_style, *target.vertex_style);
+    apply_update(update.normal_style, source.normal_style, *target.normal_style);
+}
+
+//
+// Segment_Style
+//
+
+Segment_Style_Update :: struct {
+    visible : bool;
+    color : Vector4_Update;
+    width : bool;
+    normal_style : Normal_Style_Update;
+}
+
+get_update :: (old : Segment_Style, new : Segment_Style) -> Segment_Style_Update {
+    result : Segment_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.width = get_update(old.width, new.width);
+    result.normal_style = get_update(old.normal_style, new.normal_style);
+
+    return result;
+}
+
+apply_update :: (update : Segment_Style_Update, source : Segment_Style, target : *Segment_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.width, source.width, *target.width);
+    apply_update(update.normal_style, source.normal_style, *target.normal_style);
+}
+
+//
+// Triangle_Style
+//
+
+Triangle_Style_Update :: struct {
+    visible : bool;
+    color : Vector4_Update;
+    display_mode : bool;
+    backface_mode : bool;
+    flat_shading : bool;
+    edge_style : Edge_Style_Update;
+    normal_style : Normal_Style_Update;
+}
+
+get_update :: (old : Triangle_Style, new : Triangle_Style) -> Triangle_Style_Update {
+    result : Triangle_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.display_mode = get_update(old.display_mode, new.display_mode);
+    result.backface_mode = get_update(old.backface_mode, new.backface_mode);
+    result.flat_shading = get_update(old.flat_shading, new.flat_shading);
+    result.edge_style = get_update(old.edge_style, new.edge_style);
+    result.normal_style = get_update(old.normal_style, new.normal_style);
+
+    return result;
+}
+
+apply_update :: (update : Triangle_Style_Update, source : Triangle_Style, target : *Triangle_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.display_mode, source.display_mode, *target.display_mode);
+    apply_update(update.backface_mode, source.backface_mode, *target.backface_mode);
+    apply_update(update.flat_shading, source.flat_shading, *target.flat_shading);
+    apply_update(update.edge_style, source.edge_style, *target.edge_style);
+    apply_update(update.normal_style, source.normal_style, *target.normal_style);
+}
+
+//
 // Display_Info
 //
 
@@ -298,9 +440,6 @@ apply_update :: (update : Vertex_Style_Update, source : Vertex_Style, target : *
 Display_Info_Update :: struct {
 
     is_visible : bool;
-    display_mode : bool;
-    backface_mode : bool;
-    flat_shading : bool;
 
     vertex_label_theme : Vertex_Label_Theme_Update;
     point_label_theme : Element_Label_Theme_Update;
@@ -309,25 +448,9 @@ Display_Info_Update :: struct {
     annotation_label_theme : Annotation_Label_Theme_Update;
 
     vertex_style : Vertex_Style_Update;
-
-    points_visible : bool;
-    points_color : Vector4_Update;
-    points_size : bool;
-
-    normals_visible : bool;
-    normals_color : Vector4_Update;
-    normals_length : bool;
-
-    segments_visible : bool;
-    segments_color : Vector4_Update;
-    segments_width : bool;
-
-    triangles_visible : bool;
-    triangles_color : Vector4_Update;
-
-    edges_visible : bool;
-    edges_color : Vector4_Update;
-    edges_width : bool;
+    point_style : Point_Style_Update;
+    segment_style : Segment_Style_Update;
+    triangle_style : Triangle_Style_Update;
 
     clip_ranges : [3]Clip_Range_Update;
     clip_sphere : Clip_Sphere_Update;
@@ -337,9 +460,6 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result : Display_Info_Update;
 
     result.is_visible = get_update(old.is_visible, new.is_visible);
-    result.display_mode = get_update(old.display_mode, new.display_mode);
-    result.backface_mode = get_update(old.backface_mode, new.backface_mode);
-    result.flat_shading = get_update(old.flat_shading, new.flat_shading);
 
     result.vertex_label_theme = get_update(old.vertex_label_theme, new.vertex_label_theme);
     result.point_label_theme = get_update(old.point_label_theme, new.point_label_theme);
@@ -347,25 +467,9 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
     result.triangle_label_theme = get_update(old.triangle_label_theme, new.triangle_label_theme);
 
     result.vertex_style = get_update(old.vertex_style, new.vertex_style);
-
-    result.points_visible = get_update(old.points_visible, new.points_visible);
-    result.points_color = get_update(old.points_color, new.points_color);
-    result.points_size = get_update(old.points_size, new.points_size);
-
-    result.normals_visible = get_update(old.normals_visible, new.normals_visible);
-    result.normals_color = get_update(old.normals_color, new.normals_color);
-    result.normals_length = get_update(old.normals_length, new.normals_length);
-
-    result.segments_visible = get_update(old.segments_visible, new.segments_visible);
-    result.segments_color = get_update(old.segments_color, new.segments_color);
-    result.segments_width = get_update(old.segments_width, new.segments_width);
-
-    result.triangles_visible = get_update(old.triangles_visible, new.triangles_visible);
-    result.triangles_color = get_update(old.triangles_color, new.triangles_color);
-
-    result.edges_visible = get_update(old.edges_visible, new.edges_visible);
-    result.edges_color = get_update(old.edges_color, new.edges_color);
-    result.edges_width = get_update(old.edges_width, new.edges_width);
+    result.point_style = get_update(old.point_style, new.point_style);
+    result.segment_style = get_update(old.segment_style, new.segment_style);
+    result.triangle_style = get_update(old.triangle_style, new.triangle_style);
 
     result.clip_ranges[0] = get_update(old.clip_ranges[0], new.clip_ranges[0]);
     result.clip_ranges[1] = get_update(old.clip_ranges[1], new.clip_ranges[1]);
@@ -377,9 +481,6 @@ get_update :: (old : Display_Info, new : Display_Info) -> Display_Info_Update {
 
 apply_update :: (update : Display_Info_Update, source : Display_Info, target : *Display_Info) {
     apply_update(update.is_visible, source.is_visible, *target.is_visible);
-    apply_update(update.display_mode, source.display_mode, *target.display_mode);
-    apply_update(update.backface_mode, source.backface_mode, *target.backface_mode);
-    apply_update(update.flat_shading, source.flat_shading, *target.flat_shading);
 
     apply_update(update.vertex_label_theme, source.vertex_label_theme, *target.vertex_label_theme);
     apply_update(update.point_label_theme, source.point_label_theme, *target.point_label_theme);
@@ -387,25 +488,9 @@ apply_update :: (update : Display_Info_Update, source : Display_Info, target : *
     apply_update(update.triangle_label_theme, source.triangle_label_theme, *target.triangle_label_theme);
 
     apply_update(update.vertex_style, source.vertex_style, *target.vertex_style);
-
-    apply_update(update.points_visible, source.points_visible, *target.points_visible);
-    apply_update(update.points_color, source.points_color, *target.points_color);
-    apply_update(update.points_size, source.points_size, *target.points_size);
-
-    apply_update(update.normals_visible, source.normals_visible, *target.normals_visible);
-    apply_update(update.normals_color, source.normals_color, *target.normals_color);
-    apply_update(update.normals_length, source.normals_length, *target.normals_length);
-
-    apply_update(update.segments_visible, source.segments_visible, *target.segments_visible);
-    apply_update(update.segments_color, source.segments_color, *target.segments_color);
-    apply_update(update.segments_width, source.segments_width, *target.segments_width);
-
-    apply_update(update.triangles_visible, source.triangles_visible, *target.triangles_visible);
-    apply_update(update.triangles_color, source.triangles_color, *target.triangles_color);
-
-    apply_update(update.edges_visible, source.edges_visible, *target.edges_visible);
-    apply_update(update.edges_color, source.edges_color, *target.edges_color);
-    apply_update(update.edges_width, source.edges_width, *target.edges_width);
+    apply_update(update.point_style, source.point_style, *target.point_style);
+    apply_update(update.segment_style, source.segment_style, *target.segment_style);
+    apply_update(update.triangle_style, source.triangle_style, *target.triangle_style);
 
     apply_update(update.clip_ranges[0], source.clip_ranges[0], *target.clip_ranges[0]);
     apply_update(update.clip_ranges[1], source.clip_ranges[1], *target.clip_ranges[1]);

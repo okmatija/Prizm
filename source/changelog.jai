@@ -21,15 +21,16 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
 
   - Added a function to create an Obj from UE::Geometry::TDynamicMeshOverlay. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
 
-- Replaced the single annotations settings which affected all annotations with separate settings for vertices/points/segments/triangles
+- Improved support for annotations:
 
-  - TODOOO This change means it makes sense to consolidated the old "Rendering" and "Labeling" sections of the Detail panel into sub-sections of separate "Vertices", "Points", "Segments", "Triangles" sections
+  - Replaced the single annotations settings which affected all annotations with separate settings for vertices/points/segments/triangles
+  - TODOOO Due to the above change the old "Rendering" and "Labeling" sections of the Detail panel are replaced with fields in the new "Vertices", "Points", "Segments", "Triangles" sections
 
-- Improved support for normals in obj files:
+- Improved support for normals:
 
-  - Added support for `f i//a j//b k//c` where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
-  - Added support for `l i//a j//b k//c` a.k.a oriented polylines
-  - Added support for `p i//a j//b k//c` a.k.a oriented point clouds
+  - Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
+  - Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file 
+  - TODOOO Added a normalize checkbox (defaults on) to control normal rendering, you can turn it off if the length of the normals in the .obj file is encoding something you're interested in
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
