@@ -112,7 +112,7 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .POINT {
-            log_error("Expected a point closest point casting a colliding ray in point selection mode");
+            log_error("Expected a point: casting a ray in point selection mode");
             return;
         }
 
@@ -152,7 +152,7 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .SEGMENT {
-            log_error("Expected a segment closest point casting a colliding ray in segment selection mode");
+            log_error("Expected a segment: casting a ray in segment selection mode");
             return;
         }
 
@@ -192,7 +192,7 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .TRIANGLE {
-            log_error("Expected a triangle closest point casting a colliding ray in triangle selection mode");
+            log_error("Expected a triangle: casting a ray in triangle selection mode");
             return;
         }
 

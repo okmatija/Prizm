@@ -810,11 +810,11 @@ get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> floa
 }
 
 elements_targetted :: (entity : Entity) -> bool {
-    return true;
+    return entity.display_info.is_visible;
 }
 
 elements_not_targetted :: (entity : Entity) -> bool {
-    return true;
+    return false;
 }
 
 is_occluder :: (entity : Entity) -> bool {
