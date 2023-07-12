@@ -1126,11 +1126,12 @@ format_struct_ui :: (format : *FormatStruct) -> bool {
         format.use_long_form_if_more_than_this_many_members = ifx use_long_form then -1 else 99999;
         changed = true;
     }
-    show_tooltip(TOOLTIP);
-TOOLTIP :: #string DONE
+
+    TOOLTIP :: #string DONE
 "short form" means just draw values e.g., {1, 3, 5}
 "long form"  means draw names then values e.g., {x = 1; y = 3; z = 5;}
 DONE
+    show_tooltip(TOOLTIP);
     ImGui.SameLine();
     changed |= ImGui.Checkbox("Long form newlines", *format.use_newlines_if_long_form);
 
@@ -1836,7 +1837,6 @@ display_attribute :: (entity : *Entity, entity_index : int, base_attribute : *Si
     if base_attribute.type == {
         case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
             ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
-            show_tooltip(TOOLTIP);
             TOOLTIP :: #string DONE
 Matrix3 :: struct {
 _11, _12, _13 : float;
@@ -1845,6 +1845,7 @@ _31, _32, _33 : float;
 #place _11; row: [3]Vector3 = ---;
 }
 DONE;
+            show_tooltip(TOOLTIP);
     }
 
     if base_attribute.type == {
@@ -2205,7 +2206,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 show_tooltip_binding(DESCRIBE, BINDING);
 
                 ImGui.TableSetColumnIndex(3);
-                POSITIVE_INF :: 0h7F800000;
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
                 if ImGui.Button(imgui_label("Reset    ##sphere", *clip_sphere)) || uninitialized {
                     if !is_empty(aabb) {
@@ -2357,3 +2357,5 @@ g_this_frame_state : ImGui_Frame_State;
 // This will be reset at the start of the currently rendering frame
 // Set fields whenever convenient in the currently rendering frame
 g_next_frame_state : ImGui_Frame_State;
+
+POSITIVE_INF :: 0h7F800000;

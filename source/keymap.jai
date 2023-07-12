@@ -165,6 +165,39 @@ mouse_set_clip_radius :: () -> bool {
 
 init_keymap :: () {
 
+    add_key :: (keymap : *Keymap,
+                proc : (*void)->(),
+                desc : string,
+                key_code : u32,
+                modifier_flags : Modifier_Flags = .{},
+                override_WantCaptureKeyboard := false, // @Refactor, remove this boolean and have a separate array of bindings with this bool as true
+                loc := #caller_location,
+                data : *void = null) {
+
+        // Check that the binding is available
+        for keymap.mappings {
+            if it.key_code == key_code && it.modifier_flags == modifier_flags {
+                assert(false, tprint("\nError at %:%:%: Key binding for \"%\" already exists!", loc.fully_pathed_filename, loc.line_number, loc.character_number, desc));
+            }
+        }
+
+        info := array_add(*keymap.procs);
+        info.name = desc;
+        info.proc = proc;
+        info.data = data;
+
+        // @Incomplete: This should be read from a keymap file
+        mapping := array_add(*keymap.mappings);
+        mapping.key_code = key_code;
+        mapping.modifier_flags = modifier_flags;
+        mapping.proc_info_index = keymap.procs.count - 1;
+        mapping.override_WantCaptureKeyboard = override_WantCaptureKeyboard;
+    }
+
+    add_key :: (keymap : *Keymap, using action_set : Action_Set, loc := #caller_location) {
+        add_key(keymap, proc, desc, key, .{}, override_WantCaptureKeyboard, loc, xx *last_interaction_time);
+    }
+
     // TODO Add options here for behaviour customizations?
 
     add_key(*app.keymap_keydown, (unused)=>{toggle_fullscreen();}, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
@@ -205,39 +238,6 @@ init_keymap :: () {
 
     // Reserved! Do not change this binding
     add_key(*app.keymap, (unused)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
-
-    add_key :: (keymap : *Keymap, using action_set : Action_Set, loc := #caller_location) {
-        add_key(keymap, proc, desc, key, .{}, override_WantCaptureKeyboard, loc, xx *last_interaction_time);
-    }
-
-    add_key :: (keymap : *Keymap,
-                proc : (*void)->(),
-                desc : string,
-                key_code : u32,
-                modifier_flags : Modifier_Flags = .{},
-                override_WantCaptureKeyboard := false, // @Refactor, remove this boolean and have a separate array of bindings with this bool as true
-                loc := #caller_location,
-                data : *void = null) {
-
-        // Check that the binding is available
-        for keymap.mappings {
-            if it.key_code == key_code && it.modifier_flags == modifier_flags {
-                assert(false, tprint("\nError at %:%:%: Key binding for \"%\" already exists!", loc.fully_pathed_filename, loc.line_number, loc.character_number, desc));
-            }
-        }
-
-        info := array_add(*keymap.procs);
-        info.name = desc;
-        info.proc = proc;
-        info.data = data;
-
-        // @Incomplete: This should be read from a keymap file
-        mapping := array_add(*keymap.mappings);
-        mapping.key_code = key_code;
-        mapping.modifier_flags = modifier_flags;
-        mapping.proc_info_index = keymap.procs.count - 1;
-        mapping.override_WantCaptureKeyboard = override_WantCaptureKeyboard;
-    }
 }
 
 //

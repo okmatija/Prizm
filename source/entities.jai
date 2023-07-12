@@ -518,18 +518,18 @@ set_entity_annotations :: (entity : *Entity,
     using entity.annotation_info;
     max : int;
 
-    max, show_kind = block_annotations.count, .BLOCK;
+    max, show_kind = block_annotations.count, Annotation.Kind.BLOCK;
     if max < vertex_annotations.count {
-        max, show_kind = vertex_annotations.count, .VERTEX;
+        max, show_kind = vertex_annotations.count, Annotation.Kind.VERTEX;
     }
     if max < point_annotations.count {
-        max, show_kind = point_annotations.count, .POINT;
+        max, show_kind = point_annotations.count, Annotation.Kind.POINT;
     }
     if max < line_annotations.count {
-        max, show_kind = line_annotations.count, .LINE;
+        max, show_kind = line_annotations.count, Annotation.Kind.LINE;
     }
     if max < face_annotations.count {
-        max, show_kind = face_annotations.count, .TRIANGLE;
+        max, show_kind = face_annotations.count, Annotation.Kind.TRIANGLE;
     }
     if max < command_annotations.count {
         max, show_kind = command_annotations.count, Annotation.Kind.COMMAND; // @CompilerBug Unary '.' identifier should work here!
@@ -860,16 +860,6 @@ find_closest_element :: (
         //     continue;
         // }
 
-        process_triangle_data : Process_Triangle_Data = ---;
-        process_triangle_data.entity                       = entity;
-        process_triangle_data.ray_world                    = ray_world;
-        process_triangle_data.projection_from_world        = *projection_from_world;
-        process_triangle_data.max_dist_px                  =  max_dist_px;
-        process_triangle_data.best_ray_triangle_hit        = *best_ray_triangle_hit;
-        process_triangle_data.best_ray_triangle_hit_index  = *best_ray_triangle_hit_index;
-        process_triangle_data.best_ray_triangle_miss       = *best_ray_triangle_miss;
-        process_triangle_data.best_ray_triangle_miss_index = *best_ray_triangle_miss_index;
-
         Process_Triangle_Data :: struct {
             entity : *Entity;
             ray_world : Ray3;
@@ -880,6 +870,16 @@ find_closest_element :: (
             best_ray_triangle_miss : *Closest_Point_Ray_Triangle;
             best_ray_triangle_miss_index : *int;
         };
+
+        process_triangle_data : Process_Triangle_Data = ---;
+        process_triangle_data.entity                       = entity;
+        process_triangle_data.ray_world                    = ray_world;
+        process_triangle_data.projection_from_world        = *projection_from_world;
+        process_triangle_data.max_dist_px                  =  max_dist_px;
+        process_triangle_data.best_ray_triangle_hit        = *best_ray_triangle_hit;
+        process_triangle_data.best_ray_triangle_hit_index  = *best_ray_triangle_hit_index;
+        process_triangle_data.best_ray_triangle_miss       = *best_ray_triangle_miss;
+        process_triangle_data.best_ray_triangle_miss_index = *best_ray_triangle_miss_index;
 
         process_triangle :: (triangle_model : Triangle3, triangle_index : int, data : *void) {
 

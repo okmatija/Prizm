@@ -121,7 +121,7 @@ build_gui :: (
 
                 Combo_Box(array_bounds_check);
                 Combo_Box(cast_bounds_check);
-                Combo_Box(math_bounds_check);
+                Combo_Box(arithmetic_overflow_check);
                 Combo_Box(null_pointer_check);
                 Combo_Box(dead_code_elimination);
 
