@@ -137,19 +137,19 @@ any_active_clipping :: () -> bool {
 toggle_clipping :: () {
 
     clip_active := *app.template_display_info.clip_sphere.is_active;
-    <<clip_active = !<<clip_active;
+    clip_active.* = !clip_active.*;
 
     for :Selected app.entities {
-        it.display_info.clip_sphere.is_active = <<clip_active;
+        it.display_info.clip_sphere.is_active = clip_active.*;
         for * it.display_info.clip_ranges {
-            it.is_active = <<clip_active;
+            it.is_active = clip_active.*;
         }
     }
 }
 
 toggle_clipping_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     toggle_clipping();
 }
@@ -208,7 +208,7 @@ cycle_vertex_size :: () {
 
 cycle_vertex_size_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_vertex_size();
 }
@@ -234,7 +234,7 @@ cycle_vertex_size_progress_proc :: (using app_info : *Display_Info) -> Fraction 
 
 cycle_vertex_size_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info;
+    app_info_copy := app_info.*;
     return cycle_vertex_size_progress_proc(*app_info_copy);
 }
 
@@ -261,7 +261,7 @@ cycle_wireframe_width :: () {
 // @Cleanup could auto generate this
 cycle_wireframe_width_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_wireframe_width();
 }
@@ -293,7 +293,7 @@ cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fract
 
 cycle_wireframe_width_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info;
+    app_info_copy := app_info.*;
     return cycle_wireframe_width_progress_proc(*app_info_copy);
 }
 
@@ -317,7 +317,7 @@ toggle_normals_visibility :: () {
 
 toggle_normals_visibility_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     toggle_normals_visibility();
 }
@@ -341,7 +341,7 @@ toggle_normals_visibility_progress_proc :: (app_info : *Display_Info) -> Fractio
 
 toggle_normals_visibility_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info;
+    app_info_copy := app_info.*;
     return toggle_normals_visibility_progress_proc(*app_info_copy);
 }
 
@@ -413,7 +413,7 @@ cycle_vertex_label :: () {
 
 cycle_vertex_label_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_vertex_label();
 }
@@ -421,7 +421,7 @@ cycle_vertex_label_proc :: (last_interaction_time : *void) {
 
 cycle_vertex_label_progress_proc :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_vertex_label_theme(*app_info_copy.vertex_label_theme);
 }
 
@@ -493,14 +493,14 @@ cycle_element_label :: () {
 
 cycle_element_label_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_element_label();
 }
 
 cycle_element_label_progress_proc :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
@@ -570,7 +570,7 @@ cycle_annotation :: () {
 
 cycle_annotation_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_annotation();
 }
@@ -578,7 +578,7 @@ cycle_annotation_proc :: (last_interaction_time : *void) {
 cycle_annotation_progress_proc :: () -> Fraction {
     log_warning("nocommit @Incomplete: This should go through all the existing annotations in turn and default to off %", #this);
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_annotation_theme(*app_info_copy.vertex_label_theme.annotation_label_theme);
 }
 
@@ -600,7 +600,7 @@ cycle_opacity :: () {
 
 cycle_opacity_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_opacity();
 }
@@ -620,7 +620,7 @@ cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 
 cycle_opacity_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_opacity_progress_proc(*app_info_copy);
 }
 
@@ -641,13 +641,13 @@ cycle_backface_mode :: () {
     cycle_backface_mode_progress_proc(mode);
 
     for :Selected app.entities {
-        it.display_info.triangle_style.backface_mode = <<mode;
+        it.display_info.triangle_style.backface_mode = mode.*;
     }
 }
 
 cycle_backface_mode_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_backface_mode();
 }
@@ -655,20 +655,20 @@ cycle_backface_mode_proc :: (last_interaction_time : *void) {
 cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
     result : Fraction;
     result.denom = 5;
-    if #complete <<mode == {
-        case .FIXED;        result.numer = 0; <<mode = .DARKEN; 
-        case .DARKEN;       result.numer = 1; <<mode = .SCREENTONE_1;
-        case .SCREENTONE_1; result.numer = 2; <<mode = .SCREENTONE_2;
-        case .SCREENTONE_2; result.numer = 3; <<mode = .NONE;
-        case .NONE;         result.numer = 4; <<mode = .CULL;
-        case .CULL;         result.numer = 5; <<mode = .FIXED;
+    if #complete mode.* == {
+        case .FIXED;        result.numer = 0; mode.* = .DARKEN; 
+        case .DARKEN;       result.numer = 1; mode.* = .SCREENTONE_1;
+        case .SCREENTONE_1; result.numer = 2; mode.* = .SCREENTONE_2;
+        case .SCREENTONE_2; result.numer = 3; mode.* = .NONE;
+        case .NONE;         result.numer = 4; mode.* = .CULL;
+        case .CULL;         result.numer = 5; mode.* = .FIXED;
     }
     return result;
 }
 
 cycle_backface_mode_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_backface_mode_progress_proc(*app_info_copy.triangle_style.backface_mode);
 }
 
@@ -682,7 +682,7 @@ cycle_backface_mode_progress_proc_const :: () -> Fraction {
 // Reload items
 //
 
-reload_items_proc :: (unused : *void) {
+reload_items_proc :: (_ : *void) {
 
     no_dependencies_first_then_chronological :: (a : *Entity, b : *Entity) -> s64 {
         // FILE_ON_DISK and PRESET_SHAPE sources do not depend on other entities, but command outputs can, so we load those last and in order of 
@@ -712,7 +712,7 @@ reload_items_proc :: (unused : *void) {
 
 
 // @Volatile :FocusItemBehavior Sync with focus button
-focus_items_proc :: (unused : *void) {
+focus_items_proc :: (_ : *void) {
 
     almost_equal :: (a : Camera, b : Camera) -> bool {
         return
@@ -746,7 +746,7 @@ focus_items_proc :: (unused : *void) {
 // Clear labels
 //
 
-clear_all_labels_proc :: (unused : *void) {
+clear_all_labels_proc :: (_ : *void) {
     for :Selected app.entities {
         // @Cleanup Add a label theme iterator?
         it.display_info.vertex_label_theme.show_index = false;

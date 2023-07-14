@@ -8,7 +8,7 @@ get_update :: inline (old : $T, new : T) -> bool {
 
 apply_update :: inline (update : bool, source : $T, target : *T) {
     if update {
-        <<target = source;
+        target.* = source;
     }
 }
 

@@ -282,7 +282,7 @@ set_entity_primary_color :: (using entity : *Entity) {
 
     primary_color : *Vector4 = get_entity_primary_color(entity);
     if primary_color {
-        <<primary_color = compute_entity_primary_color(entity);
+        primary_color.* = compute_entity_primary_color(entity);
     }
 }
 
@@ -414,7 +414,7 @@ entities_world_bounding_sphere :: ($entity_filter : Code = visit_visible) -> Sph
         sphere : Sphere = entity_world_bounding_sphere(entity);
         if !is_empty(sphere) {
             if is_empty(result) {
-                <<result = sphere;
+                result.* = sphere;
             } else {
                 expand(result, sphere);
             }
@@ -899,13 +899,13 @@ find_closest_element :: (
 
             if cp.distance == 0 {
                 if cp.rayParameter < best_ray_triangle_hit.rayParameter {
-                    <<best_ray_triangle_hit = cp;
-                    <<best_ray_triangle_hit_index = triangle_index;
+                    best_ray_triangle_hit.* = cp;
+                    best_ray_triangle_hit_index.* = triangle_index;
                 }
             } else {
                 if cp.rayParameter < best_ray_triangle_miss.rayParameter {
-                    <<best_ray_triangle_miss = cp;
-                    <<best_ray_triangle_miss_index = triangle_index;
+                    best_ray_triangle_miss.* = cp;
+                    best_ray_triangle_miss_index.* = triangle_index;
                 }
             }
         }

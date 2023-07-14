@@ -299,7 +299,7 @@ item_clear_triangles :: (id : int) {
 //     // @Incomplete Transform attributes
 // 
 //     for * entity.mesh.normals {
-//         <<it *= -1;
+//         it.* *= -1;
 //     }
 // 
 //     for i : 0..entity.mesh.triangles.count-1 {
@@ -318,7 +318,7 @@ set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
     color, visible := get_entity_primary_color(entity);
-    <<color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    color.* = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 
@@ -939,7 +939,9 @@ item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
     unreferenced_positions : [..]u32;
     defer array_free(unreferenced_positions);
     array_resize(*unreferenced_positions, mesh.positions.count);
-    for * unreferenced_positions { <<it = xx it_index; }
+    for * unreferenced_positions {
+        it.* = xx it_index;
+    }
 
     // Remove the indices which are reference by an element
     for position_index : unreferenced_positions {
@@ -967,7 +969,7 @@ item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
 
     for position_index : unreferenced_positions {
         point_index : *u32 = array_add(*entity.mesh.points);
-        <<point_index = position_index;
+        point_index.* = position_index;
     }
 
     if unreferenced_positions.count {
@@ -1053,13 +1055,13 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     Perturb2 :: (point : *Vector2) #expand {
         delta := make_vector2(Rand(), Rand());
         normalize_or_x_axis(*delta);
-        <<point = <<point + delta * radius;
+        point.* = point.* + delta * radius;
     }
 
     Perturb3 :: (point : *Vector3) #expand {
         delta := make_vector3(Rand(), Rand(), Rand());
         normalize_or_z_axis(*delta);
-        <<point = <<point + delta * radius;
+        point.* = point.* + delta * radius;
     }
 
     // @FIXME: This is broken becuase the mesh points are not synced with the polyline (and polygon?) points,

@@ -200,22 +200,22 @@ init_keymap :: () {
 
     // TODO Add options here for behaviour customizations?
 
-    add_key(*app.keymap_keydown, (unused)=>{toggle_fullscreen();}, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap_keydown, (unused)=>{toggle_show_ui();}, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
-    add_key(*app.keymap_keydown, (unused)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
+    add_key(*app.keymap_keydown, (_)=>{toggle_fullscreen();}, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap_keydown, (_)=>{toggle_show_ui();}, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
+    add_key(*app.keymap_keydown, (_)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
     // :SelectionKeybindTooltip @Volatile @Cleanup Keep this in sync with the tooltip
-    add_key(*app.keymap, (unused)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap, (unused)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
-    add_key(*app.keymap, (unused)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
-    add_key(*app.keymap, (unused)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
+    add_key(*app.keymap, (_)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap, (_)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
+    add_key(*app.keymap, (_)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
+    add_key(*app.keymap, (_)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
 
-    add_key(*app.keymap, (unused)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
+    add_key(*app.keymap, (_)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
     // @FIXME Make these presets work with the alt key like the button
-    add_key(*app.keymap, (unused)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (unused)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (unused)=>{add_preset_boolean_a();}, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (unused)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (_)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (_)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (_)=>{add_preset_boolean_a();}, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, (_)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
 
     add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
     add_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
@@ -231,13 +231,13 @@ init_keymap :: () {
     add_key(*app.keymap_actions, RELOAD_ITEMS_ACTION_SET);
 
     // @Volatile button text in camera control pane should be kept in sync with keymap!
-    add_key(*app.keymap, (unused)=>{rotate_look_direction_5_cw();},   "Rotate  15 deg about selected rotation axis", xx #char "]");
-    add_key(*app.keymap, (unused)=>{rotate_look_direction_5_ccw();},  "Rotate -15 deg about selected rotation axis", xx #char "[");
-    add_key(*app.keymap, (unused)=>{rotate_look_direction_15_cw();},  "Rotate  5  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
-    add_key(*app.keymap, (unused)=>{rotate_look_direction_15_ccw();}, "Rotate -5  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
+    add_key(*app.keymap, (_)=>{rotate_look_direction_5_cw();},   "Rotate  15 deg about selected rotation axis", xx #char "]");
+    add_key(*app.keymap, (_)=>{rotate_look_direction_5_ccw();},  "Rotate -15 deg about selected rotation axis", xx #char "[");
+    add_key(*app.keymap, (_)=>{rotate_look_direction_15_cw();},  "Rotate  5  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
+    add_key(*app.keymap, (_)=>{rotate_look_direction_15_ccw();}, "Rotate -5  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
 
     // Reserved! Do not change this binding
-    add_key(*app.keymap, (unused)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
+    add_key(*app.keymap, (_)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
 }
 
 //

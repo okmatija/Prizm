@@ -157,5 +157,5 @@ GetMinEdge12 :: inline (a01 : float, a11 : float, b1 : float, f10 : float, f01 :
 
 GetMinInterior :: inline (p0 : Vector2, h0 : float, p1 : Vector2, h1 : float, p : *Vector2) {
     z : float = h0 / (h0 - h1);
-    <<p = (cast(float)1 - z) * p0 + z * p1;
+    p.* = (cast(float)1 - z) * p0 + z * p1;
 }

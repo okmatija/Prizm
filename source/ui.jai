@@ -424,7 +424,7 @@ show_items_ui :: () {
                 it_primary_color : *Vector4 = get_entity_primary_color(it);
                 source_primary_color : *Vector4 = get_entity_primary_color(source);
                 if it_primary_color && source_primary_color {
-                    <<it_primary_color = <<source_primary_color;
+                    it_primary_color.* = source_primary_color.*;
                 }
             }
         }
@@ -499,7 +499,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
             color, element_visibility := get_entity_primary_color(entity);
             if element_visibility {
-                <<element_visibility = true;
+                element_visibility.* = true;
             }
         }
 
@@ -1036,7 +1036,7 @@ show_select_ui :: () {
             ImGui.TableNextColumn();
             if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, ImGui.ColorEditFlags.NoInputs) {
                 // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
-                <<label_color = darken(element_color, .8);
+                label_color.* = darken(element_color, .8);
             }
 
             // // Element kind name
@@ -1437,7 +1437,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("Camera Controls", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##CameraControlsKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             ShowBinding("      MMB", "Pan the camera");
@@ -1451,7 +1451,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("In the Items List", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##ItemsListKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             ShowBinding("      RMB", "(on a color) Cycle shading styles");
@@ -1465,7 +1465,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##ViewportKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             for app.keymap_actions.mappings {
@@ -1479,7 +1479,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("Miscellaneous", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##MiscellaneousKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             for app.keymap.mappings {
@@ -1630,7 +1630,7 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
 
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index : int = -1) -> Display_Info_Update {
 
-   old_display_info := <<display_info;
+   old_display_info := display_info.*;
 
    show_clipping_ui(display_info, aabb);
    show_rendering_and_labeling_ui(display_info, entity_index);
@@ -1643,7 +1643,7 @@ display_information :: (entity : *Entity) {
         defer ImGui.TreePop();
 
         table_flags := ImGui.TableFlags.BordersOuter;
-        ImGui.BeginTable("", 2, flags=table_flags);
+        ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
         defer ImGui.EndTable();
 
         ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);

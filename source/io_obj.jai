@@ -176,7 +176,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                         vn : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(*result.mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
 
                         normal : *Vector3 = array_add(*vn.values);
-                        missing, <<normal = obj_value(scratch_vn, refs.normal[i], MISSING_NORMAL_FALLBACK);
+                        missing, normal.* = obj_value(scratch_vn, refs.normal[i], MISSING_NORMAL_FALLBACK);
                         if missing {
                             missing_normals_count += 1;
                         }
@@ -185,7 +185,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     // Add the point before the annotation
                     {
                         point : *u32 = array_add(*mesh.points);
-                        missing, <<point = obj_index(mesh.positions.count, refs.indices[i], MISSING_VERTEX_INDEX);
+                        missing, point.* = obj_index(mesh.positions.count, refs.indices[i], MISSING_VERTEX_INDEX);
                         if missing {
                             missing_vertices_count += 1;
                         }
@@ -411,8 +411,8 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         // Direct any elements with missing vertex indices to the missing/invalid position
         for *point : mesh.points {
-            if <<point == MISSING_VERTEX_INDEX {
-                <<point = xx mesh.positions.count;
+            if point.* == MISSING_VERTEX_INDEX {
+                point.* = xx mesh.positions.count;
             }
         }
         for *segment : mesh.segments {
@@ -449,7 +449,9 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     // In more general cases users can call the item_find_unreferenced_positions command, from the console or as a command annotation in the file
     if no_elements(mesh) {
         array_resize(*mesh.points, mesh.positions.count);
-        for * mesh.points { <<it = xx it_index; }
+        for * mesh.points { 
+            it.* = xx it_index;
+        }
         log_warning("File '%' contains % position% but has no element directives (p-, l- or f-directives) so we auto-assigned p-directives", filename, mesh.positions.count, plural_suffix(mesh.positions.count > 1));
         log("If you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex (v-directive)");
     }
@@ -475,11 +477,11 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
     init_entity_spatial_index(result);
 
-    //print("result = %\n", formatStruct(<<result, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));
+    //print("result = %\n", formatStruct(result.*, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));
     //for result.mesh_attributes {
     //    if it.type == {
     //        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
-    //            attr := <<cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it;0
+    //            attr := (cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it).*;
     //            printv(attr);
     //    }
     //}

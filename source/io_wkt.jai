@@ -218,9 +218,9 @@ parse_point :: (p: *Parser, point2 : *Vector2, point3 : *Vector3, loc := #caller
     if dim == 1 {
         error(p, peek_token(p), "Expected 2D or 3D point, but only got one component %.\n", to_string(peek_token(p)));
     } else if dim == 2 {
-        <<point2 = parse_vector2(p);
+        point2.* = parse_vector2(p);
     } else if dim == 3 {
-        <<point3 = parse_vector3(p);
+        point3.* = parse_vector3(p);
     }
 
     return dim;

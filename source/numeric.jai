@@ -55,7 +55,7 @@ transform_point :: (point : Vector3, transform : Matrix4) -> Vector3 {
 normalize :: (using v: *Vector2, epsilon := 0, fallback := Vector2.{0, 0}) -> float {
     sq := sqrt(x*x + y*y);
     if sq == 0 {
-        <<v = fallback;
+        v.* = fallback;
         return sq;
     }
 

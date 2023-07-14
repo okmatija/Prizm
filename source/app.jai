@@ -257,7 +257,7 @@ current_window_aspect_ratio_width_over_height :: () -> float {
 EntitiesIterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
     #assert(flags == 0); // No options are supported
 
-    for entity, entity_index : <<entities {
+    for entity, entity_index : entities.* {
         `it_index := entity_index;
         `it := entity;
         if #insert,scope() entity_filter {
@@ -321,7 +321,7 @@ Duplicate_File_Behaviour :: enum u8 #specified {
 clamp_user_settings :: ()
 {
     clamp :: (value : *$T, min : T, max : T) {
-        <<value = clamp(<<value, min, max);
+        value.* = clamp(value.*, min, max);
     }
 
     using app.settings;

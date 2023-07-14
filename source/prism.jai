@@ -487,7 +487,7 @@ handle_directory :: (path : string) {
     pending : app.Pending_Directory;
 
     if found_dir { // Directory already exists
-        pending.directory = <<found_dir; // Copy state from found_dir, we'll overwrite the path though
+        pending.directory = found_dir.*; // Copy state from found_dir, we'll overwrite the path though
     } else { // New directory
         // When a folder is given it defaults to auto reloading
         pending.auto_load_new_files = true;
@@ -533,9 +533,20 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
 }
 
 ctx: *ImGui.ImGuiContext;
+
 _imgui_alloc_context: Context;
-c_alloc :: (sz: u64, userdata: *void) -> *void #c_call { push_context << cast(*Context)userdata { return alloc(cast(s64)sz); } }
-c_free :: (ptr: *void, userdata: *void) -> void #c_call { push_context << cast(*Context)userdata { free(ptr); } }
+
+c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
+    push_context (cast(*Context)userdata).* {
+        return alloc(cast(s64)sz);
+    }
+}
+
+c_free :: (ptr: *void, userdata: *void) -> void #c_call {
+    push_context (cast(*Context)userdata).* {
+        free(ptr);
+    }
+}
 
 ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     #if set_default_allocators {

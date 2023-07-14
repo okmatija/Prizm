@@ -26,10 +26,10 @@ obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, b
         error(p, peek_token(p), "Expected 2D or 3D point, but only got one component %.\n", to_string(peek_token(p)));
     } else if dim == 2 {
         fallback : Vector2 = make_vector2(app.invalid_point.x, app.invalid_point.y);
-        <<point2, finite = ensure_finite(parse_vector2(p), fallback);
+        point2.*, finite = ensure_finite(parse_vector2(p), fallback);
     } else if dim == 3 {
         fallback : Vector3 = app.invalid_point;
-        <<point3, finite = ensure_finite(parse_vector3(p), fallback);
+        point3.*, finite = ensure_finite(parse_vector3(p), fallback);
     }
 
     return dim, finite;

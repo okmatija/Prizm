@@ -197,7 +197,7 @@ console_draw :: () {
         ImGui.PushItemWidth(-65); // Set to leave space for UI to the right of the text input @Cleanup This is a bit crappy
         text_input_flags :=  ImGui.InputTextFlags.EnterReturnsTrue | .CallbackCompletion | .CallbackHistory;
         reclaim_focus := ImGui.IsWindowAppearing();
-        if (ImGui.InputText("", app.console.input_buffer.data, app.console.input_buffer.count, text_input_flags, text_edit_callback, *app.console)) {
+        if (ImGui.InputText(imgui_label("##Input", *app.console), app.console.input_buffer.data, app.console.input_buffer.count, text_input_flags, text_edit_callback, *app.console)) {
             defer app.console.input_buffer[0] = 0; // Wipe input after processing
             buffer := to_string(app.console.input_buffer.data, c_style_strlen(app.console.input_buffer.data));
             console_execute_command(buffer);
@@ -208,7 +208,7 @@ console_draw :: () {
         // @Refactor Make this type of tooltip a reusable function
         if ImGui.IsItemHovered() {
             ImGui.BeginTooltip();
-            ImGui.BeginTable("", 3, flags=ImGui.TableFlags.NoBordersInBody);
+            ImGui.BeginTable(imgui_label("##InputTooltipTable", *app.console), 3, flags=ImGui.TableFlags.NoBordersInBody);
 
             ImGui.TableNextRow(); ImGui.TableNextColumn();
             ImGui.TextColored(app.theme.keymap_color, "TAB");
@@ -363,7 +363,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
                 word_end := data.Buf + data.CursorPos;
                 word_start := data.Buf + trim_right(current_input, " ").count;
                 while word_start > data.Buf {
-                    c := <<(word_start - 1);
+                    c := (word_start - 1).*;
                     if (c == #char " " || c == #char "\t" || c == #char "," || c == #char ";")
                         break;
                     word_start -= 1;

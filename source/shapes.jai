@@ -201,7 +201,7 @@ par_shapes_export :: (mesh : par_shapes_mesh, filename : string) -> ()
 par_shapes_translate :: (mesh : par_shapes_mesh, displacement : Vector3)
 {
     for * mesh.points {
-        <<it += displacement;
+        it.* += displacement;
     }
 }
 
@@ -279,7 +279,7 @@ par_shapes_scale :: (mesh : par_shapes_mesh, x : float, y : float, z : float)
             normal.x *= x;
             normal.y *= y;
             normal.z *= z;
-            <<normal = normalize(<<normal);
+            normal.* = normalize(normal.*);
         }
     }
 }
@@ -359,7 +359,7 @@ par_shapes__hemisphere :: (uv : Vector2, userdata : *void) -> Vector3
 par_shapes__torus :: (uv : Vector2, userdata : *void) -> Vector3
 {
     major := 1;
-    minor := << (cast(*float) userdata);
+    minor := (cast(*float) userdata).*;
     theta := uv.x * 2 * PI;
     phi := uv.y * 2 * PI;
     beta := major + minor * cos(phi);

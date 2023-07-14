@@ -58,10 +58,10 @@ Backface_Mode :: enum #specified {
 }
 
 cycle_display_mode :: (mode : *Display_Mode) {
-    if #complete <<mode == {
-        case .NORMALS;     <<mode = .BLINN_PHONG;
-        case .SOLID_COLOR; <<mode = .NORMALS;
-        case .BLINN_PHONG; <<mode = .NORMALS;
+    if #complete mode.* == {
+        case .NORMALS;     mode.* = .BLINN_PHONG;
+        case .SOLID_COLOR; mode.* = .NORMALS;
+        case .BLINN_PHONG; mode.* = .NORMALS;
     }
 }
 
@@ -1481,7 +1481,7 @@ draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Them
 
 draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
     if !quads.count return;
-    cached_font : Simp.Dynamic_Font = <<app.simp_font;
+    cached_font : Simp.Dynamic_Font = app.simp_font.*;
     cached_font.current_quads = quads;
     Simp.draw_generated_quads(*cached_font, color);
 }

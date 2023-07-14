@@ -24,7 +24,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
             polyline_aabb := to_polyline_soup(it.aabb);
             for polyline : polyline_aabb.polylines {
                 shape_polyline := array_add(*shape.polylines);
-                <<shape_polyline = polyline; // @FIXME null check
+                shape_polyline.* = polyline; // @FIXME null check
             }
         }
 
@@ -76,7 +76,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
-                    entity_base := <<found;
+                    entity_base := found.*;
                     entity := entity_base;
                     entity.render_info.is_dirty = true; // Redundant
                     entity.display_info.segment_style.visible = true;
@@ -117,7 +117,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
-                    entity := <<found;
+                    entity := found.*;
 
                     other := to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     defer deinit(*other);
@@ -143,7 +143,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         visitor : spatial.Node_Visitor;
         visitor.proc = append_to_entity_at_depth;
         visitor.data = *visitor_data;
-        depth_first_visit(<<spatial, visitor); // @CompilerBug why can't I implicit pointer dereference here?
+        depth_first_visit(spatial.*, visitor); // @CompilerBug why can't I implicit pointer dereference here?
 
         Entity_At_Depth :: struct {
             depth : int;

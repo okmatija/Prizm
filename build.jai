@@ -99,7 +99,7 @@ build :: () {
         add_build_file("source/prism.jai", w);
 
         while true {
-            message := compiler_wait_for_message();
+            message : *Message = compiler_wait_for_message();
 
             if !message {
                 continue;
@@ -347,7 +347,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                 case .INTEGER;
                     // @Incomplete Check for overflow?
                     Print("%if args[%].type.type == .INTEGER {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*s64)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*s64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     integer_arg := cast(*Type_Info_Integer)arg.type;
                     if integer_arg.signed == false {
                         Print("%    if a%2 < 0 {\n", indent, arg_index);
@@ -361,23 +361,23 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     Print("%}\n", indent);
                 case .FLOAT;
                     Print("%if args[%].type.type == .FLOAT {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*float64)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*float64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else if args[%].type.type == .INTEGER {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*s64)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*s64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not a number, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .STRING;
                     Print("%if args[%].type.type == .STRING {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*string)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*string)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not an string, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .TYPE;
                     Print("%if args[%].type.type == .TYPE {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*Type)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*Type)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not an Type, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);

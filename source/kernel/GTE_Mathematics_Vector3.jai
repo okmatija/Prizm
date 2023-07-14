@@ -44,24 +44,24 @@ DotCross :: (v0 : Vector3, v1 : Vector3, v2 : Vector3) -> float {
 // vectors v[0] through v[2] form an orthonormal set.
 ComputeOrthogonalComplement :: ($numInputs : int, v : *[3]Vector3, $robust := false) -> float {
     #if numInputs == 1 {
-        if (abs((<<v)[0].component[0]) > abs((<<v)[0].component[1]))
+        if (abs(v.*[0].component[0]) > abs(v.*[0].component[1]))
         {
-            using (<<v)[1];
-            x = -(<<v)[0].component[2];
+            using v.*[1];
+            x = -v.*[0].component[2];
             y = 0;
-            z = +(<<v)[0].component[0];
+            z = +v.*[0].component[0];
         }
         else
         {
-            using (<<v)[1];
+            using v.*[1];
             x = 0;
-            y = +(<<v)[0].component[2];
-            z = -(<<v)[0].component[1];
+            y = +v.*[0].component[2];
+            z = -v.*[0].component[1];
         }
-        (<<v)[2] = Cross((<<v)[0], (<<v)[1]);
+        v.*[2] = Cross(v.*[0], v.*[1]);
         return Orthonormalize(3, v, robust);
     } else if numInputs == 2 {
-        (<<v)[2] = Cross((<<v)[0], (<<v)[1]);
+        v.*[2] = Cross(v.*[0], v.*[1]);
         return Orthonormalize(3, v, robust);
     }
 

@@ -22,7 +22,7 @@ deinit :: (annotation : Annotation) {
     if #complete annotation.value.kind == {
         case .string;
             pointer := cast(*string) annotation.value.bytes.data;
-            free(<<pointer);
+            free(pointer.*);
         case .float32;
             // do nothing
     }
@@ -34,10 +34,10 @@ to_string :: (annotation : Annotation) -> string {
     if #complete annotation.value.kind == {
         case .string;
             pointer := cast(*string) annotation.value.bytes.data;
-            return tprint("%", <<pointer); // necessary??
+            return tprint("%", pointer.*); // necessary??
         case .float32;
             pointer := cast(*float) annotation.value.bytes.data;
-            return tprint("%", <<pointer);
+            return tprint("%", pointer.*);
     }
     vt := annotation.value.value_types;
     assert(false); // unreachable
@@ -58,12 +58,12 @@ compare_annotation_values :: (a : Annotation , b : Annotation) -> int {
 
     afloat, bfloat := isa(a.value, float), isa(b.value, float);
     if afloat && bfloat {
-        return compare_floats(<<afloat, <<bfloat);
+        return compare_floats(afloat.*, bfloat.*);
     }
     
     astring, bstring := isa(a.value, string), isa(b.value, string);
     if astring && bstring {
-        return compare_strings(<<astring, <<bstring);
+        return compare_strings(astring.*, bstring.*);
     }
 
     assert(false); // unreachable

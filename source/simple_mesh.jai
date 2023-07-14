@@ -97,7 +97,7 @@ add_segment :: (using mesh : *Simple_Mesh, segment : Segment3) {
 add_point :: (using mesh : *Simple_Mesh, position : Vector3) {
     index : *u32 = array_add(*mesh.points);
 
-    <<index = xx mesh.positions.count;
+    index.* = xx mesh.positions.count;
     array_add(*mesh.positions, position);
 }
 
@@ -140,14 +140,14 @@ remove_elements_by_index :: (elements : *[..]$T, remove_indices : ..int) {
     array_reserve(*new_elements, elements.count - remove_indices.count);
 
     // @Speed
-    for <<elements {
+    for elements.* {
         found := array_find(remove_indices, it_index);
         if !found {
             array_add(*new_elements, it);
         }
     }
 
-    new_elements, <<elements = swap(new_elements, <<elements);
+    new_elements, elements.* = swap(new_elements, elements.*);
 
     array_free(new_elements);
 }
@@ -226,7 +226,7 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
     if !mesh return;
 
     for * mesh.positions {
-        <<it = (transform * make_vector4(it, 1.)).xyz;
+        it.* = (transform * make_vector4(it, 1.)).xyz;
     }
 
     // @Incomplete Transform attributes
@@ -651,7 +651,7 @@ compact_mesh :: (mesh : *Simple_Mesh) {
 
             // Update the vertex indices of the remaining points
             for * :PointIndexIterator position_index : mesh {
-                if <<position_index == i then <<position_index = cursor;
+                if position_index.* == i then position_index.* = cursor;
             }
 
             cursor += 1;
