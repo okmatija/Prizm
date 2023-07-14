@@ -435,6 +435,7 @@ ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand
     BY_POINTER :: cast(bool)(flags & .POINTER);
 
     `clipper : ImGui.ListClipper; // Exposed so that you can access ItemsHeight, which is useful to size scrolling regions
+    ImGui.ListClipper.Constructor(*clipper);
     ImGui.ListClipper.Begin(*clipper, xx array.count);
     while outer := ImGui.ListClipper.Step(*clipper) {
         for row : clipper.DisplayStart..clipper.DisplayEnd-1 {
@@ -449,6 +450,7 @@ ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand
             #insert body;
         }
     }
+    ImGui.ListClipper.Destructor(*clipper);
 }
 
 
