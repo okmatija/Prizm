@@ -1941,6 +1941,9 @@ show_normal_style_ui :: (normal_style : *Normal_Style, padding : string = "") {
     ImGui.DragFloat(imgui_label("##normals_scale", normal_style), *normal_style.scale, .05);
     show_tooltip("Scale/length multiplier applied to the obj normals");
     ImGui.PopItemWidth();
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##normals_normalized", normal_style), *normal_style.normalized);
+    show_tooltip("Normalize the obj normals before scaling");
 }
 
 show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int = -1) {

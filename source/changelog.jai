@@ -30,7 +30,7 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
 
   - Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
   - Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file 
-  - TODOOO Added a normalize checkbox (defaults on) to control normal rendering, you can turn it off if the length of the normals in the .obj file is encoding something you're interested in
+  - Added an option to normalize obj normal data (vn-directives) before applying normal scaling. This is on by default to preserve old behaviour, you could turn it off if the length of the normals in the .obj file is encoding something interesting.
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

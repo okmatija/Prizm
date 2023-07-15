@@ -143,8 +143,8 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 Normal_Style :: struct {
     visible := false;
     color := Vector4.{0., 0., .8, 1.};
-    scale : float = 1.; // Multiplies the length. If normalized then the scale is the length
-    //normalized : bool = false; // nocommitttt
+    scale : float = 1.; // Multiplies the obj normal. If normalized is true then this value is the length
+    normalized : bool = true; // If true the obj normal is normalized before scale is applied
 }
 
 // Could also be used for tetrahedra edges when/if those are supported
@@ -164,7 +164,7 @@ Point_Style :: struct {
     using vertex_style : Vertex_Style;
     vertex_style.color = Vector4.{.5, .5, .5, 1.};
 
-    normal_style : Normal_Style; // nocommitttt Use this
+    normal_style : Normal_Style;
 }
 
 Segment_Style :: struct {
@@ -488,7 +488,8 @@ render_mesh_triangle_normals :: (mesh : *Simple_Mesh, using render_info : *Rende
     set_clip_ranges_uniforms(p, display_info);
     set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
     glUniform4f(glGetUniformLocation(p, "normals_color"), triangle_style.normal_style.color.x, triangle_style.normal_style.color.y, triangle_style.normal_style.color.z, triangle_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_length"), triangle_style.normal_style.scale);
+    glUniform1f(glGetUniformLocation(p, "normal_scale"), triangle_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)triangle_style.normal_style.normalized);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -516,7 +517,8 @@ render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render
     set_clip_ranges_uniforms(p, display_info);
     set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
     glUniform4f(glGetUniformLocation(p, "normals_color"), segment_style.normal_style.color.x, segment_style.normal_style.color.y, segment_style.normal_style.color.z, segment_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_length"), segment_style.normal_style.scale);
+    glUniform1f(glGetUniformLocation(p, "normal_scale"), segment_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)segment_style.normal_style.normalized);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -542,7 +544,8 @@ render_mesh_point_normals :: (mesh : *Simple_Mesh, using render_info : *Render_I
     set_clip_ranges_uniforms(p, display_info);
     set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
     glUniform4f(glGetUniformLocation(p, "normals_color"), point_style.normal_style.color.x, point_style.normal_style.color.y, point_style.normal_style.color.z, point_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_length"), point_style.normal_style.scale);
+    glUniform1f(glGetUniformLocation(p, "normal_scale"), point_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)point_style.normal_style.normalized);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
