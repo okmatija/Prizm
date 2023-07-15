@@ -233,21 +233,22 @@ sort_by_size :: (ascending : int = 1) {
     else           quick_sort(app.entities, compare_descending);
 } @RegisterCommand
 
-// Clears the item with the given `id` (resets geometry data containers)
-item_clear :: (id : int) {
+// Deletes/removes the item with the given `id`
+item_delete :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
         return;
     }
 
     item := app.entities[id];
-    point_count := item.mesh.positions.count;
-    clear(item);
+    vertex_count := item.mesh.positions.count;
 
-    log("# Cleared item #% which had % points", id, point_count);
+    remove_entity_by_index(id);
+
+    log("# Deleted item #% which had % vertices", id, vertex_count);
 } @RegisterCommand
 
-// Clears the point element container (e.g., p-directive in .obj files), for then item with the given `id`
+// Clears the points (obj p-directives) from the item item with the given `id`
 item_clear_points :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -257,10 +258,10 @@ item_clear_points :: (id : int) {
     count := item.mesh.points.count;
     array_reset(*item.mesh.points);
 
-    log("# Cleared item #% which had % points", id, count);
+    log("# Cleared % point% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
-// Clears the segments (e.g., l-directive in .obj files) from the item with the given `id`
+// Clears the segments (obj l-directives) from the item with the given `id`
 item_clear_segments :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -270,10 +271,10 @@ item_clear_segments :: (id : int) {
     count := item.mesh.segments.count;
     array_reset(*item.mesh.segments);
 
-    log("# Cleared item #% which had % segments", id, count);
+    log("# Cleared % segment% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
-// Clears the triangles (e.g., l-directive in .obj files) from the item with the given `id`
+// Clears the triangles (obj f-directives) from the item with the given `id`
 item_clear_triangles :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -283,7 +284,7 @@ item_clear_triangles :: (id : int) {
     count := item.mesh.triangles.count;
     array_reset(*item.mesh.triangles);
 
-    log("# Cleared item #% which had % triangles", id, count);
+    log("# Cleared % triangle% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
 //nocommit
@@ -785,7 +786,7 @@ item_make_normals_segment_soup :: (id : int) {
 
     entity : *Entity = app.entities[id];
     mesh : Simple_Mesh = entity.mesh;
-    vn : *Simple_Mesh_Normals = find_mesh_attribute(*entity.mesh, "vn", Simple_Mesh_Normals);
+    vn : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(*entity.mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
     if vn == null {
         log("# Mesh has no normals.");
         return;

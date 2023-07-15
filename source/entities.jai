@@ -80,15 +80,8 @@ update_entity_transform :: (entity : *Entity, shift : Vector3) {
     }
 }
 
-clear :: (using entity : *Entity) {
-    clear(*mesh);
-
-    // Remove data from gpu memory as well
-    if render_info.triangles_vbo glDeleteBuffers(1, *render_info.triangles_vbo);
-    if render_info.segments_vbo  glDeleteBuffers(1, *render_info.segments_vbo);
-    if render_info.points_vbo    glDeleteBuffers(1, *render_info.points_vbo);
-    render_info = .{};
-}
+// Intentionally not implemented: Keep it simple and just remove the entity using remove_entity_by_index
+// clear :: (using entity : *Entity) {}
 
 
 remove_entity_by_index :: (entity_to_remove_index : int) {
@@ -1119,7 +1112,9 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
                     }
                 } else {
                     // If the entity didn't exist or couldn't be loaded clear the entity
-                    clear(entity);
+                    entity_index : int = get_entity_index(entity);
+                    log("Removed item #% (file '%') since it could not be reloaded (deleted or empty)", entity_index, get_entity_source(entity).path);
+                    remove_entity_by_index(entity_index);
                 }
                 return true;
             }

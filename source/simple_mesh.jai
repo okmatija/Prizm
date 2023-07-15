@@ -47,15 +47,8 @@ deinit :: (using mesh : *Simple_Mesh) {
     mesh = null;
 }
 
-clear :: (using mesh : *Simple_Mesh) {
-    // Zeros all the counts, but keeps the memory
-    array_reset_keeping_memory(*positions);
-    array_reset_keeping_memory(*points);
-    array_reset_keeping_memory(*segments);
-    array_reset_keeping_memory(*triangles);
-
-    // nocommit Handle attributes as well!
-}
+// Intentionally not implemented: Keep it simple and just deinit the mesh!
+// clear :: (using mesh : *Simple_Mesh) {}
 
 no_elements :: (mesh : Simple_Mesh) -> bool {
     return mesh.points.count == 0 && mesh.segments.count == 0 && mesh.triangles.count == 0;

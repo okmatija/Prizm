@@ -32,6 +32,12 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
   - Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file 
   - Added an option to normalize obj normal data (vn-directives) before applying normal scaling. This is on by default to preserve old behaviour, you could turn it off if the length of the normals in the .obj file is encoding something interesting.
 
+- Changes to commands
+
+  - Removed item_clear function since clearing geometry from items is not very useful
+  - Added item_delete to delete items from the item list
+
+- Changed the behavior of reloading files which are now empty/missing, the corresponding items are now removed from the item list but previously a not very useful empty/placeholder item was still present
 - Removed the partial support for .wkt file formats. Prism will be narrowly focussed on .obj files to limit scope creep.
 DONE};
 
