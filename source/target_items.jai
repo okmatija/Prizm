@@ -514,6 +514,7 @@ cycle_element_label_progress_proc :: () -> Fraction {
 //
 
 
+// This currently only toggles visibility but it could cycle through styles?
 cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
 
     result : Fraction;
@@ -534,37 +535,36 @@ cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
     }
 
     // Set theme from State
-    theme.visible = xx state & 0b01;
+    theme.visible = cast(bool)(state & 0b01);
     return result;
 }
 
-maybe_cycle_annotation_label_theme :: () -> *Annotation_Label_Theme {
-
-    selected : [..]*Entity = temp_selected_entities();
-
-    log_warning("nocommit @Incomplete: Handle all annotations in %", #this);
-    theme : *Annotation_Label_Theme = *app.template_display_info.vertex_label_theme.annotation_label_theme; // nocommit Handle all these
-
-    // Don't modify template state if exactly one item is selected
-    if selected.count == 1 {
-        theme = *selected[0].display_info.vertex_label_theme.annotation_label_theme;
-    }
-
-     // We dont want to change the template state if nothing will change
-    if selected.count > 0 {
-        cycle_annotation_theme(theme);
-    }
-
-    return theme;
-}
-
 cycle_annotation :: () {
-    theme := maybe_cycle_annotation_label_theme();
+    selected : [..]*Entity = temp_selected_entities();
+    if selected.count == 0 {
+        return;
+    }
 
-    for :Selected app.entities {
-        // @Cleanup Rename the cycle function to mention only visibility is cycled?
-        log_warning("nocommit @Incomplete: Handle all annotations in %", #this);
-        it.display_info.vertex_label_theme.annotation_label_theme.visible = theme.visible;
+    use_template_theme := selected.count > 1;
+
+    vertex_theme : *Annotation_Label_Theme = ifx use_template_theme
+        then *selected[0].display_info.vertex_label_theme.annotation_label_theme
+        else *app.template_display_info.vertex_label_theme.annotation_label_theme;
+
+    cycle_annotation_theme(vertex_theme);
+
+    if use_template_theme {
+        app.template_display_info.vertex_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        app.template_display_info.point_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        app.template_display_info.segment_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        app.template_display_info.triangle_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+    }
+
+    for selected {
+        it.display_info.vertex_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        it.display_info.point_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        it.display_info.segment_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        it.display_info.triangle_label_theme.annotation_label_theme.visible = vertex_theme.visible;
     }
 }
 
@@ -576,10 +576,9 @@ cycle_annotation_proc :: (last_interaction_time : *void) {
 }
 
 cycle_annotation_progress_proc :: () -> Fraction {
-    log_warning("nocommit @Incomplete: This should go through all the existing annotations in turn and default to off %", #this);
     app_info, selected_count := get_display_info();
-    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
-    return cycle_annotation_theme(*app_info_copy.vertex_label_theme.annotation_label_theme);
+    theme_copy : Annotation_Label_Theme = app_info.vertex_label_theme.annotation_label_theme; // Just want to get the fraction, not modify the theme
+    return cycle_annotation_theme(*theme_copy);
 }
 
 
