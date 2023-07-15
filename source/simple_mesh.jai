@@ -224,7 +224,7 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
 
     // @Incomplete Transform attributes
 
-    vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
+    vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
     if vn {
         inverse_transpose := transpose(inverse(transform));
         for *matrix : vn.values {
@@ -248,7 +248,7 @@ compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh) -> bool, string {
 
 // nocommit implement this for vn attribute
 //    {
-//        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
+//        vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
 //
 //        // Points not referenced by any triangle are assigned zero normals
 //        array_resize(*mesh.normals, mesh.positions.count, initialize=true);
@@ -326,12 +326,12 @@ Matrix3x2 :: struct {
 
 POINT_NORMALS_ATTRIBUTE_NAME :: "Obj Point Normals";
 SEGMENT_NORMALS_ATTRIBUTE_NAME :: "Obj Segment Normals";
-TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals"; // nocommit use this
+TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals";
 
 Simple_Mesh_Point_Normals :: Simple_Mesh_Attribute(Vector3, .SEGMENT);
 Simple_Mesh_Segment_Normals :: Simple_Mesh_Attribute(Matrix3x2, .SEGMENT);
-Simple_Mesh_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // nocommitttt rename to Simple_Mesh_Triangle_Normals
-Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
+Simple_Mesh_Triangle_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
+//Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
 
 
 // string  - renders as text near cursor, so build up text quads which is already supported

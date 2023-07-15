@@ -321,7 +321,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 array_add(*triangle_positions, it.c);
             }
 
-            vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(mesh, "vn", Simple_Mesh_Normals);
+            vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
             assert(vn != null);
             if mesh.triangles.count && !vn.values.count {
                 // log("Computing and assigning triangle normals to vertices\n");
