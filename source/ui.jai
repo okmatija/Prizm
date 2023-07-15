@@ -222,7 +222,7 @@ show_pending_directories_ui :: () {
     }
 
     if dir.unloadable_file_count {
-        ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
+        ImGui.Text(tprint("Found % files without loadable extension (obj)", dir.unloadable_file_count));
     } 
     
     if ImGui.Button(imgui_label("Accept", xx *dir)) {

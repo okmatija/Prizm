@@ -399,7 +399,6 @@ Simp :: #import "Simp_beta_0_1_016";
 #load "numeric.jai";
 #load "intervals.jai";
 #load "io_obj.jai";
-#load "io_wkt.jai";
 #load "io_utils.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";

@@ -29,10 +29,9 @@ filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> s
     }
 }
 
-// @TODO :PluginFileFormats Make adding a format automatically extend this function 
 supported_format :: (filename_with_extension : string) -> bool {
     extension, found_extension := path_extension(filename_with_extension);
-    if found_extension && (ends_with_nocase(extension, "obj") || ends_with_nocase(extension, "wkt")) {
+    if found_extension && ends_with_nocase(extension, "obj") {
         return true;
     }
     return false;

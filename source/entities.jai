@@ -1333,9 +1333,6 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
 
     if ends_with_nocase(filename, "obj") {
         results = load_obj(filename, contents, name);
-    } else if ends_with_nocase(filename, "wkt") {
-        result := load_wkt(filename, contents, name);
-        array_add(*results, result);
     }
 
     if results.count {
