@@ -287,30 +287,49 @@ item_clear_triangles :: (id : int) {
     log("# Cleared % triangle% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
-//nocommit
-// // Flip normals in the mesh item with the given `id`
-// // Reverses the winding of triangles and multiplies vertex normals by -1
-// item_flip_normals :: (id : int) {
-//     if !check_geometry_index(id) {
-//         return;
-//     }
-// 
-//     entity := app.entities[id];
-// 
-//     // @Incomplete Transform attributes
-// 
-//     for * entity.mesh.normals {
-//         it.* *= -1;
-//     }
-// 
-//     for i : 0..entity.mesh.triangles.count-1 {
-//         using entity.mesh;
-//         tuple : *Tuple3(u32) = *triangles[i];
-//         tuple.y, tuple.z = swap(tuple.y, tuple.z);
-//     }
-// 
-//     entity.render_info.is_dirty = true;
-// } @RegisterCommand
+// Flip normals in the mesh item with the given `id`
+// Reverses the winding of triangles and multiplies any triangle/segment/point normals by -1
+item_flip_normals :: (id : int) {
+    if !check_geometry_index(id) {
+        return;
+    }
+
+    entity := app.entities[id];
+
+    // flip triangle normals
+    triangle_normals : *Simple_Mesh_Triangle_Normals = find_triangle_normals_attribute(*entity.mesh);
+    if triangle_normals {
+        for * triangle_normals.values {
+            it.* *= -1;
+        }
+    }
+
+    // flip segments normals
+    segment_normals : *Simple_Mesh_Segment_Normals = find_segment_normals_attribute(*entity.mesh);
+    if segment_normals {
+        for * segment_normals.values {
+            it.* *= -1;
+        }
+    }
+
+    // flip point normals
+    point_normals : *Simple_Mesh_Point_Normals = find_point_normals_attribute(*entity.mesh);
+    if point_normals {
+        for * point_normals.values {
+            it.* *= -1;
+        }
+    }
+
+    // Note: we don't flip segments or points because they don't have a front/back orientation
+
+    for i : 0..entity.mesh.triangles.count-1 {
+        using entity.mesh;
+        tuple : *Tuple3(u32) = *triangles[i];
+        tuple.y, tuple.z = swap(tuple.y, tuple.z);
+    }
+
+    entity.render_info.is_dirty = true;
+} @RegisterCommand
 
 
 // Set the color of the highest-dimensional element (triangle > segment > point) in the given item's mesh
