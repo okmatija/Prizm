@@ -127,6 +127,8 @@ mouse_set_selection :: () -> bool {
         !io().KeyAlt;
 }
 
+// @Cleanup We need a better way to determine which tool captures the clicks, checking app.select_tool.entity.display_info.is_visible sucks
+
 mouse_toggle_in_geometry_selection :: () -> bool {
     return mouse_toggle_in_selection() && app.select_tool.entity.display_info.is_visible;
 }
@@ -144,6 +146,7 @@ mouse_set_item_selection :: () -> bool {
 }
 
 mouse_reposition_camera :: () -> bool {
+
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return false;
     }

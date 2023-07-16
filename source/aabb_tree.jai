@@ -28,7 +28,7 @@ AABB_Tree :: struct {
 
     // Types that depend on the Shape (Index is included since its interpretation depends on the Shape)
     // @CompilerBug Unable to use #run syntactic abbreviation here
-    Element, Vector, AABB :: Triangle3, Vector3, AxisBox3; // nocommit @Cleanup
+    Element, Vector, AABB :: Triangle3, Vector3, AxisBox3; // @Cleanup
 
     // This is an index into `shape`, it is defined implicitly by the `get_element` function overload
     Element_Id :: int; // @Cleanup remove this typedef...
@@ -143,8 +143,7 @@ visit_elements_triangles_ray :: (
             assert(node.child_rhs == -1); // @Refactor Implement an ensure-like macro which just logs a warning
 
             // Visit elements in leaf node
-
-            // nocommit Note: We don't use tree.Element_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
+            // Note: We don't use tree.Element_Info_Iterator so that the inserted code can use backtick to refer to the callers' scope
             for 0..node.range.count-1 {
 
                 triangle_index : int = tree.element_info[node.range.first + it].element_id;
@@ -152,6 +151,7 @@ visit_elements_triangles_ray :: (
                 visit_triangle(triangle, triangle_index, visit_triangle_data);
 
             }
+
         } else {
             // Traverse internal node
 

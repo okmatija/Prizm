@@ -42,7 +42,22 @@ deinit :: (using mesh : *Simple_Mesh) {
     array_reset(*segments);
     array_reset(*triangles);
 
-    // nocommit Handle attributes as well!
+    // @Cleanup it sucks to have a switch here, use an iterator or use a pool which can just be dropped, so we don't need to cast to the right type
+    for base_attr : attributes {
+        if base_attr.type == {
+            case Simple_Mesh_Triangle_Normals;
+                attr := cast(*Simple_Mesh_Triangle_Normals)base_attr;
+                array_reset(*attr.values);
+            case Simple_Mesh_Segment_Normals;
+                attr := cast(*Simple_Mesh_Segment_Normals)base_attr;
+                array_reset(*attr.values);
+            case Simple_Mesh_Point_Normals;
+                attr := cast(*Simple_Mesh_Point_Normals)base_attr;
+                array_reset(*attr.values);
+            case;
+                log_warning("Unhandled attribute type '%' deinit function", base_attr.type);
+        }
+    }
 
     mesh = null;
 }
@@ -67,33 +82,53 @@ is_empty :: (mesh : Simple_Mesh) -> bool {
 add_triangle :: (using mesh : *Simple_Mesh, triangle : Triangle3) {
     tuple : *Tuple3(u32) = array_add(*mesh.triangles);
 
-    tuple.x = xx mesh.positions.count;
+    tuple.x = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, triangle.a);
 
-    tuple.y = xx mesh.positions.count;
+    tuple.y = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, triangle.b);
 
-    tuple.z = xx mesh.positions.count;
+    tuple.z = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, triangle.c);
+
+    // triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_triangle_normals_attribute(mesh);
+    // array_add(*triangle_normals.values, normals);
 }
 
 add_segment :: (using mesh : *Simple_Mesh, segment : Segment3) {
     tuple : *Tuple2(u32) = array_add(*mesh.segments);
 
-    tuple.x = xx mesh.positions.count;
+    tuple.x = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, segment.start);
 
-    tuple.y = xx mesh.positions.count;
+    tuple.y = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, segment.end);
+
+    // segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(mesh);
+    // array_add(*segment_normals.values, normals);
 }
 
 add_point :: (using mesh : *Simple_Mesh, position : Vector3) {
     index : *u32 = array_add(*mesh.points);
 
-    index.* = xx mesh.positions.count;
+    index.* = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, position);
+
+    // point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(mesh);
+    // array_add(*point_normals.values, normal);
 }
 
+valid_triangle_tuple :: (using mesh : *Simple_Mesh, tt : Tuple3(u32)) -> bool {
+    return tt.i < positions.count && tt.j < positions.count && tt.k < positions.count;
+}
+
+valid_segment_tuple :: (using mesh : *Simple_Mesh, st : Tuple2(u32)) -> bool {
+    return st.i < positions.count && st.j < positions.count;
+}
+
+valid_point_index :: (using mesh : *Simple_Mesh, pi : u32) -> bool {
+    return pi < positions.count;
+}
 
 // @Warning This invalidates existing index references
 remove_triangle_by_index :: (using mesh : *Simple_Mesh, remove_index : int) {
@@ -182,9 +217,10 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
         dst.triangles[triangles_offset + i].z = xx positions_offset + src.triangles[i].z;
     }
 
-    // @Incomplete Transform attributes
+    // @Incomplete We don't currently support merging (and correctly transforming) attributes, normals in particular, see also :NormalsInGeometrySelectionMode for required support in selection mode (one place this merge function can be called)
+    // @TODOO Fix this code
+#if false {
 
-    //nocommit
     //if src.normals.count || dst.normals.count {
     //    array_resize(*dst.normals, dst.positions.count + src.positions.count);
     //    for i : 0..src.normals.count-1 {
@@ -193,6 +229,49 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
     //        dst.normals[positions_offset + i] = dst_normal_model;
     //    }
     //}
+
+    src_triangle_normals : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(*src, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+    if (src_triangle_normals && src_triangle_normals.values.count) {
+        dst_triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(dst, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+
+        normals_offset := dst_triangle_normals.values.count;
+        array_resize(*dst_triangle_normals.values, dst_triangle_normals.values.count + src_triangle_normals.values.count);
+        for i : 0..src_triangle_normals.values.count-1 {
+            for d : 0..2 {
+                src_normal_world := transform_vector(src_world_from_model_vector, src_triangle_normals.values[i].v[d]);
+                dst_normal_model := transform_vector(dst_model_from_world_vector, src_normal_world);
+                dst_triangle_normals.values[normals_offset + i].v[d] = dst_normal_model;
+            }
+        }
+    }
+
+    src_segment_normals : *Simple_Mesh_Segment_Normals = find_mesh_attribute(*src, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+    dst_segment_normals : *Simple_Mesh_Segment_Normals = find_mesh_attribute(dst, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+    if (src_segment_normals && src_segment_normals.values.count) && (dst_segment_normals && dst_segment_normals.values.count) {
+        normals_offset := dst_segment_normals.values.count;
+        array_resize(*dst_segment_normals.values, dst_segment_normals.values.count + src_segment_normals.values.count);
+        for i : 0..src_segment_normals.values.count-1 {
+            for d : 0..1 {
+                src_normal_world := transform_vector(src_world_from_model_vector, src_segment_normals.values[i].v[d]);
+                dst_normal_model := transform_vector(dst_model_from_world_vector, src_normal_world);
+                dst_segment_normals.values[normals_offset + i].v[d] = dst_normal_model;
+            }
+        }
+    }
+
+    src_point_normals : *Simple_Mesh_Point_Normals = find_mesh_attribute(*src, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+    dst_point_normals : *Simple_Mesh_Point_Normals = find_mesh_attribute(dst, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+    if (src_point_normals && src_point_normals.values.count) && (dst_point_normals && dst_point_normals.values.count) {
+        normals_offset := dst_point_normals.values.count;
+        array_resize(*dst_point_normals.values, dst_point_normals.values.count + src_point_normals.values.count);
+        for i : 0..src_point_normals.values.count-1 {
+            src_normal_world := transform_vector(src_world_from_model_vector, src_point_normals.values[i]);
+            dst_normal_model := transform_vector(dst_model_from_world_vector, src_normal_world);
+            dst_point_normals.values[normals_offset + i] = dst_normal_model;
+        }
+    }
+}
+
 }
 
 // @FIXME Add a $world_space argument
@@ -239,36 +318,29 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
 // - The normals will be in model space
 // - Vertices which are referenced by more than one triangle, will be given the normal of the triangle with the largest triangle index
 // - Vertices which are not referenced by any triangles will be assigned [0,0,0] as the normal
-compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh) -> bool, string {
-    if !mesh return false, "Null mesh";
+compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh, triangle_normals : *Simple_Mesh_Triangle_Normals) -> bool, string {
+    assert(mesh != null);
+    assert(triangle_normals != null);
+    assert(triangle_normals.values.count == 0);
 
-    if mesh.triangles.count == 0 {
-        return false, "No triangles";
+    // Initialize to zero normals
+    array_resize(*triangle_normals.values, mesh.triangles.count, initialize=true);
+
+    for :TriangleTupleIterator tt, tid : mesh {
+        if valid_triangle_tuple(mesh, tt) {
+            tri : Triangle3 = ---;
+            tri.a = mesh.positions[tt.i];
+            tri.b = mesh.positions[tt.j];
+            tri.c = mesh.positions[tt.k];
+            n := compute_normal(tri, normalize=true);
+            triangle_normals.values[tid].v[0] = n;
+            triangle_normals.values[tid].v[1] = n;
+            triangle_normals.values[tid].v[2] = n;
+        } else {
+            array_reset(*triangle_normals.values); // Clear and free memory
+            return false, tprint("Triangle % has out-of-range vertex indices. Got %, %, % but max index is %", tid, tt.i, tt.j, tt.k, mesh.positions.count-1);
+        }
     }
-
-// nocommit implement this for vn attribute
-//    {
-//        vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
-//
-//        // Points not referenced by any triangle are assigned zero normals
-//        array_resize(*mesh.normals, mesh.positions.count, initialize=true);
-//
-//        for :TriangleTupleIterator tt : mesh {
-//            if tt.i < mesh.positions.count && tt.i < mesh.positions.count && tt.i < mesh.positions.count {
-//                tri : Triangle3 = ---;
-//                tri.a = mesh.positions[tt.i];
-//                tri.b = mesh.positions[tt.j];
-//                tri.c = mesh.positions[tt.k];
-//                n := compute_normal(tri, normalize=true);
-//                mesh.normals[tt.i] = n;
-//                mesh.normals[tt.j] = n;
-//                mesh.normals[tt.k] = n;
-//            } else {
-//                array_reset(*mesh.normals); // Clear and free memory
-//                return false, tprint("Out-of-range indices in mesh connectivity array, got %, %, %, but max index is %", tt.i, tt.j, tt.k, mesh.positions.count-1);
-//            }
-//        }
-//    }
 
     return true, "";
 }
@@ -324,6 +396,7 @@ Matrix3x2 :: struct {
     IsMatrixFromMathModule :: false;
 } 
 
+// These are all in model space
 POINT_NORMALS_ATTRIBUTE_NAME :: "Obj Point Normals";
 SEGMENT_NORMALS_ATTRIBUTE_NAME :: "Obj Segment Normals";
 TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals";
@@ -342,6 +415,7 @@ Simple_Mesh_Triangle_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
 ATTRIBUTE_VALUE_TYPES :: Type.[string, float, Vector3, Matrix3];
 
 // @Think Perhaps we want dynamic_ versions of these functions which have non-constant value_type??
+// @Think Use /interface here
 
 find_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_type : Type) -> *attribute_type {
     for mesh.attributes {
@@ -350,6 +424,18 @@ find_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute
         }
     }
     return null;
+}
+
+find_triangle_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Triangle_Normals {
+    return find_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+}
+
+find_segment_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Segment_Normals {
+    return find_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+}
+
+find_point_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Point_Normals {
+    return find_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
 }
 
 add_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_type : Type) -> *attribute_type {
@@ -371,6 +457,18 @@ find_or_add_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $at
         return added;
     }
     return found;
+}
+
+find_or_add_triangle_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Triangle_Normals {
+    return find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+}
+
+find_or_add_segment_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Segment_Normals {
+    return find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+}
+
+find_or_add_point_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Point_Normals {
+    return find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
 }
 
 

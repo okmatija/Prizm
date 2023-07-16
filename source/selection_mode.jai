@@ -52,7 +52,7 @@ do_geometry_selection_mode :: () {
         position_indices := temp_array(u32);
         for p, position_index : mesh.positions {
             if position == p {
-                array_add(*position_indices, xx position_index);
+                array_add(*position_indices, cast(u32)position_index);
             }
         }
 
@@ -116,6 +116,7 @@ do_geometry_selection_mode :: () {
             return;
         }
 
+        // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_point : Vector3 = mesh_point_world(hit_entity.mesh, closest.element_index);
 
@@ -156,6 +157,7 @@ do_geometry_selection_mode :: () {
             return;
         }
 
+        // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_segment : Segment3 = mesh_segment3_world(hit_entity.mesh, closest.element_index);
 
@@ -192,15 +194,16 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .TRIANGLE {
-            log_error("Expected a triangle: casting a ray in triangle selection mode");
+            log_error("Triangle selection mode expected %, got %", Simple_Mesh_Element.TRIANGLE, closest.closest_point_element);
             return;
         }
 
+        // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_triangle : Triangle3 = mesh_triangle_world(hit_entity.mesh, closest.element_index);
 
         if mouse_toggle_in_geometry_selection() {
-            // Search for the triangle in the current selection mesh
+            // Search for the triangle in the current selection mesh @Speed use a set or some datastructure where we can insert/delete quick
             found_index := -1;
             for :WorldTriangleIterator triangle, triangle_index : mesh {
                 if hit_triangle.a == triangle.a && hit_triangle.b == triangle.b && hit_triangle.c == triangle.c {

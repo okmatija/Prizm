@@ -323,11 +323,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
             vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
             assert(vn != null);
-            if mesh.triangles.count && !vn.values.count {
+            if mesh.triangles.count && (vn.values.count == 0) {
                 // log("Computing and assigning triangle normals to vertices\n");
-                success, failure_reason := compute_vertex_normals_from_triangles(mesh);
+                success, failure_reason := compute_vertex_normals_from_triangles(mesh, vn);
                 if !success {
-                    log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
+                    log_warning("Failed to assign per-triangle normals. Reason: \"%\"", failure_reason);
                 }
             }
 
