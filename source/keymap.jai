@@ -149,7 +149,11 @@ mouse_reposition_camera :: () -> bool {
     }
     return ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
 }
+
 mouse_init_clip_center :: () -> bool {
+    if app.select_tool.entity.display_info.is_visible {
+        return false;
+    }
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return false;
     }
@@ -157,6 +161,9 @@ mouse_init_clip_center :: () -> bool {
 }
 
 mouse_set_clip_radius :: () -> bool {
+    if app.select_tool.entity.display_info.is_visible {
+        return false;
+    }
     if io().WantCaptureMouse || !ImGui.IsMousePosValid(*io().MousePos) {
         return false;
     }
