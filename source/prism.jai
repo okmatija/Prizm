@@ -452,7 +452,8 @@ handle_load_string :: (path : string, recursive := false) -> bool {
         got_directory, got_directory_valid := is_directory(pattern);
 
         if !got_directory_valid {
-            log_warning("Expected a filename or directory, got '%'", pattern);
+            log_warning("Expected a filename or directory, got '%', maybe this path does not exist?", pattern);
+            app.show_ui, app.console.show_ui = true, true;
         } else if got_directory {
             handle_directory(pattern);
         } else {

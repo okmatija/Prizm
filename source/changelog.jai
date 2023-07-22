@@ -34,6 +34,7 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
   - Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
   - Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file 
   - Added an option to normalize obj normal data (vn-directives) before applying normal scaling. This is on by default to preserve old behaviour, you could turn it off if the length of the normals in the .obj file is encoding something interesting.
+  - Obj files where only some faces/segments/points have normals are now work properly
 
 - Changes to commands
 
@@ -42,6 +43,7 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
 
 - Changed the behavior of reloading files which are now empty/missing, the corresponding items are now removed from the item list but previously a not very useful empty/placeholder item was still present
 - Removed the partial support for .wkt file formats. Prism will be narrowly focussed on .obj files to limit scope creep.
+- Improved the warning that gets logged to the console when you pass Prism a file/directory that does not exist
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

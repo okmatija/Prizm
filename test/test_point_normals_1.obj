@@ -1,0 +1,10 @@
+# This obj will allocate point normals for all points
+# Only the second point will have non-zero normals
+
+v 0 0 0
+v 1 0 0
+v 0 1 0
+p -3
+vn 1 0 0
+p -2/-1 ## This line will trigger a warning about an ignored vt-directive reference
+p-1//-1

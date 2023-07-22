@@ -289,7 +289,6 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
     return false;
 }
 
-// nocommit Only set the GLuints when something may be drawn, also update the rendering code to only render things which are non-empty as well
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if mesh.positions.count == 0 {
         // Nothing to do in this case @Think is this correct??

@@ -90,18 +90,18 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         if eat_possible_identifier(*parser, "v") {
 
-            point2 : Vector2 = ---;
-            point3 : Vector3 = ---;
-            dim, finite := obj_parse_point(*parser, *point2, *point3);
+            position2 : Vector2 = ---;
+            position3 : Vector3 = ---;
+            dim, finite := obj_parse_position(*parser, *position2, *position3);
             if !finite {
                 found_inf_or_nan = true;
             }
 
             if dim == 2 {
                 // @Think Maybe use app.invalid_point.z here
-                array_add(*mesh.positions, make_vector3(point2, 0));
+                array_add(*mesh.positions, make_vector3(position2, 0));
             } else if dim == 3 {
-                array_add(*mesh.positions, point3);
+                array_add(*mesh.positions, position3);
             } else if parser.failed {
                 break;
             } else {
@@ -155,7 +155,12 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
             refs : Obj_Vertex_References = parse_vertex_references(*parser);
 
-            refs_valid, nv, nn := true, refs.indices.count, refs.normal.count;
+            refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
+
+            if nt {
+                log_warning("Ignoring texture reference in p-directive on line %", current_line);
+                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+            }
 
             if nv < 1 {
                 log_warning("Ignoring invalid p-directive on line %. Expected at least 1 vertex reference, got %\n", current_line, nv);
@@ -229,7 +234,12 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
             refs : Obj_Vertex_References = parse_vertex_references(*parser);
 
-            refs_valid, nv, nn := true, refs.indices.count, refs.normal.count;
+            refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
+
+            if nt {
+                log_warning("Ignoring texture reference in l-directive on line %", current_line);
+                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+            }
 
             if nv < 2 {
                 log_warning("Ignoring invalid l-directive on line %. Expected at least 2 vertex references, got %\n", current_line, nv);
@@ -308,7 +318,12 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
             refs : Obj_Vertex_References = parse_vertex_references(*parser);
 
-            refs_valid, nv, nn := true, refs.indices.count, refs.normal.count;
+            refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
+
+            if nt {
+                log_warning("Ignoring texture reference in f-directive on line %", current_line);
+                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+            }
 
             if nv < 3 {
                 log_warning("Ignoring invalid f-directive on line %. Expected at least 3 vertex references, got %\n", current_line, nv);

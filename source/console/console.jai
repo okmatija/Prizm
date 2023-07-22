@@ -249,14 +249,18 @@ console_draw :: () {
         }
 
         if ImGui.BeginPopup("console_options") {
+
             is_interactive := app.console.log_mode == .INTERACTIVE;
+
             if ImGui.Checkbox("Interactive Log", *is_interactive) {
                 app.console.log_mode = ifx is_interactive then Console.Log_Mode.INTERACTIVE else .TRANSPARENT;
                 ImGui.CloseCurrentPopup();
             }
+
             if ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom) {
                 ImGui.CloseCurrentPopup();
             }
+
             if ImGui.Button("Save to LOG.txt") {
                 contents : string;
                 defer free(contents); // @Leaks the intermediate allocations!?
