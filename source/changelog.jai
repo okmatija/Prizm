@@ -16,9 +16,12 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
   - Added index arguments to the point2/point3, segment2/segment3 and triangle2/triangle3 functions, all indices are defaulted to negative values which write the same string as before this change
   - Added an attribute() function with no arguments, similar to the annotation() function with no arguments, and move the attribute functions further down the function list to present simpler concepts on first reading
   - Improved the documentation
+  - Added point3_vn and segment3_vn functions which write vertex positions, normals and point/segment elements referencing them. These are useful to write oriented point clouds and polylines with normals to obj files
+  - Added functions to set the visibility on vertex/point/segment/triangle annotations separately e.g., `Obj& Obj::set_triangle_annotations_visible(bool)`
 
 - Changes to api/cpp/Prism_Unreal.h
 
+  - Added booleans to `FMakeDynamicMeshObjOptions` to allow the called to optionally write annotations containing the VIDs/TIDs into the input mesh. Previously this was on by default but now its off, which is less noisy. You only want it on if you're debugging indicies.
   - Added a function to create an Obj from UE::Geometry::TDynamicMeshOverlay. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
 
 - Improved support for annotations:

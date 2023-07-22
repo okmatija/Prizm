@@ -21,6 +21,7 @@ Simple_Mesh :: struct {
     // - tensors e.g., Matrix4 for stresses
     // - string  e.g., debug comments
     // @Think maybe its better to have separate containers: vertex_attributes, point_attributes etc
+    // @Think maybe have a map of attributes using unique names to identify them
     attributes : [..]*Simple_Mesh_Attribute_Base;
 
     // @Volatile Code in various places may need to change if this changes distances so they are not the same in world/model space
@@ -361,8 +362,7 @@ Simple_Mesh_Attribute_Base :: struct {
         theme : Attribute_Theme;
     }
 
-    // nocommit Remove this? Think about how attributes should be rendered, study the implementation in polyscope?
-    // Rendering of attributes is @Incomplete
+    // Rendering of attributes is @Incomplete study the implementation in Polyscope/GraphiteThree?
     Attribute_Render_Info :: struct {
         buffer : GLuint;
     }
@@ -448,6 +448,18 @@ add_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_
     result.display_info = .{};
 
     return xx result;
+}
+
+remove_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_type : Type)  {
+    remove_index := -1;
+    for mesh.attributes {
+        if it.type == attribute_type && it.name == attribute_name {
+            attr := cast(*attribute_type)it;
+            array_reset(*attr.values);
+            remove it;
+            break;
+        }
+    }
 }
 
 find_or_add_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_type : Type) -> *attribute_type {

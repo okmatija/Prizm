@@ -426,6 +426,11 @@ set_vertex_label_scale :: (id : int, scale : float) {
     entity.display_info.vertex_label_theme.label_scale = scale;
 } @RegisterCommand
 
+set_vertex_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.vertex_label_theme.annotation_label_theme.visible = xx visible;
+} @RegisterCommand
 
 
 
@@ -448,6 +453,12 @@ set_point_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.point_label_theme.label_scale = scale;
+} @RegisterCommand
+
+set_point_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.point_label_theme.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
 
@@ -474,6 +485,11 @@ set_segment_label_scale :: (id : int, scale : float) {
     entity.display_info.segment_label_theme.label_scale = scale;
 } @RegisterCommand
 
+set_segment_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.segment_label_theme.annotation_label_theme.visible = xx visible;
+} @RegisterCommand
 
 
 
@@ -498,6 +514,11 @@ set_triangle_label_scale :: (id : int, scale : float) {
     entity.display_info.triangle_label_theme.label_scale = scale;
 } @RegisterCommand
 
+set_triangle_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.triangle_label_theme.annotation_label_theme.visible = xx visible;
+} @RegisterCommand
 
 
 // visible is a boolean

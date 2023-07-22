@@ -79,6 +79,11 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     MISSING_NORMAL_FALLBACK :: Vector3.{0,0,0};
     MISSING_VERTEX_INDEX :: U32_MAX;
 
+    // Always add normals attributes, we'll remove the empty ones later
+    triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_triangle_normals_attribute(*mesh);
+    segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(*mesh);
+    point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(*mesh);
+
     while peek_token(*parser).type != .EOF && !parser.failed {
 
         current_line : s64 = peek_token(*parser).line_number;
@@ -148,13 +153,23 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "p") {
 
-            // @FIXME Support texture vertices here? or log warning and ignore?
-
             refs : Obj_Vertex_References = parse_vertex_references(*parser);
-            if refs.indices.count < 1 {
-                log_warning("Ignoring invalid p-directive on line %\n", current_line);
+
+            refs_valid, nv, nn := true, refs.indices.count, refs.normal.count;
+
+            if nv < 1 {
+                log_warning("Ignoring invalid p-directive on line %. Expected at least 1 vertex reference, got %\n", current_line, nv);
                 // Do not error here! 
-            } else {
+                refs_valid = false;
+            }
+
+            if nn > 0 && nn != nv {
+                log_warning("Ignoring invalid p-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if refs_valid {
 
                 tok := peek_token(*parser);
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
@@ -169,13 +184,18 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
+                // Loop over the points in the point cloud described by the current p-directive
                 for i : 0..refs.indices.count-1 {
-                    if refs.normal.count {
-                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
-                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
-                        vn : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(*result.mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
 
-                        normal : *Vector3 = array_add(*vn.values);
+                    if refs.normal.count {
+                        // If we previously encountered l-directives without normal references so fill these with zero normals
+                        if point_normals.values.count != mesh.points.count {
+                            assert(point_normals.values.count < mesh.points.count);
+                            array_resize(*point_normals.values, mesh.points.count, initialize=true);
+                        }
+
+                        // Add the normals for this point
+                        normal : *Vector3 = array_add(*point_normals.values);
                         missing, normal.* = obj_value(scratch_vn, refs.normal[i], MISSING_NORMAL_FALLBACK);
                         if missing {
                             missing_normals_count += 1;
@@ -205,14 +225,25 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "l") {
 
-            // @FIXME Support texture vertices here? or log warning and ignore?
-            // @FIXME Check other error conditions
+            // @Incomplete Support texture vertices here? or log warning and ignore?
 
             refs : Obj_Vertex_References = parse_vertex_references(*parser);
-            if refs.indices.count < 2 {
-                log_warning("Ignoring invalid l-directive on line %\n", current_line);
+
+            refs_valid, nv, nn := true, refs.indices.count, refs.normal.count;
+
+            if nv < 2 {
+                log_warning("Ignoring invalid l-directive on line %. Expected at least 2 vertex references, got %\n", current_line, nv);
                 // Do not error here! 
-            } else {
+                refs_valid = false;
+            }
+
+            if nn > 0 && nn != nv {
+                log_warning("Ignoring invalid l-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if refs_valid {
 
                 tok := peek_token(*parser);
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
@@ -227,17 +258,21 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
+                // Loop over the segments in the polyline described by the current l-directive
                 for i : 0..refs.indices.count-1-1 {
                     vids : [2]int;
                     vids[0] = i;
                     vids[1] = i + 1;
 
                     if refs.normal.count {
-                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
-                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
-                        vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(*result.mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+                        // If we previously encountered l-directives without normal references so fill these with zero normals
+                        if segment_normals.values.count != mesh.segments.count {
+                            assert(segment_normals.values.count < mesh.segments.count);
+                            array_resize(*segment_normals.values, mesh.segments.count, initialize=true);
+                        }
 
-                        normals : *Matrix3x2 = array_add(*vn.values);
+                        // Add the normals for this segment
+                        normals : *Matrix3x2 = array_add(*segment_normals.values);
                         for i : 0..1 {
                             missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
@@ -272,10 +307,23 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         } else if eat_possible_identifier(*parser, "f") {
 
             refs : Obj_Vertex_References = parse_vertex_references(*parser);
-            if refs.indices.count < 3 { // @FIXME Check other error conditions
-                log_warning("Ignoring invalid f-directive on line %\n", current_line);
+
+            refs_valid, nv, nn := true, refs.indices.count, refs.normal.count;
+
+            if nv < 3 {
+                log_warning("Ignoring invalid f-directive on line %. Expected at least 3 vertex references, got %\n", current_line, nv);
                 // Do not error here! 
-            } else {
+                refs_valid = false;
+            }
+
+            if nn > 0 && nn != nv {
+                log_warning("Ignoring invalid f-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if refs_valid {
+
                 tok := peek_token(*parser);
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
 
@@ -289,6 +337,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
+                // Loop over the triangles in the triangle fan described by the current f-directive
                 for f : 0..refs.indices.count-2-1 {
                     vids : [3]int;
                     vids[0] = 0;
@@ -296,10 +345,14 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     vids[2] = f + 2;
 
                     if refs.normal.count {
-                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
-                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
-                        vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(*result.mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
-                        normals : *Matrix3 = array_add(*vn.values);
+                        // If we previously encountered f-directives without normal references so fill these with zero normals
+                        if triangle_normals.values.count != mesh.triangles.count {
+                            assert(triangle_normals.values.count < mesh.triangles.count);
+                            array_resize(*triangle_normals.values, mesh.triangles.count, initialize=true);
+                        }
+
+                        // Add the normals for the current triangle
+                        normals : *Matrix3 = array_add(*triangle_normals.values);
                         for i : 0..2 {
                             missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
@@ -455,6 +508,11 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         log_warning("File '%' contains % position% but has no element directives (p-, l- or f-directives) so we auto-assigned p-directives", filename, mesh.positions.count, plural_suffix(mesh.positions.count > 1));
         log("If you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex (v-directive)");
     }
+
+    // Remove attributes which correspond to empty containers
+    if mesh.triangles.count == 0 remove_mesh_attribute(*mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+    if mesh.segments.count == 0 remove_mesh_attribute(*mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+    if mesh.points.count == 0 remove_mesh_attribute(*mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
 
     // @Cleanup remove this? and replace with something to deduce annotation_info?
     set_entity_annotations(result, 

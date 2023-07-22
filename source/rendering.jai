@@ -197,7 +197,7 @@ Display_Info :: struct {
     // Labeling members
     //
 
-    show_labels := true; // Sets overall text labels visibility without clobbering more granular settings. nocommit implement this
+    show_labels := true; // @Think Use this to sets overall text labels visibility without clobbering more granular settings?
     vertex_label_theme : Vertex_Label_Theme;
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
@@ -291,6 +291,11 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
 
 // nocommit Only set the GLuints when something may be drawn, also update the rendering code to only render things which are non-empty as well
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
+    if mesh.positions.count == 0 {
+        // Nothing to do in this case @Think is this correct??
+        return;
+    }
+
     if info.is_dirty {
         defer info.is_dirty = false;
 
@@ -303,7 +308,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
-        {
+        if mesh.triangles.count {
             // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
             //
             //  f 1//1 2//2 3//3
@@ -311,171 +316,188 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             //
             // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
 
-            if !info.triangles_vbo glGenBuffers(1, *info.triangles_vbo);
+            if !info.triangles_vbo {
+                glGenBuffers(1, *info.triangles_vbo);
 
-            triangle_positions : [..]Vector3 = temp_array(Vector3);
-            array_reserve(*triangle_positions, 3 * mesh.triangles.count);
-            for :ModelTriangleIterator mesh {
-                array_add(*triangle_positions, it.a);
-                array_add(*triangle_positions, it.b);
-                array_add(*triangle_positions, it.c);
-            }
-
-            vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
-            assert(vn != null);
-            if mesh.triangles.count && (vn.values.count == 0) {
-                // log("Computing and assigning triangle normals to vertices\n");
-                success, failure_reason := compute_vertex_normals_from_triangles(mesh, vn);
-                if !success {
-                    log_warning("Failed to assign per-triangle normals. Reason: \"%\"", failure_reason);
+                triangle_positions : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*triangle_positions, 3 * mesh.triangles.count);
+                for :ModelTriangleIterator mesh {
+                    array_add(*triangle_positions, it.a);
+                    array_add(*triangle_positions, it.b);
+                    array_add(*triangle_positions, it.c);
                 }
+
+                normals : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+                assert(normals != null);
+                if mesh.triangles.count && (normals.values.count == 0) {
+                    // log("Computing and assigning triangle normals to vertices\n");
+                    success, failure_reason := compute_vertex_normals_from_triangles(mesh, normals);
+                    if !success {
+                        log_warning("Failed to assign per-triangle normals. Reason: \"%\"", failure_reason);
+                    }
+                }
+
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
+                NN := size_of(Matrix3) * normals.values.count;
+
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
             }
 
-            NP := 3 * size_of(Vector3) * mesh.triangles.count;
-            NN := size_of(Matrix3) * mesh.triangles.count;
+            if !info.triangles_vao {
+                glGenVertexArrays(1, *info.triangles_vao);
+                glBindVertexArray(info.triangles_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-            glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
-            glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
-        }
-        
-        {
-            if !info.segments_vbo glGenBuffers(1, *info.segments_vbo);
+                NP := size_of(Vector3) * mesh.positions.count;
 
-            segment_positions : [..]Vector3 = temp_array(Vector3);
-            array_reserve(*segment_positions, 2 * mesh.segments.count);
-            for :ModelSegmentIterator mesh {
-                array_add(*segment_positions, it.start);
-                array_add(*segment_positions, it.end);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
             }
 
-            vn : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
-            assert(vn != null);
+            if !info.triangles_edges_vao {
+                glGenVertexArrays(1, *info.triangles_edges_vao);
+                glBindVertexArray(info.triangles_edges_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-            NP := 2 * size_of(Vector3) * mesh.segments.count;
-            NN := size_of(Matrix3x2) * mesh.segments.count;
-
-            glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-            glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
-            glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
-        }
-
-        {
-            if !info.points_vbo glGenBuffers(1, *info.points_vbo);
-
-            point_positions : [..]Vector3 = temp_array(Vector3);
-            array_reserve(*point_positions, mesh.points.count);
-            for :ModelPointIterator mesh {
-                array_add(*point_positions, it);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
             }
 
-            vn : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
-            assert(vn != null);
+            if !info.triangles_normals_vao {
+                glGenVertexArrays(1, *info.triangles_normals_vao);
+                glBindVertexArray(info.triangles_normals_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-            NP := size_of(Vector3) * mesh.points.count;
-            NN := size_of(Vector3) * mesh.points.count;
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
 
-            glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-            glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
-            glBufferSubData(GL_ARRAY_BUFFER, NP, NN, vn.values.data);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            }
         }
 
-        {
-            if !info.positions_vbo glGenBuffers(1, *info.positions_vbo);
-            NP := size_of(Vector3) * mesh.positions.count;
-            glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
-            glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
-        }
-    
-        if !info.positions_vao {
-            glGenVertexArrays(1, *info.positions_vao);
-            glBindVertexArray(info.positions_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-        }
+        if mesh.segments.count {
+            if !info.segments_vbo {
+                glGenBuffers(1, *info.segments_vbo);
 
-        if !info.points_vao {
-            glGenVertexArrays(1, *info.points_vao);
-            glBindVertexArray(info.points_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-        }
+                segment_positions : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*segment_positions, 2 * mesh.segments.count);
+                for :ModelSegmentIterator mesh {
+                    array_add(*segment_positions, it.start);
+                    array_add(*segment_positions, it.end);
+                }
 
-        if !info.points_normals_vao {
-            glGenVertexArrays(1, *info.points_normals_vao);
-            glBindVertexArray(info.points_normals_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+                normals : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+                assert(normals != null);
 
-            NP := size_of(Vector3) * mesh.points.count;
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glEnableVertexAttribArray(ATTRIB_NORMAL);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
-        }
+                NP := 2 * size_of(Vector3) * mesh.segments.count;
+                NN := size_of(Matrix3x2) * normals.values.count;
 
-        if !info.segments_vao {
-            glGenVertexArrays(1, *info.segments_vao);
-            glBindVertexArray(info.segments_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-        }
+                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+            }
 
-        if !info.segments_normals_vao {
-            glGenVertexArrays(1, *info.segments_normals_vao);
-            glBindVertexArray(info.segments_normals_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+            if !info.segments_vao {
+                glGenVertexArrays(1, *info.segments_vao);
+                glBindVertexArray(info.segments_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
 
-            NP := 2 * size_of(Vector3) * mesh.segments.count;
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glEnableVertexAttribArray(ATTRIB_NORMAL);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            if !info.segments_normals_vao {
+                glGenVertexArrays(1, *info.segments_normals_vao);
+                glBindVertexArray(info.segments_normals_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+
+                NP := 2 * size_of(Vector3) * mesh.segments.count;
+
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            }
         }
 
-        if !info.triangles_vao {
-            glGenVertexArrays(1, *info.triangles_vao);
-            glBindVertexArray(info.triangles_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+        if mesh.points.count {
+            if !info.points_vbo {
+                glGenBuffers(1, *info.points_vbo);
 
-            NP := size_of(Vector3) * mesh.positions.count;
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glEnableVertexAttribArray(ATTRIB_NORMAL);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+                point_positions : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*point_positions, mesh.points.count);
+                for :ModelPointIterator mesh {
+                    array_add(*point_positions, it);
+                }
+
+                normals : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+                assert(normals != null);
+
+                NP := size_of(Vector3) * mesh.points.count;
+                NN := size_of(Vector3) * normals.values.count;
+
+                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+            }
+
+            if !info.points_vao {
+                glGenVertexArrays(1, *info.points_vao);
+                glBindVertexArray(info.points_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
+
+            if !info.points_normals_vao {
+                glGenVertexArrays(1, *info.points_normals_vao);
+                glBindVertexArray(info.points_normals_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+
+                NP := size_of(Vector3) * mesh.points.count;
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            }
         }
 
-        if !info.triangles_edges_vao {
-            glGenVertexArrays(1, *info.triangles_edges_vao);
-            glBindVertexArray(info.triangles_edges_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-        }
+        if mesh.positions.count {
+            if !info.positions_vbo {
+                glGenBuffers(1, *info.positions_vbo);
+                NP := size_of(Vector3) * mesh.positions.count;
+                glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
+            }
 
-        if !info.triangles_normals_vao {
-            glGenVertexArrays(1, *info.triangles_normals_vao);
-            glBindVertexArray(info.triangles_normals_vao);
-            glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-
-            NP := 3 * size_of(Vector3) * mesh.triangles.count;
-            glEnableVertexAttribArray(ATTRIB_POSITION);
-            glEnableVertexAttribArray(ATTRIB_NORMAL);
-            glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-            glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            if !info.positions_vao {
+                glGenVertexArrays(1, *info.positions_vao);
+                glBindVertexArray(info.positions_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
         }
 
     } // end if info.is_dirty
 }
 
 // @Cleanup consolidate this
-render_mesh_triangle_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_triangle_normals :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info) {
+
+    if !mesh.triangles.count return;
     if !triangle_style.normal_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
@@ -501,10 +523,15 @@ render_mesh_triangle_normals :: (mesh : *Simple_Mesh, using render_info : *Rende
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
-render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_segment_normals :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info) {
+
     // @CompilerBug Add a return here and observe a compilation failure with message:
     // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prism/.build/Prism_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
 
+    if !mesh.segments.count return;
     if !segment_style.normal_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
@@ -530,8 +557,12 @@ render_mesh_segment_normals :: (mesh : *Simple_Mesh, using render_info : *Render
     glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
-render_mesh_point_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
+render_mesh_point_normals :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info) {
 
+    if !mesh.points.count return;
     if !point_style.normal_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
@@ -578,13 +609,8 @@ render_mesh_positions :: (
     using display_info : Display_Info,
     clip_radius_mode_show_wireframe : bool) {
 
-    if !mesh.positions.count {
-        return;
-    }
-
-    if !vertex_style.visible && !clip_radius_mode_show_wireframe {
-        return;
-    }
+    if !mesh.positions.count return;
+    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
@@ -604,13 +630,9 @@ render_mesh_points :: (
     using render_info : *Render_Info,
     using display_info : Display_Info,
     clip_radius_mode_show_wireframe : bool) {
-    if !mesh.points.count {
-        return;
-    }
 
-    if !point_style.visible && !clip_radius_mode_show_wireframe {
-        return;
-    }
+    if !mesh.points.count return;
+    if !point_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
@@ -625,14 +647,14 @@ render_mesh_points :: (
     glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
 }
 
-render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
-    if mesh.segments.count == 0 {
-        return;
-    }
+render_mesh_segments :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info,
+    clip_radius_mode : bool) {
 
-    if !segment_style.visible && !clip_radius_mode {
-        return;
-    }
+    if !mesh.segments.count return;
+    if !segment_style.visible && !clip_radius_mode return;
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode);
@@ -661,14 +683,14 @@ MIN_EDGES_WIDTH_GL_LINE :: 1.;
 MIN_EDGES_WIDTH_GL_FILL :: 1.2;
 
 // Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
-render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
-    if mesh.triangles.count == 0 {
-        return;
-    }
+render_mesh_triangles_as_lines :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info,
+    clip_radius_mode_show_wireframe : bool) {
 
-    if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe {
-        return;
-    }
+    if !mesh.triangles.count return;
+    if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(render_info, mesh);
     render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
@@ -693,9 +715,8 @@ render_mesh_triangles :: (
     clip_radius_mode : bool,
     clip_radius_mode_show_wireframe : bool) {
  
-    if !triangle_style.visible || mesh.triangles.count == 0 {
-        return;
-    }
+    if !mesh.triangles.count return;
+    if !triangle_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
 

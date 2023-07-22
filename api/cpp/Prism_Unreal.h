@@ -4,12 +4,12 @@
 #define PRISM_UNREAL_API
 
 #include <CoreMinimal.h> // FString
-#include <VectorTypes.h> // nocommit What for?
 
 // We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
 // the code for different Unreal modules to be in separate files
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#include <VectorTypes.h>
 #include <BoxTypes.h>
 #include <DynamicMesh/DynamicMesh3.h>
 #include <DynamicMesh/DynamicMeshOverlay.h>
@@ -101,7 +101,7 @@ bool DocumentationForUnreal(bool bWriteFiles)
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 	// This block shows some of the provided functions for Geometry Core
 	{
-		// nocommit
+		// @Incomplete
 	}
 #endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
@@ -214,6 +214,12 @@ struct FMakeDynamicMeshObjOptions
 
 	// If true will attempt to write the per-vertex normals and UVs to the OBJ instead of the per-element values
 	bool bWritePerVertexValues = true;
+
+	// If true write "VID X" annotations on the OBJ v-directives, where X is the Vid into the input mesh (before the CompactCopy)
+	bool bWriteVidAnnotations = false;
+
+	// If true write "TID X" annotations on the OBJ f-directives, where X is the Tid into the input mesh (before the CompactCopy)
+	bool bWriteTidAnnotations = false;
 };
 
 Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMeshObjOptions Options = FMakeDynamicMeshObjOptions{})
@@ -230,29 +236,35 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 
 	// Compute an additional mapping from the compact mesh triangles to the input mesh triangles
 	// i.e the inverse of the FCompactMaps
-	TMap<int32, int32> CompactToInputTriangles; // Mesh -> InMesh
-	CompactToInputTriangles.Reserve(Mesh.TriangleCount());
-	for (int32 TriangleID : InMesh.TriangleIndicesItr())
+	TMap<int32, int32> CompactToInputTriangles; // Mesh Tid -> InMesh Tid
+	if (Options.bWriteTidAnnotations)
 	{
-		const int32 CompactTriangleID = CompactInfo.GetTriangleMapping(TriangleID);
-		if (CompactTriangleID != FCompactMaps::InvalidID)
+		CompactToInputTriangles.Reserve(Mesh.TriangleCount());
+		for (int32 TriangleID : InMesh.TriangleIndicesItr())
 		{
-			CompactToInputTriangles.Add(CompactTriangleID, TriangleID);
+			const int32 CompactTriangleID = CompactInfo.GetTriangleMapping(TriangleID);
+			if (CompactTriangleID != FCompactMaps::InvalidID)
+			{
+				CompactToInputTriangles.Add(CompactTriangleID, TriangleID);
+			}
 		}
+		checkSlow(CompactToInputTriangles.Num() == Mesh.TriangleCount());
 	}
-	checkSlow(CompactToInputTriangles.Num() == Mesh.TriangleCount());
 
-	TMap<int32, int32> CompactToInputVertices; // Mesh -> InMesh
-	CompactToInputVertices.Reserve(Mesh.VertexCount());
-	for (int32 VertexID : InMesh.VertexIndicesItr())
+	TMap<int32, int32> CompactToInputVertices; // Mesh Vid -> InMesh Vid
+	if (Options.bWriteVidAnnotations)
 	{
-		const int32 CompactVertexID = CompactInfo.GetVertexMapping(VertexID);
-		if (CompactVertexID != FCompactMaps::InvalidID)
+		CompactToInputVertices.Reserve(Mesh.VertexCount());
+		for (int32 VertexID : InMesh.VertexIndicesItr())
 		{
-			CompactToInputVertices.Add(CompactVertexID, VertexID);
+			const int32 CompactVertexID = CompactInfo.GetVertexMapping(VertexID);
+			if (CompactVertexID != FCompactMaps::InvalidID)
+			{
+				CompactToInputVertices.Add(CompactVertexID, VertexID);
+			}
 		}
+		checkSlow(CompactToInputVertices.Num() == Mesh.VertexCount());
 	}
-	checkSlow(CompactToInputVertices.Num() == Mesh.VertexCount());
 
 	if (Options.bReverseOrientation)
 	{
@@ -266,12 +278,16 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 	{
 		check(Mesh.IsVertex(VID)); // mesh is not compact
 
-		// Note: Suffix indicates this is zero-based
-		int32* InMeshVID0 = CompactToInputVertices.Find(VID);
-		ensure(InMeshVID0 != nullptr);
-
 		FVector3d Pos = Mesh.GetVertex(VID);
-		Result.vertex3(V3(Pos)).annotation("VID").insert(*InMeshVID0).newline();
+		Result.vertex3(V3(Pos));
+		if (Options.bWriteVidAnnotations)
+		{
+			// Note: Suffix indicates this is zero-based
+			int32* InMeshVID0 = CompactToInputVertices.Find(VID);
+			ensure(InMeshVID0 != nullptr);
+			Result.annotation("VID").insert(*InMeshVID0);
+		}
+		Result.newline();
 
 		if (bHasVertexNormals)
 		{
@@ -317,10 +333,6 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 	for (int32 TID = 0; TID < Mesh.TriangleCount(); ++TID)
 	{
 		check(Mesh.IsTriangle(TID));
-
-		// Note: Suffix indicates this is zero-based
-		int32* InMeshTID0 = CompactToInputTriangles.Find(TID);
-		ensure(InMeshTID0 != nullptr);
 
 		FIndex3i TriVertices = Mesh.GetTriangle(TID);
 
@@ -384,7 +396,14 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1);
 			}
 		}
-		Result.annotation("TID").insert(*InMeshTID0).newline(); // nocommit This should be an option, and by default it should be off
+		if (Options.bWriteTidAnnotations)
+		{
+			// Note: Suffix indicates this is zero-based
+			int32* InMeshTID0 = CompactToInputTriangles.Find(TID);
+			ensure(InMeshTID0 != nullptr);
+			Result.annotation("TID").insert(*InMeshTID0);
+		}
+		Result.newline();
 	}
 
 	// Set some useful item state in Prism via command annotations

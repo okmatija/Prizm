@@ -440,6 +440,13 @@ struct Obj {
         return p().insert(i);
     }
 
+    // Add a oriented point element referencing the previous vertex position and normal (default).
+    // The user can provide explicit indicies to reference vertex vi and normal ni
+    Obj& point_vn(int vi = -1, int ni = -1) {
+        p().insert(vi).add("//").add(ni);
+        return *this;
+    }
+
     // Add a vertex position and a point element that references it
     // Note: writes "v a.x a.y\np ia" to the obj
     template <typename T> Obj& point2(Vec2<T> a, int ia = -1) {
@@ -452,7 +459,11 @@ struct Obj {
         return vertex3(a).newline().point(ia);
     }
 
-    // nocommitttt Add function to add points with normals here
+    // Add a vertex position, a normal and an oriented point element referencing them
+    template <typename T> Obj& point3_vn(Vec3<T> va, Vec3<T> na) {
+        vertex3(va).newline().vn().vector3(na).newline();
+        return point_vn();
+    }
 
 
     //
@@ -465,19 +476,47 @@ struct Obj {
         return l().insert(i).insert(j);
     }
 
+    // Add an oriented segment element referencing the 2 previous vertex positions and normals (default).
+    // The user can provide explicit indicies to reference vertices vi, vj and vk; and normals ni, nj and nk
+    Obj& segment_vn(
+        int vi = -2, int vj = -1, // vertex v-directive  references
+        int ni = -2, int nj = -1  // normal vn-directive references
+    ) {
+        l();
+        insert(vi).add("//").add(ni);
+        insert(vj).add("//").add(nj);
+        return *this;
+    }
+
     // Add 2 vertex positions and a segment element referencing them
     // Note: writes "v a.x a.y\nv b.x b.y\nl ia ib" to the obj
-    template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b, int ia = -2, int ib = -1) {
+    template <typename T> Obj& segment2(
+        Vec2<T> a, Vec2<T> b,
+        int ia = -2, int ib = -1
+    ) {
         return vertex2(a).newline().vertex2(b).newline().segment(ia, ib);
     }
 
     // Add 2 vertex positions and a segment element referencing them
     // Note: writes "v a.x a.y a.z\nv b.x b.y b.z\nl ia ib" to the obj
-    template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b, int ia = -2, int ib = -1) {
-        return vertex2(a).newline().vertex2(b).newline().segment(ia, ib);
+    template <typename T> Obj& segment3(
+        Vec3<T> a, Vec3<T> b,
+        int ia = -2, int ib = -1
+    ) {
+        vertex2(a).newline();
+        vertex2(b).newline();
+        return segment(ia, ib);
     }
 
-    // nocommitttt Add function to add segments with normals here
+    // Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them
+    template <typename T> Obj& segment3_vn(
+        Vec3<T> va, Vec3<T> vb,
+        Vec3<T> na, Vec3<T> nb
+    ) {
+        vertex3(va).newline().vn().vector3(na).newline();
+        vertex3(vb).newline().vn().vector3(nb).newline();
+        return segment_vn();
+    }
 
 
     //
@@ -492,7 +531,10 @@ struct Obj {
 
     // Add a triangle element referencing the 3 previous vertex positions and normals (default).
     // The user can provide explicit indicies to reference vertices vi, vj and vk; and normals ni, nj and nk
-    Obj& triangle_vn(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1) {
+    Obj& triangle_vn(
+        int vi = -3, int vj = -2, int vk = -1, // vertex v-directive  references
+        int ni = -3, int nj = -2, int nk = -1  // normal vn-directive references
+    ) {
         f();
         insert(vi).add("//").add(ni);
         insert(vj).add("//").add(nj);
@@ -502,7 +544,10 @@ struct Obj {
 
     // Add a triangle element referencing the 3 previous vertex positions and texture vertices (default).
     // The user can provide explicit indices to reference vertices vi, vj and vk; and texture vertices ti, tj and tk
-    Obj& triangle_vt(int vi = -3, int vj = -2, int vk = -1, int ti = -3, int tj = -2, int tk = -1) {
+    Obj& triangle_vt(
+        int vi = -3, int vj = -2, int vk = -1, // vertex  v-directive  references
+        int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
+    ) {
         f();
         insert(vi).add("/").add(ti);
         insert(vj).add("/").add(tj);
@@ -512,7 +557,11 @@ struct Obj {
 
     // Add a triangle element referencing the 3 previous vertex positions, vertex normals and texture vertices (default).
     // The user can provide explicit indices reference vertices vi, vj and vk; normals ni, nj and nk; and texture vertices ti, tj and tk
-    Obj& triangle_vnt(int vi = -3, int vj = -2, int vk = -1, int ni = -3, int nj = -2, int nk = -1, int ti = -3, int tj = -2, int tk = -1) {
+    Obj& triangle_vnt(
+        int vi = -3, int vj = -2, int vk = -1, // vertex  v-directive  references
+        int ni = -3, int nj = -2, int nk = -1, // normal  vn-directive references
+        int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
+    ) {
         f();
         insert(vi).add("/").add(ti).add("/").add(ni);
         insert(vj).add("/").add(tj).add("/").add(nj);
@@ -521,7 +570,10 @@ struct Obj {
     }
 
     // Add 3 vertex positions and a triangle element referencing them
-    template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc, int ia = -3, int ib = -2, int ic = -1) {
+    template <typename T> Obj& triangle2(
+        Vec2<T> va, Vec2<T> vb, Vec2<T> vc,
+        int ia = -3, int ib = -2, int ic = -1
+    ) {
         vertex2(va).newline();
         vertex2(vb).newline();
         vertex2(vc).newline();
@@ -529,7 +581,10 @@ struct Obj {
     }
 
     // Add 3 vertex positions and a triangle element referencing them
-    template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, int ia = -3, int ib = -2, int ic = -1) {
+    template <typename T> Obj& triangle3(
+        Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+        int ia = -3, int ib = -2, int ic = -1
+    ) {
         vertex3(va).newline();
         vertex3(vb).newline();
         vertex3(vc).newline();
@@ -537,7 +592,10 @@ struct Obj {
     }
 
     // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them
-    template <typename T> Obj& triangle3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc) {
+    template <typename T> Obj& triangle3_vn(
+        Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+        Vec3<T> na, Vec3<T> nb, Vec3<T> nc
+    ) {
         vertex3(va).newline().vn().vector3(na).newline();
         vertex3(vb).newline().vn().vector3(nb).newline();
         vertex3(vc).newline().vn().vector3(nc).newline();
@@ -545,7 +603,10 @@ struct Obj {
     }
 
     // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
-    template <typename T> Obj& triangle3_vt(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> ta, Vec3<T> tb, Vec3<T> tc) {
+    template <typename T> Obj& triangle3_vt(
+        Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+        Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
+    ) {
         vertex3(va).newline().vt().vector3(ta).newline();
         vertex3(vb).newline().vt().vector3(tb).newline();
         vertex3(vc).newline().vt().vector3(tc).newline();
@@ -553,7 +614,11 @@ struct Obj {
     }
 
     // Add 3 vertex positions, 3 vertex normals, 3 texture vertices and a triangle element referencing them
-    template <typename T> Obj& triangle3_vnt(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Vec3<T> na, Vec3<T> nb, Vec3<T> nc, Vec3<T> ta, Vec3<T> tb, Vec3<T> tc) {
+    template <typename T> Obj& triangle3_vnt(
+        Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+        Vec3<T> na, Vec3<T> nb, Vec3<T> nc,
+        Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
+    ) {
         vertex3(va).newline().vn().vector3(na).newline().vt().vector3(ta).newline();
         vertex3(vb).newline().vn().vector3(nb).newline().vt().vector3(tb).newline();
         vertex3(vc).newline().vn().vector3(nc).newline().vt().vector3(tc).newline();
@@ -824,7 +889,6 @@ struct Obj {
 
     // Vertex labels
 
-    // nocommit implement this and call it in the tests
     // Set visibility of vertex annotations i.e., annotations on obj file v-directive data
     Obj& set_vertex_annotations_visible(bool visible) {
         return item_command("set_vertex_annotations_visible").insert((int)visible);
@@ -857,7 +921,6 @@ struct Obj {
 
     // Point labels
 
-    // nocommit implement this and call it in the tests
     // Set visibility of point annotations i.e., annotations on obj file p-directive data
     Obj& set_point_annotations_visible(bool visible) {
         return item_command("set_point_annotations_visible").insert((int)visible);
@@ -888,7 +951,6 @@ struct Obj {
 
     // Segment labels
 
-    // nocommit implement this and call it in the tests
     // Set visibility of segment annotations i.e., annotations on obj file l-directive data
     Obj& set_segment_annotations_visible(bool visible) {
         return item_command("set_segment_annotations_visible").insert((int)visible);
@@ -916,7 +978,6 @@ struct Obj {
 
     // Triangle labels
 
-    // nocommit implement this and call it in the tests
     // Set visibility of triangle annotations i.e., annotations on obj file f-directive data
     Obj& set_triangle_annotations_visible(bool visible) {
         return item_command("set_triangle_annotations_visible").insert((int)visible);
@@ -1278,15 +1339,19 @@ bool documentation(bool write_files) {
         obj.set_vertex_position_labels_visible(false);
         obj.set_vertex_label_color(BLACK);
         obj.set_vertex_label_scale(.4);
+        obj.set_vertex_annotations_visible(true);
         obj.set_point_index_labels_visible(false);
         obj.set_point_label_color(RED);
         obj.set_point_label_scale(.4);
+        obj.set_point_annotations_visible(true);
         obj.set_segment_index_labels_visible(false);
         obj.set_segment_label_color(GREEN);
         obj.set_segment_label_scale(.4);
+        obj.set_segment_annotations_visible(true);
         obj.set_triangle_index_labels_visible(false);
         obj.set_triangle_label_color(BLUE);
         obj.set_triangle_label_scale(.4);
+        obj.set_triangle_annotations_visible(true);
         obj.set_vertices_visible(true);
         obj.set_vertices_color(BLUE);
         obj.set_vertices_size(7);
@@ -1360,15 +1425,19 @@ p -1 # some string @ 42 @ 0 0
 #! set_vertex_position_labels_visible 0 0
 #! set_vertex_label_color 0 0 0 0 255
 #! set_vertex_label_scale 0 0.4
+#! set_vertex_annotations_visible 0 1
 #! set_point_index_labels_visible 0 0
 #! set_point_label_color 0 255 0 0 255
 #! set_point_label_scale 0 0.4
+#! set_point_annotations_visible 0 1
 #! set_segment_index_labels_visible 0 0
 #! set_segment_label_color 0 0 255 0 255
 #! set_segment_label_scale 0 0.4
+#! set_segment_annotations_visible 0 1
 #! set_triangle_index_labels_visible 0 0
 #! set_triangle_label_color 0 0 0 255 255
 #! set_triangle_label_scale 0 0.4
+#! set_triangle_annotations_visible 0 1
 #! set_vertices_visible 0 1
 #! set_vertices_color 0 0 0 255 255
 #! set_vertices_size 0 7
