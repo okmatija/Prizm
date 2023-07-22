@@ -330,6 +330,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 assert(normals != null);
                 if mesh.triangles.count && (normals.values.count == 0) {
                     // log("Computing and assigning triangle normals to vertices\n");
+                    // @Think Maybe this should happen in a tool so that the user is not confused when they look at normals created automatically on an item whose obj had no normals
                     success, failure_reason := compute_vertex_normals_from_triangles(mesh, normals);
                     if !success {
                         log_warning("Failed to assign per-triangle normals. Reason: \"%\"", failure_reason);

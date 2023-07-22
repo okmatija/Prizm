@@ -2153,11 +2153,10 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
             if ImGui.TreeNodeEx("Advanced##Labelling", .SpanAvailWidth) {
                 defer ImGui.TreePop();
 
-                ImGui.Text("If labels look wrong this may help:");
                 if ImGui.Button("Find Unreferenced Positions") {
                     item_find_unreferenced_positions(entity_index, new_item=0);
                 }
-                show_tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
+                show_tooltip("If labels look wrong this may help:\nCalls `item_find_unreferenced_points` command\nSee the command documentation for details");
             }
         }
     }

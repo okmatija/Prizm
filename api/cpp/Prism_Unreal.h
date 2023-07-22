@@ -110,12 +110,26 @@ bool DocumentationForUnreal(bool bWriteFiles)
 
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
-// Write overlay element ids and element values as annotations with the format "@ <ElementID> @ <ElementValue>"
-// The triangles of the Overlay.ParentMesh are split into 4 smaller triangles
-// This is appendable, so you can add it the dynamic mesh obj.  Maybe make the command annotations/config commands optional to make this more useful.
-// nocommit This function needs to flip the normals, and maybe it should be implemented by appending to the other one?
+
+struct FMakeDynamicMeshOverlayObjOptions
+{
+	// Controls how far the overlay's annotated points are perturbed along the parent triangle normal
+	// This value is multiplied by the parent mesh diagonal bounds length and then multiplied by the triangle normal vector
+	double OverlayPointNormalOffsetScaleMultiplier = 0.;
+
+	// If the annotated point is at P, and corresponds to vertex A of triangle ABC, then this value represents area ratio PBC/ABC.
+	// Use a value in the range (.333, 1). Values near 1 place P near A; values near .333 place P near the triangle centroid
+	double OverlayPointBaryCoord = .95;
+
+	// If true reverses the orientation of the faces.
+	// Warning! This is @Incomplete, and not implemented sorry
+	bool bReverseOrientation = false;
+};
+
+// Write the Overlay parent mesh triangles and then add annotated point elements encoding the overlay info:
+// The overlay element ids and element values are encoded as annotations with the format "@ <ElementID> @ <ElementValue>"
 template<typename RealType, int ElementSize>
-Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, ElementSize>& Overlay)
+Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, ElementSize>& Overlay, FMakeDynamicMeshOverlayObjOptions Options = FMakeDynamicMeshOverlayObjOptions{})
 {
 	using namespace UE::Geometry;
 
@@ -124,6 +138,11 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 	if (Overlay.GetParentMesh() == nullptr)
 	{
 		return Result;
+	}
+
+	if (Options.bReverseOrientation)
+	{
+		ensure(false); // This option is not yet implemented, sorry!
 	}
 
 	FAxisAlignedBox3d Bounds = Overlay.GetParentMesh()->GetBounds();
@@ -159,10 +178,12 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 
 			Result.triangle3<double>(A, B, C).newline(); // No annotation here, just for viz and to stop visibility checks
 
-			FVector3d Bias = Overlay.GetParentMesh()->GetTriNormal(TID) * 0.001 * Scale;
-			
+			const double BaryVertex = Options.OverlayPointBaryCoord; // Bary coords for the annotated vertex
+			const double BaryEdge = (1. - Options.OverlayPointBaryCoord) / 2.; // Bary coords corresponding to the vertices on the opposite edge
+			const FVector3d NormalOffset = Overlay.GetParentMesh()->GetTriNormal(TID) * Scale * Options.OverlayPointNormalOffsetScaleMultiplier;
+
 			// Result.polygon3(4, V3(A), V3(CA), V3(Centroid), V3(AB));
-			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, .9, .05, .05) + Bias);
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryVertex, BaryEdge, BaryEdge) + NormalOffset);
 			Result.attribute(ElementIDs.A);
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
@@ -175,7 +196,7 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.newline();
 
 			// Result.polygon3(4, V3(B), V3(AB), V3(Centroid), V3(BC));
-			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, .05, .9, .05) + Bias);
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryEdge, BaryVertex, BaryEdge) + NormalOffset);
 			Result.attribute(ElementIDs.B);
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
@@ -188,8 +209,8 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.newline();
 
 			// Result.polygon3(4, V3(C), V3(BC), V3(Centroid), V3(CA));
-			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, .05, .05, .9) + Bias);
-			Result.attribute(ElementIDs.B);
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryEdge, BaryEdge, BaryVertex) + NormalOffset);
+			Result.attribute(ElementIDs.C);
 			Result.attribute();
 			for (int i = 0; i < ElementSize; i++)
 			{
@@ -201,6 +222,13 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			Result.newline();
 		}
 	}
+
+	// Set some useful item state in Prism via command annotations
+ 	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Note the lines written by the following code are ignored by other obj viewers
+	Result.set_point_annotations_visible(true);
+	Result.set_edges_width(true);
+	Result.set_edges_visible(true);
 
 	return Result;
 }
@@ -409,7 +437,16 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 	// Set some useful item state in Prism via command annotations
  	// You could further configure the Prism item state at the call site before you call Obj::write()
 	// Note the lines written by the following code are ignored by other obj viewers
-	Result.set_annotations_visible(true);
+
+	if (Options.bWriteVidAnnotations)
+	{
+		Result.set_vertex_annotations_visible(true);
+	}
+	
+	if (Options.bWriteTidAnnotations)
+	{
+		Result.set_triangle_annotations_visible(true);
+	}
 	Result.set_edges_width(true);
 	Result.set_edges_visible(true);
 
