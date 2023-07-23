@@ -172,7 +172,7 @@ update_camera :: (delta_time : float) {
             camera.eye_position += increment;
             camera.look_position += increment;
 
-            // @continue nocommit We also need to adjust the near and far planes here! Currently when we pan and rotate things start getting clipped
+            // TODOOO We also need to adjust the near and far planes here! Currently when we pan and rotate things start getting clipped
         }
 
     } else if ImGui.IsMouseDragging(.Right, 0.) && !io().KeyCtrl && mouse_move_valid { // Orbit about the look position using right button. Make sure Ctrl is not down since Ctrl RMB sets the camera orbit and its annoying to have the camera start rotating after you do that..!

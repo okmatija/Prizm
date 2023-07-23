@@ -22,7 +22,7 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
 - Changes to api/cpp/Prism_Unreal.h
 
   - Added booleans to `FMakeDynamicMeshObjOptions` to allow the called to optionally write annotations containing the VIDs/TIDs into the input mesh. Previously this was on by default but now its off, which is less noisy. You only want it on if you're debugging indicies.
-  - Added a function to create an Obj from UE::Geometry::TDynamicMeshOverlay. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
+  - Added a function to create an Obj from `UE::Geometry::TDynamicMeshOverlay`. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
 
 - Improved support for annotations:
 

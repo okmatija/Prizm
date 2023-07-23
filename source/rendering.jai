@@ -1428,7 +1428,7 @@ render_background :: () {
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            /* nocommit This line triggers, will it go away if we use GL_TRIANGLES? But why??
+            /* TODOOO This line triggers, will it go away if we use GL_TRIANGLES? But why??
 
 OGL: type = performance; source = API; id = 131218; severity = medium
 OGL: message = Program/shader state performance warning: Fragment shader in program 19 is being recompiled based on GL state.

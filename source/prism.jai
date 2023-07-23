@@ -40,7 +40,7 @@ main :: () {
     gl_load(*gl, SDL_GL_GetProcAddress);
 
     gl_enable_debug_output(true);
-    glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+    // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
 
     gl_version_major, gl_version_minor = gl_get_version();
     print("OpenGL %.%\n", gl_version_major, gl_version_minor);
