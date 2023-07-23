@@ -826,15 +826,15 @@ struct Obj {
     //
     // (Advanced Note) If you look at the output obj file you will notice that command annotations which configure
     // item state start with a 0, this is a Prism item index.  The Prism application has a global array of items
-    // (aka shapes/geometry) and the index into this list is often used as the first argument in console commands.
-    //  When console commands are executed by the function which load .obj files as command annotations a _local_
-    // array of items is created, the item with local index 0 is the item with geometry given in the .obj, if a console
-    // command which has a side effect of generating a new item is executed as a command annotation then this item will
-    // have index >0 and you can pass that value (e.g., to the `item_command` function) to run a console command on
-    // one of these generated items which are not explicitly in the .obj file.  Note: This complexity is intentionally
-    // avoided in the Prism::Obj command annotation API, so the functions below are hardcoded to work with item 0 only,
-    // but you can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command"
-    // on the item with index 1.
+    // (aka meshes) and the index into this list is often used as the first argument in console commands. When console
+    // commands are executed by the function which load .obj files as command annotations a _local_ array of items is
+    // created, the item with local index 0 is the item with geometry given in the .obj, if a console command which has
+    // a side effect of generating a new item is executed as a command annotation then this item will have index >0 and
+    // you can pass that value (e.g., to the `item_command` function) to run a console command on one of these
+    // generated items which are not explicitly in the .obj file.  Note: This complexity is intentionally avoided in
+    // the Prism::Obj command annotation API, so the functions below are hardcoded to work with item 0 only, but you
+    // can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command" on the
+    // item with index 1.
     //
 
     // Start a command annotation, arguments should be `insert`ed after this

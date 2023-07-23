@@ -1,8 +1,5 @@
 Simple_Mesh :: struct {
-    // Position
     positions : [..]Vector3;
-    // normals : [..]Vector3;
-    // tangents : [..]Vector3;
 
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
     // .obj loading will fill these in from p, l and f directives respectively

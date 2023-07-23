@@ -7,44 +7,32 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
+PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
+- Replaced the single annotations settings separate settings for vertices/points/segments/triangles and hence also replaced the "Rendering" and "Labeling" sections of the Details panel with fields in new "Vertices", "Points", "Segments", "Triangles" sections
+- Changed the behavior of reloading files which are now empty/missing, the corresponding items are now removed from the item list. Previously a empty/placeholder item was still present
+- Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
+- Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file
+- Added an option to normalize obj normal data (vn-directives) before applying normal scaling. This is on by default to preserve old behaviour, you could turn it off if the length of the normals in the .obj file is encoding something interesting.
+- Removed the partial support for .wkt file formats. Prism will be narrowly focussed on .obj files to limit scope creep.
+- Removed item_clear function since clearing geometry from items is not very useful
+- Renamed the "Examples" tool to "Create"
+- Fixed .obj files where only some faces/segments/points have normals not loading properly
+- Fixed the warning that gets logged to the console when you pass Prism a file/directory that does not exist
+
 - Changes to api/cpp/Prism.h
 
   - Changed the default value of set_precision() from 6 to std::numeric_limits<double>::max_digits10 so it can be used to restore the default precision (which is std::numeric_limits<double>::max_digits10). Also added an optional pointer argument which can return the previous precision.
   - Renamed and renamed set_precision_max_digits10() function to set_precision_to_roundtrip_floats() and added an optional pointer argument which can return the previous precision.
   - Removed the set_precision_digits10() since it doesn't guarantee round-trip float -> text -> float conversions
-  - Added index arguments to the point2/point3, segment2/segment3 and triangle2/triangle3 functions, all indices are defaulted to negative values which write the same string as before this change
   - Added an attribute() function with no arguments, similar to the annotation() function with no arguments, and move the attribute functions further down the function list to present simpler concepts on first reading
-  - Improved the documentation
   - Added point3_vn and segment3_vn functions which write vertex positions, normals and point/segment elements referencing them. These are useful to write oriented point clouds and polylines with normals to obj files
-  - Added functions to set the visibility on vertex/point/segment/triangle annotations separately e.g., `Obj& Obj::set_triangle_annotations_visible(bool)`
+  - Added functions to set the visibility on vertex/point/segment/triangle annotations separately e.g., `set_triangle_annotations_visible`. Also added the corresponding console commands
+  - Various improvements to the documentation
 
 - Changes to api/cpp/Prism_Unreal.h
 
   - Added booleans to `FMakeDynamicMeshObjOptions` to allow the called to optionally write annotations containing the VIDs/TIDs into the input mesh. Previously this was on by default but now its off, which is less noisy. You only want it on if you're debugging indicies.
   - Added a function to create an Obj from `UE::Geometry::TDynamicMeshOverlay`. This function visualizes the overlay elements as annotated point elements where the annotations include element id and element value attributes.
-
-- Improved support for annotations:
-
-  - Replaced the single annotations settings which affected all annotations with separate settings for vertices/points/segments/triangles
-  - TODOOO Due to the above change the old "Rendering" and "Labeling" sections of the Detail panel are replaced with fields in the new "Vertices", "Points", "Segments", "Triangles" sections
-
-- Improved support for normals:
-
-  - Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
-  - Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file 
-  - Added an option to normalize obj normal data (vn-directives) before applying normal scaling. This is on by default to preserve old behaviour, you could turn it off if the length of the normals in the .obj file is encoding something interesting.
-  - Obj files where only some faces/segments/points have normals are now work properly
-
-- Changes to commands
-
-  - Removed item_clear function since clearing geometry from items is not very useful
-  - Added item_delete to delete items from the item list
-
-- Changed the behavior of reloading files which are now empty/missing, the corresponding items are now removed from the item list but previously a not very useful empty/placeholder item was still present
-- Removed the partial support for .wkt file formats. Prism will be narrowly focussed on .obj files to limit scope creep.
-- Improved the warning that gets logged to the console when you pass Prism a file/directory that does not exist
-- Renamed the "Examples" tool to "Create"
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

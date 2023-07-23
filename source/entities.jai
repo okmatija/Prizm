@@ -821,6 +821,7 @@ is_occluder :: (entity : Entity) -> bool {
 // Result positions are in world space
 // Rename these to target_XXX? Since we want to visit triangles for occlusion purposes even if we are not searching for a closest point on triangles (aka targetting triangles)
 find_closest_element :: (
+    // TODOOO Shouldn't these be checking points/segments/triangles visibility as well as the overall entity visibility?
     target_points : (Entity)->bool = elements_targetted,
     target_segments : (Entity)->bool = elements_targetted,
     target_triangles : (Entity)->bool = elements_targetted
