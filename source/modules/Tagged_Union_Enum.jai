@@ -59,7 +59,7 @@ set :: (using u: *Tagged_Union, value: $T) {
     }
 
     pointer := cast(*T) bytes.data;
-    <<pointer = value;
+    pointer.* = value;
 }
 
 isa :: (using u: Tagged_Union, $T: Type) -> *T {

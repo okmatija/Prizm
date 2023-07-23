@@ -10,7 +10,7 @@ Don't remove leading spaces from BLOCK type annotations, so that formatting is b
 
 */
 
-ISSUE_005 :: ".objs with face directives where position and normal indices dont match e.g., 'f 4//1 5//2 6//3' do not show normals correctly."; @KnownIssue
+//ISSUE_005 :: ".objs with face directives where position and normal indices dont match e.g., 'f 4//1 5//2 6//3' do not show normals correctly."; @KnownIssue
 //ISSUE_006 :: "The .obj loader does not yet support negative indices. Will fix soon."; @KnownIssue
 ISSUE_007 :: "The .obj loader currently ignores texture vertex information (vt-directives)"; @KnownIssue
 
@@ -72,11 +72,17 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         // array_free(scratch_vt);
     }
 
+    missing : bool;
     found_inf_or_nan : bool;
     missing_normals_count : int;
     missing_vertices_count : int;
     MISSING_NORMAL_FALLBACK :: Vector3.{0,0,0};
     MISSING_VERTEX_INDEX :: U32_MAX;
+
+    // Always add normals attributes, we'll remove the empty ones later
+    triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_triangle_normals_attribute(*mesh);
+    segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(*mesh);
+    point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(*mesh);
 
     while peek_token(*parser).type != .EOF && !parser.failed {
 
@@ -84,18 +90,18 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         if eat_possible_identifier(*parser, "v") {
 
-            point2 : Vector2 = ---;
-            point3 : Vector3 = ---;
-            dim, finite := obj_parse_point(*parser, *point2, *point3);
+            position2 : Vector2 = ---;
+            position3 : Vector3 = ---;
+            dim, finite := obj_parse_position(*parser, *position2, *position3);
             if !finite {
                 found_inf_or_nan = true;
             }
 
             if dim == 2 {
                 // @Think Maybe use app.invalid_point.z here
-                array_add(*mesh.positions, make_vector3(point2, 0));
+                array_add(*mesh.positions, make_vector3(position2, 0));
             } else if dim == 3 {
-                array_add(*mesh.positions, point3);
+                array_add(*mesh.positions, position3);
             } else if parser.failed {
                 break;
             } else {
@@ -122,7 +128,6 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             }
 
             array_add(*scratch_vn, normal);
-            array_add(*mesh.normals, normal);
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
@@ -148,35 +153,28 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "p") {
 
-            // @FIXME Support multiple indices on one line here
+            refs : Obj_Vertex_References = parse_vertex_references(*parser);
 
-            missing, index := obj_index(mesh.positions.count, parse_obj_index(*parser), MISSING_VERTEX_INDEX);
-            array_add(*mesh.points, index);
-            if missing {
-                missing_vertices_count += 1;
+            refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
+
+            if nt {
+                log_warning("Ignoring texture reference in p-directive on line %", current_line);
+                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
             }
 
-            tok := peek_token(*parser);
-            if tok.type == .COMMENT && tok.line_number == current_line {
-                annotation : Annotation;
-                annotation.kind = .POINT;
-                annotation.id = mesh.points.count - 1;
-                if set_annotation_value(*annotation, string_between_hashes(tok.string_value)) {
-                    array_add(*point_annotations, annotation);
-                }
-
-                eat_token(*parser);
-            }
-
-        } else if eat_possible_identifier(*parser, "l") {
-
-            // @FIXME Support texture vertices here 
-
-            polyline : [..]Obj_Index = parse_polyline(*parser);
-            if polyline.count < 2 { // @FIXME Check other error conditions
-                log_warning("Ignoring invalid l-directive on line %\n", current_line);
+            if nv < 1 {
+                log_warning("Ignoring invalid p-directive on line %. Expected at least 1 vertex reference, got %\n", current_line, nv);
                 // Do not error here! 
-            } else {
+                refs_valid = false;
+            }
+
+            if nn > 0 && nn != nv {
+                log_warning("Ignoring invalid p-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if refs_valid {
 
                 tok := peek_token(*parser);
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
@@ -191,14 +189,118 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
-                for i : 0..polyline.count-2 {
-                    missing1, index1 := obj_index(mesh.positions.count, polyline[i], MISSING_VERTEX_INDEX);
-                    if missing1 missing_vertices_count += 1;
+                // Loop over the points in the point cloud described by the current p-directive
+                for i : 0..refs.indices.count-1 {
 
-                    missing2, index2 := obj_index(mesh.positions.count, polyline[i+1], MISSING_VERTEX_INDEX);
-                    if missing2 missing_vertices_count += 1;
+                    if refs.normal.count {
+                        // If we previously encountered l-directives without normal references so fill these with zero normals
+                        if point_normals.values.count != mesh.points.count {
+                            assert(point_normals.values.count < mesh.points.count);
+                            array_resize(*point_normals.values, mesh.points.count, initialize=true);
+                        }
 
-                    array_add(*mesh.segments, make_Tuple2(index1, index2));
+                        // Add the normals for this point
+                        normal : *Vector3 = array_add(*point_normals.values);
+                        missing, normal.* = obj_value(scratch_vn, refs.normal[i], MISSING_NORMAL_FALLBACK);
+                        if missing {
+                            missing_normals_count += 1;
+                        }
+                    }
+                    
+                    // Add the point before the annotation
+                    {
+                        point : *u32 = array_add(*mesh.points);
+                        missing, point.* = obj_index(mesh.positions.count, refs.indices[i], MISSING_VERTEX_INDEX);
+                        if missing {
+                            missing_vertices_count += 1;
+                        }
+                    }
+
+                    // After adding the point we can add the annotation
+                    if has_annotation {
+                        annotation : Annotation;
+                        annotation.kind = .POINT;
+                        annotation.id = mesh.points.count - 1;
+                        // Important that each annotation allocates its own string value, not doing this caused a crash
+                        assert(set_annotation_value(*annotation, annotation_string));
+                        array_add(*point_annotations, annotation);
+                    }
+                }
+            }
+
+        } else if eat_possible_identifier(*parser, "l") {
+
+            // @Incomplete Support texture vertices here? or log warning and ignore?
+
+            refs : Obj_Vertex_References = parse_vertex_references(*parser);
+
+            refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
+
+            if nt {
+                log_warning("Ignoring texture reference in l-directive on line %", current_line);
+                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+            }
+
+            if nv < 2 {
+                log_warning("Ignoring invalid l-directive on line %. Expected at least 2 vertex references, got %\n", current_line, nv);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if nn > 0 && nn != nv {
+                log_warning("Ignoring invalid l-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if refs_valid {
+
+                tok := peek_token(*parser);
+                has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
+
+                // Parse annotation before adding faces so we add the annotation to each face
+                annotation_string : string;
+                if has_annotation {
+                    annotation_string = string_between_hashes(tok.string_value);
+                    if annotation_string.count == 0 {
+                        has_annotation = false;
+                    }
+                    eat_token(*parser);
+                }
+
+                // Loop over the segments in the polyline described by the current l-directive
+                for i : 0..refs.indices.count-1-1 {
+                    vids : [2]int;
+                    vids[0] = i;
+                    vids[1] = i + 1;
+
+                    if refs.normal.count {
+                        // If we previously encountered l-directives without normal references so fill these with zero normals
+                        if segment_normals.values.count != mesh.segments.count {
+                            assert(segment_normals.values.count < mesh.segments.count);
+                            array_resize(*segment_normals.values, mesh.segments.count, initialize=true);
+                        }
+
+                        // Add the normals for this segment
+                        normals : *Matrix3x2 = array_add(*segment_normals.values);
+                        for i : 0..1 {
+                            missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
+                            if missing {
+                                missing_normals_count += 1;
+                            }
+                        }
+                    }
+                    
+                    // Add the segment before the annotation
+                    {
+                        segment : *Tuple2(u32) = array_add(*mesh.segments);
+                        for i : 0..1 {
+                            missing, segment.component[i] = obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
+                            if missing {
+                                missing_vertices_count += 1;
+                            }
+                        }
+                    }
 
                     // After adding the segment we can add the annotation
                     if has_annotation {
@@ -214,11 +316,29 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         } else if eat_possible_identifier(*parser, "f") {
 
-            face : Obj_Face = parse_face(*parser);
-            if face.indices.count < 3 { // @FIXME Check other error conditions
-                log_warning("Ignoring invalid f-directive on line %\n", current_line);
+            refs : Obj_Vertex_References = parse_vertex_references(*parser);
+
+            refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
+
+            if nt {
+                log_warning("Ignoring texture reference in f-directive on line %", current_line);
+                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+            }
+
+            if nv < 3 {
+                log_warning("Ignoring invalid f-directive on line %. Expected at least 3 vertex references, got %\n", current_line, nv);
                 // Do not error here! 
-            } else {
+                refs_valid = false;
+            }
+
+            if nn > 0 && nn != nv {
+                log_warning("Ignoring invalid f-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if refs_valid {
+
                 tok := peek_token(*parser);
                 has_annotation := tok.type == .COMMENT && tok.line_number == current_line;
 
@@ -232,20 +352,24 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     eat_token(*parser);
                 }
 
-                for f : 0..face.indices.count-2-1 {
+                // Loop over the triangles in the triangle fan described by the current f-directive
+                for f : 0..refs.indices.count-2-1 {
                     vids : [3]int;
                     vids[0] = 0;
                     vids[1] = f + 1;
                     vids[2] = f + 2;
 
-                    if face.normal.count {
-                        // @Speed Just add the normal attribute always, or refactor so we don't find the attribute for each face. Also verify that the current implemenation is actually slow
-                        // @Think Perhaps this should be f_vn since an l-directive or a p-directive could reference such a vertex and we'd want to make a attribute on different element
-                        vn : *Simple_Mesh_Normals = find_or_add_mesh_attribute(result, "vn", Simple_Mesh_Normals);
-                        normals : *Matrix3 = array_add(*vn.values);
+                    if refs.normal.count {
+                        // If we previously encountered f-directives without normal references so fill these with zero normals
+                        if triangle_normals.values.count != mesh.triangles.count {
+                            assert(triangle_normals.values.count < mesh.triangles.count);
+                            array_resize(*triangle_normals.values, mesh.triangles.count, initialize=true);
+                        }
+
+                        // Add the normals for the current triangle
+                        normals : *Matrix3 = array_add(*triangle_normals.values);
                         for i : 0..2 {
-                            missing : bool;
-                            missing, normals.v[i] = obj_value(scratch_vn, face.normal[vids[i]], MISSING_NORMAL_FALLBACK);
+                            missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
                                 missing_normals_count += 1;
                             }
@@ -253,16 +377,15 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                     }
 
                     // Add the triangle before the annotation
-                    triangle_tuple : Tuple3(u32) = ---;
-                    for i : 0..2 {
-                        missing, index := obj_index(mesh.positions.count, face.indices[vids[i]], MISSING_VERTEX_INDEX);
-                        if missing {
-                            missing_vertices_count += 1;
+                    {
+                        triangle : *Tuple3(u32) = array_add(*mesh.triangles);
+                        for i : 0..2 {
+                            missing, triangle.component[i] = obj_index(mesh.positions.count, refs.indices[vids[i]], MISSING_VERTEX_INDEX);
+                            if missing {
+                                missing_vertices_count += 1;
+                            }
                         }
-
-                        triangle_tuple.component[i] = index;
                     }
-                    array_add(*mesh.triangles, triangle_tuple);
 
                     // After adding the triangle we can add the annotation
                     if has_annotation {
@@ -356,8 +479,8 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
         // Direct any elements with missing vertex indices to the missing/invalid position
         for *point : mesh.points {
-            if <<point == MISSING_VERTEX_INDEX {
-                <<point = xx mesh.positions.count;
+            if point.* == MISSING_VERTEX_INDEX {
+                point.* = xx mesh.positions.count;
             }
         }
         for *segment : mesh.segments {
@@ -394,10 +517,17 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     // In more general cases users can call the item_find_unreferenced_positions command, from the console or as a command annotation in the file
     if no_elements(mesh) {
         array_resize(*mesh.points, mesh.positions.count);
-        for * mesh.points { <<it = xx it_index; }
+        for * mesh.points { 
+            it.* = xx it_index;
+        }
         log_warning("File '%' contains % position% but has no element directives (p-, l- or f-directives) so we auto-assigned p-directives", filename, mesh.positions.count, plural_suffix(mesh.positions.count > 1));
         log("If you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex (v-directive)");
     }
+
+    // Remove attributes which correspond to empty containers
+    if mesh.triangles.count == 0 remove_mesh_attribute(*mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+    if mesh.segments.count == 0 remove_mesh_attribute(*mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+    if mesh.points.count == 0 remove_mesh_attribute(*mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
 
     // @Cleanup remove this? and replace with something to deduce annotation_info?
     set_entity_annotations(result, 
@@ -420,11 +550,11 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
     init_entity_spatial_index(result);
 
-    //print("result = %\n", formatStruct(<<result, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));
+    //print("result = %\n", formatStruct(result.*, use_newlines_if_long_form=true, use_long_form_if_more_than_this_many_members=0));
     //for result.mesh_attributes {
     //    if it.type == {
     //        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
-    //            attr := <<cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it;0
+    //            attr := (cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it).*;
     //            printv(attr);
     //    }
     //}

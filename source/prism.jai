@@ -33,17 +33,17 @@ main :: () {
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
-        print( "Could not create OpenGL context: %\n", to_string(SDL_GetError()));
+        print("Could not create OpenGL context: %\n", to_string(SDL_GetError()));
         return;
     }
 
     gl_load(*gl, SDL_GL_GetProcAddress);
 
-    // gl_enable_debug_output(true);
+    gl_enable_debug_output(true);
     // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
 
     gl_version_major, gl_version_minor = gl_get_version();
-    print ("OpenGL %.%\n", gl_version_major, gl_version_minor);
+    print("OpenGL %.%\n", gl_version_major, gl_version_minor);
 
     // Prepare VAO for text quads.
     {
@@ -59,33 +59,43 @@ main :: () {
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/simple_mesh.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/simple_mesh.frag"); #assert(FRAG_OK);
-        app.simple_mesh_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.simple_mesh_vao);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
+        app.points_lines_program = get_shader_program(VERT, FRAG);
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/mesh.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/mesh.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/mesh.frag"); #assert(FRAG_OK);
-        app.mesh_program = get_shader_program(VERT, FRAG, GEOM);
-        glGenVertexArrays(1, *app.mesh_vao);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/triangles.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
+        app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals.geom"); #assert(GEOM_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.normals_program = get_shader_program(VERT, FRAG, GEOM);
-        glGenVertexArrays(1, *app.normals_vao);
+        app.triangles_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.segments_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.points_normal_program = get_shader_program(VERT, FRAG, GEOM);
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/aabb.frag"); #assert(FRAG_OK);
         app.aabb_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.aabb_vao);
     }
 
     {
@@ -218,6 +228,7 @@ main :: () {
             console_draw();
             show_pending_directories_ui();
 
+            // inspect("Debug", app.entities[0], true);
             // inspect("Debug", *app.camera, true);
         }
 
@@ -441,7 +452,8 @@ handle_load_string :: (path : string, recursive := false) -> bool {
         got_directory, got_directory_valid := is_directory(pattern);
 
         if !got_directory_valid {
-            log_warning("Expected a filename or directory, got '%'", pattern);
+            log_warning("Expected a filename or directory, got '%', maybe this path does not exist?", pattern);
+            app.show_ui, app.console.show_ui = true, true;
         } else if got_directory {
             handle_directory(pattern);
         } else {
@@ -476,7 +488,7 @@ handle_directory :: (path : string) {
     pending : app.Pending_Directory;
 
     if found_dir { // Directory already exists
-        pending.directory = <<found_dir; // Copy state from found_dir, we'll overwrite the path though
+        pending.directory = found_dir.*; // Copy state from found_dir, we'll overwrite the path though
     } else { // New directory
         // When a folder is given it defaults to auto reloading
         pending.auto_load_new_files = true;
@@ -522,9 +534,20 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
 }
 
 ctx: *ImGui.ImGuiContext;
+
 _imgui_alloc_context: Context;
-c_alloc :: (sz: u64, userdata: *void) -> *void #c_call { push_context << cast(*Context)userdata { return alloc(cast(s64)sz); } }
-c_free :: (ptr: *void, userdata: *void) -> void #c_call { push_context << cast(*Context)userdata { free(ptr); } }
+
+c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
+    push_context (cast(*Context)userdata).* {
+        return alloc(cast(s64)sz);
+    }
+}
+
+c_free :: (ptr: *void, userdata: *void) -> void #c_call {
+    push_context (cast(*Context)userdata).* {
+        free(ptr);
+    }
+}
 
 ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     #if set_default_allocators {

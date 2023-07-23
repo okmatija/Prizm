@@ -233,21 +233,22 @@ sort_by_size :: (ascending : int = 1) {
     else           quick_sort(app.entities, compare_descending);
 } @RegisterCommand
 
-// Clears the item with the given `id` (resets geometry data containers)
-item_clear :: (id : int) {
+// Deletes/removes the item with the given `id`
+item_delete :: (id : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
     if !check_geometry_index(id) {
         return;
     }
 
     item := app.entities[id];
-    point_count := item.mesh.positions.count;
-    clear(item);
+    vertex_count := item.mesh.positions.count;
 
-    log("# Cleared item #% which had % points", id, point_count);
+    remove_entity_by_index(id);
+
+    log("# Deleted item #% which had % vertices", id, vertex_count);
 } @RegisterCommand
 
-// Clears the point element container (e.g., p-directive in .obj files), for then item with the given `id`
+// Clears the points (obj p-directives) from the item item with the given `id`
 item_clear_points :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -257,10 +258,10 @@ item_clear_points :: (id : int) {
     count := item.mesh.points.count;
     array_reset(*item.mesh.points);
 
-    log("# Cleared item #% which had % points", id, count);
+    log("# Cleared % point% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
-// Clears the segments (e.g., l-directive in .obj files) from the item with the given `id`
+// Clears the segments (obj l-directives) from the item with the given `id`
 item_clear_segments :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -270,10 +271,10 @@ item_clear_segments :: (id : int) {
     count := item.mesh.segments.count;
     array_reset(*item.mesh.segments);
 
-    log("# Cleared item #% which had % segments", id, count);
+    log("# Cleared % segment% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
-// Clears the triangles (e.g., l-directive in .obj files) from the item with the given `id`
+// Clears the triangles (obj f-directives) from the item with the given `id`
 item_clear_triangles :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -283,11 +284,11 @@ item_clear_triangles :: (id : int) {
     count := item.mesh.triangles.count;
     array_reset(*item.mesh.triangles);
 
-    log("# Cleared item #% which had % triangles", id, count);
+    log("# Cleared % triangle% from item #%", count, plural_suffix(count != 0), id);
 } @RegisterCommand
 
 // Flip normals in the mesh item with the given `id`
-// Reverses the winding of triangles and multiplies vertex normals by -1
+// Reverses the winding of triangles and multiplies any triangle/segment/point normals by -1
 item_flip_normals :: (id : int) {
     if !check_geometry_index(id) {
         return;
@@ -295,11 +296,31 @@ item_flip_normals :: (id : int) {
 
     entity := app.entities[id];
 
-    // @Incomplete Transform attributes
-
-    for * entity.mesh.normals {
-        <<it *= -1;
+    // flip triangle normals
+    triangle_normals : *Simple_Mesh_Triangle_Normals = find_triangle_normals_attribute(*entity.mesh);
+    if triangle_normals {
+        for * triangle_normals.values {
+            it.* *= -1;
+        }
     }
+
+    // flip segments normals
+    segment_normals : *Simple_Mesh_Segment_Normals = find_segment_normals_attribute(*entity.mesh);
+    if segment_normals {
+        for * segment_normals.values {
+            it.* *= -1;
+        }
+    }
+
+    // flip point normals
+    point_normals : *Simple_Mesh_Point_Normals = find_point_normals_attribute(*entity.mesh);
+    if point_normals {
+        for * point_normals.values {
+            it.* *= -1;
+        }
+    }
+
+    // Note: we don't flip segments or points because they don't have a front/back orientation
 
     for i : 0..entity.mesh.triangles.count-1 {
         using entity.mesh;
@@ -317,7 +338,7 @@ set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
     color, visible := get_entity_primary_color(entity);
-    <<color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    color.* = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 
@@ -337,21 +358,41 @@ set_visible :: (id : int, visible : int) {
 set_annotations_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.annotation_label_theme.visible = xx visible;
+
+    using entity.display_info;
+    vertex_label_theme.annotation_label_theme.visible = xx visible;
+    point_label_theme.annotation_label_theme.visible = xx visible;
+    segment_label_theme.annotation_label_theme.visible = xx visible;
+    triangle_label_theme.annotation_label_theme.visible = xx visible;
+
 } @RegisterCommand
 
 set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
-    if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.annotation_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+
+    if !check_color(r, g, b, a)  return;
+    color := Vector4.{r / 255., g / 255., b / 255., a / 255.};
+
+    using entity.display_info;
+    vertex_label_theme.annotation_label_theme.label_color = color;
+    point_label_theme.annotation_label_theme.label_color = color;
+    segment_label_theme.annotation_label_theme.label_color = color;
+    triangle_label_theme.annotation_label_theme.label_color = color;
+
 } @RegisterCommand
 
 // The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
 set_annotations_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.annotation_label_theme.label_scale = scale;
+
+    using entity.display_info;
+    vertex_label_theme.annotation_label_theme.label_scale = scale;
+    point_label_theme.annotation_label_theme.label_scale = scale;
+    segment_label_theme.annotation_label_theme.label_scale = scale;
+    triangle_label_theme.annotation_label_theme.label_scale = scale;
+
 } @RegisterCommand
 
 
@@ -385,6 +426,11 @@ set_vertex_label_scale :: (id : int, scale : float) {
     entity.display_info.vertex_label_theme.label_scale = scale;
 } @RegisterCommand
 
+set_vertex_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.vertex_label_theme.annotation_label_theme.visible = xx visible;
+} @RegisterCommand
 
 
 
@@ -407,6 +453,12 @@ set_point_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.point_label_theme.label_scale = scale;
+} @RegisterCommand
+
+set_point_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.point_label_theme.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
 
@@ -433,6 +485,11 @@ set_segment_label_scale :: (id : int, scale : float) {
     entity.display_info.segment_label_theme.label_scale = scale;
 } @RegisterCommand
 
+set_segment_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.segment_label_theme.annotation_label_theme.visible = xx visible;
+} @RegisterCommand
 
 
 
@@ -457,26 +514,31 @@ set_triangle_label_scale :: (id : int, scale : float) {
     entity.display_info.triangle_label_theme.label_scale = scale;
 } @RegisterCommand
 
+set_triangle_annotations_visible :: (id : int, visible : int) {
+    if !check_geometry_index(id) return;
+    entity := app.entities[id];
+    entity.display_info.triangle_label_theme.annotation_label_theme.visible = xx visible;
+} @RegisterCommand
 
 
 // visible is a boolean
 set_vertices_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.positions_visible = xx visible;
+    entity.display_info.vertex_style.visible = xx visible;
 } @RegisterCommand
 
 set_vertices_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.positions_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.vertex_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 set_vertices_size :: (id : int, size : int = 4) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.positions_size = xx size;
+    entity.display_info.vertex_style.size = xx size;
 } @RegisterCommand
 
 
@@ -486,7 +548,7 @@ set_vertices_size :: (id : int, size : int = 4) {
 set_points_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.points_visible = xx visible;
+    entity.display_info.point_style.visible = xx visible;
 } @RegisterCommand
 
 // You probably want to use the set_vertices_color function
@@ -494,14 +556,14 @@ set_points_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.points_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.point_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 // You probably want to use the set_vertices_size function
 set_points_size :: (id : int, size : int = 4) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.points_size = xx size;
+    entity.display_info.point_style.size = xx size;
 } @RegisterCommand
 
 
@@ -510,20 +572,20 @@ set_points_size :: (id : int, size : int = 4) {
 set_segments_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.segments_visible = xx visible;
+    entity.display_info.segment_style.visible = xx visible;
 } @RegisterCommand
 
 set_segments_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.segments_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.segment_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 set_segments_width :: (id : int, width : float = 1.) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.segments_width = width;
+    entity.display_info.segment_style.width = width;
 } @RegisterCommand
 
 
@@ -532,14 +594,14 @@ set_segments_width :: (id : int, width : float = 1.) {
 set_triangles_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.triangles_visible = xx visible;
+    entity.display_info.triangle_style.visible = xx visible;
 } @RegisterCommand
 
 set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.triangles_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.triangle_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 
@@ -548,20 +610,20 @@ set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
 set_edges_visible :: (id : int, visible : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.edges_visible = xx visible;
+    entity.display_info.triangle_style.edge_style.visible = xx visible;
 } @RegisterCommand
 
 set_edges_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     if !check_geometry_index(id) return;
     if !check_color(r, g, b, a)  return;
     entity := app.entities[id];
-    entity.display_info.edges_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
+    entity.display_info.triangle_style.edge_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 set_edges_width :: (id : int, width : float = 1.) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
-    entity.display_info.edges_width = width;
+    entity.display_info.triangle_style.edge_style.width = width;
 } @RegisterCommand
 
 
@@ -588,7 +650,7 @@ item_copy_clipping_sphere :: (source_id : int, target_id : int) {
 // Sets the edge/wireframe color to the face/surface color for all items
 set_edge_color_to_face_color :: () {
     for :All app.entities {
-        it.display_info.segments_color = it.display_info.triangles_color;
+        it.display_info.segment_style.color = it.display_info.triangle_style.color;
     }
 } @RegisterCommand
 
@@ -764,7 +826,7 @@ item_make_normals_segment_soup :: (id : int) {
 
     entity : *Entity = app.entities[id];
     mesh : Simple_Mesh = entity.mesh;
-    vn : *Simple_Mesh_Normals = find_mesh_attribute(entity, "vn", Simple_Mesh_Normals);
+    vn : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(*entity.mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
     if vn == null {
         log("# Mesh has no normals.");
         return;
@@ -786,7 +848,7 @@ item_make_normals_segment_soup :: (id : int) {
     set_entity_display_info(new_entity);
 
     maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
-    new_entity.display_info.segments_width = 3;
+    new_entity.display_info.segment_style.width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     new_entity.generation_index = entity.generation_index;
@@ -875,7 +937,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
         set_entity_display_info(new_entity);
 
         maybe_update_render_info(*new_entity.render_info, *new_entity.mesh); // @Cleanup fishy, why do we do this
-        new_entity.display_info.segments_width = 3;
+        new_entity.display_info.segment_style.width = 3;
 
         // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
         new_entity.generation_index = entity.generation_index;
@@ -890,7 +952,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
         merge(mesh, new_mesh);
 
         entity.render_info.is_dirty = true;
-        entity.display_info.segments_visible = true;
+        entity.display_info.segment_style.visible = true;
 
         log("# Added % edge% to the target item '%'",
             new_mesh.segments.count,
@@ -901,7 +963,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
 } @RegisterCommand
 
 
-// Finds any positions (eg obj file v-directives) which are not referenced by any element (eg p-, l- or f-directives) and explicitly add them as point elements.
+// Finds any positions (obj v-directives) which are not referenced by any element (eg p-, l- or f-directives) and explicitly add them as point elements.
 // This is useful when inspecting position/element labels because for efficiency the ray-cast queries involved only visit elements
 item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
     if !check_geometry_index(id) {
@@ -914,7 +976,9 @@ item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
     unreferenced_positions : [..]u32;
     defer array_free(unreferenced_positions);
     array_resize(*unreferenced_positions, mesh.positions.count);
-    for * unreferenced_positions { <<it = xx it_index; }
+    for * unreferenced_positions {
+        it.* = xx it_index;
+    }
 
     // Remove the indices which are reference by an element
     for position_index : unreferenced_positions {
@@ -942,13 +1006,13 @@ item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
 
     for position_index : unreferenced_positions {
         point_index : *u32 = array_add(*entity.mesh.points);
-        <<point_index = position_index;
+        point_index.* = position_index;
     }
 
     if unreferenced_positions.count {
         log("# Found % unreferenced positions, which were added to the meshes point element array", unreferenced_positions.count);
         entity.render_info.is_dirty = true;
-        entity.display_info.points_visible = true;
+        entity.display_info.point_style.visible = true;
     } else {
         log("# No unreferenced positions found");
     }
@@ -994,7 +1058,7 @@ item_find_zero_area_triangles :: (id : int) {
     set_entity_display_info(result);
 
     maybe_update_render_info(*result.render_info, *result.mesh); // @Cleanup fishy, why do we do this
-    result.display_info.segments_width = 3;
+    result.display_info.segment_style.width = 3;
 
     // Set generation_index before adding to overwrite the correct entity // @Cleanup fishy
     result.generation_index = target.generation_index;
@@ -1028,13 +1092,13 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     Perturb2 :: (point : *Vector2) #expand {
         delta := make_vector2(Rand(), Rand());
         normalize_or_x_axis(*delta);
-        <<point = <<point + delta * radius;
+        point.* = point.* + delta * radius;
     }
 
     Perturb3 :: (point : *Vector3) #expand {
         delta := make_vector3(Rand(), Rand(), Rand());
         normalize_or_z_axis(*delta);
-        <<point = <<point + delta * radius;
+        point.* = point.* + delta * radius;
     }
 
     // @FIXME: This is broken becuase the mesh points are not synced with the polyline (and polygon?) points,
@@ -1069,9 +1133,9 @@ item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : 
     // @cleanup generate this code
     if value_type == {
         case string;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(string, .TRIANGLE));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(string, .TRIANGLE));
         case Matrix3;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(Matrix3, .TRIANGLE));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(Matrix3, .TRIANGLE));
         case;
             // TODO Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);
@@ -1090,9 +1154,9 @@ item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Ty
     // @cleanup generate this code
     if value_type == {
         case string;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(string, .VERTEX));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(string, .VERTEX));
         case float;
-            add_mesh_attribute(item, attribute_name, Simple_Mesh_Attribute(float, .VERTEX));
+            add_mesh_attribute(*item.mesh, attribute_name, Simple_Mesh_Attribute(float, .VERTEX));
         case;
             // TODO Add others from the attribute list and improve this error message
             log_error("unsupported attribute type '%'", value_type);

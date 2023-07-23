@@ -137,19 +137,19 @@ any_active_clipping :: () -> bool {
 toggle_clipping :: () {
 
     clip_active := *app.template_display_info.clip_sphere.is_active;
-    <<clip_active = !<<clip_active;
+    clip_active.* = !clip_active.*;
 
     for :Selected app.entities {
-        it.display_info.clip_sphere.is_active = <<clip_active;
+        it.display_info.clip_sphere.is_active = clip_active.*;
         for * it.display_info.clip_ranges {
-            it.is_active = <<clip_active;
+            it.is_active = clip_active.*;
         }
     }
 }
 
 toggle_clipping_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     toggle_clipping();
 }
@@ -201,14 +201,14 @@ cycle_vertex_size :: () {
     app_info : *Display_Info = maybe_cycle_state(cycle_vertex_size_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.positions_visible = app_info.positions_visible;
-        it.display_info.positions_size    = app_info.positions_size;
+        it.display_info.vertex_style.visible = app_info.vertex_style.visible;
+        it.display_info.vertex_style.size    = app_info.vertex_style.size;
     }
 }
 
 cycle_vertex_size_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_vertex_size();
 }
@@ -216,25 +216,25 @@ cycle_vertex_size_proc :: (last_interaction_time : *void) {
 
 cycle_vertex_size_progress_proc :: (using app_info : *Display_Info) -> Fraction {
     // Handle full range of points_size
-    if !positions_visible {
-        positions_visible = true;
-        positions_size = 2;
+    if !vertex_style.visible {
+        vertex_style.visible = true;
+        vertex_style.size = 2;
         return .{0,3};
-    } else if positions_size <= 2 {
-        positions_size = 4;
+    } else if vertex_style.size <= 2 {
+        vertex_style.size = 4;
         return .{1,3};
-    } else if positions_size <= 4 {
-        positions_size = 6;
+    } else if vertex_style.size <= 4 {
+        vertex_style.size = 6;
         return .{2,3};
     } else {
-        positions_visible = false;
+        vertex_style.visible = false;
         return .{3,3};
     }
 }
 
 cycle_vertex_size_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info;
+    app_info_copy := app_info.*;
     return cycle_vertex_size_progress_proc(*app_info_copy);
 }
 
@@ -251,17 +251,17 @@ cycle_wireframe_width :: () {
     app_info : *Display_Info = maybe_cycle_state(cycle_wireframe_width_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.segments_visible = app_info.segments_visible;
-        it.display_info.segments_width   = app_info.segments_width;
-        it.display_info.edges_visible = app_info.edges_visible;
-        it.display_info.edges_width   = app_info.edges_width;
+        it.display_info.segment_style.visible = app_info.segment_style.visible;
+        it.display_info.segment_style.width   = app_info.segment_style.width;
+        it.display_info.triangle_style.edge_style.visible = app_info.triangle_style.edge_style.visible;
+        it.display_info.triangle_style.edge_style.width   = app_info.triangle_style.edge_style.width;
     }
 }
 
 // @Cleanup could auto generate this
 cycle_wireframe_width_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_wireframe_width();
 }
@@ -269,31 +269,31 @@ cycle_wireframe_width_proc :: (last_interaction_time : *void) {
 cycle_wireframe_width_progress_proc :: (using app_info : *Display_Info) -> Fraction {
 
     // We need to use edges_* rather than segments_* in the if conditions because segment visibility doesn't change in the else so the cycling would get stuck after we reach the else for first time
-    if !edges_visible {
-        segments_visible = true;
-        segments_width = 1;
-        edges_visible = true; // May as well let the cycling shortcut turn this on
-        edges_width = 1;
+    if !triangle_style.edge_style.visible {
+        segment_style.visible = true;
+        segment_style.width = 1;
+        triangle_style.edge_style.visible = true; // May as well let the cycling shortcut turn this on
+        triangle_style.edge_style.width = 1;
         return .{0,3};
-    } else if edges_width <= 1 {
-        segments_width = 2;
-        edges_width = 2;
+    } else if triangle_style.edge_style.width <= 1 {
+        segment_style.width = 2;
+        triangle_style.edge_style.width = 2;
         return .{1,3};
-    } else if edges_width <= 2 {
-        segments_width = 3;
-        edges_width = 3;
+    } else if triangle_style.edge_style.width <= 2 {
+        segment_style.width = 3;
+        triangle_style.edge_style.width = 3;
         return .{2,3};
     } else {
-        // segments_visible = false; // Intentionally leave segments visible, we don't want the cycling shortcut to affect visiblity of segments
-        segments_width = 1; // Duplicate the default state, it just feels better doing this
-        edges_visible = false;
+        // segment_style.visible = false; // Intentionally leave segments visible, we don't want the cycling shortcut to affect visiblity of segments
+        segment_style.width = 1; // Duplicate the default state, it just feels better doing this
+        triangle_style.edge_style.visible = false;
         return .{3,3};
     }
 }
 
 cycle_wireframe_width_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info;
+    app_info_copy := app_info.*;
     return cycle_wireframe_width_progress_proc(*app_info_copy);
 }
 
@@ -309,29 +309,39 @@ toggle_normals_visibility :: () {
     app_info : *Display_Info = maybe_cycle_state(toggle_normals_visibility_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.normals_visible = app_info.normals_visible;
+        it.display_info.triangle_style.normal_style.visible  = app_info.triangle_style.normal_style.visible;
+        it.display_info.segment_style.normal_style.visible  = app_info.segment_style.normal_style.visible;
+        it.display_info.point_style.normal_style.visible  = app_info.point_style.normal_style.visible;
     }
 }
 
 toggle_normals_visibility_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     toggle_normals_visibility();
 }
 
-toggle_normals_visibility_progress_proc :: (using app_info : *Display_Info) -> Fraction {
+toggle_normals_visibility_progress_proc :: (app_info : *Display_Info) -> Fraction {
+    // Start with the triangle normal visibility 
+    normals_visible : bool = app_info.triangle_style.normal_style.visible;
+
     result : Fraction;
     result.numer = xx normals_visible;
     result.denom = 1;
-    normals_visible = !normals_visible;
+
+    // Toggle the normals on all elements with normals
+    app_info.triangle_style.normal_style.visible = !normals_visible;
+    app_info.segment_style.normal_style.visible = !normals_visible;
+    app_info.point_style.normal_style.visible = !normals_visible;
+
     return result;
 }
 
 
 toggle_normals_visibility_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info;
+    app_info_copy := app_info.*;
     return toggle_normals_visibility_progress_proc(*app_info_copy);
 }
 
@@ -403,7 +413,7 @@ cycle_vertex_label :: () {
 
 cycle_vertex_label_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_vertex_label();
 }
@@ -411,7 +421,7 @@ cycle_vertex_label_proc :: (last_interaction_time : *void) {
 
 cycle_vertex_label_progress_proc :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_vertex_label_theme(*app_info_copy.vertex_label_theme);
 }
 
@@ -483,14 +493,14 @@ cycle_element_label :: () {
 
 cycle_element_label_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_element_label();
 }
 
 cycle_element_label_progress_proc :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_element_label_theme(*app_info_copy.point_label_theme);
 }
 
@@ -504,6 +514,7 @@ cycle_element_label_progress_proc :: () -> Fraction {
 //
 
 
+// This currently only toggles visibility but it could cycle through styles?
 cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
 
     result : Fraction;
@@ -524,56 +535,57 @@ cycle_annotation_theme :: (theme : *Annotation_Label_Theme) -> Fraction {
     }
 
     // Set theme from State
-    theme.visible = xx state & 0b01;
+    theme.visible = cast(bool)(state & 0b01);
     return result;
 }
 
-maybe_cycle_annotation_label_theme :: () -> *Annotation_Label_Theme {
-
-    selected : [..]*Entity = temp_selected_entities();
-
-    theme : *Annotation_Label_Theme = *app.template_display_info.annotation_label_theme;
-
-    // Don't modify template state if exactly one item is selected
-    if selected.count == 1 {
-        theme = *selected[0].display_info.annotation_label_theme;
-    }
-
-     // We dont want to change the template state if nothing will change
-    if selected.count > 0 {
-        cycle_annotation_theme(theme);
-    }
-
-    return theme;
-}
-
 cycle_annotation :: () {
-    theme := maybe_cycle_annotation_label_theme();
+    selected : [..]*Entity = temp_selected_entities();
+    if selected.count == 0 {
+        return;
+    }
 
-    for :Selected app.entities {
-        // @Cleanup Rename the cycle function to mention only visibility is cycled?
-        it.display_info.annotation_label_theme.visible = theme.visible;
+    use_template_theme := selected.count > 1;
+
+    vertex_theme : *Annotation_Label_Theme = ifx use_template_theme
+        then *selected[0].display_info.vertex_label_theme.annotation_label_theme
+        else *app.template_display_info.vertex_label_theme.annotation_label_theme;
+
+    cycle_annotation_theme(vertex_theme);
+
+    if use_template_theme {
+        app.template_display_info.vertex_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        app.template_display_info.point_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        app.template_display_info.segment_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        app.template_display_info.triangle_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+    }
+
+    for selected {
+        it.display_info.vertex_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        it.display_info.point_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        it.display_info.segment_label_theme.annotation_label_theme.visible = vertex_theme.visible;
+        it.display_info.triangle_label_theme.annotation_label_theme.visible = vertex_theme.visible;
     }
 }
 
 cycle_annotation_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_annotation();
 }
 
 cycle_annotation_progress_proc :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
-    return cycle_annotation_theme(*app_info_copy.annotation_label_theme);
+    theme_copy : Annotation_Label_Theme = app_info.vertex_label_theme.annotation_label_theme; // Just want to get the fraction, not modify the theme
+    return cycle_annotation_theme(*theme_copy);
 }
 
 
 
 
 //
-// Cycle opacity
+// Cycle opacity @Think should this apply to elements other than triangles as well? Maybe when we make point/segment elements into quads
 //
 
 cycle_opacity :: () {
@@ -581,33 +593,33 @@ cycle_opacity :: () {
     app_info : *Display_Info = maybe_cycle_state(cycle_opacity_progress_proc);
 
     for :Selected app.entities {
-        it.display_info.triangles_color.w = app_info.triangles_color.w;
+        it.display_info.triangle_style.color.w = app_info.triangle_style.color.w;
     }
 }
 
 cycle_opacity_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_opacity();
 }
 
 cycle_opacity_progress_proc :: (using app_info : *Display_Info) -> Fraction {
-    if triangles_color.w == 1.  {
-        triangles_color.w = .5;
+    if triangle_style.color.w == 1.  {
+        triangle_style.color.w = .5; // This affects is_occluder
         return .{0, 2};
-    } else if triangles_color.w >= .5 {
-        triangles_color.w = .2;
+    } else if triangle_style.color.w >= .5 {
+        triangle_style.color.w = .2;
         return .{1, 2};
     } else {
-        triangles_color.w = 1.;
+        triangle_style.color.w = 1.;
         return .{2, 2};
     }
 }
 
 cycle_opacity_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
     return cycle_opacity_progress_proc(*app_info_copy);
 }
 
@@ -624,17 +636,17 @@ cycle_opacity_progress_proc_const :: () -> Fraction {
 
 cycle_backface_mode :: () {
 
-    mode := *app.template_display_info.backface_mode;
+    mode := *app.template_display_info.triangle_style.backface_mode;
     cycle_backface_mode_progress_proc(mode);
 
     for :Selected app.entities {
-        it.display_info.backface_mode = <<mode;
+        it.display_info.triangle_style.backface_mode = mode.*;
     }
 }
 
 cycle_backface_mode_proc :: (last_interaction_time : *void) {
     if last_interaction_time {
-        <<cast(*Apollo_Time)last_interaction_time = current_time_consensus();
+        (cast(*Apollo_Time)last_interaction_time).* = current_time_consensus();
     }
     cycle_backface_mode();
 }
@@ -642,21 +654,21 @@ cycle_backface_mode_proc :: (last_interaction_time : *void) {
 cycle_backface_mode_progress_proc :: (using mode : *Backface_Mode) -> Fraction {
     result : Fraction;
     result.denom = 5;
-    if #complete <<mode == {
-        case .FIXED;        result.numer = 0; <<mode = .DARKEN; 
-        case .DARKEN;       result.numer = 1; <<mode = .SCREENTONE_1;
-        case .SCREENTONE_1; result.numer = 2; <<mode = .SCREENTONE_2;
-        case .SCREENTONE_2; result.numer = 3; <<mode = .NONE;
-        case .NONE;         result.numer = 4; <<mode = .CULL;
-        case .CULL;         result.numer = 5; <<mode = .FIXED;
+    if #complete mode.* == {
+        case .FIXED;        result.numer = 0; mode.* = .DARKEN; 
+        case .DARKEN;       result.numer = 1; mode.* = .SCREENTONE_1;
+        case .SCREENTONE_1; result.numer = 2; mode.* = .SCREENTONE_2;
+        case .SCREENTONE_2; result.numer = 3; mode.* = .NONE;
+        case .NONE;         result.numer = 4; mode.* = .CULL;
+        case .CULL;         result.numer = 5; mode.* = .FIXED;
     }
     return result;
 }
 
 cycle_backface_mode_progress_proc_const :: () -> Fraction {
     app_info, selected_count := get_display_info();
-    app_info_copy := <<app_info; // We just want to get the fraction, not modify the display info
-    return cycle_backface_mode_progress_proc(*app_info_copy.backface_mode);
+    app_info_copy := app_info.*; // We just want to get the fraction, not modify the display info
+    return cycle_backface_mode_progress_proc(*app_info_copy.triangle_style.backface_mode);
 }
 
 
@@ -669,7 +681,7 @@ cycle_backface_mode_progress_proc_const :: () -> Fraction {
 // Reload items
 //
 
-reload_items_proc :: (unused : *void) {
+reload_items_proc :: (_ : *void) {
 
     no_dependencies_first_then_chronological :: (a : *Entity, b : *Entity) -> s64 {
         // FILE_ON_DISK and PRESET_SHAPE sources do not depend on other entities, but command outputs can, so we load those last and in order of 
@@ -699,7 +711,7 @@ reload_items_proc :: (unused : *void) {
 
 
 // @Volatile :FocusItemBehavior Sync with focus button
-focus_items_proc :: (unused : *void) {
+focus_items_proc :: (_ : *void) {
 
     almost_equal :: (a : Camera, b : Camera) -> bool {
         return
@@ -733,23 +745,35 @@ focus_items_proc :: (unused : *void) {
 // Clear labels
 //
 
-clear_all_labels_proc :: (unused : *void) {
+clear_all_labels_proc :: (_ : *void) {
     for :Selected app.entities {
         // @Cleanup Add a label theme iterator?
         it.display_info.vertex_label_theme.show_index = false;
         it.display_info.vertex_label_theme.show_position = false;
+        it.display_info.vertex_label_theme.annotation_label_theme.visible = false;
+
         it.display_info.point_label_theme.show_index = false;
+        it.display_info.point_label_theme.annotation_label_theme.visible = false;
+
         it.display_info.segment_label_theme.show_index = false;
+        it.display_info.segment_label_theme.annotation_label_theme.visible = false;
+
         it.display_info.triangle_label_theme.show_index = false;
-        it.display_info.annotation_label_theme.visible = false;
+        it.display_info.triangle_label_theme.annotation_label_theme.visible = false;
     }
 
     // Also clear the display info used to set action button state
     display_info : *Display_Info = *app.template_display_info;
     display_info.vertex_label_theme.show_index = false;
     display_info.vertex_label_theme.show_position = false;
+    display_info.vertex_label_theme.annotation_label_theme.visible = false;
+
     display_info.point_label_theme.show_index = false;
+    display_info.point_label_theme.annotation_label_theme.visible = false;
+
     display_info.segment_label_theme.show_index = false;
+    display_info.segment_label_theme.annotation_label_theme.visible = false;
+
     display_info.triangle_label_theme.show_index = false;
-    display_info.annotation_label_theme.visible = false;
+    display_info.triangle_label_theme.annotation_label_theme.visible = false;
 }

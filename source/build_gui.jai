@@ -53,8 +53,8 @@ build_gui :: (
     sweep_state : Checkbox_Sweep_Mode_State;
     defer array_reset(*enable_console_command);
     if chosen_console_commands {
-        quick_sort(<<chosen_console_commands, (a, b) => compare_strings(a.name, b.name));
-        for <<chosen_console_commands {
+        quick_sort(chosen_console_commands.*, (a, b) => compare_strings(a.name, b.name));
+        for chosen_console_commands.* {
             array_add(*enable_console_command, true);
         }
     }
@@ -81,7 +81,7 @@ build_gui :: (
             defer ImGui.End();
 
             if chosen_console_commands {
-                for command, command_index : <<chosen_console_commands {
+                for command, command_index : chosen_console_commands.* {
                     // ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
                     checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], imgui_label(command.name, *command), *sweep_state, window);
                 }
@@ -108,7 +108,7 @@ build_gui :: (
                 }
 
                 //output_type : enum;
-                Combo_Box(optimization_level);
+                // Combo_Box(optimization_level); // Commented out when upgrading to jai version 0.1.064
 
                 Check_Box(write_added_strings);
                 Check_Box(runtime_storageless_type_info);
@@ -118,11 +118,10 @@ build_gui :: (
                 Check_Box(lazy_foreign_function_lookups);
                 Check_Box(enable_bytecode_inliner);
                 Check_Box(stack_trace);
-                Check_Box(enable_auto_dereference);
 
                 Combo_Box(array_bounds_check);
                 Combo_Box(cast_bounds_check);
-                Combo_Box(math_bounds_check);
+                Combo_Box(arithmetic_overflow_check);
                 Combo_Box(null_pointer_check);
                 Combo_Box(dead_code_elimination);
 
@@ -158,7 +157,7 @@ build_gui :: (
                 done = true;
                 if chosen_console_commands {
                     assert(chosen_console_commands.count == enable_console_command.count);
-                    for command, command_index : <<chosen_console_commands {
+                    for command, command_index : chosen_console_commands.* {
                         if enable_console_command[command_index] == false {
                             enable_console_command[command_index], enable_console_command[chosen_console_commands.count-1]
                             = swap(enable_console_command[command_index], enable_console_command[chosen_console_commands.count-1]);

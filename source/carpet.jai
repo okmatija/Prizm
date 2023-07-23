@@ -29,10 +29,9 @@ filetime_to_readable_date :: (filetime : Apollo_Time, include_date := true) -> s
     }
 }
 
-// @TODO :PluginFileFormats Make adding a format automatically extend this function 
 supported_format :: (filename_with_extension : string) -> bool {
     extension, found_extension := path_extension(filename_with_extension);
-    if found_extension && (ends_with_nocase(extension, "obj") || ends_with_nocase(extension, "wkt")) {
+    if found_extension && ends_with_nocase(extension, "obj") {
         return true;
     }
     return false;
@@ -212,6 +211,7 @@ ShowBinding :: (binding : string, description : string) #expand {
     ImGui.Text(description);
 }
 
+// Note: You need to use the ImGui.TableNextColumn apis after doing this
 BoxSection :: () #expand {
     table_flags := ImGui.TableFlags
         .BordersOuter;
@@ -264,7 +264,7 @@ selectable_with_bg_color :: (label : string, p_selected : *bool, bg_color : ImGu
 
     result : bool = ImGui.Selectable(temp_c_string(label), p_selected, flags, size_arg);
 
-    if (!ImGui.IsItemHovered() && !ImGui.IsItemActive() && !(<<p_selected))
+    if (!ImGui.IsItemHovered() && !ImGui.IsItemActive() && !(p_selected.*))
     {
         // Render background behind Selectable().
         draw_list._Splitter.SetCurrentChannel(*draw_list._Splitter, draw_list, 0);
@@ -290,7 +290,7 @@ Checkbox_Sweep_Mode_State :: struct {
 // @Incomplete Add flags for what sweep behaviours are acceptable e.g., control down variations are weird in some cases
 checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : *Checkbox_Sweep_Mode_State, window : *SDL_Window) -> changed : bool, changed_by_click : bool {
 
-    old_state := <<state;
+    old_state := state.*;
     if ImGui.Checkbox(label, *old_state) { // @Hack Why do we need to pass old_state? To mimic a PressedOnClick checkbox? Explain this better/reimplement it
         // Get here when the LMB is released after going down while hovering the checkbox
         // So we don't get stuck in a state where this mode is on we don't reach the toggle off in IsMouseReleased branch. @Cleanup
@@ -307,7 +307,7 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
     // Enter checkbox sweep mode on lmb down
     if ImGui.IsItemClicked(.Left) {
         sweep_state.sweep_active = true;
-        sweep_state.state_to_set = <<state;
+        sweep_state.state_to_set = state.*;
         sweep_state.mouse_min_x = xx checkbox_upper_left.x;
         sweep_state.mouse_max_x = xx checkbox_lower_right.x;
         changed_by_click = true;
@@ -347,10 +347,10 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
         if io().KeyCtrl || io().KeyShift {
             // When control/shift are pressed make the focus the y-hovered item, hiding others that are swept through
             if !prev_frame_hovered && curr_frame_hovered {
-                <<state = true;
+                state.* = true;
                 changed_by_click = false;
             } else if prev_frame_hovered && !curr_frame_hovered {
-                <<state = false;
+                state.* = false;
                 changed_by_click = false;
             }
             if io().KeyShift {
@@ -361,13 +361,13 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
             swept_down := mouse_prev.y < checkbox_lower_right.y && mouse_curr.y > checkbox_upper_left.y;
             swept_up   := mouse_prev.y > checkbox_upper_left.y  && mouse_curr.y < checkbox_lower_right.y;
             if swept_up || swept_down {
-                <<state = !sweep_state.state_to_set;
+                state.* = !sweep_state.state_to_set;
                 changed_by_click = false;
             }
         }
     }
 
-    if old_state != <<state {
+    if old_state != state.* {
         return true, changed_by_click;
     }
 
@@ -417,7 +417,7 @@ show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description
         ImGui.BeginTooltip();
         if header_text ImGui.Text(header_text);
 
-        ImGui.BeginTable("", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
+        ImGui.BeginTable("##", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
         for bindings_with_descriptions {
             ImGui.TableNextRow(); ImGui.TableNextColumn();
             ImGui.TextColored(app.theme.keymap_color, it.binding);
@@ -434,20 +434,22 @@ ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand
     BY_POINTER :: cast(bool)(flags & .POINTER);
 
     `clipper : ImGui.ListClipper; // Exposed so that you can access ItemsHeight, which is useful to size scrolling regions
+    ImGui.ListClipper.Constructor(*clipper);
     ImGui.ListClipper.Begin(*clipper, xx array.count);
     while outer := ImGui.ListClipper.Step(*clipper) {
         for row : clipper.DisplayStart..clipper.DisplayEnd-1 {
             `it_index := row;
 
             #if flags & .POINTER {
-            `it : *T = *(<<array)[row];
+            `it : *T = *(array.*)[row];
             } else {
-            `it : T = (<<array)[row];
+            `it : T = (array.*)[row];
             }
 
             #insert body;
         }
     }
+    ImGui.ListClipper.Destructor(*clipper);
 }
 
 
@@ -515,7 +517,7 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
 
-    str_c := temp_c_string(<<str);
+    str_c := temp_c_string(str.*);
     label_c := temp_c_string(label); // @Incomplete only do this if label is not constant
     return ImGui.InputText(label_c, str_c, xx (str.count + 1), flags, InputTextCallback, *cb_user_data);
 }

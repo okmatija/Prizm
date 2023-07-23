@@ -6,23 +6,23 @@ Geometry_Select_Tool :: struct {
     entity.display_info.vertex_label_theme.show_position = true;
     entity.display_info.vertex_label_theme.label_color = .{0, 0, 0, 1};
 
-    entity.display_info.positions_visible = true;
-    entity.display_info.positions_size = 6;
-    entity.display_info.positions_color = SELECT_VERTEX;
+    entity.display_info.vertex_style.visible = true;
+    entity.display_info.vertex_style.size = 6;
+    entity.display_info.vertex_style.color = SELECT_VERTEX;
 
-    entity.display_info.points_visible = true;
-    entity.display_info.points_size = 6;
-    entity.display_info.points_color = SELECT_POINT;
+    entity.display_info.point_style.visible = true;
+    entity.display_info.point_style.size = 6;
+    entity.display_info.point_style.color = SELECT_POINT;
 
-    entity.display_info.segments_visible = true;
-    entity.display_info.segments_width = 2;
-    entity.display_info.segments_color = SELECT_SEGMENT;
+    entity.display_info.segment_style.visible = true;
+    entity.display_info.segment_style.width = 2;
+    entity.display_info.segment_style.color = SELECT_SEGMENT;
 
-    entity.display_info.triangles_visible = true;
-    entity.display_info.triangles_color = SELECT_TRIANGLE;
-    entity.display_info.edges_visible = true;
-    entity.display_info.edges_color = BLACK;
-    entity.display_info.edges_width = 2.;
+    entity.display_info.triangle_style.visible = true;
+    entity.display_info.triangle_style.color = SELECT_TRIANGLE;
+    entity.display_info.triangle_style.edge_style.visible = true;
+    entity.display_info.triangle_style.edge_style.color = BLACK;
+    entity.display_info.triangle_style.edge_style.width = 2.;
 
     // Maybe we should default to vertex because all meshes have those...
     target_element : Simple_Mesh_Element = .TRIANGLE;
@@ -52,7 +52,7 @@ do_geometry_selection_mode :: () {
         position_indices := temp_array(u32);
         for p, position_index : mesh.positions {
             if position == p {
-                array_add(*position_indices, xx position_index);
+                array_add(*position_indices, cast(u32)position_index);
             }
         }
 
@@ -103,7 +103,7 @@ do_geometry_selection_mode :: () {
 
     case .POINT;
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_segments=false, visit_triangles=false);
+        closest : Closest_Point_Ray_Entity = find_closest_element(target_segments=elements_not_targetted, target_triangles=elements_not_targetted);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             if mouse_set_geometry_selection() {
                 deinit(*app.select_tool.entity);
@@ -112,10 +112,11 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .POINT {
-            log_error("Expected a point closest point casting a colliding ray in point selection mode");
+            log_error("Expected a point: casting a ray in point selection mode");
             return;
         }
 
+        // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_point : Vector3 = mesh_point_world(hit_entity.mesh, closest.element_index);
 
@@ -143,7 +144,7 @@ do_geometry_selection_mode :: () {
 
     case .SEGMENT;
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_triangles=false);
+        closest : Closest_Point_Ray_Entity = find_closest_element(target_points=elements_not_targetted, target_triangles=elements_not_targetted);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             if mouse_set_geometry_selection() {
                 deinit(*app.select_tool.entity);
@@ -152,10 +153,11 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .SEGMENT {
-            log_error("Expected a segment closest point casting a colliding ray in segment selection mode");
+            log_error("Expected a segment: casting a ray in segment selection mode");
             return;
         }
 
+        // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_segment : Segment3 = mesh_segment3_world(hit_entity.mesh, closest.element_index);
 
@@ -183,7 +185,7 @@ do_geometry_selection_mode :: () {
 
     case .TRIANGLE;
 
-        closest : Closest_Point_Ray_Entity = find_closest_element(visit_points=false, visit_segments=false);
+        closest : Closest_Point_Ray_Entity = find_closest_element(target_points=elements_not_targetted, target_segments=elements_not_targetted);
         if closest.element_index == -1 || !valid_geometry_index(closest.entity_index) {
             if mouse_set_geometry_selection() {
                 deinit(*app.select_tool.entity);
@@ -192,15 +194,16 @@ do_geometry_selection_mode :: () {
         }
 
         if closest.closest_point_element != .TRIANGLE {
-            log_error("Expected a triangle closest point casting a colliding ray in triangle selection mode");
+            log_error("Triangle selection mode expected %, got %", Simple_Mesh_Element.TRIANGLE, closest.closest_point_element);
             return;
         }
 
+        // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
         hit_triangle : Triangle3 = mesh_triangle_world(hit_entity.mesh, closest.element_index);
 
         if mouse_toggle_in_geometry_selection() {
-            // Search for the triangle in the current selection mesh
+            // Search for the triangle in the current selection mesh @Speed use a set or some datastructure where we can insert/delete quick
             found_index := -1;
             for :WorldTriangleIterator triangle, triangle_index : mesh {
                 if hit_triangle.a == triangle.a && hit_triangle.b == triangle.b && hit_triangle.c == triangle.c {

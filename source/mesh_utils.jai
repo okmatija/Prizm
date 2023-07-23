@@ -132,9 +132,8 @@ to_Mesh :: (shape : Polygon_Soup) -> Simple_Mesh {
 to_Mesh :: (m : par_shapes_mesh) -> Simple_Mesh {
     using result : Simple_Mesh;
 
+    // @Incomplete Copy normals to the triangle normals attribute
     array_copy(*positions, m.points);
-    array_copy(*normals, m.normals); // @FIXME Copy normals into a mesh attribute
-
     array_reserve(*triangles, m.triangles.count);
     memcpy(triangles.data, m.triangles.data, m.triangles.count * size_of(m.Triangle));
     triangles.count = m.triangles.count;

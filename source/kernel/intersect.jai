@@ -121,19 +121,19 @@ find_intersect_line3_axis_box3 :: (line : Line3, box : AxisBox3) -> Intersection
     // culled (no intersection with box).
     Clip :: (denom : float, numer : float, t0 : *float, t1 : *float) -> bool {
         if (denom > 0) {
-            if (numer > denom * <<t1) {
+            if (numer > denom * t1.*) {
                 return false;
             }
-            if (numer > denom * <<t0) {
-                <<t0 = numer / denom;
+            if (numer > denom * t0.*) {
+                t0.* = numer / denom;
             }
             return true;
         } else if (denom < 0) {
-            if (numer > denom * <<t0) {
+            if (numer > denom * t0.*) {
                 return false;
             }
-            if (numer > denom * <<t1) {
-                <<t1 = numer / denom;
+            if (numer > denom * t1.*) {
+                t1.* = numer / denom;
             }
             return true;
         } else {

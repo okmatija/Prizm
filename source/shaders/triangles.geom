@@ -10,7 +10,7 @@ in VS_Out {
 out vec3 vertex_normal_ws;
 out vec3 triangle_normal_ws; // Computed for flat shading
 out vec3 fragment_position_ws;
-noperspective out vec3 dist;
+noperspective out vec3 dist; // Distance from each triangle edge. Used to render anti-aliased triangle edges on the actual triangle
 
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;

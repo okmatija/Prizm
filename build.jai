@@ -10,7 +10,7 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prism";
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.059, built on 17 March 2023";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.071, built on 10 July 2023";
 
 build :: () {
 
@@ -21,7 +21,7 @@ build :: () {
 
     set_working_directory(#filepath);
 
-    Has_Argument :: (arg : string) -> bool #expand {
+    HasArgument :: (arg : string) -> bool #expand {
         return array_find(command_line_arguments, arg);
     }
 
@@ -31,7 +31,7 @@ build :: () {
 
     command_line_arguments := get_build_options(w).compile_time_command_line;
 
-    if Has_Argument("help") {
+    if HasArgument("help") {
         print(HELP_STRING);
         exit(0);
     }
@@ -40,17 +40,10 @@ build :: () {
         mode : Build_Mode;
         mode.set_icon = false; // @FIXME Replace this with the icon plugin
         mode.build_options = get_build_options(w);
-        {
-            using mode.build_options;
-            output_type                   = .EXECUTABLE;
-            lazy_foreign_function_lookups = true;
-            output_executable_name        = OUTPUT_EXE_NAME;
-            array_bounds_check            = .ON;
-            cast_bounds_check             = .FATAL;
-            math_bounds_check             = .FATAL;
-            null_pointer_check            = .ON;
-            stack_trace                   = true; // So that we can use the NoteEntryExit helper in carpet.jai
-        }
+        set_optimization(*mode.build_options, .DEBUG, preserve_debug_info=true);
+        mode.build_options.lazy_foreign_function_lookups = true; // Why do we set this?
+        mode.build_options.stack_trace = true; // So that we can use the NoteEntryExit helper in carpet.jai
+        mode.build_options.output_executable_name = OUTPUT_EXE_NAME;
         table_add(*preset_build_modes, "debug", mode);
     }
 
@@ -58,29 +51,21 @@ build :: () {
         mode : Build_Mode;
         mode.set_icon = true;
         mode.build_options = get_build_options(w);
-        {
-            using mode.build_options;
-            output_type                   = .EXECUTABLE;
-            lazy_foreign_function_lookups = true;
-            output_executable_name        = OUTPUT_EXE_NAME;
-            set_optimization_level(*mode.build_options, 3, 3); // Maybe use 2, 0 as in Default_MetaProgram?
-
-            // This disables the runtime console.
-            // Warning: Enabling this hides prints to the console!
-            // :DisableRuntimeConsoleCleanup This used to work via a #run but that broke at some point...? @CompilerBug?
-            // but doing things this way seems fine anyway!
-            additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"];
-        }
+        set_optimization(*mode.build_options, .OPTIMIZED);
+        mode.build_options.lazy_foreign_function_lookups = true; // Why do we set this?
+        // This disables the runtime console but also hides printing to the console!
+        mode.build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"]; // See :DisableRuntimeConsoleCleanup, setting it this way seems better anyway
+        mode.build_options.output_executable_name = OUTPUT_EXE_NAME;
         table_add(*preset_build_modes, "release", mode);
     }
 
     build_mode : Build_Mode;
     build_mode_found : bool;
-    if Has_Argument("custom") {
+    if HasArgument("custom") {
         print("[%] Compiling with custom build options.\n", OUTPUT_EXE_NAME);
         build_mode, build_mode_found = table_find(*preset_build_modes, "debug"); // Start from debug options
         build_gui(preset_build_modes, chosen_build_mode=*build_mode);
-    } else if Has_Argument("release") {
+    } else if HasArgument("release") {
         print("[%] Compiling with release build options.\n", OUTPUT_EXE_NAME);
         build_mode, build_mode_found = table_find(*preset_build_modes, "release");
     } else {
@@ -114,7 +99,7 @@ build :: () {
         add_build_file("source/prism.jai", w);
 
         while true {
-            message := compiler_wait_for_message();
+            message : *Message = compiler_wait_for_message();
 
             if !message {
                 continue;
@@ -181,7 +166,7 @@ build :: () {
                         phase := cast(*Message_Phase) message;
                         if phase.phase == .TYPECHECKED_ALL_WE_CAN {
                             if !generated_code {
-                                if Has_Argument("custom") {
+                                if HasArgument("custom") {
                                     build_gui(preset_build_modes, chosen_console_commands=*registered_console_commands);
                                 }
                                 generate_code_to_register_console_commands(message.workspace);
@@ -362,7 +347,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                 case .INTEGER;
                     // @Incomplete Check for overflow?
                     Print("%if args[%].type.type == .INTEGER {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*s64)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*s64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     integer_arg := cast(*Type_Info_Integer)arg.type;
                     if integer_arg.signed == false {
                         Print("%    if a%2 < 0 {\n", indent, arg_index);
@@ -376,23 +361,23 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     Print("%}\n", indent);
                 case .FLOAT;
                     Print("%if args[%].type.type == .FLOAT {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*float64)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*float64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else if args[%].type.type == .INTEGER {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*s64)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*s64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not a number, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .STRING;
                     Print("%if args[%].type.type == .STRING {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*string)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*string)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not an string, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .TYPE;
                     Print("%if args[%].type.type == .TYPE {\n", indent, arg_index);
-                    Print("%    a%2 = xx <<cast(*Type)(args[%2].value_pointer);\n", indent, arg_index);
+                    Print("%    a%2 = xx (cast(*Type)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
                     Print("%    log_error(\"Argument %2 is not an Type, its a %%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
@@ -517,10 +502,8 @@ check_compiler_version :: () {
     }
 }
 
-// @Cleanup Make this run in release and OS console disabled
-// Warning: Enabling this hides prints to the console!
-// See :DisableRuntimeConsoleCleanup
-// #run { #if OS == .WINDOWS { disable_runtime_console(); } }
+// @Cleanup Make this run in release and OS console disabled. Warning: Enabling this hides prints to the console!
+// #run { #if OS == .WINDOWS { disable_runtime_console(); } } // :DisableRuntimeConsoleCleanup This used to work via a #run but that broke at some point...? @CompilerBug?
 
 plugins: [..] *Metaprogram_Plugin;
 

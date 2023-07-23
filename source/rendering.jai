@@ -7,6 +7,13 @@ Labelling_Mode :: enum {
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
 }
 
+Annotation_Label_Theme :: struct {
+    visible := false;
+    label_scale := DEFAULT_LABEL_SCALE;
+    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+}
+
+// @Think Perhaps this should be in the Element_Label_Theme too so you can visualize only the vertices associated with the elements, maybe Simple_Mesh should store vertices referenced by each element type separately?
 Vertex_Label_Theme :: struct {
     // @Cleanup replace with a combo box
     show_index := false;
@@ -14,6 +21,8 @@ Vertex_Label_Theme :: struct {
 
     label_scale := DEFAULT_LABEL_SCALE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
+
+    annotation_label_theme : Annotation_Label_Theme;
 
     // world_space : bool = false; // @Incomplete
 }
@@ -23,25 +32,8 @@ Element_Label_Theme :: struct {
     show_index := false;
     label_scale := DEFAULT_LABEL_SCALE;
     label_color := Vector4.{1., 1., 0, 1};
-}
 
-
-is_visible :: (theme : Vertex_Label_Theme) -> bool {
-    return theme.show_position || theme.show_index;
-}
-
-is_visible :: (theme : Element_Label_Theme) -> bool {
-    return theme.show_index;
-}
-
-Annotation_Label_Theme :: struct {
-    visible := false;
-    label_scale := DEFAULT_LABEL_SCALE;
-    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-}
-
-is_visible :: (theme : Annotation_Label_Theme) -> bool {
-    return theme.visible;
+    annotation_label_theme : Annotation_Label_Theme;
 }
 
 Attribute_Theme :: struct {
@@ -66,10 +58,10 @@ Backface_Mode :: enum #specified {
 }
 
 cycle_display_mode :: (mode : *Display_Mode) {
-    if #complete <<mode == {
-        case .NORMALS;     <<mode = .BLINN_PHONG;
-        case .SOLID_COLOR; <<mode = .NORMALS;
-        case .BLINN_PHONG; <<mode = .NORMALS;
+    if #complete mode.* == {
+        case .NORMALS;     mode.* = .BLINN_PHONG;
+        case .SOLID_COLOR; mode.* = .NORMALS;
+        case .BLINN_PHONG; mode.* = .NORMALS;
     }
 }
 
@@ -80,18 +72,33 @@ Clip_Mode :: enum #specified {
 }
 
 // Things that needs updating when the geometry changes
-// @Cleanup Consider moving the is_dirty flag and bounding geometry data into the entity or mesh
 Render_Info :: struct {
     is_dirty := true;
 
-    vbo : GLuint;
+    // For rendering obj v-directive data
+    // @Cleanup Remove the positions_vbo. It doubles the memory requirement and adds complexity. We can just add points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
+    positions_vbo : GLuint;
+    positions_vao : GLuint;
 
-    points_ibo : GLuint;
-    segments_ibo : GLuint;
-    triangles_ibo : GLuint;
+    // For rendering obj p-directive data
+    points_vbo : GLuint;
+    points_vao : GLuint;
+    points_normals_vao : GLuint;
+
+    // For rendering obj l-directive data
+    segments_vbo : GLuint;
+    segments_vao : GLuint;
+    segments_normals_vao : GLuint;
+
+    // For rendering obj f-directive data
+    triangles_vbo : GLuint;
+    triangles_vao : GLuint;
+    triangles_edges_vao : GLuint;
+    triangles_normals_vao : GLuint;
 
     // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
     // @Cleanup Use a Box_Sphere here
+    // @Cleanup Consider moving this into the mesh
     bounding_sphere : Sphere;
     bounding_aabb : AxisBox3;
 }
@@ -133,23 +140,70 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     return false;
 }
 
-// Things that should be preserved when the geometry changes
-Display_Info :: struct {
+Normal_Style :: struct {
+    visible := false;
+    color := Vector4.{0., 0., .8, 1.};
+    scale : float = 1.; // Multiplies the obj normal. If normalized is true then this value is the length
+    normalized : bool = true; // If true the obj normal is normalized before scale is applied
+}
 
-    is_visible := true; // Is the item visible overall? so we can turn off visibility without clobbering the individual settings
+// Could also be used for tetrahedra edges when/if those are supported
+Edge_Style :: struct {
+    visible := false;
+    color : Vector4 = BLACK;
+    width : float = 1.;
+}
+
+Vertex_Style :: struct {
+    visible : bool;
+    color : Vector4 = BLACK;
+    size : s32 = 4; // @Cleanup Use float when we generate quads from coordinates
+}
+
+Point_Style :: struct {
+    using vertex_style : Vertex_Style;
+    vertex_style.color = Vector4.{.5, .5, .5, 1.};
+
+    normal_style : Normal_Style;
+}
+
+Segment_Style :: struct {
+    visible := false;
+    color : Vector4 = BLACK;
+    width : float = 1.;
+
+    normal_style : Normal_Style;
+}
+
+Triangle_Style :: struct {
+    visible := false;
+    color := Vector4.{1., 1., 1., 1.};
     display_mode := Display_Mode.BLINN_PHONG;
     backface_mode := Backface_Mode.FIXED;
     flat_shading := true;
+
+    edge_style : Edge_Style;
+    normal_style : Normal_Style;
+}
+
+
+// Things that should be preserved when the geometry changes
+Display_Info :: struct {
+
+    // Set overall visibility without clobbering the individual settings. Considers both geometry and labels
+    is_visible := true;
 
     //
     // Labeling members
     //
 
+    show_labels := true; // @Think Use this to sets overall text labels visibility without clobbering more granular settings?
     vertex_label_theme : Vertex_Label_Theme;
     point_label_theme : Element_Label_Theme;
     segment_label_theme : Element_Label_Theme;
     triangle_label_theme : Element_Label_Theme;
-    annotation_label_theme : Annotation_Label_Theme;
+
+    // These should be stored outside the vertex/point/segment/triangle_label_theme structs
     // attribute_theme : [..]Attribute_Theme;
 
     point_label_theme.label_color = .{1., 1., 0, 1};
@@ -159,30 +213,10 @@ Display_Info :: struct {
     // Vertex/Element members
     //
 
-    // Separate position display parameters from point display parameters. Make the position color black by default
-    positions_visible := false;
-    positions_color : Vector4 = BLACK;
-    positions_size : s32 = 4;
-
-    points_visible := false;
-    points_color := Vector4.{.5, .5, .5, 1.};
-    points_size : s32 = 4;
-
-    normals_visible := false;
-    normals_color := Vector4.{0., 0., .8, 1.};
-    normals_length : float = 1.;
-
-    segments_visible := false;
-    segments_color : Vector4 = BLACK;
-    segments_width : float = 1.;
-
-    triangles_visible := false;
-    triangles_color := Vector4.{1., 1., 1., 1.};
-
-    // These can be used for tetrahedra edges when those are supported
-    edges_visible := false;
-    edges_color : Vector4 = BLACK;
-    edges_width : float = 1.;
+    vertex_style : Vertex_Style;
+    point_style : Point_Style;
+    segment_style : Segment_Style;
+    triangle_style : Triangle_Style;
 
     //
     // Clipping
@@ -206,58 +240,42 @@ Display_Info :: struct {
     clip_sphere_prev : Clip_Sphere;
 }
 
-is_any_label_theme_visible :: (using,except(is_visible) display_info : Display_Info) -> bool {
-    return is_visible(vertex_label_theme) ||
-           is_visible(point_label_theme) ||
-           is_visible(segment_label_theme) ||
-           is_visible(triangle_label_theme) ||
-           is_visible(annotation_label_theme);
+// Clipping and camera position are not checked here
+
+any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // We do NOT check entity.display_info.vertex_style.visible here, this option is usually off and we still want to see vertex labels
+    return entity.display_info.is_visible && entity.display_info.show_labels /*&& entity.display_info.vertex_style.visible*/ && entity.mesh.positions.count && (
+        (geometry_labels   && (entity.display_info.vertex_label_theme.show_index || entity.display_info.vertex_label_theme.show_position)) ||
+        (annotation_labels && entity.display_info.vertex_label_theme.annotation_label_theme.visible && entity.vertex_annotations.count)
+    );
 }
 
-Any_Label_Theme_Visible :: struct {
-    vertex_label_theme_visible : bool;
-    point_label_theme_visible : bool;
-    segment_label_theme_visible : bool;
-    triangle_label_theme_visible : bool;
-    annotation_label_theme_visible : bool;
-    any_visible : bool;
+any_point_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.point_style.visible && entity.mesh.positions.count && entity.mesh.points.count && (
+        (geometry_labels   && entity.display_info.point_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.point_label_theme.annotation_label_theme.visible && entity.point_annotations.count)
+    );
 }
 
-is_any_label_theme_visible :: ($entity_filter : Code) -> Any_Label_Theme_Visible {
-    result : Any_Label_Theme_Visible;
-
-    FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
-    for :FilterIterator entity, entity_index : app.entities {
-        using,except(is_visible) entity.display_info;
-
-        if is_visible(vertex_label_theme) && entity.mesh.positions.count {
-            result.vertex_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(point_label_theme) && entity.mesh.points.count {
-            result.point_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(segment_label_theme) && entity.mesh.segments.count {
-            result.segment_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(triangle_label_theme) && entity.mesh.triangles.count {
-            result.triangle_label_theme_visible = true;
-            result.any_visible = true;
-        }
-
-        if is_visible(annotation_label_theme) && entity_annotation_count(entity, only_geometry_annotations=true) {
-            result.annotation_label_theme_visible = true;
-            result.any_visible = true;
-        }
-    }
-
-    return result;
+any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.segment_style.visible && entity.mesh.positions.count && entity.mesh.segments.count && (
+        (geometry_labels   && entity.display_info.segment_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.segment_label_theme.annotation_label_theme.visible && entity.line_annotations.count)
+    );
 }
+
+any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // @Think Maybe we should also check opacity here too
+    // @Think Maybe we should check triangle_style.edge_style.visible here?
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangle_style.visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
+        (geometry_labels   && entity.display_info.triangle_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.triangle_label_theme.annotation_label_theme.visible && entity.face_annotations.count)
+    );
+}
+
 
 is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere := true, test_ranges := true) -> bool {
     if test_sphere && is_clipped(display_info.clip_sphere, point_world) {
@@ -272,14 +290,16 @@ is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere :=
 }
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
+    if mesh.positions.count == 0 {
+        // Nothing to do in this case @Think is this correct??
+        return;
+    }
+
     if info.is_dirty {
-        if mesh.triangles.count && !mesh.normals.count {
-            // log("Computing and assigning triangle normals to vertices\n");
-            success, failure_reason := compute_vertex_normals_from_triangles(mesh);
-            if !success {
-                log_warning("Computing and assigning triangle normals to vertices, reason: \"%\"", failure_reason);
-            }
-        }
+        defer info.is_dirty = false;
+
+        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
+        // point_type : Type = get_type(type_info(mesh.points).element_type);
 
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
         // stored separately to the raw position data so it can be changed efficiently
@@ -287,80 +307,220 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
         info.bounding_aabb = make_axis_box3(..mesh.positions);
 
-        NP := size_of(Vector3) * mesh.positions.count;
-        NN := size_of(Vector3) * mesh.normals.count;
+        if mesh.triangles.count {
+            // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
+            //
+            //  f 1//1 2//2 3//3
+            //  f 1//4 2//5 4//6
+            //
+            // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
 
-        if !info.vbo glGenBuffers(1, *info.vbo);
+            {
+                if !info.triangles_vbo glGenBuffers(1, *info.triangles_vbo);
 
-        glBindBuffer(GL_ARRAY_BUFFER, info.vbo);
-        glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
-        glBufferSubData(GL_ARRAY_BUFFER, NP, NN, mesh.normals.data);
+                triangle_positions : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*triangle_positions, 3 * mesh.triangles.count);
+                for :ModelTriangleIterator mesh {
+                    array_add(*triangle_positions, it.a);
+                    array_add(*triangle_positions, it.b);
+                    array_add(*triangle_positions, it.c);
+                }
 
-        if !info.points_ibo glGenBuffers(1, *info.points_ibo);
-        if !info.segments_ibo glGenBuffers(1, *info.segments_ibo);
-        if !info.triangles_ibo glGenBuffers(1, *info.triangles_ibo);
+                normals : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+                assert(normals != null);
+                if mesh.triangles.count && (normals.values.count == 0) {
+                    // log("Computing and assigning triangle normals to vertices\n");
+                    // @Think Maybe this should happen in a tool so that the user is not confused when they look at normals created automatically on an item whose obj had no normals
+                    success, failure_reason := compute_vertex_normals_from_triangles(mesh, normals);
+                    if !success {
+                        log_warning("Failed to assign per-triangle normals. Reason: \"%\"", failure_reason);
+                    }
+                }
 
-        // @Cleanup consider doing something like, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
-        // point_type : Type = get_type(type_info(mesh.points).element_type);
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
+                NN := size_of(Matrix3) * normals.values.count;
 
-        size_points := size_of(u32) * mesh.points.count;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.points_ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_points, mesh.points.data, GL_STATIC_DRAW);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+            }
 
-        size_segments := size_of(Tuple2(u32)) * mesh.segments.count;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.segments_ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_segments, mesh.segments.data, GL_STATIC_DRAW);
+            {
+                if !info.triangles_vao glGenVertexArrays(1, *info.triangles_vao);
 
-        size_triangles := size_of(Tuple3(u32)) * mesh.triangles.count;
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, info.triangles_ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_triangles, mesh.triangles.data, GL_STATIC_DRAW);
+                glBindVertexArray(info.triangles_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-        info.is_dirty = false;
-    }
+                NP := size_of(Vector3) * mesh.positions.count;
+
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+            }
+
+            {
+                if !info.triangles_edges_vao glGenVertexArrays(1, *info.triangles_edges_vao);
+
+                glBindVertexArray(info.triangles_edges_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
+
+            {
+                if !info.triangles_normals_vao glGenVertexArrays(1, *info.triangles_normals_vao);
+
+                glBindVertexArray(info.triangles_normals_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
+
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
+
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            }
+        }
+
+        if mesh.segments.count {
+            {
+                if !info.segments_vbo glGenBuffers(1, *info.segments_vbo);
+
+                segment_positions : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*segment_positions, 2 * mesh.segments.count);
+                for :ModelSegmentIterator mesh {
+                    array_add(*segment_positions, it.start);
+                    array_add(*segment_positions, it.end);
+                }
+
+                normals : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+                assert(normals != null);
+
+                NP := 2 * size_of(Vector3) * mesh.segments.count;
+                NN := size_of(Matrix3x2) * normals.values.count;
+
+                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+            }
+
+            {
+                if !info.segments_vao glGenVertexArrays(1, *info.segments_vao);
+
+                glBindVertexArray(info.segments_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
+
+            {
+                if !info.segments_normals_vao glGenVertexArrays(1, *info.segments_normals_vao);
+
+                glBindVertexArray(info.segments_normals_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+
+                NP := 2 * size_of(Vector3) * mesh.segments.count;
+
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            }
+        }
+
+        if mesh.points.count {
+            {
+                if !info.points_vbo glGenBuffers(1, *info.points_vbo);
+
+                point_positions : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*point_positions, mesh.points.count);
+                for :ModelPointIterator mesh {
+                    array_add(*point_positions, it);
+                }
+
+                normals : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+                assert(normals != null);
+
+                NP := size_of(Vector3) * mesh.points.count;
+                NN := size_of(Vector3) * normals.values.count;
+
+                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+            }
+
+            {
+                if !info.points_vao glGenVertexArrays(1, *info.points_vao);
+
+                glBindVertexArray(info.points_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
+
+            {
+                if !info.points_normals_vao glGenVertexArrays(1, *info.points_normals_vao);
+
+                glBindVertexArray(info.points_normals_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+
+                NP := size_of(Vector3) * mesh.points.count;
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
+            }
+        }
+
+        if mesh.positions.count {
+            {
+                if !info.positions_vbo glGenBuffers(1, *info.positions_vbo);
+
+                NP := size_of(Vector3) * mesh.positions.count;
+                glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+                glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
+            }
+
+            {
+                if !info.positions_vao glGenVertexArrays(1, *info.positions_vao);
+
+                glBindVertexArray(info.positions_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+                glEnableVertexAttribArray(ATTRIB_POSITION);
+                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+            }
+        }
+
+    } // end if info.is_dirty
 }
 
 // @Cleanup consolidate this
-render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info) {
-    if !normals_visible return;
+render_mesh_triangle_normals :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info) {
+
+    if !mesh.triangles.count return;
+    if !triangle_style.normal_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
 
-    glUseProgram(app.normals_program);
+    p := app.triangles_normal_program;
+    glUseProgram(p);
 
     // @Incomplete handle wave?
-    set_model_view_projection_uniforms(app.normals_program, mesh.world_from_model);
-    glUniform4f(glGetUniformLocation(app.normals_program, "normals_color"), normals_color.x, normals_color.y, normals_color.z, normals_color.w);
-    glUniform1f(glGetUniformLocation(app.normals_program, "normal_length"), normals_length);
-
-    {
-        for 0..clip_ranges.count-1 {
-            // @Cleanup We could use run directive here to get constant strings
-            using clip_ranges[it];
-            glUniform3f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
-            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
-            glUniform1f(glGetUniformLocation(app.normals_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-        }
-
-        glUniform3f(glGetUniformLocation(app.normals_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
-        glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.radius"), xx clip_sphere.radius);
-        glUniform1f(glGetUniformLocation(app.normals_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-    }
-
-    glBindVertexArray(app.normals_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    ATTRIB_POSITION  :: 0;
-    ATTRIB_NORMAL    :: 1;
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    NP := size_of(Vector3) * mesh.positions.count;
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+    set_model_view_projection_uniforms(p, mesh.world_from_model);
+    set_clip_ranges_uniforms(p, display_info);
+    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(p, "normals_color"), triangle_style.normal_style.color.x, triangle_style.normal_style.color.y, triangle_style.normal_style.color.z, triangle_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_scale"), triangle_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)triangle_style.normal_style.normalized);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -368,17 +528,83 @@ render_normals :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
 
-    glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
+    glBindVertexArray(render_info.triangles_normals_vao);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
+}
+
+render_mesh_segment_normals :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info) {
+
+    // @CompilerBug Add a return here and observe a compilation failure with message:
+    // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prism/.build/Prism_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
+
+    if !mesh.segments.count return;
+    if !segment_style.normal_style.visible return;
+
+    maybe_update_render_info(render_info, mesh);
+
+    p := app.segments_normal_program;
+    glUseProgram(p);
+
+    // @Incomplete handle wave?
+    set_model_view_projection_uniforms(p, mesh.world_from_model);
+    set_clip_ranges_uniforms(p, display_info);
+    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(p, "normals_color"), segment_style.normal_style.color.x, segment_style.normal_style.color.y, segment_style.normal_style.color.z, segment_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_scale"), segment_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)segment_style.normal_style.normalized);
+
+    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    glBindVertexArray(render_info.segments_normals_vao);
+    glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
+}
+
+render_mesh_point_normals :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info) {
+
+    if !mesh.points.count return;
+    if !point_style.normal_style.visible return;
+
+    maybe_update_render_info(render_info, mesh);
+
+    p := app.points_normal_program;
+    glUseProgram(p);
+
+    // @Incomplete handle wave?
+    set_model_view_projection_uniforms(p, mesh.world_from_model);
+    set_clip_ranges_uniforms(p, display_info);
+    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
+    glUniform4f(glGetUniformLocation(p, "normals_color"), point_style.normal_style.color.x, point_style.normal_style.color.y, point_style.normal_style.color.z, point_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_scale"), point_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)point_style.normal_style.normalized);
+
+    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+
+    glBindVertexArray(render_info.points_normals_vao);
+    glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
 }
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glUseProgram(app.aabb_program);
-    set_model_view_projection_uniforms(app.aabb_program, world_from_model);
 
     r, g, b, a : float = 0, 0, 1, 1;
     min := aabb_model.min_point;
     max := aabb_model.max_point;
 
+    set_model_view_projection_uniforms(app.aabb_program, world_from_model);
     glUniform4f(glGetUniformLocation(app.aabb_program, "color"), r, g, b, a);
     glUniform3f(glGetUniformLocation(app.aabb_program, "min"), min.x, min.y, min.z);
     glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
@@ -389,75 +615,71 @@ render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
 render_mesh_positions :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
-    using,except(points_visible, points_color, points_size) display_info : Display_Info,
+    using display_info : Display_Info,
     clip_radius_mode_show_wireframe : bool) {
 
-    if !mesh.positions.count {
-        return;
-    }
+    if !mesh.positions.count return;
+    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
 
-    if !positions_visible && !clip_radius_mode_show_wireframe {
-        return;
-    }
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+    size := ifx clip_radius_mode_show_wireframe then 2 else vertex_style.size;
+    glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx size);
 
-    size := ifx clip_radius_mode_show_wireframe then 2 else positions_size;
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx size);
+    color := ifx clip_radius_mode_show_wireframe then BLACK else vertex_style.color;
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), color.x, color.y, color.z, color.w);
 
-    color := ifx clip_radius_mode_show_wireframe then BLACK else positions_color;
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), color.x, color.y, color.z, color.w);
-
+    glBindVertexArray(render_info.positions_vao);
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
 }
 
 render_mesh_points :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
-    using,except(positions_visible, positions_color, positions_size) display_info : Display_Info,
+    using display_info : Display_Info,
     clip_radius_mode_show_wireframe : bool) {
-    if !mesh.points.count {
-        return;
-    }
 
-    if !points_visible && !clip_radius_mode_show_wireframe {
-        return;
-    }
+    if !mesh.points.count return;
+    if !point_style.visible && !clip_radius_mode_show_wireframe return;
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    used_points_size := ifx clip_radius_mode_show_wireframe then 2 else points_size;
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx used_points_size);
+    used_points_size := ifx clip_radius_mode_show_wireframe then 2 else point_style.size;
+    glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx used_points_size);
 
-    used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else points_color;
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
+    used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else point_style.color;
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, points_ibo);
-    glDrawElements(GL_POINTS, cast(GLsizei)(mesh.points.count), GL_UNSIGNED_INT, null);
+    glBindVertexArray(render_info.points_vao);
+    glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
 }
 
-render_mesh_segments :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
-    if mesh.segments.count == 0 {
-        return;
-    }
+render_mesh_segments :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info,
+    clip_radius_mode : bool) {
 
-    if !segments_visible && !clip_radius_mode {
-        return;
-    }
+    if !mesh.segments.count return;
+    if !segment_style.visible && !clip_radius_mode return;
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode);
 
-    used_segments_width := ifx clip_radius_mode then 1. else segments_width; // ifx ensures that the min width is chosen for clip_radius_mode
+    used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
         // See also glEnable(GL_LINE_SMOOTH);
         glLineWidth(xx used_segments_width);
     }
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), segments_color.x, segments_color.y, segments_color.z, segments_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), segment_style.color.x, segment_style.color.y, segment_style.color.z, segment_style.color.w);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, segments_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
-    glDrawElements(GL_LINES, cast(GLsizei)(2 * mesh.segments.count), GL_UNSIGNED_INT, null);
+
+    glBindVertexArray(render_info.segments_vao);
+    glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
 
@@ -470,28 +692,29 @@ MIN_EDGES_WIDTH_GL_LINE :: 1.;
 MIN_EDGES_WIDTH_GL_FILL :: 1.2;
 
 // Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
-render_mesh_triangles_as_lines :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode_show_wireframe : bool) {
-    if mesh.triangles.count == 0 {
-        return;
-    }
+render_mesh_triangles_as_lines :: (
+    mesh : *Simple_Mesh,
+    using render_info : *Render_Info,
+    using display_info : Display_Info,
+    clip_radius_mode_show_wireframe : bool) {
 
-    if !edges_visible && !clip_radius_mode_show_wireframe {
-        return;
-    }
+    if !mesh.triangles.count return;
+    if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe return;
 
-    render_simple_mesh_common(mesh, render_info, display_info, clip_radius_mode_show_wireframe);
+    maybe_update_render_info(render_info, mesh);
+    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    used_edges_width := max(edges_width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
+    used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
 
     // See also glEnable(GL_LINE_SMOOTH);
     glLineWidth(xx used_edges_width);
 
-    glUniform4f(glGetUniformLocation(app.simple_mesh_program, "color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
+    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, cast(GLsizei)(3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
+    glBindVertexArray(render_info.triangles_edges_vao);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 render_mesh_triangles :: (
@@ -501,102 +724,35 @@ render_mesh_triangles :: (
     clip_radius_mode : bool,
     clip_radius_mode_show_wireframe : bool) {
  
-    if !triangles_visible || mesh.triangles.count == 0 {
-        return;
-    }
-
-    render_mesh_common(mesh, render_info, display_info, clip_radius_mode);
-
-    glUniform1i(glGetUniformLocation(app.mesh_program, "display_mode"), xx display_mode);
-    glUniform1i(glGetUniformLocation(app.mesh_program, "backface_mode"), xx backface_mode);
-    glUniform1ui(glGetUniformLocation(app.mesh_program, "flat_shading"), xx flat_shading);
-    // @Cleanup Maybe colors should be passed to the shader program as vertex attributes rather than uniforms to make rendering triangle attributes using colors a bit easier
-    glUniform4f(glGetUniformLocation(app.mesh_program, "color"), triangles_color.x, triangles_color.y, triangles_color.z, triangles_color.w);
-    glUniform4f(glGetUniformLocation(app.mesh_program, "edges_color"), edges_color.x, edges_color.y, edges_color.z, edges_color.w);
-    glUniform2f(glGetUniformLocation(app.mesh_program, "window_size"), xx app.current_window_width, xx app.current_window_height);
-
-    used_edges_width := max(edges_width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
-    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
-    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else edges_visible;
-    glUniform1f(glGetUniformLocation(app.mesh_program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangles_ibo);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDrawElements(GL_TRIANGLES, cast(GLsizei) (3 * mesh.triangles.count), GL_UNSIGNED_INT, null);
-}
-
-set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
-    {
-        loc := glGetUniformLocation(program, "world_from_model");
-        glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
-    }
-
-    {
-        loc := glGetUniformLocation(program, "view_from_world");
-        view_from_world := make_look_at_matrix(app.camera);
-        glUniformMatrix4fv(loc, 1, true, *view_from_world._11);
-    }
-
-    {
-        loc := glGetUniformLocation(program, "clip_from_view");
-        clip_from_view := make_orthographic_projection_matrix(app.camera);
-        glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
-    }
-}
-
-// @Cleanup
-render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode := false) {
+    if !mesh.triangles.count return;
+    if !triangle_style.visible return;
 
     maybe_update_render_info(render_info, mesh);
 
-    glUseProgram(app.mesh_program);
+    program := app.triangles_program;
+    glUseProgram(program);
 
-    set_model_view_projection_uniforms(app.mesh_program, mesh.world_from_model);
+    set_model_view_projection_uniforms(program, mesh.world_from_model);
+    set_hover_flash_uniform(program, display_info);
+    set_clip_ranges_uniforms(program, display_info);
+    set_clip_sphere_uniforms(program, display_info);
 
-    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
-    glUniform1f(glGetUniformLocation(app.mesh_program, "wave"), wave);
-    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     look_direction := current_look_direction();
-    glUniform3f(glGetUniformLocation(app.mesh_program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+    used_edges_width := max(triangle_style.edge_style.width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
+    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
+    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else triangle_style.edge_style.visible;
 
-    {
-        for 0..clip_ranges.count-1 {
-            // @Cleanup We could use run directive here to get constant strings
-            using clip_ranges[it];
-            glUniform3f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-            glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
-            glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
-            glUniform1f(glGetUniformLocation(app.mesh_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-        }
+    glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
+    glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+    glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+    glUniform1i(glGetUniformLocation(program, "display_mode"), xx triangle_style.display_mode);
+    glUniform1i(glGetUniformLocation(program, "backface_mode"), xx triangle_style.backface_mode);
+    glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
+    glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
+    glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
+    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
+    glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
-        glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-
-        glUniform3f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.center"), clip_sphere_prev.center.x, clip_sphere_prev.center.y, clip_sphere_prev.center.z);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.radius"), xx clip_sphere_prev.radius);
-        glUniform1f(glGetUniformLocation(app.mesh_program, "clip_sphere_prev.is_active"), xx clip_sphere_prev.is_active);
-
-        // Also check the entity index here so we only render the previous sphere when we're resizing the sphere
-        glUniform1ui(glGetUniformLocation(app.mesh_program, "clip_radius_mode"), xx clip_radius_mode);
-    }
-
-    glBindVertexArray(app.mesh_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    ATTRIB_POSITION  :: 0;
-    ATTRIB_NORMAL    :: 1;
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    // ATTRIB_TEXCOORDS :: 1;
-    // ATTRIB_COLOR     :: 2;
-
-    NP := size_of(Vector3) * mesh.positions.count;
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -604,55 +760,27 @@ render_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, us
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glBindVertexArray(render_info.triangles_vao);
+    glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
 // @Cleanup Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
-render_simple_mesh_common :: (mesh : *Simple_Mesh, using render_info : *Render_Info, using display_info : Display_Info, clip_radius_mode : bool) {
+render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_Info, clip_radius_mode : bool) {
 
-    maybe_update_render_info(render_info, mesh);
+    program := app.points_lines_program;
+    glUseProgram(program);
 
-    glUseProgram(app.simple_mesh_program);
+    // @Cleanup Why is this different to e.g., normals
+    used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
 
-    set_model_view_projection_uniforms(app.simple_mesh_program, mesh.world_from_model);
-
-    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "wave"), wave);
-    glUniform1f(glGetUniformLocation(app.simple_mesh_program, "point_size"), xx points_size);
-
-    {
-        for 0..clip_ranges.count-1 {
-            // @Cleanup We could use run directive here to get constant strings
-            using clip_ranges[it];
-            glUniform3f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].min", it))), xx min);
-            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].max", it))), xx max);
-            glUniform1f(glGetUniformLocation(app.simple_mesh_program, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-        }
-
-        glUniform3f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.center"), clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z);
-        glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.radius"), xx clip_sphere.radius);
-        glUniform1f(glGetUniformLocation(app.simple_mesh_program, "clip_sphere.is_active"), xx clip_sphere.is_active);
-
-        clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
-        glUniform1i(glGetUniformLocation(app.simple_mesh_program, "clip_mode"), xx clip_mode);
-    }
-
-    glBindVertexArray(app.simple_mesh_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    ATTRIB_POSITION  :: 0;
-    ATTRIB_NORMAL    :: 1;
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    // ATTRIB_TEXCOORDS :: 1;
-    // ATTRIB_COLOR     :: 2;
-
-    NP := size_of(Vector3) * mesh.positions.count;
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), null);
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+    set_model_view_projection_uniforms(program, mesh.world_from_model);
+    set_hover_flash_uniform(program, display_info);
+    set_clip_ranges_uniforms(program, display_info);
+    set_clip_sphere_uniforms(program, display_info, prev_sphere=false);
+    glUniform1i(glGetUniformLocation(program, "clip_mode"), xx used_clip_mode);
+    glUniform1f(glGetUniformLocation(program, "point_size"), xx point_style.size);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -749,10 +877,12 @@ render_entities :: () {
 
         render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
         render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_triangle_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+        render_mesh_point_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
         render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
 
         if di.aabb_visible {
             render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
@@ -780,7 +910,11 @@ render_entities :: () {
             point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
             segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
             triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-            annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+
+            vertex_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            point_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            segment_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+            triangle_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
             using,except(is_visible) entity.display_info;
 
@@ -789,34 +923,39 @@ render_entities :: () {
             //
 
             {
-                // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-                if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
-                    point_world, point_model : Vector3 = ---;
-                    if #complete annotation.kind == {
-                        case .VERTEX;
-                            point_model = mesh_position_model(entity.mesh, annotation.id);
-                            point_world = mesh_position_world(entity.mesh, annotation.id);
-                        case .POINT;
-                            point_model = mesh_point_model(entity.mesh, annotation.id);
-                            point_world = mesh_point_world(entity.mesh, annotation.id);
-                        case .LINE;
-                            point_model = centroid(mesh_segment3_model(entity.mesh, annotation.id));
-                            point_world = centroid(mesh_segment3_world(entity.mesh, annotation.id));
-                        case .TRIANGLE;
-                            point_model = compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
-                            point_world = transform_point(entity.mesh.world_from_model, point_model);
-                        case .BLOCK; #through;
-                        case .COMMAND;
-                            continue;
-                    }
-
-                    if !is_clipped(entity.display_info, point_world) {
+                AddAnnotation :: (point_world : Vector3, annotation_labels : *[..]Label_Info) #expand {
+                    if !is_clipped(`entity.display_info, point_world) {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
-                            text : string = to_string(annotation);
-                            array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                            text : string = to_string(`annotation);
+                            array_add(annotation_labels, make_Label_Info(text_position_px, text));
                         }
                     }
+                }
+
+                // @Speed this should use the spatial index?? since annotations are sparse, maybe not
+                if any_vertex_label_visible(entity, geometry_labels=false) for annotation : entity.vertex_annotations {
+                    point_model := mesh_position_model(entity.mesh, annotation.id);
+                    point_world := mesh_position_world(entity.mesh, annotation.id);
+                    AddAnnotation(point_world, *vertex_annotation_labels);
+                }
+
+                if any_point_label_visible(entity, geometry_labels=false) for annotation : entity.point_annotations {
+                    point_model := mesh_point_model(entity.mesh, annotation.id);
+                    point_world := mesh_point_world(entity.mesh, annotation.id);
+                    AddAnnotation(point_world, *point_annotation_labels);
+                }
+
+                if any_segment_label_visible(entity, geometry_labels=false) for annotation : entity.line_annotations {
+                    point_model := centroid(mesh_segment3_model(entity.mesh, annotation.id));
+                    point_world := centroid(mesh_segment3_world(entity.mesh, annotation.id));
+                    AddAnnotation(point_world, *segment_annotation_labels);
+                }
+
+                if any_triangle_label_visible(entity, geometry_labels=false) for annotation : entity.face_annotations {
+                    point_model := compute_centroid(mesh_triangle_model(entity.mesh, annotation.id));
+                    point_world := transform_point(entity.mesh.world_from_model, point_model);
+                    AddAnnotation(point_world, *triangle_annotation_labels);
                 }
             }
 
@@ -827,7 +966,7 @@ render_entities :: () {
             // @continue FIXME Remove this and instead show the position data for vertices connected to displayed elements
             {
                 // @Speed this should use the spatial index??
-                if is_visible(vertex_label_theme) for :ModelVertexIterator position_model, position_index : entity.mesh {
+                if any_vertex_label_visible(entity, annotation_labels=false) for :ModelVertexIterator position_model, position_index : entity.mesh {
                     position_world := mesh_position_world(entity.mesh, position_index);
                     if !is_clipped(entity.display_info, position_world) {
                         text_position_px : Tuple2i = to_screen_position(position_world, projection_from_world);
@@ -845,7 +984,7 @@ render_entities :: () {
             //
 
             {
-                if is_visible(point_label_theme) for :ModelPointIterator position_model, point_index : entity.mesh {
+                if any_point_label_visible(entity, annotation_labels=false) for :ModelPointIterator position_model, point_index : entity.mesh {
                     position_world : Vector3 = transform_point(entity.mesh.world_from_model, position_model);
 
                     if !is_clipped(entity.display_info, position_world) {
@@ -863,7 +1002,7 @@ render_entities :: () {
             //
 
             {
-                if is_visible(segment_label_theme) for :ModelSegmentIterator segment : entity.mesh {
+                if any_segment_label_visible(entity, annotation_labels=false) for :ModelSegmentIterator segment : entity.mesh {
                     point_model : Vector3 = centroid(segment);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
 
@@ -882,61 +1021,87 @@ render_entities :: () {
             //
 
             {
-                ProcessTriangle :: (triangle_model : Triangle3, triangle_index : int) #expand {
+                Process_Triangle_Data :: struct {
+                    entity : *Entity;
+                    projection_from_world : *Matrix4;
+                    triangle_label_theme : *Element_Label_Theme;
+                    triangle_labels : *[..]Label_Info;
+                };
+
+                process_triangle_data : Process_Triangle_Data = ---;
+                process_triangle_data.entity                = entity;
+                process_triangle_data.projection_from_world = *projection_from_world;
+                process_triangle_data.triangle_label_theme  = *triangle_label_theme;
+                process_triangle_data.triangle_labels       = *triangle_labels;
+
+                process_triangle :: (triangle_model : Triangle3, triangle_index : int, data : *void) {
+                    using process_triangle_data := cast(*Process_Triangle_Data) data;
                     point_model : Vector3 = compute_centroid(triangle_model);
                     point_world : Vector3 = transform_point(entity.mesh.world_from_model, point_model);
                     if !is_clipped(entity.display_info, point_world) {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             text : string = get_point_text(triangle_index, triangle_label_theme);
-                            array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+                            array_add(triangle_labels, make_Label_Info(text_position_px, text));
                         }
                     }
                 }
 
-                if entity.spatial == null {
-                    // log_error("Use brute force");
+                if any_triangle_label_visible(entity, annotation_labels=false) {
+                    if entity.spatial == null {
 
-                    if is_visible(triangle_label_theme) {
+                        // log_error("Use brute force");
                         for :ModelTriangleIterator entity.mesh {
-                            ProcessTriangle(it, it_index);
+                            process_triangle(it, it_index, *process_triangle_data);
                         }
-                    }
-                } else {
-                    // log_error("Use spatial index");
 
-                    if is_visible(triangle_label_theme) {
+                    } else {
+
                         ray_world : Ray3 = make_camera_ray();
                         ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
                         distance : float = get_model_space_query_radius(entity.render_info.bounding_aabb, app.settings.labelling_radius_px);
 
-                        VisitPrimitivesNearRay(entity.spatial, ray_model, distance,
-                            #code ProcessTriangle(primitive, primitive_id)
-                        );
+                        // log_error("Use spatial index");
+                        visit_elements_near_ray(entity.spatial, ray_model, distance, process_triangle, *process_triangle_data);
+
                     }
                 }
             }
 
             // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
             draw_label_infos(vertex_labels, vertex_label_theme);
+            draw_label_infos(vertex_annotation_labels, vertex_label_theme.annotation_label_theme);
+
             draw_label_infos(point_labels, point_label_theme);
+            draw_label_infos(point_annotation_labels, point_label_theme.annotation_label_theme);
+
             draw_label_infos(segment_labels, segment_label_theme);
+            draw_label_infos(segment_annotation_labels, segment_label_theme.annotation_label_theme);
+
             draw_label_infos(triangle_labels, triangle_label_theme);
-            draw_label_infos(annotation_labels, annotation_label_theme);
+            draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
         }
     }
 
     render_entity_text_ray_cast :: ($entity_filter : Code) {
 
-        any_visible : Any_Label_Theme_Visible;
-        any_visible = is_any_label_theme_visible(entity_filter);
+        should_target_points :: (entity : Entity) -> bool {
+            return (any_vertex_label_visible(entity) || any_point_label_visible(entity));
+        }
 
-        visit_all : bool = any_visible.vertex_label_theme_visible || any_visible.annotation_label_theme_visible;
+        should_target_segments :: (entity : Entity) -> bool {
+            return (any_vertex_label_visible(entity) || any_segment_label_visible(entity));
+        }
+
+        should_target_triangles :: (entity : Entity) -> bool {
+            return (any_vertex_label_visible(entity) || any_triangle_label_visible(entity));
+        }
+
         closest_world : Closest_Point_Ray_Entity = find_closest_element(
-            entity_filter,
-            visit_points    = (visit_all || any_visible.point_label_theme_visible),
-            visit_segments  = (visit_all || any_visible.segment_label_theme_visible),
-            visit_triangles = (visit_all || any_visible.triangle_label_theme_visible));
+            target_points    = should_target_points,
+            target_segments  = should_target_segments,
+            target_triangles = should_target_triangles
+        );
 
         if closest_world.entity_index == -1 {
             return;
@@ -966,7 +1131,11 @@ render_entities :: () {
         point_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         segment_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
         triangle_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
-        annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+
+        vertex_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        point_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        segment_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
+        triangle_annotation_labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
         projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
@@ -977,18 +1146,18 @@ render_entities :: () {
             // Note: Since we don't have a mapping from mesh.positions to mesh.points we can't easily add to the point_labels array in this function, but this is kindof an unusual case anyhow: it only occurs if you have a triangle element where the connected positions are also point elements
             //if is_visible(`point_label_theme) {...}
 
-            if is_visible(`vertex_label_theme) {
+            if any_vertex_label_visible(`entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(position_world, `projection_from_world);
                 text : string = get_point_text(position_model, position_index, `vertex_label_theme);
                 array_add(*`vertex_labels, make_Label_Info(text_position_px, text));
             }
 
             // @Speed this should use the spatial index?? since annotations are sparse, maybe not
-            if is_visible(`annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_vertex_label_visible(`entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                 if annotation.kind == .VERTEX && annotation.id == position_index {
                     text_position_px : Tuple2i = to_screen_position(position_world, `projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*`annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*`vertex_annotation_labels, make_Label_Info(text_position_px, text));
                 }
             }
         }
@@ -1011,18 +1180,18 @@ render_entities :: () {
         case .POINT;
 
             // Point label
-            if is_visible(point_label_theme) {
+            if any_point_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, point_label_theme);
                 array_add(*point_labels, make_Label_Info(text_position_px, text));
             }
 
             // Point annotation label
-            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_point_label_visible(entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                if annotation.kind == .POINT && annotation.id == closest_world.element_index {
                    text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                    text : string = to_string(annotation);
-                   array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                   array_add(*point_annotation_labels, make_Label_Info(text_position_px, text));
                }
             }
 
@@ -1038,18 +1207,18 @@ render_entities :: () {
         case .SEGMENT;
 
             // Segment label
-            if is_visible(segment_label_theme) {
+            if any_segment_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, segment_label_theme);
                 array_add(*segment_labels, make_Label_Info(text_position_px, text));
             }
 
             // Segment annotation label
-            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_segment_label_visible(entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                 if annotation.kind == .LINE && annotation.id == closest_world.element_index {
                     text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*segment_annotation_labels, make_Label_Info(text_position_px, text));
                 }
             }
 
@@ -1068,18 +1237,18 @@ render_entities :: () {
         case .TRIANGLE;
 
             // Triangle label
-            if is_visible(triangle_label_theme) {
+            if any_triangle_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, triangle_label_theme);
                 array_add(*triangle_labels, make_Label_Info(text_position_px, text));
             }
 
             // Triangle annotation label
-            if is_visible(annotation_label_theme) for :AnnotationIterator annotation : entity {
+            if any_triangle_label_visible(entity, geometry_labels=false) for :AnnotationIterator annotation : entity {
                 if annotation.kind == .TRIANGLE && annotation.id == closest_world.element_index {
                     text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*triangle_annotation_labels, make_Label_Info(text_position_px, text));
                 }
             }
 
@@ -1101,16 +1270,24 @@ render_entities :: () {
 
         }
 
+        // @Cleanup The following block is duplicated in the labelling_mode functions
+
         // TODO Store the pixel->label table per item to resolve overlaps between all these? Probably we don't care about overlaps between items
         draw_label_infos(vertex_labels, vertex_label_theme);
+        draw_label_infos(vertex_annotation_labels, vertex_label_theme.annotation_label_theme);
+
         draw_label_infos(point_labels, point_label_theme);
+        draw_label_infos(point_annotation_labels, point_label_theme.annotation_label_theme);
+
         draw_label_infos(segment_labels, segment_label_theme);
+        draw_label_infos(segment_annotation_labels, segment_label_theme.annotation_label_theme);
+
         draw_label_infos(triangle_labels, triangle_label_theme);
-        draw_label_infos(annotation_labels, annotation_label_theme);
+        draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
     }
 
-    not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangles_color.w == 1.);
-    not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangles_color.w != 1.);
+    not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
+    not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
     not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
 
     VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
@@ -1129,16 +1306,14 @@ render_entities :: () {
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
-    visit_labelled :: #code !is_visible(it) || !is_any_label_theme_visible(it.display_info);
-
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
-            render_entity_text_ray_cast(visit_labelled);
+            render_entity_text_ray_cast(visit_visible);
 
         case .SPOTLIGHT;
 
-            render_entity_text_spotlight(visit_labelled);
+            render_entity_text_spotlight(visit_visible);
     }
 
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
@@ -1162,13 +1337,14 @@ render_selections :: () {
     dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
     dummy_clip_radius_mode_show_wireframe := false; // @Incomplete Support this for the selection item when its the 0-th item?
 
-    // @Cleanup use ri and di aliases here
     render_mesh_positions(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_points(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_point_normals(*entity.mesh, *entity.render_info, entity.display_info); // Probably we want to pass clip_radius_mode here too?
     render_mesh_segments(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
+    render_mesh_segment_normals(mesh, *entity.render_info, entity.display_info);
     render_mesh_triangles_as_lines(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode);
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
-    render_normals(mesh, *entity.render_info, entity.display_info);
+    render_mesh_triangle_normals(mesh, *entity.render_info, entity.display_info);
 
     projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
 
@@ -1261,6 +1437,12 @@ render_background :: () {
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            /* TODOOO This line triggers, will it go away if we use GL_TRIANGLES? But why??
+
+OGL: type = performance; source = API; id = 131218; severity = medium
+OGL: message = Program/shader state performance warning: Fragment shader in program 19 is being recompiled based on GL state.
+
+            */
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 }
@@ -1332,11 +1514,67 @@ draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Them
 
 draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
     if !quads.count return;
-    cached_font : Simp.Dynamic_Font = <<app.simp_font;
+    cached_font : Simp.Dynamic_Font = app.simp_font.*;
     cached_font.current_quads = quads;
     Simp.draw_generated_quads(*cached_font, color);
 }
 
 
+#scope_file
 
+set_hover_flash_uniform :: (shader : GLuint, using display_info : Display_Info) {
+    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
+    glUniform1f(glGetUniformLocation(shader, "wave"), wave);
+}
 
+set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
+    {
+        loc := glGetUniformLocation(program, "world_from_model");
+        glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
+    }
+
+    {
+        loc := glGetUniformLocation(program, "view_from_world");
+        view_from_world := make_look_at_matrix(app.camera);
+        glUniformMatrix4fv(loc, 1, true, *view_from_world._11);
+    }
+
+    {
+        loc := glGetUniformLocation(program, "clip_from_view");
+        clip_from_view := make_orthographic_projection_matrix(app.camera);
+        glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
+    }
+}
+
+set_clip_ranges_uniforms :: (shader : GLuint, using display_info : Display_Info) {
+    for 0..clip_ranges.count-1 {
+        // @Cleanup We could use run directive here to get constant strings
+        using clip_ranges[it];
+        glUniform3f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
+        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].min", it))), xx min);
+        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].max", it))), xx max);
+        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
+    }
+}
+
+set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info, prev_sphere := true) {
+    {
+        using clip_sphere;
+        glUniform3f(glGetUniformLocation(shader, "clip_sphere.center"), center.x, center.y, center.z);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere.radius"), xx radius);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere.is_active"), xx is_active);
+    }
+
+    if prev_sphere {
+        using clip_sphere_prev;
+        glUniform3f(glGetUniformLocation(shader, "clip_sphere_prev.center"), center.x, center.y, center.z);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.radius"), xx radius);
+        glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.is_active"), xx is_active);
+    }
+}
+
+// @Cleanup replace this with: postion_loc = glGetAttribLocation()
+ATTRIB_POSITION  :: 0;
+ATTRIB_NORMAL    :: 1;
+// ATTRIB_TEXCOORDS :: 2;
+// ATTRIB_COLOR     :: 3;

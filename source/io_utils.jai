@@ -1,6 +1,6 @@
 BYTES_TO_TRIM :: "# \t\r\n";
 
-obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, bool {
+obj_parse_position :: (p : *Parser, position2 : *Vector2, position3 : *Vector3) -> int, bool {
     is_number :: (t : Token) -> bool {
         // Identifier for nan and inf, parse_vectorN functions will error if the identifier is unrecognised
         if t.type == .INTEGER || t.type == .FLOAT {
@@ -26,10 +26,10 @@ obj_parse_point :: (p : *Parser, point2 : *Vector2, point3 : *Vector3) -> int, b
         error(p, peek_token(p), "Expected 2D or 3D point, but only got one component %.\n", to_string(peek_token(p)));
     } else if dim == 2 {
         fallback : Vector2 = make_vector2(app.invalid_point.x, app.invalid_point.y);
-        <<point2, finite = ensure_finite(parse_vector2(p), fallback);
+        position2.*, finite = ensure_finite(parse_vector2(p), fallback);
     } else if dim == 3 {
         fallback : Vector3 = app.invalid_point;
-        <<point3, finite = ensure_finite(parse_vector3(p), fallback);
+        position3.*, finite = ensure_finite(parse_vector3(p), fallback);
     }
 
     return dim, finite;
@@ -76,30 +76,32 @@ obj_value :: (array : []$T, obj_index : Obj_Index, fallback : T) -> is_fallback 
     return true, fallback;
 }
 
-Obj_Face :: struct {
+// @continue The following code should be reused/renamed so it applies to a list of points for point cloud/polyline/polygon
+
+Obj_Vertex_References :: struct {
     indices : [..]Obj_Index;
     texture : [..]Obj_Index;
     normal  : [..]Obj_Index;
 }
 
-parse_face :: (p : *Parser) -> Obj_Face {
-    face : Obj_Face;
+parse_vertex_references :: (p : *Parser) -> Obj_Vertex_References {
+    refs : Obj_Vertex_References;
 
     current_line := peek_token(p).line_number;
     while peek_token(p).line_number == current_line && peek_token(p).type != .EOF && peek_token(p).type != .COMMENT {
-        array_add(*face.indices, parse_obj_index(p));
+        array_add(*refs.indices, parse_obj_index(p));
         slash : bool = eat_possible_token(p, #char "/");
         if slash {
             slash = eat_possible_token(p, #char "/");
             if slash {
                 // case v//vn
-                array_add(*face.normal, parse_obj_index(p));
+                array_add(*refs.normal, parse_obj_index(p));
             } else {
-                array_add(*face.texture, parse_obj_index(p));
+                array_add(*refs.texture, parse_obj_index(p));
                 slash = eat_possible_token(p, #char "/");
                 if slash {
                     // case v/vt/vn
-                    array_add(*face.normal, parse_obj_index(p));
+                    array_add(*refs.normal, parse_obj_index(p));
                 } else {
                     // case v/vt
                     // do nothing, already parsed v and vt
@@ -110,7 +112,7 @@ parse_face :: (p : *Parser) -> Obj_Face {
             continue;
         }
     }
-    return face;
+    return refs;
 }
 
 parse_polyline :: (p : *Parser) -> [..]Obj_Index {

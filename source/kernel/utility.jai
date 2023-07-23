@@ -63,7 +63,7 @@ expand :: (using this : *Sphere, other : Sphere) {
         // this sphere contains other sphere, do nothing
     } else if other.radius > center_distance + this.radius {
         // other sphere contains this sphere, update this sphere
-        <<this = other;
+        this.* = other;
     } else {
         // spheres intersect or are separated, same code in both cases
         this.radius = center_distance / 2 + max(this.radius, other.radius);

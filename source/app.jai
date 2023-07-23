@@ -49,19 +49,12 @@ App :: struct {
     text_vao : GLuint;
     text_vbo : GLuint;
 
-    // For triangle and solid wireframe rendering
-    mesh_program : GLuint;
-    mesh_vao : GLuint;
-
-    // For point and line rendering
-    simple_mesh_program : GLuint;
-    simple_mesh_vao : GLuint;
-
-    normals_program : GLuint;
-    normals_vao : GLuint;
-
     aabb_program : GLuint;
-    aabb_vao : GLuint;
+    triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
+    points_lines_program : GLuint;
+    triangles_normal_program : GLuint;
+    segments_normal_program : GLuint;
+    points_normal_program : GLuint;
 
     Background_Style :: enum #specified {
         SOLID_COLOR :: 0;
@@ -77,10 +70,10 @@ App :: struct {
     show_fps := false;
 
     triad : Axes_Triad;
-    // triad.origin.display_info.backface_mode = .FIXED;
-    // triad.x_axis.display_info.backface_mode = .FIXED;
-    // triad.y_axis.display_info.backface_mode = .FIXED;
-    // triad.z_axis.display_info.backface_mode = .FIXED;
+    // triad.origin.display_info.triangle_style.backface_mode = .FIXED;
+    // triad.x_axis.display_info.triangle_style.backface_mode = .FIXED;
+    // triad.y_axis.display_info.triangle_style.backface_mode = .FIXED;
+    // triad.z_axis.display_info.triangle_style.backface_mode = .FIXED;
 
     label_format : Label_Format;
     Label_Format :: struct {
@@ -264,7 +257,7 @@ current_window_aspect_ratio_width_over_height :: () -> float {
 EntitiesIterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
     #assert(flags == 0); // No options are supported
 
-    for entity, entity_index : <<entities {
+    for entity, entity_index : entities.* {
         `it_index := entity_index;
         `it := entity;
         if #insert,scope() entity_filter {
@@ -328,7 +321,7 @@ Duplicate_File_Behaviour :: enum u8 #specified {
 clamp_user_settings :: ()
 {
     clamp :: (value : *$T, min : T, max : T) {
-        <<value = clamp(<<value, min, max);
+        value.* = clamp(value.*, min, max);
     }
 
     using app.settings;
@@ -406,7 +399,6 @@ Simp :: #import "Simp_beta_0_1_016";
 #load "numeric.jai";
 #load "intervals.jai";
 #load "io_obj.jai";
-#load "io_wkt.jai";
 #load "io_utils.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";

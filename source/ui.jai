@@ -73,6 +73,224 @@ show_right_window :: () {
     show_camera_controls();
 }
 
+show_item_list_actions_ui :: () {
+    // Hide buttons with no selection. See :DisableUpdateButtonsIfNoSelection 
+    if app.console.show_ui || count_selected_entities() == 0{
+        return;
+    }
+
+    // Try actions buttons on the bottom by the console
+    {
+        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+
+        console_top_y := app.current_window_height * .6;
+        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
+        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
+        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
+
+        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
+        if true {
+            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
+            // window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
+            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
+            window_flags |= .NoBackground;          // Makes the console log transparent
+        }
+
+        ImGui.Begin("target_items_ribbon", flags=window_flags);
+        defer ImGui.End();
+
+        ActionButton("Backface",       *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
+        ActionButton("Opacity",        *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
+        ActionButton("Clipping",       *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
+        ActionButton("Normals",        *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
+        ActionButton("Line Width",     *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
+        ActionButton("Vertex Size",    *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
+        ActionButton("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
+        ActionButton("Vertex Labels",  *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
+        ActionButton("Annotations",    *CYCLE_ANNOTATION_ACTION_SET);
+    }
+}
+
+show_pending_directories_ui :: () {
+    if app.pending_directories.count == 0 {
+        return;
+    }
+
+    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
+
+    if dir.loadable_files.count == 0 {
+        // Just watch the directory
+        new_folder : *app.Folder = add_directory(dir.path);
+        new_folder.auto_load_new_files = dir.auto_load_new_files;
+        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+        return;
+    }
+
+    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
+    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
+
+    // @Incomplete Could have a policy to just load everything rather than ask?
+
+    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags=window_flags);
+    defer ImGui.End();
+
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
+
+    ImGui.Text("Select files to load in:");
+    ImGui.SameLine();
+    ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
+    ImGui.Text(dir.path);
+    ImGui.PopStyleColor();
+
+    table_flags := ImGui.TableFlags.RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
+     | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
+     | .ScrollY; // Without this option the outer_size argument is ignored
+
+    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
+    outer_size := make_ImVec2(0, 400);
+    if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
+        defer ImGui.EndTable();
+
+        ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
+        ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
+        ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
+        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthFixed, 60);
+        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+        ImGui.TableHeadersRow();
+
+        // Sort our data if sort specs have been changed!
+        sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
+        if sort_specs && sort_specs.SpecsDirty {
+            if sort_specs.SpecsCount > 0 {
+                specs : []ImGui.TableColumnSortSpecs;
+                specs.data = sort_specs.Specs;
+                specs.count = sort_specs.SpecsCount;
+                for spec : specs { // @CompilerBug Should using work on a for loop?
+                    // @Cleanup Use a enum id here, ImGui has support for it
+                    direction := spec.SortDirection_;
+                    if spec.SortDirection_ == .Ascending {
+                        if spec.ColumnIndex == {
+                            case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                            case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
+                            case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                        }
+                    } else {
+                        if spec.ColumnIndex == {
+                            case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
+                            case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
+                            case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
+                        }
+                    }
+                }
+            }
+            sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
+        }
+
+        for * :ListClipperIterator loadable_file : dir.loadable_files {
+            using loadable_file;
+
+            ImGui.TableNextColumn();
+            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+
+            ImGui.TableNextColumn();
+            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
+
+            size, unit := readable_memory_size_decimal(size_in_bytes);
+            size_with_unit : string;
+            if      size < 10  size_with_unit = tprint("  % %", size, unit);
+            else if size < 100 size_with_unit = tprint( " % %", size, unit);
+            else               size_with_unit = tprint(  "% %", size, unit);
+            ImGui.TableNextColumn();
+            ImGui.Text(size_with_unit);
+
+            message : string;
+            ImGui.TableNextColumn();
+            if loadable_file.is_loaded {
+                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
+                message = "Already loaded";
+                ImGui.Text(message);
+                ImGui.PopStyleColor();
+            } else {
+                message = "(none)";
+                ImGui.TextDisabled(message);
+            }
+            show_tooltip(message);
+        }
+    }
+
+    if dir.unloadable_file_count {
+        ImGui.Text(tprint("Found % files without loadable extension (obj)", dir.unloadable_file_count));
+    } 
+    
+    if ImGui.Button(imgui_label("Accept", xx *dir)) {
+
+        new_folder : *app.Folder = add_directory(dir.path);
+        new_folder.auto_load_new_files = dir.auto_load_new_files;
+        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
+
+        for file : dir.loadable_files {
+            if !file.is_selected {
+                continue;
+            }
+
+            if file.is_loaded {
+                entity := find_entity(file.fully_pathed_filename, -1);
+                assert(entity != null);
+                reload_entity(entity);
+            } else {
+                // Note we use .IGNORE rather than app.settings.duplicate_file_behaviour here, the user can get the latter behaviour by dragging in files individually
+                entities := load_one_file(file.fully_pathed_filename, .IGNORE);
+                for entity : entities {
+                    add_entity(entity, .IGNORE); 
+                    source := isa(entity.source, Entity_Source_File);
+                    assert(source != null); // Expecte a file
+                    source.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
+                }
+            }
+        }
+
+        if app.settings.fit_to_screen_on_file_drop_event {
+            fit_scene_on_screen();
+        }
+
+        deinit(dir);
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+    show_tooltip("Load all selected/checked files");
+
+    ImGui.SameLine();
+
+    if ImGui.Button(imgui_label("Ignore", xx *dir)) {
+        deinit(dir);
+        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
+    }
+    show_tooltip("Do not load any files");
+
+    ImGui.SameLine();
+
+    if app.pending_directories.count > 1 {
+        if ImGui.Button(imgui_label("Ignore All", xx *dir)) {
+            for *dir : app.pending_directories {
+                deinit(dir);
+            }
+            array_reset(*app.pending_directories);
+        }
+        show_tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
+    }
+}
+
+
+show_imgui_demo_window :: () {
+    if app.settings.show_imgui_demo_window {
+        ImGui.ShowDemoWindow(*app.settings.show_imgui_demo_window);
+    }
+}
+
+#scope_file
+
 show_prism_tab_ui :: () {
     show_tools_ui();
     show_items_ui();
@@ -84,8 +302,8 @@ show_tools_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
         show_api_ui();
-        show_select_ui();
-        show_preset_ui();
+        show_create_tool_ui();
+        show_select_tool_ui();
     }
 }
 
@@ -206,19 +424,19 @@ show_items_ui :: () {
                 it_primary_color : *Vector4 = get_entity_primary_color(it);
                 source_primary_color : *Vector4 = get_entity_primary_color(source);
                 if it_primary_color && source_primary_color {
-                    <<it_primary_color = <<source_primary_color;
+                    it_primary_color.* = source_primary_color.*;
                 }
             }
         }
         if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
             source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
             for :Selected app.entities {
-                it.display_info.display_mode = source.display_info.display_mode;
+                it.display_info.triangle_style.display_mode = source.display_info.triangle_style.display_mode;
             }
         }
         if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
             for :Selected app.entities {
-                it.display_info.display_mode = Display_Info.{}.display_mode;
+                it.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode;
                 set_entity_primary_color(it);
             }
         }
@@ -281,7 +499,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             // Make sure we see something when turning on visibility. We don't consider normals here since there might not be any, or they might have zero length
             color, element_visibility := get_entity_primary_color(entity);
             if element_visibility {
-                <<element_visibility = true;
+                element_visibility.* = true;
             }
         }
 
@@ -299,7 +517,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         color_reset :=   false; // Reset with MMB
         mode_cycled :=   false; // Cycled with RMB
 
-        if entity.display_info.display_mode == .NORMALS {
+        if entity.display_info.triangle_style.display_mode == .NORMALS {
             ImGui.TextDisabled("NR."); // @Design Replace this with a image with a normal gradient
         } else {
             color : *Vector4 = get_entity_primary_color(entity);
@@ -312,12 +530,12 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             }
         }
         if ImGui.IsItemClicked(.Middle) {
-            entity.display_info.display_mode = Display_Info.{}.display_mode; // Reset to default
+            entity.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode; // Reset to default
             set_entity_primary_color(entity);
             color_reset = true;
         }
         if ImGui.IsItemClicked(.Right) {
-            cycle_display_mode(*entity.display_info.display_mode);
+            cycle_display_mode(*entity.display_info.triangle_style.display_mode);
             mode_cycled = true;
         }
 
@@ -389,9 +607,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
 
 
 
-show_preset_ui :: () {
+show_create_tool_ui :: () {
 
-    do_tree := ImGui.TreeNodeEx("Examples", ImGui.TreeNodeFlags.SpanAvailWidth);
+    do_tree := ImGui.TreeNodeEx("Create", ImGui.TreeNodeFlags.SpanAvailWidth);
     show_tooltip("Create preset shapes\nSome function as tutorials");
     if do_tree {
         defer ImGui.TreePop();
@@ -600,10 +818,12 @@ show_details_pane_ui_for_item_selection :: () {
 
             show_item_selection_ui();
 
+            // @Incomplete We should show the selection information here, helpful e.g., to select all items and know if there are any segment elements in the selection
+
             app.template_aabb_world = entity_selection_aabb();
             update := display_info_ui(*app.template_display_info, app.template_aabb_world);
             for :Selected app.entities {
-                apply_update(update, app.template_display_info, *it.display_info);
+               apply_update(update, app.template_display_info, *it.display_info);
             }
         }
     }
@@ -773,7 +993,7 @@ show_python_api_ui :: () {
     }
 }
 
-show_select_ui :: () {
+show_select_tool_ui :: () {
     // TODO Could add options to the select tool
     // - Should we copy over annotations/attributes?
     // - Should we prefix annotations with the item index of the source?
@@ -816,7 +1036,7 @@ show_select_ui :: () {
             ImGui.TableNextColumn();
             if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, ImGui.ColorEditFlags.NoInputs) {
                 // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
-                <<label_color = darken(element_color, .8);
+                label_color.* = darken(element_color, .8);
             }
 
             // // Element kind name
@@ -830,26 +1050,26 @@ show_select_ui :: () {
 
             select_element(
                 "Triangles", .TRIANGLE, "When chosen select triangles (obj f-directives)",
-                *entity.display_info.triangles_color,
+                *entity.display_info.triangle_style.color,
                 *entity.display_info.triangle_label_theme.label_color,
-                *entity.display_info.triangles_visible);
-            entity.display_info.edges_visible = entity.display_info.triangles_visible; // Turn off/on edges with triangles
+                *entity.display_info.triangle_style.visible);
+            entity.display_info.triangle_style.edge_style.visible = entity.display_info.triangle_style.visible; // Turn off/on edges with triangles
 
             select_element(
                 "Segments", .SEGMENT, "When chosen select segments (obj l-directives)",
-                *entity.display_info.segments_color,
+                *entity.display_info.segment_style.color,
                 *entity.display_info.segment_label_theme.label_color,
-                *entity.display_info.segments_visible);
+                *entity.display_info.segment_style.visible);
             select_element(
                 "Points", .POINT, "When chosen select points (obj p-directives)",
-                *entity.display_info.points_color,
+                *entity.display_info.point_style.color,
                 *entity.display_info.point_label_theme.label_color,
-                *entity.display_info.points_visible);
+                *entity.display_info.point_style.visible);
             select_element(
                 "Positions", .VERTEX, "When chosen select vertices (obj v-directives)",
-                *entity.display_info.positions_color,
+                *entity.display_info.vertex_style.color,
                 *entity.display_info.vertex_label_theme.label_color,
-                *entity.display_info.positions_visible);
+                *entity.display_info.vertex_style.visible);
         }
 
         {
@@ -881,9 +1101,6 @@ show_select_ui :: () {
         if ImGui.Button(imgui_label("Clear", *entity)) {
             deinit(*entity);
         }
-
-        //show_rendering_ui(*app.select_tool.entity.display_info);
-        //show_labelling_ui(*app.select_tool.entity.display_info);
     }
 }
 
@@ -909,11 +1126,12 @@ format_struct_ui :: (format : *FormatStruct) -> bool {
         format.use_long_form_if_more_than_this_many_members = ifx use_long_form then -1 else 99999;
         changed = true;
     }
-    show_tooltip(TOOLTIP);
-TOOLTIP :: #string DONE
+
+    TOOLTIP :: #string DONE
 "short form" means just draw values e.g., {1, 3, 5}
 "long form"  means draw names then values e.g., {x = 1; y = 3; z = 5;}
 DONE
+    show_tooltip(TOOLTIP);
     ImGui.SameLine();
     changed |= ImGui.Checkbox("Long form newlines", *format.use_newlines_if_long_form);
 
@@ -1027,45 +1245,6 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
             ImGui.PopStyleColor();
         }
         ImGui.EndDisabled();
-    }
-}
-
-
-show_item_list_actions_ui :: () {
-    // Hide buttons with no selection. See :DisableUpdateButtonsIfNoSelection 
-    if app.console.show_ui || count_selected_entities() == 0{
-        return;
-    }
-
-    // Try actions buttons on the bottom by the console
-    {
-        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
-
-        console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
-        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
-        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
-
-        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
-        if true {
-            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
-            // window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
-            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
-            window_flags |= .NoBackground;          // Makes the console log transparent
-        }
-
-        ImGui.Begin("target_items_ribbon", flags=window_flags);
-        defer ImGui.End();
-
-        ActionButton("Backface",       *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
-        ActionButton("Opacity",        *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
-        ActionButton("Clipping",       *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
-        ActionButton("Normals",        *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
-        ActionButton("Line Width",     *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
-        ActionButton("Vertex Size",    *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
-        ActionButton("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
-        ActionButton("Vertex Labels",  *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
-        ActionButton("Annotations",    *CYCLE_ANNOTATION_ACTION_SET);
     }
 }
 
@@ -1258,7 +1437,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("Camera Controls", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##CameraControlsKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             ShowBinding("      MMB", "Pan the camera");
@@ -1272,7 +1451,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("In the Items List", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##ItemsListKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             ShowBinding("      RMB", "(on a color) Cycle shading styles");
@@ -1286,7 +1465,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##ViewportKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             for app.keymap_actions.mappings {
@@ -1300,7 +1479,7 @@ show_help_tab_ui :: () {
 
         if ImGui.TreeNodeEx("Miscellaneous", .SpanAvailWidth) {
             defer ImGui.TreePop();
-            ImGui.BeginTable("", 2, flags=table_flags);
+            ImGui.BeginTable("##MiscellaneousKeys", 2, flags=table_flags);
             defer ImGui.EndTable();
 
             for app.keymap.mappings {
@@ -1372,189 +1551,7 @@ show_help_tab_ui :: () {
 }
 
 
-show_pending_directories_ui :: () {
-    if app.pending_directories.count == 0 {
-        return;
-    }
-
-    dir : app.Pending_Directory = app.pending_directories[app.pending_directories.count - 1];
-
-    if dir.loadable_files.count == 0 {
-        // Just watch the directory
-        new_folder : *app.Folder = add_directory(dir.path);
-        new_folder.auto_load_new_files = dir.auto_load_new_files;
-        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
-        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
-        return;
-    }
-
-    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
-    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
-    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
-    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
-
-    // @Incomplete Could have a policy to just load everything rather than ask?
-
-    ImGui.Begin(imgui_label(tprint("Handle Directory 1 of %", app.pending_directories.count), xx *app.pending_directories), flags=window_flags);
-    defer ImGui.End();
-
-    // ScopedWindowBorderTheme(original_border_color, original_border_size);
-
-    ImGui.Text("Select files to load in:");
-    ImGui.SameLine();
-    ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
-    ImGui.Text(dir.path);
-    ImGui.PopStyleColor();
-
-    table_flags := ImGui.TableFlags.RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
-     | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
-     | .ScrollY; // Without this option the outer_size argument is ignored
-
-    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
-    outer_size := make_ImVec2(0, 400);
-    if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
-        defer ImGui.EndTable();
-
-        ImGui.TableSetupColumn("File",     ImGui.TableColumnFlags.WidthFixed | .DefaultSort, 0);
-        ImGui.TableSetupColumn("Modtime",  ImGui.TableColumnFlags.WidthFixed, 0);
-        ImGui.TableSetupColumn("Size",     ImGui.TableColumnFlags.WidthFixed, 0);
-        ImGui.TableSetupColumn("Notes",    ImGui.TableColumnFlags.WidthFixed, 60);
-        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
-        ImGui.TableHeadersRow();
-
-        // Sort our data if sort specs have been changed!
-        sort_specs : *ImGui.TableSortSpecs = ImGui.TableGetSortSpecs();
-        if sort_specs && sort_specs.SpecsDirty {
-            if sort_specs.SpecsCount > 0 {
-                specs : []ImGui.TableColumnSortSpecs;
-                specs.data = sort_specs.Specs;
-                specs.count = sort_specs.SpecsCount;
-                for spec : specs { // @CompilerBug Should using work on a for loop?
-                    // @Cleanup Use a enum id here, ImGui has support for it
-                    direction := spec.SortDirection_;
-                    if spec.SortDirection_ == .Ascending {
-                        if spec.ColumnIndex == {
-                            case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
-                            case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
-                            case 2; quick_sort(dir.loadable_files, (a,b) => (compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
-                        }
-                    } else {
-                        if spec.ColumnIndex == {
-                            case 0; quick_sort(dir.loadable_files, (a,b) => (-compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
-                            case 1; quick_sort(dir.loadable_files, (a,b) => (-compare_apollo_times(a.modtime, b.modtime)));
-                            case 2; quick_sort(dir.loadable_files, (a,b) => (-compare_floats(xx a.size_in_bytes, xx b.size_in_bytes)));
-                        }
-                    }
-                }
-            }
-            sort_specs.SpecsDirty = false; // Make sure we don't sort on every frame
-        }
-
-        for * :ListClipperIterator loadable_file : dir.loadable_files {
-            using loadable_file;
-
-            ImGui.TableNextColumn();
-            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
-
-            ImGui.TableNextColumn();
-            ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
-
-            size, unit := readable_memory_size_decimal(size_in_bytes);
-            size_with_unit : string;
-            if      size < 10  size_with_unit = tprint("  % %", size, unit);
-            else if size < 100 size_with_unit = tprint( " % %", size, unit);
-            else               size_with_unit = tprint(  "% %", size, unit);
-            ImGui.TableNextColumn();
-            ImGui.Text(size_with_unit);
-
-            message : string;
-            ImGui.TableNextColumn();
-            if loadable_file.is_loaded {
-                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
-                message = "Already loaded";
-                ImGui.Text(message);
-                ImGui.PopStyleColor();
-            } else {
-                message = "(none)";
-                ImGui.TextDisabled(message);
-            }
-            show_tooltip(message);
-        }
-    }
-
-    if dir.unloadable_file_count {
-        ImGui.Text(tprint("Found % files without loadable extension (obj, wkt)", dir.unloadable_file_count)); // :PluginFileFormats
-    } 
-    
-    if ImGui.Button(imgui_label("Accept", xx *dir)) {
-
-        new_folder : *app.Folder = add_directory(dir.path);
-        new_folder.auto_load_new_files = dir.auto_load_new_files;
-        new_folder.set_auto_reload_on_newly_loaded_files = dir.set_auto_reload_on_newly_loaded_files;
-
-        for file : dir.loadable_files {
-            if !file.is_selected {
-                continue;
-            }
-
-            if file.is_loaded {
-                entity := find_entity(file.fully_pathed_filename, -1);
-                assert(entity != null);
-                reload_entity(entity);
-            } else {
-                // Note we use .IGNORE rather than app.settings.duplicate_file_behaviour here, the user can get the latter behaviour by dragging in files individually
-                entities := load_one_file(file.fully_pathed_filename, .IGNORE);
-                for entity : entities {
-                    add_entity(entity, .IGNORE); 
-                    source := isa(entity.source, Entity_Source_File);
-                    assert(source != null); // Expecte a file
-                    source.auto_reload = dir.set_auto_reload_on_newly_loaded_files;
-                }
-            }
-        }
-
-        if app.settings.fit_to_screen_on_file_drop_event {
-            fit_scene_on_screen();
-        }
-
-        deinit(dir);
-        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
-    }
-    show_tooltip("Load all selected/checked files");
-
-    ImGui.SameLine();
-
-    if ImGui.Button(imgui_label("Ignore", xx *dir)) {
-        deinit(dir);
-        app.pending_directories.count -= 1; // We were handling the last directory, so can just decrement the array count
-    }
-    show_tooltip("Do not load any files");
-
-    ImGui.SameLine();
-
-    if app.pending_directories.count > 1 {
-        if ImGui.Button(imgui_label("Ignore All", xx *dir)) {
-            for *dir : app.pending_directories {
-                deinit(dir);
-            }
-            array_reset(*app.pending_directories);
-        }
-        show_tooltip(tprint("Do not load any files from all % pending directories", app.pending_directories.count));
-    }
-}
-
-
-
-show_imgui_demo_window :: () {
-    if app.settings.show_imgui_demo_window {
-        ImGui.ShowDemoWindow(*app.settings.show_imgui_demo_window);
-    }
-}
-
-#scope_file
-
-
-show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme, entity_index : int) {
+show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme) {
     ImGui.Text(name);
 
     ImGui.SameLine();
@@ -1574,18 +1571,6 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     ImGui.SameLine();
     ImGui.Checkbox(imgui_label("##coord_visible", theme), *theme.show_position);
     show_tooltip("Show value of .obj v-directives (model space positions)\nwhich are referenced by elements");
-
-    if valid_geometry_index(entity_index) {
-        if ImGui.TreeNodeEx("Advanced##Labelling", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.Text("If labels look wrong this may help:");
-            if ImGui.Button("Find Unreferenced Positions") {
-                item_find_unreferenced_positions(entity_index, new_item=0);
-            }
-            show_tooltip("Calls `item_find_unreferenced_points` command\nSee the command documentation for details");
-        }
-    }
 }
 
 show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Element_Label_Theme) {
@@ -1645,13 +1630,12 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
 
 display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index : int = -1) -> Display_Info_Update {
 
-    old_display_info := <<display_info;
+   old_display_info := display_info.*;
 
-    show_rendering_ui(display_info);
-    show_clipping_ui(display_info, aabb);
-    show_labelling_ui(display_info, entity_index);
+   show_clipping_ui(display_info, aabb);
+   show_rendering_and_labeling_ui(display_info, entity_index);
 
-    return get_update(old_display_info, display_info);
+   return get_update(old_display_info, display_info);
 }
 
 display_information :: (entity : *Entity) {
@@ -1659,7 +1643,7 @@ display_information :: (entity : *Entity) {
         defer ImGui.TreePop();
 
         table_flags := ImGui.TableFlags.BordersOuter;
-        ImGui.BeginTable("", 2, flags=table_flags);
+        ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
         defer ImGui.EndTable();
 
         ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);
@@ -1678,6 +1662,7 @@ display_information :: (entity : *Entity) {
         }
 
         // @Incomplete Attributes/Annotations information?
+        Row("Date created", filetime_to_readable_date(get_entity_source(entity).creation_time), "Date/time when item was (re)loaded");
         Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
         Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
         Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
@@ -1719,7 +1704,10 @@ display_annotations :: (entity : *Entity, entity_index : int) {
     if            annotation_count == 0 then ImGui.BeginDisabled();
     defer if      annotation_count == 0 then ImGui.EndDisabled();
 
-    show_annotation_theme_ui("Annotations", "Show annotations", *entity.display_info.annotation_label_theme);
+    show_annotation_theme_ui("Vertex Annotations  ", "Show annotations", *entity.display_info.vertex_label_theme.annotation_label_theme);
+    show_annotation_theme_ui("Point Annotations   ", "Show annotations", *entity.display_info.point_label_theme.annotation_label_theme);
+    show_annotation_theme_ui("Segment Annotations ", "Show annotations", *entity.display_info.segment_label_theme.annotation_label_theme);
+    show_annotation_theme_ui("Triangle Annotations", "Show annotations", *entity.display_info.triangle_label_theme.annotation_label_theme);
 
     if ImGui.TreeNodeEx(imgui_label(header), .SpanAvailWidth) {
         defer ImGui.TreePop();
@@ -1754,6 +1742,8 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             case .COMMAND;  annotations = entity.command_annotations;
         }
 
+        // This should be a function per annotation kind, so it can have different columns/states
+
         if annotations.count {
 
             table_flags := attr_anno_table_flags;
@@ -1771,7 +1761,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
                 ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed | .NoSort);
                 ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
-                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .NoSort);
+                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .DefaultHide | .NoSort);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
                 ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
                 ImGui.TableHeadersRow();
@@ -1808,7 +1798,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     ImGui.TableNextRow();
 
                     ImGui.TableNextColumn();
-                    if annotation.kind == .BLOCK {
+                    if annotation.kind == .BLOCK || annotation.kind == .COMMAND {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
                         if ImGui.Button(imgui_label("Focus", xx annotation.id)) {
@@ -1850,7 +1840,6 @@ display_attribute :: (entity : *Entity, entity_index : int, base_attribute : *Si
     if base_attribute.type == {
         case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
             ImGui.Text("Attribute '%' assigns % values to triangles", base_attribute.name, Matrix3);
-            show_tooltip(TOOLTIP);
             TOOLTIP :: #string DONE
 Matrix3 :: struct {
 _11, _12, _13 : float;
@@ -1859,6 +1848,7 @@ _31, _32, _33 : float;
 #place _11; row: [3]Vector3 = ---;
 }
 DONE;
+            show_tooltip(TOOLTIP);
     }
 
     if base_attribute.type == {
@@ -1933,41 +1923,99 @@ DONE;
 last_frame_annotation_list_height_px : float;
 
 
-show_rendering_ui :: (display_info : *Display_Info) {
-    if ImGui.TreeNodeEx("Rendering", .SpanAvailWidth) {
+show_rendering_and_labeling_ui :: (display_info : *Display_Info, entity_index : int) {
+    //if ImGui.TreeNodeEx("Rendering and Labeling", .SpanAvailWidth) {
+    //    defer ImGui.TreePop();
+    show_rendering_positions_ui(display_info, entity_index);
+    show_rendering_points_ui(display_info, entity_index);
+    show_rendering_segments_ui(display_info, entity_index);
+    show_rendering_triangles_ui(display_info, entity_index);
+}
+
+show_normal_style_ui :: (normal_style : *Normal_Style, padding : string = "") {
+    ImGui.Text("Normals Style%", padding);
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##normals_visible", normal_style), *normal_style.visible);
+    show_tooltip("Normal Visibility");
+    ImGui.SameLine();
+    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    ImGui.DragFloat(imgui_label("##normals_scale", normal_style), *normal_style.scale, .05);
+    show_tooltip("Scale/length multiplier applied to the obj normals");
+    ImGui.PopItemWidth();
+    ImGui.SameLine();
+    ImGui.Checkbox(imgui_label("##normals_normalized", normal_style), *normal_style.normalized);
+    show_tooltip("Normalize the obj normals before scaling");
+}
+
+show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.triangles.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Triangles (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
+
+    if ImGui.TreeNodeEx("Triangles", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         BoxSection();
 
         ImGui.TableNextColumn();
-        show_rendering_triangles_ui(display_info);
+        ImGui.Text(
+            "Face Style        ");
+        ImGui.SameLine();
+        ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
+        show_tooltip("Triangle Face Visibility");
+        ImGui.SameLine();
+        ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        show_tooltip("Triangle Frontface Color");
+        ImGui.SameLine();
+        ImGui.PushItemWidth(70);
+        combo_box("##Backface Mode", *display_info.triangle_style.backface_mode, type_info(Backface_Mode));
+        ImGui.PopItemWidth();
+        show_tooltip("Triangle Backface Render Mode");
 
         ImGui.TableNextColumn();
-        show_rendering_segments_ui(display_info);
+        ImGui.Text(
+            "Edge Style        ");
+        ImGui.SameLine();
+        ImGui.Checkbox(imgui_label("##triangle_style.edge_style.visible", display_info), *display_info.triangle_style.edge_style.visible);
+        show_tooltip("Triangle Edges Visibility");
+        ImGui.SameLine();
+        ImGui.ColorEdit4(imgui_label("##triangle_style.edge_style.color", display_info), *display_info.triangle_style.edge_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.SameLine();
+        ImGui.PushItemWidth(70);
+        ImGui.DragFloat(imgui_label("##triangle_style.edge_style.width", display_info), *display_info.triangle_style.edge_style.width, .05);
+        show_tooltip("Triangle Edges Width");
+        display_info.triangle_style.edge_style.width = clamp(display_info.triangle_style.edge_style.width, 1., 5);
+        ImGui.PopItemWidth();
 
         ImGui.TableNextColumn();
-        show_rendering_points_ui(display_info);
+        show_normal_style_ui(*display_info.triangle_style.normal_style, "     ");
 
         ImGui.TableNextColumn();
-        show_rendering_positions_ui(display_info);
+        show_element_label_theme_ui(
+            "Index Labels      ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
 
         ImGui.TableNextColumn();
-        show_rendering_edges_ui(display_info);
-
-        ImGui.TableNextColumn();
-        show_rendering_normals_ui(display_info);
+        show_annotation_theme_ui(
+            "Annotation Labels ", "Show annotations", *display_info.triangle_label_theme.annotation_label_theme);
 
         if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
             defer ImGui.TreePop();
 
-            // FIXME FIXME: opacity should control wireframe??
             ImGui.Text("Render Mode");
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.flat_shading);
+            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.triangle_style.flat_shading);
             show_tooltip("Flat Shading");
             ImGui.SameLine();
             ImGui.PushItemWidth(120);
-            combo_box("##display_mode", *display_info.display_mode, type_info(type_of(display_info.display_mode)));
+            combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
             ImGui.PopItemWidth();
 
             // This doesn't seem very useful so I removed it
@@ -1975,130 +2023,145 @@ show_rendering_ui :: (display_info : *Display_Info) {
             //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
             //show_tooltip("Deduce item primary colors from the file path");
         }
+   }
+}
+
+show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.segments.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Segments (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
     }
-}
 
-
-show_rendering_triangles_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Triangles  ");
-
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##triangles_visible", display_info), *display_info.triangles_visible);
-    show_tooltip("Triangle visibility");
-
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##triangles_color", display_info), *display_info.triangles_color.component, ImGui.ColorEditFlags.NoInputs);
-    show_tooltip("Frontface Color");
-
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    combo_box("##Backface Mode", *display_info.backface_mode, type_info(Backface_Mode));
-    ImGui.PopItemWidth();
-    show_tooltip("Backface Render Mode");
-}
-
-show_rendering_segments_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Segments   ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##segments_visible", display_info), *display_info.segments_visible);
-    show_tooltip("Segment visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##segments_color", display_info), *display_info.segments_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##segments_width", display_info), *display_info.segments_width, .05);
-    show_tooltip("Width");
-    display_info.segments_width = clamp(display_info.segments_width, 1, 5);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_points_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Points     ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##points_visible", display_info), *display_info.points_visible);
-    show_tooltip("Point visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##points_color", display_info), *display_info.points_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.InputInt("##points_size", *display_info.points_size);
-    show_tooltip("Size");
-    display_info.points_size = clamp(display_info.points_size, 1, 10);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_positions_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Positions  ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##positions_visible", display_info), *display_info.positions_visible);
-    show_tooltip("Positions visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##positions_color", display_info), *display_info.positions_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.InputInt("##positions_size", *display_info.positions_size);
-    show_tooltip("Size");
-    display_info.positions_size = clamp(display_info.positions_size, 1, 10);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_edges_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Edges      ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##edges_visible", display_info), *display_info.edges_visible);
-    show_tooltip("Triangle edges visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##edges_color", display_info), *display_info.edges_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##edges_width", display_info), *display_info.edges_width, .05);
-    show_tooltip("Width");
-    display_info.edges_width = clamp(display_info.edges_width, 1., 5);
-    ImGui.PopItemWidth();
-}
-
-show_rendering_normals_ui :: (display_info : *Display_Info) {
-    ImGui.Text("Normals    ");
-    ImGui.SameLine();
-    ImGui.Checkbox(imgui_label("##normals_visible", display_info), *display_info.normals_visible);
-    show_tooltip("Normal visibility");
-    ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##normals_color", display_info), *display_info.normals_color.component, ImGui.ColorEditFlags.NoInputs);
-    ImGui.SameLine();
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##normals_length", display_info), *display_info.normals_length, .05);
-    show_tooltip("Length");
-    ImGui.PopItemWidth();
-}
-
-
-show_labelling_ui :: (display_info : *Display_Info, entity_index : int = -1) {
-    if ImGui.TreeNodeEx("Labelling", .SpanAvailWidth) {
+    if ImGui.TreeNodeEx("Segments", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
         BoxSection();
 
-        ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        show_annotation_theme_ui("Annotations", "Show annotations", *display_info.annotation_label_theme); // Its convenient to have all the labels in one place!
+        ImGui.Text(
+            "Segment Style     ");
+        ImGui.SameLine();
+        ImGui.Checkbox(imgui_label("##segment_style.visible", display_info), *display_info.segment_style.visible);
+        show_tooltip("Segment Visibility");
+        ImGui.SameLine();
+        ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.SameLine();
+        ImGui.PushItemWidth(70);
+        ImGui.DragFloat(imgui_label("##segment_style.width", display_info), *display_info.segment_style.width, .05);
+        show_tooltip("Width");
+        display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
+        ImGui.PopItemWidth();
 
-        ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        show_element_label_theme_ui("Triangles  ", "Show index of .obj f-directives", *display_info.triangle_label_theme);
+        show_normal_style_ui(*display_info.segment_style.normal_style, "     ");
 
-        ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        show_element_label_theme_ui("Segments   ", "Show index of .obj l-directives", *display_info.segment_label_theme);
+        show_element_label_theme_ui(
+            "Index Labels      ", "Show index of .obj l-directives", *display_info.segment_label_theme);
 
-        ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        show_element_label_theme_ui("Points     ", "Show index of .obj p-directives", *display_info.point_label_theme);
+        show_annotation_theme_ui(
+            "Annotation Labels ", "Show annotations", *display_info.segment_label_theme.annotation_label_theme);
+    }
+}
 
-        ImGui.TableNextRow();
+show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.points.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Points (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
+
+    if ImGui.TreeNodeEx("Points", .SpanAvailWidth) {
+        defer ImGui.TreePop();
+
+        BoxSection();
+
         ImGui.TableNextColumn();
-        show_vertex_label_theme_ui( "Positions  ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme, entity_index);
+        ImGui.Text(
+            "Point Style       ");
+        ImGui.SameLine();
+        ImGui.Checkbox(imgui_label("##point_style.visible", display_info), *display_info.point_style.visible);
+        show_tooltip("Point Visibility");
+        ImGui.SameLine();
+        ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.SameLine();
+        ImGui.SameLine();
+        ImGui.PushItemWidth(70);
+        ImGui.InputInt("##point_style.size", *display_info.point_style.size);
+        show_tooltip("Size");
+        display_info.point_style.size = clamp(display_info.point_style.size, 1, 10);
+        ImGui.PopItemWidth();
+
+        ImGui.TableNextColumn();
+        show_normal_style_ui(*display_info.point_style.normal_style, "     ");
+
+        ImGui.TableNextColumn();
+        show_element_label_theme_ui(
+            "Index Labels      ", "Show index of .obj p-directives", *display_info.point_label_theme);
+
+        ImGui.TableNextColumn();
+        show_annotation_theme_ui(
+            "Annotation Labels ", "Show annotations", *display_info.point_label_theme.annotation_label_theme);
+    }
+}
+
+show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int = -1) {
+    if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.positions.count == 0 {
+        ImGui.BeginDisabled();
+        if ImGui.TreeNodeEx("Vertices (none)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+        }
+        ImGui.EndDisabled();
+        return;
+    }
+
+    if ImGui.TreeNodeEx("Vertices", .SpanAvailWidth) {
+        defer ImGui.TreePop();
+
+        BoxSection();
+
+        ImGui.TableNextColumn();
+        ImGui.Text(
+            "Vertex Style      ");
+        ImGui.SameLine();
+        ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
+        show_tooltip("Positions visibility.\nRender vertex positions as points");
+        ImGui.SameLine();
+        ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.SameLine();
+        ImGui.SameLine();
+        ImGui.PushItemWidth(70);
+        ImGui.InputInt("##vertex_style.size", *display_info.vertex_style.size);
+        show_tooltip("Size");
+        display_info.vertex_style.size = clamp(display_info.vertex_style.size, 1, 10);
+        ImGui.PopItemWidth();
+
+        ImGui.TableNextColumn();
+        show_vertex_label_theme_ui(
+            "Index Labels      ", "Show index of .obj v-directives\nwhich are referenced by elements", *display_info.vertex_label_theme);
+
+        ImGui.TableNextColumn();
+        show_annotation_theme_ui(
+            "Annotation Labels ", "Show annotations", *display_info.vertex_label_theme.annotation_label_theme);
+
+        if valid_geometry_index(entity_index) {
+            if ImGui.TreeNodeEx("Advanced##Labelling", .SpanAvailWidth) {
+                defer ImGui.TreePop();
+
+                if ImGui.Button("Find Unreferenced Positions") {
+                    item_find_unreferenced_positions(entity_index, new_item=0);
+                }
+                show_tooltip("If labels look wrong this may help:\nCalls `item_find_unreferenced_points` command\nSee the command documentation for details");
+            }
+        }
     }
 }
 
@@ -2148,7 +2211,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 show_tooltip_binding(DESCRIBE, BINDING);
 
                 ImGui.TableSetColumnIndex(3);
-                POSITIVE_INF :: 0h7F800000;
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
                 if ImGui.Button(imgui_label("Reset    ##sphere", *clip_sphere)) || uninitialized {
                     if !is_empty(aabb) {
@@ -2233,8 +2295,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
 
-#scope_file
-
 display_action_buttons := true;
 
 entity_source_tooltip :: (entity : Entity) {
@@ -2302,3 +2362,5 @@ g_this_frame_state : ImGui_Frame_State;
 // This will be reset at the start of the currently rendering frame
 // Set fields whenever convenient in the currently rendering frame
 g_next_frame_state : ImGui_Frame_State;
+
+POSITIVE_INF :: 0h7F800000;

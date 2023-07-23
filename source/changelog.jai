@@ -7,7 +7,32 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "WIP", #string DONE
+PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
+- Replaced the per-item annotation settings with settings for vertices/points/segments/triangles
+- Replaced Rendering and Labeling sections of the Details panel with fields in new Vertices/Points/Segments/Triangles sections
+- Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
+- Added support for oriented polylines and oriented point clouds i.e., `l i//a j//b k//c` and `p i//a j//b k//c` lines in the .obj file
+- Added an option to normalize obj normal data (vn-directives) before applying normal scaling. The old normalizing behaviour is the default but can be disabled eg if the lengths encode something interesting
+- Fixed .obj files where only some faces/segments/points have normals not loading properly
+- Fixed the warning that gets logged to the console when you pass Prism a file/directory that does not exist
+- Renamed the "Examples" tool to "Create"
+- Removed item_clear function since clearing geometry from items is not very useful
+- Removed the partial support for .wkt file formats. Prism will be narrowly focussed only on .obj files to limit scope creep
+
+- Changes to api/cpp/Prism.h
+
+  - Changed the default value of set_precision() from 6 to std::numeric_limits<double>::max_digits10 so it can be used to restore the Obj class default precision (which is max_digits10). Also added an optional pointer argument which can return the previous precision.
+  - Renamed set_precision_max_digits10() function to set_precision_to_roundtrip_floats() and added an optional pointer argument which can return the previous precision.
+  - Removed the set_precision_digits10() since it doesn't guarantee round-trip float -> text -> float conversions
+  - Added an attribute() function with no arguments. This is similar to the annotation() function with no arguments
+  - Added point3_vn and segment3_vn functions which write vertex positions, normals vectors and then point/segment elements referencing them. These are useful to write oriented point clouds and polylines with normals to obj files
+  - Added functions to set the visibility on vertex/point/segment/triangle annotations separately e.g., `set_triangle_annotations_visible`. Also added the corresponding console commands
+  - Various improvements to the documentation. Also moved some functions around to present simpler concepts on first reading
+
+- Changes to api/cpp/Prism_Unreal.h
+
+  - Added booleans to FMakeDynamicMeshObjOptions which optionally write annotations containing the VIDs/TIDs into the input mesh. Previously this was on by default but now its off, since its only useful if you're debugging something related to the indicies
+  - Added a MakeDynamicMeshOverlayObj function to write TDynamicMeshOverlay to an .obj. This function visualizes the mesh and adds overlay elements as points annotated with the overlay element id and element value.
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE

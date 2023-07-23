@@ -3,16 +3,18 @@
 #ifndef PRISM_UNREAL_API
 #define PRISM_UNREAL_API
 
-// #include <CoreMinimal.h>
-#include <VectorTypes.h>
+#include <CoreMinimal.h> // FString
 
 // We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
 // the code for different Unreal modules to be in separate files
 #ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#include <VectorTypes.h>
+#include <BoxTypes.h>
 #include <DynamicMesh/DynamicMesh3.h>
 #include <DynamicMesh/DynamicMeshOverlay.h>
 #include <DynamicMesh/DynamicMeshAttributeSet.h>
+#include <Image/ImageDimensions.h>
 #include <Util/CompactMaps.h>
 #endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
@@ -20,6 +22,8 @@
 #ifdef PRISM_API
 #error Prism_Unreal.h must be included before Prism.h because it defines macros used by the Prism.h
 #endif
+
+// TODO Add a Vec3i? constructed from UE::Geometry::FIndex3i, in GeometryCore
 
 #define PRISM_VEC2_CLASS_EXTRA\
 	Vec2(UE::Math::TVector2<T> p) : Vec2(p.X, p.Y) {}
@@ -43,41 +47,63 @@ namespace Prism
 
 bool DocumentationForUnreal(bool bWriteFiles)
 {
-	using namespace Prism;
-	Prism::Obj Obj;
+	// This block shows how to work with Unreal vector types
+	{
+		using namespace Prism;
+		Prism::Obj Obj;
 
-	// Define some Unreal data types
-	FVector   A(0,0,1),  B(1,0,1),  C(0,1,1);
-	FVector3f D(0,0,2),  E(1,0,2),  F(0,1,2);
-	FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
+		// Define some Unreal data types
+		FVector   A(0,0,1),  B(1,0,1),  C(0,1,1);
+		FVector3f D(0,0,2),  E(1,0,2),  F(0,1,2);
+		FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
 
-	// This is the recommended way of passing Unreal vectors to the Prism::Obj API
-	Obj.triangle3(V3(A), V3(B), V3(C)).newline();
+		// This is the recommended way of passing Unreal vectors to the Prism::Obj API
+		Obj.triangle3(V3(A), V3(B), V3(C)).newline();
 
-	// You could also do the following but in this case you will need to specify the template parameter
-	Obj.triangle3<float>(D, E, F).newline();
+		// You could also do the following but in this case you will need to specify the template parameter, this is
+		// sometimes more convenient than wrapping everything in a V3
+		Obj.triangle3<float>(D, E, F).newline();
 
-	// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
-	// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
-	Obj.v().insert(V3(G)).newline();
-	Obj.v().insert(V3(H)).newline();
-	Obj.v().insert(V3(I)).newline();
-	Obj.triangle();
+		// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
+		// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
+		Obj.v().insert(V3(G)).newline();
+		Obj.v().insert(V3(H)).newline();
+		Obj.v().insert(V3(I)).newline();
+		Obj.triangle();
 
-	// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
-	//Obj.v().insert(I).newline();
+		// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
+		//Obj.v().insert(I).newline();
 
-	// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
-	// so both of the following work:
-	Obj.set_vertex_label_color(FColor::Red);
-	Obj.set_triangle_label_color(Color(FColor::Blue)); // Works, but redundant and verbose
+		// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
+		// so both of the following work:
+		Obj.set_vertex_label_color(FColor::Red);
+		Obj.set_triangle_label_color(Color(FColor::Blue)); // Works, but redundant and verbose
 
-	Obj.set_vertex_index_labels_visible(true);
-	Obj.set_triangle_index_labels_visible(true);
+		Obj.set_vertex_index_labels_visible(true);
+		Obj.set_triangle_index_labels_visible(true);
 
-	if (bWriteFiles) {
-		Obj.write("prism_DocumentationForUnreal.obj");
+		if (bWriteFiles) {
+			Obj.write("prism_DocumentationForUnreal_Ex1.obj");
+		}
 	}
+
+	// This is a handy way to write FStrings to files in Unreal
+	{
+		FString Data;
+		Data += "Here";
+		Data += "Comes";
+		Data += "Some Data";
+		if (bWriteFiles) {
+			Prism::Obj().add(std::string(TCHAR_TO_UTF8(*Data))).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
+		}
+	}
+
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+	// This block shows some of the provided functions for Geometry Core
+	{
+		// @Incomplete
+	}
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
 	return true;
 }
@@ -92,8 +118,13 @@ struct FMakeDynamicMeshObjOptions
 
 	// If true will attempt to write the per-vertex normals and UVs to the OBJ instead of the per-element values
 	bool bWritePerVertexValues = true;
-};
 
+	// If true write "VID X" annotations on the OBJ v-directives, where X is the Vid into the input mesh (before the CompactCopy)
+	bool bWriteVidAnnotations = false;
+
+	// If true write "TID X" annotations on the OBJ f-directives, where X is the Tid into the input mesh (before the CompactCopy)
+	bool bWriteTidAnnotations = false;
+};
 
 Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMeshObjOptions Options = FMakeDynamicMeshObjOptions{})
 {
@@ -109,29 +140,35 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 
 	// Compute an additional mapping from the compact mesh triangles to the input mesh triangles
 	// i.e the inverse of the FCompactMaps
-	TMap<int32, int32> CompactToInputTriangles; // Mesh -> InMesh
-	CompactToInputTriangles.Reserve(Mesh.TriangleCount());
-	for (int32 TriangleID : InMesh.TriangleIndicesItr())
+	TMap<int32, int32> CompactToInputTriangles; // Mesh Tid -> InMesh Tid
+	if (Options.bWriteTidAnnotations)
 	{
-		const int32 CompactTriangleID = CompactInfo.GetTriangleMapping(TriangleID);
-		if (CompactTriangleID != FCompactMaps::InvalidID)
+		CompactToInputTriangles.Reserve(Mesh.TriangleCount());
+		for (int32 TriangleID : InMesh.TriangleIndicesItr())
 		{
-			CompactToInputTriangles.Add(CompactTriangleID, TriangleID);
+			const int32 CompactTriangleID = CompactInfo.GetTriangleMapping(TriangleID);
+			if (CompactTriangleID != FCompactMaps::InvalidID)
+			{
+				CompactToInputTriangles.Add(CompactTriangleID, TriangleID);
+			}
 		}
+		checkSlow(CompactToInputTriangles.Num() == Mesh.TriangleCount());
 	}
-	checkSlow(CompactToInputTriangles.Num() == Mesh.TriangleCount());
 
-	TMap<int32, int32> CompactToInputVertices; // Mesh -> InMesh
-	CompactToInputVertices.Reserve(Mesh.VertexCount());
-	for (int32 VertexID : InMesh.VertexIndicesItr())
+	TMap<int32, int32> CompactToInputVertices; // Mesh Vid -> InMesh Vid
+	if (Options.bWriteVidAnnotations)
 	{
-		const int32 CompactVertexID = CompactInfo.GetVertexMapping(VertexID);
-		if (CompactVertexID != FCompactMaps::InvalidID)
+		CompactToInputVertices.Reserve(Mesh.VertexCount());
+		for (int32 VertexID : InMesh.VertexIndicesItr())
 		{
-			CompactToInputVertices.Add(CompactVertexID, VertexID);
+			const int32 CompactVertexID = CompactInfo.GetVertexMapping(VertexID);
+			if (CompactVertexID != FCompactMaps::InvalidID)
+			{
+				CompactToInputVertices.Add(CompactVertexID, VertexID);
+			}
 		}
+		checkSlow(CompactToInputVertices.Num() == Mesh.VertexCount());
 	}
-	checkSlow(CompactToInputVertices.Num() == Mesh.VertexCount());
 
 	if (Options.bReverseOrientation)
 	{
@@ -145,12 +182,16 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 	{
 		check(Mesh.IsVertex(VID)); // mesh is not compact
 
-		// Note: Suffix indicates this is zero-based
-		int32* InMeshVID0 = CompactToInputVertices.Find(VID);
-		ensure(InMeshVID0 != nullptr);
-
 		FVector3d Pos = Mesh.GetVertex(VID);
-		Result.vertex3(V3(Pos)).annotation("VID").insert(*InMeshVID0).newline();
+		Result.vertex3(V3(Pos));
+		if (Options.bWriteVidAnnotations)
+		{
+			// Note: Suffix indicates this is zero-based
+			int32* InMeshVID0 = CompactToInputVertices.Find(VID);
+			ensure(InMeshVID0 != nullptr);
+			Result.annotation("VID").insert(*InMeshVID0);
+		}
+		Result.newline();
 
 		if (bHasVertexNormals)
 		{
@@ -196,10 +237,6 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 	for (int32 TID = 0; TID < Mesh.TriangleCount(); ++TID)
 	{
 		check(Mesh.IsTriangle(TID));
-
-		// Note: Suffix indicates this is zero-based
-		int32* InMeshTID0 = CompactToInputTriangles.Find(TID);
-		ensure(InMeshTID0 != nullptr);
 
 		FIndex3i TriVertices = Mesh.GetTriangle(TID);
 
@@ -263,18 +300,162 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 					TriVertices.A+1, TriVertices.B+1, TriVertices.C+1);
 			}
 		}
-		Result.annotation("TID").insert(*InMeshTID0).newline();
+		if (Options.bWriteTidAnnotations)
+		{
+			// Note: Suffix indicates this is zero-based
+			int32* InMeshTID0 = CompactToInputTriangles.Find(TID);
+			ensure(InMeshTID0 != nullptr);
+			Result.annotation("TID").insert(*InMeshTID0);
+		}
+		Result.newline();
 	}
 
 	// Set some useful item state in Prism via command annotations
  	// You could further configure the Prism item state at the call site before you call Obj::write()
 	// Note the lines written by the following code are ignored by other obj viewers
-	Result.set_annotations_visible(true);
+
+	if (Options.bWriteVidAnnotations)
+	{
+		Result.set_vertex_annotations_visible(true);
+	}
+	
+	if (Options.bWriteTidAnnotations)
+	{
+		Result.set_triangle_annotations_visible(true);
+	}
 	Result.set_edges_width(true);
 	Result.set_edges_visible(true);
 
 	return Result;
 }
+
+
+
+
+struct FMakeDynamicMeshOverlayObjOptions
+{
+	// Controls how far the overlay's annotated points are perturbed along the parent triangle normal
+	// This value is multiplied by the parent mesh diagonal bounds length and then multiplied by the triangle normal vector
+	double OverlayPointNormalOffsetScaleMultiplier = 0.;
+
+	// If the annotated point is at P, and corresponds to vertex A of triangle ABC, then this value represents area ratio PBC/ABC.
+	// Use a value in the range (.333, 1). Values near 1 place P near A; values near .333 place P near the triangle centroid
+	double OverlayPointBaryCoord = .95;
+
+	// If true reverses the orientation of the faces.
+	// Warning! This is @Incomplete, and not implemented sorry
+	bool bReverseOrientation = false;
+};
+
+// Write the Overlay parent mesh triangles and then add annotated point elements encoding the overlay info:
+// The overlay element ids and element values are encoded as annotations with the format "@ <ElementID> @ <ElementValue>"
+template<typename RealType, int ElementSize>
+Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, ElementSize>& Overlay, FMakeDynamicMeshOverlayObjOptions Options = FMakeDynamicMeshOverlayObjOptions{})
+{
+	using namespace UE::Geometry;
+
+	Obj Result;
+
+	if (Overlay.GetParentMesh() == nullptr)
+	{
+		return Result;
+	}
+
+	if (Options.bReverseOrientation)
+	{
+		ensure(false); // This option is not yet implemented, sorry!
+	}
+
+	FAxisAlignedBox3d Bounds = Overlay.GetParentMesh()->GetBounds();
+	double Scale = Bounds.DiagonalLength();
+
+	for (int32 TID = 0; TID < Overlay.GetParentMesh()->TriangleCount(); ++TID)
+	{
+		if (Overlay.GetParentMesh()->IsTriangle(TID))
+		{
+			FIndex3i ElementIDs = Overlay.GetTriangle(TID);
+
+			RealType DataA[ElementSize];
+			Overlay.GetElement(ElementIDs.A, DataA);
+
+			RealType DataB[ElementSize];
+			Overlay.GetElement(ElementIDs.B, DataB);
+
+			RealType DataC[ElementSize];
+			Overlay.GetElement(ElementIDs.C, DataC);
+
+			FVector3d Centroid = Overlay.GetParentMesh()->GetTriCentroid(TID);
+			FIndex3i Verts = Overlay.GetParentMesh()->GetTriangle(TID);
+
+
+			FVector3d A = Overlay.GetParentMesh()->GetVertex(Verts.A);
+			FVector3d B = Overlay.GetParentMesh()->GetVertex(Verts.B);
+			FVector3d C = Overlay.GetParentMesh()->GetVertex(Verts.C);
+			/*
+			FVector3d AB = UE::Geometry::Lerp(A, B, .5);
+			FVector3d BC = UE::Geometry::Lerp(B, C, .5);
+			FVector3d CA = UE::Geometry::Lerp(C, A, .5);
+			*/
+
+			Result.triangle3<double>(A, B, C).newline(); // No annotation here, just for viz and to stop visibility checks
+
+			const double BaryVertex = Options.OverlayPointBaryCoord; // Bary coords for the annotated vertex
+			const double BaryEdge = (1. - Options.OverlayPointBaryCoord) / 2.; // Bary coords corresponding to the vertices on the opposite edge
+			const FVector3d NormalOffset = Overlay.GetParentMesh()->GetTriNormal(TID) * Scale * Options.OverlayPointNormalOffsetScaleMultiplier;
+
+			// Result.polygon3(4, V3(A), V3(CA), V3(Centroid), V3(AB));
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryVertex, BaryEdge, BaryEdge) + NormalOffset);
+			Result.attribute(ElementIDs.A);
+			Result.attribute();
+			for (int i = 0; i < ElementSize; i++)
+			{
+				int OldPrecision;
+				Result.set_precision(4, &OldPrecision);
+				Result.insert(DataA[i]);
+				Result.set_precision(OldPrecision);
+			}
+			Result.newline();
+
+			// Result.polygon3(4, V3(B), V3(AB), V3(Centroid), V3(BC));
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryEdge, BaryVertex, BaryEdge) + NormalOffset);
+			Result.attribute(ElementIDs.B);
+			Result.attribute();
+			for (int i = 0; i < ElementSize; i++)
+			{
+				int OldPrecision;
+				Result.set_precision(4, &OldPrecision);
+				Result.insert(DataB[i]);
+				Result.set_precision(OldPrecision);
+			}
+			Result.newline();
+
+			// Result.polygon3(4, V3(C), V3(BC), V3(Centroid), V3(CA));
+			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryEdge, BaryEdge, BaryVertex) + NormalOffset);
+			Result.attribute(ElementIDs.C);
+			Result.attribute();
+			for (int i = 0; i < ElementSize; i++)
+			{
+				int OldPrecision;
+				Result.set_precision(4, &OldPrecision);
+				Result.insert(DataC[i]);
+				Result.set_precision(OldPrecision);
+			}
+			Result.newline();
+		}
+	}
+
+	// Set some useful item state in Prism via command annotations
+	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Note the lines written by the following code are ignored by other obj viewers
+	Result.set_point_annotations_visible(true);
+	Result.set_edges_width(true);
+	Result.set_edges_visible(true);
+
+	return Result;
+}
+
+
+
 
 struct FMakeImageDimensionsObjOptions
 {
@@ -318,7 +499,7 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 		{
 			Result.set_precision(Options.UVAnnotationPrecision);
 			Result.annotation("UV(").add(V2(TexelCenterUV)).add(")");
-			Result.set_precision_max_digits10<double>(); // Restore max precision for Image coordinates geometry
+			Result.set_precision(); // Restore default precision
 		}
 
 		Result.newline();

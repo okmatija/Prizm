@@ -12,9 +12,9 @@ Normalize :: (v : *Vector3, $robust := false) -> float {
 
         length : float = ---;
         if maxAbsComp > 0 {
-            <<v /= maxAbsComp;
+            v.* /= maxAbsComp;
             length = sqrt(Dot(v, v));
-            <<v /= length;
+            v.* /= length;
             length *= maxAbsComp;
         } else {
             length = 0;
@@ -26,7 +26,7 @@ Normalize :: (v : *Vector3, $robust := false) -> float {
     } else {
         length := sqrt(Dot(v, v));
         if length > 0 {
-            <<v /= length;
+            v.* /= length;
         } else {
             for i : 0..2 {
                 v.component[i] = 0;
@@ -46,13 +46,13 @@ Normalize :: (v : *Vector3, $robust := false) -> float {
 // form an orthonormal set.
 Orthonormalize :: ($numInputs : int, v : *[3]Vector3, $robust := false) -> float {
     #if 1 <= numInputs && numInputs <= 3 {
-        minLength : float = Normalize(*(<<v)[0], robust);
+        minLength : float = Normalize(*(v.*)[0], robust);
         for i : 1..numInputs-1 {
             for j : 0..i-1 {
-                dot : float = Dot((<<v)[i], (<<v)[j]);
-                (<<v)[i] -= (<<v)[j] * dot;
+                dot : float = Dot(v.*[i], v.*[j]);
+                v.*[i] -= v.*[j] * dot;
             }
-            length : float = Normalize(*(<<v)[i], robust);
+            length : float = Normalize(*(v.*)[i], robust);
             if length < minLength {
                 minLength = length;
             }

@@ -69,7 +69,7 @@ CornersIterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #ex
     `it_index := -1;
     for 0..CORNER_COUNT-1 {
         it_index += 1;
-        `it := corner(<<box, xx it_index); // @CompilerBug Cannot use autodereference. Attempt to use a type restriction
+        `it := corner(box, xx it_index); // @CompilerBug Cannot use autodereference. Attempt to use a type restriction
         #insert (remove=#assert(false)) body;
     }
 }

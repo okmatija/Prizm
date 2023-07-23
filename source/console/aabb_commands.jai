@@ -24,7 +24,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
             polyline_aabb := to_polyline_soup(it.aabb);
             for polyline : polyline_aabb.polylines {
                 shape_polyline := array_add(*shape.polylines);
-                <<shape_polyline = polyline; // @FIXME null check
+                shape_polyline.* = polyline; // @FIXME null check
             }
         }
 
@@ -66,8 +66,8 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     {
                         using primitives : Simple_Mesh;
                         defer deinit(*primitives);
-                        for :spatial.Primitive_Info_Iterator info : node.range {
-                            tri := get_primitive(tree, info.primitive_id);
+                        for :spatial.Element_Info_Iterator info : node.range {
+                            tri := get_element(tree, info.element_id);
                             add_triangle(*primitives, tri);
                         }
                         primitives.world_from_model = tree.shape.world_from_model;
@@ -76,17 +76,17 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
-                    entity_base := <<found;
+                    entity_base := found.*;
                     entity := entity_base;
                     entity.render_info.is_dirty = true; // Redundant
-                    entity.display_info.segments_visible = true;
-                    entity.display_info.segments_width = 2;
+                    entity.display_info.segment_style.visible = true;
+                    entity.display_info.segment_style.width = 2;
 
                     {
                         using primitives : Simple_Mesh;
                         defer deinit(*primitives);
-                        for :spatial.Primitive_Info_Iterator info : node.range {
-                            tri := get_primitive(tree, info.primitive_id);
+                        for :spatial.Element_Info_Iterator info : node.range {
+                            tri := get_element(tree, info.element_id);
                             add_triangle(*primitives, tri);
                         }
                         primitives.world_from_model = tree.shape.world_from_model;
@@ -117,7 +117,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
 
                     table_add(entity_at_depth, depth, entity);
                 } else {
-                    entity := <<found;
+                    entity := found.*;
 
                     other := to_edge_Mesh(node.aabb, tree.shape.world_from_model);
                     defer deinit(*other);
@@ -133,7 +133,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         Visitor_Data :: struct {
             entity_at_depth : *Table(int, *Entity);
             name : string;
-            tree : *AABB_Tree(Simple_Mesh); // Needed so iterator can work
+            tree : *AABB_Tree; // Needed so iterator can work
         }
         visitor_data : Visitor_Data;
         visitor_data.entity_at_depth = *entity_at_depth;
@@ -143,7 +143,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
         visitor : spatial.Node_Visitor;
         visitor.proc = append_to_entity_at_depth;
         visitor.data = *visitor_data;
-        depth_first_visit(<<spatial, visitor); // @CompilerBug why can't I implicit pointer dereference here?
+        depth_first_visit(spatial.*, visitor); // @CompilerBug why can't I implicit pointer dereference here?
 
         Entity_At_Depth :: struct {
             depth : int;

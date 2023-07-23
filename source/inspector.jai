@@ -26,8 +26,8 @@ inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
                     ImGui.DragFloat(name, data, format="%.6f");
                     // ImGui.InputFloat(name, data, 0.01, 1.0);
                 case 8;
-                    x : float = xx <<cast(*float64) data;
-                    if ImGui.InputFloat(name, *x, 0.01, 1.0) { <<cast(*float64) data = x; };
+                    x : float = cast(float)(cast(*float64)data).*;
+                    if ImGui.InputFloat(name, *x, 0.01, 1.0) { (cast(*float64)data).* = x; };
             }
 
         case .BOOL;
@@ -37,7 +37,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
         case .STRING;
 
             str := cast(*string)data;
-            str_c := temp_c_string(<<str);
+            str_c := temp_c_string(str.*);
 
             // @Incomplete We could allow editing of strings too.
             if str {
