@@ -302,8 +302,8 @@ show_tools_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
         show_api_ui();
-        show_select_ui();
-        show_preset_ui();
+        show_create_tool_ui();
+        show_select_tool_ui();
     }
 }
 
@@ -607,9 +607,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
 
 
 
-show_preset_ui :: () {
+show_create_tool_ui :: () {
 
-    do_tree := ImGui.TreeNodeEx("Examples", ImGui.TreeNodeFlags.SpanAvailWidth);
+    do_tree := ImGui.TreeNodeEx("Create", ImGui.TreeNodeFlags.SpanAvailWidth);
     show_tooltip("Create preset shapes\nSome function as tutorials");
     if do_tree {
         defer ImGui.TreePop();
@@ -993,7 +993,7 @@ show_python_api_ui :: () {
     }
 }
 
-show_select_ui :: () {
+show_select_tool_ui :: () {
     // TODO Could add options to the select tool
     // - Should we copy over annotations/attributes?
     // - Should we prefix annotations with the item index of the source?
@@ -1662,6 +1662,7 @@ display_information :: (entity : *Entity) {
         }
 
         // @Incomplete Attributes/Annotations information?
+        Row("Date created", filetime_to_readable_date(get_entity_source(entity).creation_time), "Date/time when item was (re)loaded");
         Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
         Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
         Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
@@ -1741,6 +1742,8 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             case .COMMAND;  annotations = entity.command_annotations;
         }
 
+        // This should be a function per annotation kind, so it can have different columns/states
+
         if annotations.count {
 
             table_flags := attr_anno_table_flags;
@@ -1758,7 +1761,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
 
                 ImGui.TableSetupColumn("UI",         ImGui.TableColumnFlags.WidthFixed | .NoSort);
                 ImGui.TableSetupColumn("Index",      ImGui.TableColumnFlags.WidthFixed | .DefaultSort);
-                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .NoSort);
+                ImGui.TableSetupColumn("Type",       ImGui.TableColumnFlags.WidthFixed | .DefaultHide | .NoSort);
                 ImGui.TableSetupColumn("Annotation", ImGui.TableColumnFlags.WidthStretch);
                 ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
                 ImGui.TableHeadersRow();
@@ -1795,7 +1798,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                     ImGui.TableNextRow();
 
                     ImGui.TableNextColumn();
-                    if annotation.kind == .BLOCK {
+                    if annotation.kind == .BLOCK || annotation.kind == .COMMAND {
                         // @Incomplete Add an show/hide button to fold multiline comments?
                     } else {
                         if ImGui.Button(imgui_label("Focus", xx annotation.id)) {

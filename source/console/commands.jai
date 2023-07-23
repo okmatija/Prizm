@@ -963,7 +963,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
 } @RegisterCommand
 
 
-// Finds any positions (eg obj file v-directives) which are not referenced by any element (eg p-, l- or f-directives) and explicitly add them as point elements.
+// Finds any positions (obj v-directives) which are not referenced by any element (eg p-, l- or f-directives) and explicitly add them as point elements.
 // This is useful when inspecting position/element labels because for efficiency the ray-cast queries involved only visit elements
 item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
     if !check_geometry_index(id) {

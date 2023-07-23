@@ -800,7 +800,7 @@ struct Obj {
         // floating-point value, even though the intermediate text representation is not exact. It may take over a hundred
         // decimal digits to represent the precise value of a float in decimal notation."
         // https://en.cppreference.com/w/cpp/types/numeric_limits/max_digits10
-        return set_precision(std::numeric_limits<Float>::digits10, old_n);
+        return set_precision(std::numeric_limits<Float>::max_digits10, old_n);
     }
 
 

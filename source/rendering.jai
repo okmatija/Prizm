@@ -315,8 +315,8 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             //
             // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
 
-            if !info.triangles_vbo {
-                glGenBuffers(1, *info.triangles_vbo);
+            {
+                if !info.triangles_vbo glGenBuffers(1, *info.triangles_vbo);
 
                 triangle_positions : [..]Vector3 = temp_array(Vector3);
                 array_reserve(*triangle_positions, 3 * mesh.triangles.count);
@@ -346,8 +346,9 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
             }
 
-            if !info.triangles_vao {
-                glGenVertexArrays(1, *info.triangles_vao);
+            {
+                if !info.triangles_vao glGenVertexArrays(1, *info.triangles_vao);
+
                 glBindVertexArray(info.triangles_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
@@ -359,8 +360,9 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
             }
 
-            if !info.triangles_edges_vao {
-                glGenVertexArrays(1, *info.triangles_edges_vao);
+            {
+                if !info.triangles_edges_vao glGenVertexArrays(1, *info.triangles_edges_vao);
+
                 glBindVertexArray(info.triangles_edges_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
@@ -368,8 +370,9 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
             }
 
-            if !info.triangles_normals_vao {
-                glGenVertexArrays(1, *info.triangles_normals_vao);
+            {
+                if !info.triangles_normals_vao glGenVertexArrays(1, *info.triangles_normals_vao);
+
                 glBindVertexArray(info.triangles_normals_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
@@ -383,8 +386,8 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         }
 
         if mesh.segments.count {
-            if !info.segments_vbo {
-                glGenBuffers(1, *info.segments_vbo);
+            {
+                if !info.segments_vbo glGenBuffers(1, *info.segments_vbo);
 
                 segment_positions : [..]Vector3 = temp_array(Vector3);
                 array_reserve(*segment_positions, 2 * mesh.segments.count);
@@ -405,16 +408,18 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
             }
 
-            if !info.segments_vao {
-                glGenVertexArrays(1, *info.segments_vao);
+            {
+                if !info.segments_vao glGenVertexArrays(1, *info.segments_vao);
+
                 glBindVertexArray(info.segments_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
             }
 
-            if !info.segments_normals_vao {
-                glGenVertexArrays(1, *info.segments_normals_vao);
+            {
+                if !info.segments_normals_vao glGenVertexArrays(1, *info.segments_normals_vao);
+
                 glBindVertexArray(info.segments_normals_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
 
@@ -428,8 +433,8 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         }
 
         if mesh.points.count {
-            if !info.points_vbo {
-                glGenBuffers(1, *info.points_vbo);
+            {
+                if !info.points_vbo glGenBuffers(1, *info.points_vbo);
 
                 point_positions : [..]Vector3 = temp_array(Vector3);
                 array_reserve(*point_positions, mesh.points.count);
@@ -449,16 +454,18 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
             }
 
-            if !info.points_vao {
-                glGenVertexArrays(1, *info.points_vao);
+            {
+                if !info.points_vao glGenVertexArrays(1, *info.points_vao);
+
                 glBindVertexArray(info.points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
             }
 
-            if !info.points_normals_vao {
-                glGenVertexArrays(1, *info.points_normals_vao);
+            {
+                if !info.points_normals_vao glGenVertexArrays(1, *info.points_normals_vao);
+
                 glBindVertexArray(info.points_normals_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
 
@@ -471,16 +478,18 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         }
 
         if mesh.positions.count {
-            if !info.positions_vbo {
-                glGenBuffers(1, *info.positions_vbo);
+            {
+                if !info.positions_vbo glGenBuffers(1, *info.positions_vbo);
+
                 NP := size_of(Vector3) * mesh.positions.count;
                 glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
                 glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
             }
 
-            if !info.positions_vao {
-                glGenVertexArrays(1, *info.positions_vao);
+            {
+                if !info.positions_vao glGenVertexArrays(1, *info.positions_vao);
+
                 glBindVertexArray(info.positions_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
                 glEnableVertexAttribArray(ATTRIB_POSITION);
