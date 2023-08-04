@@ -52,6 +52,7 @@ inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
             flags := ImGui.TreeNodeFlags.SpanAvailWidth;
             if depth == 0 {
                 flags |= .Framed;
+                flags |= .DefaultOpen;
             }
             do_tree := ImGui.TreeNodeEx(imgui_label(to_string(name), data), flags);
             if depth == 0 {

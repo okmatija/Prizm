@@ -1,5 +1,18 @@
 #load "app.jai";
 
+// nocommitttt Add the minimize buttons etc
+// nocommit In release post mention that its interesting how much difference icons and more standard UI make
+// nocommit Add the minimize, maximize and close buttons (with tinting)
+// nocommit Scale the world axes with the window size
+// nocommit Get renderdoc, superluminal, zoomit and tracy on laptop
+// nocommit consider using BeginMenu in Details tree so you can get the quick hover opening thing
+// nocommit Rename show console ui to show footer UI so it also shows/hides the action buttons
+
+// nocommittt Move to app
+icon_width : s32;
+icon_height : s32;
+icon_texture : GLuint;
+
 main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -8,7 +21,8 @@ main :: () {
     app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
-                                  SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE/*|SDL_WINDOW_BORDERLESS*/); // FIXME can't move the window when its borderless
+                                  SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS);
+                                //   SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE/*|SDL_WINDOW_BORDERLESS*/); // FIXME can't move the window when its borderless
 
     // Check that the window was successfully created
     if app.window == null {
@@ -31,6 +45,9 @@ main :: () {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
+    //SDL_SetWindowOpacity(app.window, .5); // nocommit Needed a change to SDL module
+    //SDL_MaximizeWindow(app.window); // nocommit this, and the way of maximizing where you pull to top of screen is broken when using SDL_WINDOW_BORDERLESS
+
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
         print("Could not create OpenGL context: %\n", to_string(SDL_GetError()));
@@ -41,9 +58,6 @@ main :: () {
 
     gl_enable_debug_output(true);
     // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
-
-    gl_version_major, gl_version_minor = gl_get_version();
-    print("OpenGL %.%\n", gl_version_major, gl_version_minor);
 
     // Prepare VAO for text quads.
     {
@@ -114,47 +128,6 @@ main :: () {
     init_keymap();
     init_known_issues();
 
-    file_change_callback :: (watcher: *File_Watcher(), change: *File_Change, user_data : *void) {
-        // print("Change for path %: %", change.full_path, change.events);
-
-        found_entity : *Entity;
-        for :All entity : app.entities {
-            if entity.source.kind == .Entity_Source_File && get_entity_source(entity).path == change.full_path {
-                found_entity = entity;
-                break entity; // There can only be one relevant entity for each file change
-            }
-        }
-
-        if found_entity {
-            source := isa(found_entity.source, Entity_Source_File);
-            if source && source.auto_reload {
-                reload_entity(found_entity);
-
-                if app.settings.fit_to_screen_on_file_watcher_event {
-                    fit_scene_on_screen();
-                }
-            }
-        } else {
-            found_dir : *app.Folder;
-            for *dir : app.directories {
-                if dir.path == get_directory(change.full_path) {
-                    found_dir = dir;
-                    break;
-                }
-            }
-            if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {
-                entities := load_one_file(change.full_path, .IGNORE);
-                for entity : entities {
-                    add_entity(entity, .IGNORE);
-                }
-
-                if app.settings.fit_to_screen_on_file_watcher_event {
-                    fit_scene_on_screen();
-                }
-            }
-        }
-    }
-
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
     file_events_to_watch |= File_Change_Event.ADDED | .MODIFIED;
@@ -179,6 +152,8 @@ main :: () {
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
 
+    SDL_SetWindowHitTest(app.window, window_hit_test, null);
+
     // // Using those as a base value to create width/height that are factor of the size of our font
     // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
@@ -201,6 +176,9 @@ main :: () {
 
     load_from_command_line();
 
+    icon_success : bool = load_texture_from_file("data/icon.png", *icon_texture, *icon_width, *icon_height);
+    assert(icon_success);
+
     // Main loop
     while !app.closing_application {
         // Cache the state we need this frame and reset it for the next frame
@@ -215,6 +193,8 @@ main :: () {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
+
+        show_menu_bar_ui();
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
@@ -257,6 +237,7 @@ main :: () {
         render_entities();
         render_axes_triad();
 
+        // nocommit This is broken (maybe just on laptop actually..!)
         do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
 
         ImGui.Render();
@@ -321,6 +302,8 @@ handle_events :: () {
 
             case SDL_WINDOWEVENT;
 
+                //print("window event: %\n", event.window.event);
+
                 if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
 
                     width_scale  := cast(float) event.window.data1 / app.current_window_width;
@@ -335,6 +318,14 @@ handle_events :: () {
 
                     app.current_window_width  = event.window.data1;
                     app.current_window_height = event.window.data2;
+                }
+
+                if event.window.event == SDL_WINDOWEVENT_MAXIMIZED {
+                    app.window_maximized = true;
+                }
+
+                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
+                    app.window_maximized = false;
                 }
 
             case SDL_KEYDOWN;
@@ -467,6 +458,47 @@ handle_load_string :: (path : string, recursive := false) -> bool {
 
 #scope_file
 
+file_change_callback :: (watcher: *File_Watcher(), change: *File_Change, user_data : *void) {
+    // print("Change for path %: %", change.full_path, change.events);
+
+    found_entity : *Entity;
+    for :All entity : app.entities {
+        if entity.source.kind == .Entity_Source_File && get_entity_source(entity).path == change.full_path {
+            found_entity = entity;
+            break entity; // There can only be one relevant entity for each file change
+        }
+    }
+
+    if found_entity {
+        source := isa(found_entity.source, Entity_Source_File);
+        if source && source.auto_reload {
+            reload_entity(found_entity);
+
+            if app.settings.fit_to_screen_on_file_watcher_event {
+                fit_scene_on_screen();
+            }
+        }
+    } else {
+        found_dir : *app.Folder;
+        for *dir : app.directories {
+            if dir.path == get_directory(change.full_path) {
+                found_dir = dir;
+                break;
+            }
+        }
+        if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {
+            entities := load_one_file(change.full_path, .IGNORE);
+            for entity : entities {
+                add_entity(entity, .IGNORE);
+            }
+
+            if app.settings.fit_to_screen_on_file_watcher_event {
+                fit_scene_on_screen();
+            }
+        }
+    }
+}
+
 handle_filename :: (fully_pathed_filename : string, matching_name_behaviour : Duplicate_File_Behaviour) {
     entities := load_one_file(fully_pathed_filename, matching_name_behaviour);
     for entity : entities {
@@ -531,6 +563,67 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
         #assert(false, "@Incomplete verify that Simp integration works on linux");
     }
     return window_type;
+}
+
+window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> SDL_HitTestResult #c_call {
+
+    new_context : Context;
+    push_context new_context {
+
+        easy_resize_mode := io().KeyAlt;
+
+        w := cast(float)app.current_window_width;
+        h := cast(float)app.current_window_height;
+        x := cast(float)point.x;
+        y := cast(float)point.y;
+
+        left   :=  cast(float)WINDOW_RESIZE_MARGIN_PX;
+        right  := -cast(float)WINDOW_RESIZE_MARGIN_PX + w;
+        top    :=  cast(float)WINDOW_RESIZE_MARGIN_PX;
+        bottom := -cast(float)WINDOW_RESIZE_MARGIN_PX + h;
+        if easy_resize_mode {
+            k := EASY_RESIZE_FRACTION;;
+            left   = w * k;
+            right  = w * (1.-k);
+            top    = h * k;
+            bottom = h * (1.-k);
+        }
+
+        if y <= top {
+            if x <= left {
+                return .SDL_HITTEST_RESIZE_TOPLEFT;
+            } else if x >= right {
+                return .SDL_HITTEST_RESIZE_TOPRIGHT;
+            } else {
+                return .SDL_HITTEST_RESIZE_TOP;
+            }
+        } else if y >= bottom {
+            if x <= left {
+                return .SDL_HITTEST_RESIZE_BOTTOMLEFT;
+            } else if x >= right {
+                return .SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+            } else {
+                return .SDL_HITTEST_RESIZE_BOTTOM;
+            }
+        } else {
+            if x <= left {
+                return .SDL_HITTEST_RESIZE_LEFT;
+            } else if x >= right {
+                return .SDL_HITTEST_RESIZE_RIGHT;
+            } else if easy_resize_mode {
+                return .SDL_HITTEST_DRAGGABLE;
+            }
+        }
+
+        if x >= app.window_draggable_rect_min.x &&
+            x <= app.window_draggable_rect_max.x &&
+            y >= app.window_draggable_rect_min.y &&
+            y <= app.window_draggable_rect_max.y {
+            return .SDL_HITTEST_DRAGGABLE;
+        }
+
+        return .SDL_HITTEST_NORMAL;
+    }
 }
 
 ctx: *ImGui.ImGuiContext;

@@ -4,7 +4,12 @@ app : App;
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
+    window_maximized := false; // nocommit Not sure we need this
+    window_draggable_rect_min : ImGui.ImVec2;
+    window_draggable_rect_max : ImGui.ImVec2;
+
     simp_font: *Simp.Dynamic_Font;
+
     theme : Prism_Theme;
 
     Folder :: struct {
@@ -370,6 +375,7 @@ Debug :: #import "Debug";
 #import "Hash_Table";
 #import "freetype255";
 #import "System";
+#import "stb_image";
 ImGui :: #import "ImGui";
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend

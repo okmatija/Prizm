@@ -1,10 +1,23 @@
-PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
+PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
 - New Feature: Attributes TODO Add a feature flag for enabling this
 
   - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
   - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
   - Multiple attributes are supported, and each will have its own tab in the item context menu
   - TODO Added a preset example to demonstrate the new annotation functionality
+DONE};
+
+PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
+- Refactored UI to make it more aligned with Common User Access (CUA) standards
+
+  - Replaced the default native windows titlebar with an ImGui menu bar and moved existing UI into File, View and Help menus
+  - TODO Changed the key bind for quitting the application from `Ctrl Shift q` to `Alt F4`
+
+- Added an easy resize feature to make it easy to manipulate the Prism window
+
+  - `Alt LMB` near the center of the window moves the window
+  - `Alt LMB` near the edge of the window resizes the window
+  - TODO Removed the previous `Alt` bindings which clashed with above...?
 DONE};
 
 PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
@@ -506,7 +519,8 @@ DONE
 };
 
 init_changelog :: () {
-    //array_add(*app.changelog, PRISM_VERSION_0_7_0);
+    //array_add(*app.changelog, PRISM_VERSION_0_8_0);
+    array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);
     array_add(*app.changelog, PRISM_VERSION_0_6_0);
     array_add(*app.changelog, PRISM_VERSION_0_5_1);

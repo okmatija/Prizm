@@ -1,51 +1,169 @@
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
+EASY_RESIZE_FRACTION :: .25;
+WINDOW_RESIZE_MARGIN_PX :: 3;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
+
+/*
+
+	void DrawButtonImage(const std::shared_ptr<Walnut::Image>& imageNormal, const std::shared_ptr<Walnut::Image>& imageHovered, const std::shared_ptr<Walnut::Image>& imagePressed,
+		ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed,
+		ImVec2 rectMin, ImVec2 rectMax)
+	{
+		auto* drawList = ImGui::GetForegroundDrawList();
+		if (ImGui::IsItemActive())
+			drawList->AddImage(imagePressed->GetDescriptorSet(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
+		else if (ImGui::IsItemHovered())
+			drawList->AddImage(imagePressed->GetDescriptorSet(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
+		else
+			drawList->AddImage(imagePressed->GetDescriptorSet(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
+	};
+
+*/
+
+show_menu_bar_ui :: () {
+    // Draw a grey border around the entire screen, if we don't do this its hard to see where the application ends
+    fg_draw_list : *ImGui.ImDrawList = ImGui.GetForegroundDrawList();
+    ImGui.ImDrawList.AddRect(fg_draw_list, ImGui.ImVec2.{}, ImGui.GetMainViewport().Size, ImGui.GetColorU32(ImGui.GetStyle().Colors[ImGui.Col.Border]));
+
+    ImGui.BeginMainMenuBar();
+    defer ImGui.EndMainMenuBar();
+
+    // nocommit Not clear why we need this
+    ScopedChildBorderTheme(ImGui.GetStyle().Colors[ImGui.Col.Border], 1.);
+
+    icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
+    ImGui.Image(cast(ImGui.ImTextureID)icon_texture, icon_size);
+
+    // sz : float = ImGui.GetTextLineHeight();
+    // p : ImGui.ImVec2 = ImGui.GetCursorScreenPos();
+    // ImGui.ImDrawList.AddRectFilled(ImGui.GetWindowDrawList(), p, ImGui.ImVec2.{p.x + xx sz, p.y + xx sz}, ImGui.GetColorU32(RED));
+    // ImGui.Dummy(ImGui.ImVec2.{xx sz, xx sz});
+
+    if (ImGui.BeginMenu("File")) {
+        defer ImGui.EndMenu();
+
+        if ImGui.BeginMenu("Preferences") {
+            defer ImGui.EndMenu();
+            show_preferences();
+        }
+
+        ImGui.Separator();
+
+        if ImGui.MenuItem("Quit", "Alt F4") { // nocommit change the shortcut to this
+            app.closing_application = true;
+        }
+    }
+
+    //if ImGui.BeginMenu("Edit") {
+    //    defer ImGui.EndMenu();
+    //}
+
+    if ImGui.BeginMenu("View") {
+        defer ImGui.EndMenu();
+
+        // TODO Have more granular show ui checkboxes
+        if ImGui.MenuItem("Show All UI", "Ctrl `", app.show_ui) {
+            app.show_ui = !app.show_ui;
+        }
+
+        if ImGui.MenuItem("Show Console", "     `", app.console.show_ui) {
+            app.console.show_ui = !app.console.show_ui;
+            if app.console.show_ui {
+                app.show_ui = true;
+            }
+        }
+
+        if ImGui.MenuItem("Show Camera", null, app.camera.show_ui) {
+            app.camera.show_ui = !app.camera.show_ui;
+            if app.camera.show_ui {
+                app.show_ui = true;
+            }
+        }
+
+        if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
+            app.triad.visible = !app.triad.visible;
+        }
+
+        ImGui.Separator();
+
+        if ImGui.MenuItem("Show ImGui Demo", null, app.settings.show_imgui_demo_window) {
+            app.settings.show_imgui_demo_window = !app.settings.show_imgui_demo_window;
+        }
+
+        disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+        if disable_window_resize_button ImGui.BeginDisabled();
+        if ImGui.Button("Reset OS Window Size") SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+        if disable_window_resize_button ImGui.EndDisabled();
+    }
+
+    if ImGui.BeginMenu("Help") {
+        defer ImGui.EndMenu();
+
+        if ImGui.BeginMenu("Window Shortcuts") {
+            defer ImGui.EndMenu();
+            show_window_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Camera Shortcuts") {
+            defer ImGui.EndMenu();
+            show_camera_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Items List Shortcuts") {
+            defer ImGui.EndMenu();
+            show_items_list_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Viewport Shortcuts") {
+            defer ImGui.EndMenu();
+            show_viewport_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Miscellaneous Shortcuts") {
+            defer ImGui.EndMenu();
+            show_miscellaneous_key_bindings();
+        }
+
+        ImGui.Separator();
+
+        if ImGui.BeginMenu("Release Notes") {
+            defer ImGui.EndMenu();
+            show_changelog();
+        }
+
+        if ImGui.BeginMenu("About") {
+            defer ImGui.EndMenu();
+            show_help_about_content();
+        }
+    }
+
+    app.window_draggable_rect_min = ImGui.GetCursorScreenPos() + ImGui.ImVec2.{0, WINDOW_RESIZE_MARGIN_PX};
+    app.window_draggable_rect_max = ImGui.GetWindowSize()      - ImGui.ImVec2.{WINDOW_RESIZE_MARGIN_PX, 0};
+    //ImGui.ImDrawList.AddRect(fg_draw_list, app.window_draggable_rect_min, app.window_draggable_rect_max, ImGui.GetColorU32(RED)); // Debug
+}
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
 show_left_window :: () {
 
+    // nocommit Maybe get rid of the window border styling, it doesn't really fit with the menu bar
+
     // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
+    // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
     defer ImGui.PopStyleVar();
 
-    ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
+    ImGui.SetNextWindowPos(ImGui.GetMainViewport().WorkPos + WINDOW_BORDER_UI_OFFSET);
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
     defer ImGui.End();
 
-    ScopedWindowBorderTheme(original_border_color, original_border_size);
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    if ImGui.BeginTabBar("##ItemsTab", flags=ImGui.TabBarFlags.None) {
-        defer ImGui.EndTabBar();
-
-        if ImGui.BeginTabItem("Prism") {
-            defer ImGui.EndTabItem();
-
-            // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
-            show_prism_tab_ui();
-        }
-
-        if ImGui.BeginTabItem("Edit") {
-            defer ImGui.EndTabItem();
-
-            show_edit_tab_ui();
-        }
-
-        if ImGui.BeginTabItem("View") {
-            defer ImGui.EndTabItem();
-
-            ImGui.Checkbox("Show Camera UI", *app.camera.show_ui);
-            ImGui.Checkbox("Show Console UI", *app.console.show_ui);
-        }
-
-        if ImGui.BeginTabItem("Help") {
-            defer ImGui.EndTabItem();
-
-            show_help_tab_ui();
-        }
-    }
+    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+    show_tools_ui();
+    show_items_ui();
+    show_details_ui();
 }
 
 show_right_window :: () {
@@ -53,7 +171,9 @@ show_right_window :: () {
         return;
     }
 
-    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
+    window_pos := make_ImVec2(
+        ImGui.GetMainViewport().WorkSize.x - WINDOW_BORDER_UI_OFFSET.x,
+        ImGui.GetMainViewport().WorkPos.y  + WINDOW_BORDER_UI_OFFSET.y);
     window_pivot := make_ImVec2(1, 0);
 
     using ImGui.WindowFlags;
@@ -62,13 +182,13 @@ show_right_window :: () {
     defer ImGui.PopStyleColor();
 
     // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
+    // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
 
     ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
     ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
     defer ImGui.End();
 
-    ScopedWindowBorderTheme(original_border_color, original_border_size);
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
     show_camera_controls();
 }
@@ -291,14 +411,9 @@ show_imgui_demo_window :: () {
 
 #scope_file
 
-show_prism_tab_ui :: () {
-    show_tools_ui();
-    show_items_ui();
-    show_details_ui();
-}
-
 show_tools_ui :: () {
-    do_tree := ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    // Trailing space makes it look nicer
+    do_tree := ImGui.TreeNodeEx("Tools ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     if do_tree {
         defer ImGui.TreePop();
         show_api_ui();
@@ -311,7 +426,8 @@ show_items_ui :: () {
     entity_to_remove := -1;
     any_visibility_changed : bool;
 
-    if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen | .Framed) {
+    // Trailing space makes it look nicer
+    if ImGui.TreeNodeEx("Items ", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen | .Framed) {
         defer ImGui.TreePop();
 
         for *folder : app.directories {
@@ -638,107 +754,97 @@ show_create_tool_ui :: () {
     }
 }
 
+show_preferences :: () {
+    if ImGui.BeginMenu("Appearance") {
+        defer ImGui.EndMenu();
 
-show_edit_tab_ui :: () {
-
-    if ImGui.TreeNodeEx("Preferences", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-        defer ImGui.TreePop();
-
-        if ImGui.TreeNodeEx("Appearance", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
-                set_prism_theme(app.theme.theme);
-            }
-
-            combo_box("Background", *app.background_style, type_info(app.Background_Style));
-            if app.background_style == .SOLID_COLOR {
-                ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
-            }
-            ImGui.DragFloat("UI Font Scale", *io().FontGlobalScale, .001, format="%.3f");
+        if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
+            set_prism_theme(app.theme.theme);
         }
 
-        if ImGui.TreeNodeEx("Viewport", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+        combo_box("Background", *app.background_style, type_info(app.Background_Style));
+        if app.background_style == .SOLID_COLOR {
+            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+        }
+        ImGui.DragFloat("UI Scale", *io().FontGlobalScale, .001, format="%.3f");
+    }
 
-            {
-                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
-                ImGui.DragFloat("Closest-Point Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                show_tooltip(tprint(#string DONE
+    if ImGui.BeginMenu("Viewport") {
+        defer ImGui.EndMenu();
+
+        {
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
+            ImGui.DragFloat("Closest-Point Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            show_tooltip(tprint(#string DONE
 Closest-point query radius in pixels affecting:
 - Selection
 - Clipping sphere center seeding
 - Label visibility in % labelling mode
 DONE, Labelling_Mode.RAY_CAST));
-                app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
-            }
-
-            ImGui.Checkbox("Show World Axes", *app.triad.visible);
+            app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
         }
 
-        if ImGui.TreeNodeEx("Labelling", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+        ImGui.Checkbox("Show World Axes", *app.triad.visible);
+    }
 
-            combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
-            show_tooltip(tprint(#string DONE
+    if ImGui.BeginMenu("Labelling") {
+        defer ImGui.EndMenu();
+
+        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
+        show_tooltip(tprint(#string DONE
 %: Show labels at the intersection/closest point of a camera ray query
 %: Show labels within some distance of the cursor location
 DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
-            combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
+        combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
 
-            {
-                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                radius_px := cast(float) app.settings.labelling_radius_px;
-                ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
-                app.settings.labelling_radius_px = cast(int) radius_px;
-            }
-
-            format_float_ui(*app.label_format.format_float);
-            format_struct_ui(*app.label_format.format_struct);
+        {
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.labelling_radius_px;
+            ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
+            app.settings.labelling_radius_px = cast(int) radius_px;
         }
 
-        if ImGui.TreeNodeEx("Console", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+        format_float_ui(*app.label_format.format_float);
+        format_struct_ui(*app.label_format.format_struct);
+    }
 
+    if ImGui.BeginMenu("Console") {
+        defer ImGui.EndMenu();
 
-            combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
-            show_tooltip(#string DONE
+        combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
+        show_tooltip(#string DONE
 Transparent mode: log window ignores mouse input so you can interact with the scene while reading the log
 Interactive mode: log window captures mouse input so you can scroll through log messages
 DONE);
-            ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
-        }
-
-        if ImGui.TreeNodeEx("Save & Load", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
-            show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
-            ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
-        }
-
-        if ImGui.TreeNodeEx("Miscellaneous", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-            ImGui.Checkbox("Demo Mode", *app.demo_mode);
-            show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
-
-            disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
-            if disable_window_resize_button ImGui.BeginDisabled();
-            if ImGui.Button("Reset OS Window Size") SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-            if disable_window_resize_button ImGui.EndDisabled();
-        }
+        ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
     }
 
+    if ImGui.BeginMenu("Save & Load") {
+        defer ImGui.EndMenu();
 
-    // :UserConfig add a button to overwrite the user settings file with new defaults here?
-    inspect("Advanced", *app.settings);
-    clamp_user_settings();
+        ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
+        show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
+    }
 
+    if ImGui.BeginMenu("Miscellaneous") {
+        defer ImGui.EndMenu();
+
+        ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
+        ImGui.Checkbox("Demo Mode", *app.demo_mode);
+        show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
+    }
+
+    if ImGui.BeginMenu("Advanced") {
+        defer ImGui.EndMenu();
+
+        // :UserConfig add a button to overwrite the user settings file with new defaults here?
+        inspect("Advanced##Impl", *app.settings);
+        clamp_user_settings();
+    }
 }
 
 // If entity == null then show the details for the template
@@ -758,7 +864,8 @@ show_details_ui :: () {
         tooltip = tprint("Displaying a template state.\nAny edits will be applied to % selected item%.", selected.count, plural_suffix(selected.count > 1));
     }
 
-    do_tree := ImGui.TreeNodeEx("Details", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    // Trailing space looks better when its shut
+    do_tree := ImGui.TreeNodeEx("Details ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     show_tooltip(tooltip);
     if do_tree {
         defer ImGui.TreePop();
@@ -1158,6 +1265,16 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
     return prev_color, prev_size;
 }
 
+ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
+    prev_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+    prev_size :=  ImGui.GetStyle().ChildBorderSize;
+    ImGui.PushStyleColor(xx ImGui.Col.Border, color);
+    ImGui.PushStyleVar(xx ImGui.StyleVar.ChildBorderSize, size);
+    `defer ImGui.PopStyleColor();
+    `defer ImGui.PopStyleVar();
+    return prev_color, prev_size;
+}
+
 ActionButton :: (_label : string, action_set : *Action_Set) #expand {
     label := copy_string(_label, temp);
     mod := current_modifier_flags(); 
@@ -1407,132 +1524,164 @@ show_camera_controls :: () {
     }
 }
 
-show_help_tab_ui :: () {
-    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
+show_help_about_content :: () {
 
-    if ImGui.TreeNodeEx("About", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-        defer ImGui.TreePop();
+    // nocommit Add icon image and version number
+    // nocommit Add email for feedback/bugs
 
+    // ImGui.Text("Prism is a tool for debugging geometry algorithms using .obj files.");
+    ImGui.SameLine(ImGui.GetContentRegionAvail().x / 2 - icon_width / 2);
+    ImGui.Image(cast(ImGui.ImTextureID)icon_texture, ImGui.ImVec2.{xx icon_width, xx icon_height});
+    ImGui.NewLine();
+
+    // prism_version := tprint("Prism %, %", version.name, version.date);
+    // ImGui.SameLine(ImGui.GetContentRegionAvail().x / 2 - prism_version.count);
+    // ImGui.Text(prism_version);
+    {
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
-        ImGui.Text("Prism is a tool for debugging computational geometry algorithms.");
-        ImGui.Text("Load files/folders with drag/drop or via command line arguments.");
-
-        /*
-        Goals
-        - work with .obj file format
-        - writing quads seems not that useful, so make `f a b c d` represent a tet rather than a quad
-        ImGui.Text("Feedback/Bugs can be:");
-        ImGui.Text("- sent to matija.kecman@epicgames.com, or");
-        ImGui.Text("- posted on the slack channel #sig-prism-ext, or");
-        ImGui.Text("- suggested on the User Guide document pinned on slack");
-        */
-
+        version := app.changelog[0];
+        ImGui.Text("Prism %. This is a tool for debugging geometry algorithms with obj files.", version.name);
+        ImGui.Text("Load files/folders using drag and drop or by passing command line arguments.");
         COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %.", compiler_get_version_info(null));
         ImGui.Text(COMPILER_VERSION_INFO);
     }
 
-    if ImGui.TreeNodeEx("Key Bindings", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
+    /*
+    Goals
+    - work with .obj file format
+    - writing quads seems not that useful, so make `f a b c d` represent a tet rather than a quad
+    ImGui.Text("Feedback/Bugs can be:");
+    ImGui.Text("- sent to matija.kecman@epicgames.com, or");
+    ImGui.Text("- posted on the slack channel #sig-prism-ext, or");
+    ImGui.Text("- suggested on the User Guide document pinned on slack");
+    */
+
+    ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
+    defer ImGui.PopStyleVar();
+
+    ImGui.NewLine();
+    if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth) {
         defer ImGui.TreePop();
 
-        if ImGui.TreeNodeEx("Camera Controls", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##CameraControlsKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
+        gl_version_major, gl_version_minor = gl_get_version();
+        sdl_version : SDL_version = sdl_get_version();
 
-            ShowBinding("      MMB", "Pan the camera");
-            ShowBinding("      RMB", "Rotate the camera");
-            ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane");
-            ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
-            ShowBinding("      Scroll", "Zoom into the position under the cursor");
-            ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");
-            ShowBinding("Shift Scroll", "Zoom into the camera look position");
-        }
+        // BoxSection();
+        // ImGui.TableNextColumn();
 
-        if ImGui.TreeNodeEx("In the Items List", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##ItemsListKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
+        COMPILER_VERSION :: #run stop_at_any(compiler_get_version_info(null), ",");
+        ImGui.Text("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION);
+        ImGui.Text("SDL %.%.%, zlib License (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch);
+        ImGui.Text("Geometric Tools, BSL 1.0 License (github.com/davideberly/GeometricTools)");
+        ImGui.Text("par_shapes.h, MIT License (github.com/prideout/par)");
+        ImGui.Text("Using OpenGL %.% (opengl.org)", gl_version_major, gl_version_minor);
+    }
+}
 
-            ShowBinding("      RMB", "(on a color) Cycle shading styles");
-            ShowBinding("      MMB", "(on a color) Reset color from the filename");
-            ShowBinding("      LMB", "(sweep over visibility checkbox) Update item visibility");
-            ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus hovered item");
-            ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
-            ShowBinding("      LMB", "(on a filename) Select an item");
-            ShowBinding("Ctrl  LMB", "(on a filename) Add an item to selection");
-        }
+ScopeKeyBindTable :: (table_id : string) -> ImGui.TableFlags #expand {
+    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
 
-        if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##ViewportKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
+    `ImGui.BeginTable("##WindowControlsKeys", 2, flags=table_flags);
+    `defer ImGui.EndTable();
+}
 
-            for app.keymap_actions.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
-            }
+show_window_key_bindings :: () {
+    ScopeKeyBindTable("##WindowControlsKeys");
 
-            ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
-            ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
-        }
+    ShowBinding("Alt   LMB", "If cursor is near window border: Resize the window");
+    ShowBinding("Alt   LMB", "If cursor is near window center: Move the window");
+}
 
-        if ImGui.TreeNodeEx("Miscellaneous", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##MiscellaneousKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
+show_camera_key_bindings :: () {
+    ScopeKeyBindTable("##CameraControlsKeys");
 
-            for app.keymap.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
-            }
-            for app.keymap_keydown.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
-            }
-        }
+    // nocommittt Remove the Alt bindings
+    ShowBinding("      MMB", "Pan the camera");
+    ShowBinding("      RMB", "Rotate the camera");
+    ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane");
+    ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
+    ShowBinding("      Scroll", "Zoom into the position under the cursor");
+    ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");
+    ShowBinding("Shift Scroll", "Zoom into the camera look position");
+}
+
+show_items_list_key_bindings :: () {
+    ScopeKeyBindTable("##ItemsListKeys");
+
+    ShowBinding("      RMB", "(on a color) Cycle shading styles");
+    ShowBinding("      MMB", "(on a color) Reset color from the filename");
+    ShowBinding("      LMB", "(sweep over visibility checkbox) Update visibility");
+    ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus item");
+    ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus item, update camera");
+    ShowBinding("      LMB", "(on a filename) Select an item");
+    ShowBinding("Ctrl  LMB", "(on a filename) Add an item to selection");
+}
+
+show_viewport_key_bindings :: () {
+    ScopeKeyBindTable("##ViewportKeys");
+
+    for app.keymap_actions.mappings {
+        push_allocator(temp);
+        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
     }
 
-    outer_size : ImGui.ImVec2;
-    outer_size.x = min(800., app.current_window_width * .75);
-    outer_size.y = 0;
+    ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
+    ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
+}
 
-    if ImGui.TreeNodeEx("Changelog", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
+show_miscellaneous_key_bindings :: () {
+    ScopeKeyBindTable("##MiscellaneousKeys");
+
+    for app.keymap.mappings {
+        push_allocator(temp);
+        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+    }
+    for app.keymap_keydown.mappings {
+        push_allocator(temp);
+        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
+    }
+}
+
+show_changelog :: () {
+    if ImGui.Button("Save to CHANGELOG.md") {
+        contents : string;
+        defer free(contents);
+        time := filetime_to_readable_date(current_time_consensus(), true);
+        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
+        for app.changelog {
+            entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
+            contents = join(contents, entry);
+        }
+        write_entire_file_to_cwd("CHANGELOG.md", contents);
+    }
+    show_tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
+
+    blank_space :: () {
+        ImGui.Text("                                                                                                                       ");
+    }
+
+    latest := app.changelog[0];
+    if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
         defer ImGui.TreePop();
 
-        if ImGui.Button("Save to CHANGELOG.md") {
-            contents : string;
-            defer free(contents);
-            time := filetime_to_readable_date(current_time_consensus(), true);
-            contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
-            for app.changelog {
-                entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
-                contents = join(contents, entry);
-            }
-            write_entire_file_to_cwd("CHANGELOG.md", contents);
-        }
-        show_tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
+        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+        ImGui.TextWrapped(latest.description);
+        // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
+        ImGui.PopStyleColor();
+        blank_space();
+    }
 
-        latest := app.changelog[0];
-        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
+    for 1..app.changelog.count-1 {
+        version := app.changelog[it];
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-            ImGui.TextWrapped(latest.description);
-            // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
+            ImGui.TextWrapped(version.description);
+            // ImGui.Text(version.description);
             ImGui.PopStyleColor();
-        }
-
-        for 1..app.changelog.count-1 {
-            version := app.changelog[it];
-            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
-                defer ImGui.TreePop();
-
-                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-                ImGui.TextWrapped(version.description);
-                // ImGui.Text(version.description);
-                ImGui.PopStyleColor();
-            }
+            blank_space();
         }
     }
 
@@ -1546,8 +1695,6 @@ show_help_tab_ui :: () {
     //        }
     //    }
     //}
-
-    // @Incomplete add a message about where the keymap is for editing
 }
 
 
@@ -2293,6 +2440,40 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
     }
 }
 
+#scope_export // nocommit and cleanup the scope of functions in this file
+load_texture_from_file :: (filename : string, out_texture : *GLuint, out_width : *s32, out_height : *s32) -> bool {
+    // Load from file
+    image_width : s32 = 0;
+    image_height : s32 = 0;
+    image_data : *u8 = stbi_load(temp_c_string(filename), *image_width, *image_height, null, 4);
+    defer stbi_image_free(image_data);
+
+    if image_data == null {
+        return false;
+    }
+
+    // Create an OpenGL texture identifier
+    image_texture : GLuint;
+    glGenTextures(1, *image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+    // Upload pixels into texture
+    //glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cast(u32)image_width, cast(u32)image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+
+    out_texture.* = image_texture;
+    out_width.* = image_width;
+    out_height.* = image_height;
+
+    return true;
+}
+
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
 
 display_action_buttons := true;
@@ -2364,3 +2545,56 @@ g_this_frame_state : ImGui_Frame_State;
 g_next_frame_state : ImGui_Frame_State;
 
 POSITIVE_INF :: 0h7F800000;
+
+sdl_get_version :: () -> SDL_version {
+    wm_info: SDL_SysWMinfo;
+    SDL_VERSION(*wm_info.version);
+    SDL_GetWindowWMInfo(app.window, *wm_info);
+    return wm_info.version;
+}
+
+ICON_WINDOW_CLOSE :: u8.[
+0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 
+0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0e, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x48, 0x2d, 
+0xd1, 0x00, 0x00, 0x00, 0x77, 0x49, 0x44, 0x41, 0x54, 0x28, 0x91, 0xad, 0xd2, 0xdd, 0x0a, 0x80, 
+0x20, 0x0c, 0x86, 0xe1, 0xd7, 0xb0, 0xbb, 0x0e, 0x9a, 0xd0, 0x65, 0x1b, 0x0b, 0x49, 0x43, 0xfc, 
+0x2b, 0xaa, 0x81, 0x07, 0x7e, 0xdb, 0x33, 0x3c, 0x90, 0xb7, 0x65, 0x82, 0x53, 0xd5, 0x0d, 0xf0, 
+0x80, 0xdc, 0xec, 0x09, 0x7d, 0x6b, 0x8c, 0x59, 0xa6, 0x18, 0xec, 0xc0, 0x7a, 0x03, 0x25, 0xce, 
+0xf8, 0x2b, 0x51, 0xd5, 0x70, 0x9c, 0x9e, 0x25, 0xf1, 0x9e, 0x1f, 0xc9, 0x7b, 0x25, 0xec, 0x61, 
+0x29, 0xb3, 0x16, 0x2c, 0x07, 0x2b, 0x34, 0x82, 0x39, 0xae, 0x50, 0x82, 0x13, 0x5f, 0xea, 0x8f, 
+0xa7, 0xb6, 0x06, 0x53, 0xb6, 0xf6, 0x60, 0x73, 0x7b, 0x0b, 0xe7, 0x70, 0x84, 0x2a, 0x1c, 0x8c, 
+0x8d, 0x76, 0x06, 0xdc, 0x83, 0x9f, 0x93, 0x66, 0x5f, 0x16, 0x70, 0x00, 0xf8, 0x25, 0x49, 0x6a, 
+0x1b, 0xd2, 0x84, 0x22, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+];
+
+ICON_WINDOW_MINIMIZE :: u8.[
+0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 
+0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x02, 0x08, 0x06, 0x00, 0x00, 0x00, 0x68, 0x8a, 0xed, 
+0xaa, 0x00, 0x00, 0x00, 0x17, 0x49, 0x44, 0x41, 0x54, 0x08, 0x99, 0x63, 0xfc, 0xff, 0xff, 0xff, 
+0x7f, 0x06, 0x32, 0x00, 0x13, 0x39, 0x9a, 0x18, 0x18, 0x18, 0x18, 0x00, 0xbd, 0xa7, 0x04, 0x00, 
+0x48, 0xa5, 0x4e, 0xd9, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+];
+
+ICON_WINDOW_MAXIMIZE :: u8.[
+0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 
+0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0e, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x48, 0x2d, 
+0xd1, 0x00, 0x00, 0x00, 0x2b, 0x49, 0x44, 0x41, 0x54, 0x28, 0x91, 0x63, 0xfc, 0xff, 0xff, 0xff, 
+0x7f, 0x06, 0x32, 0x00, 0x0b, 0x54, 0x0b, 0x23, 0x89, 0x5a, 0xff, 0x33, 0x91, 0x63, 0x1b, 0x08, 
+0x8c, 0x6a, 0x1c, 0xd5, 0x48, 0x1e, 0x80, 0xa5, 0x55, 0xd2, 0x12, 0x3a, 0x03, 0x03, 0x03, 0x00, 
+0x75, 0x70, 0x06, 0x1b, 0xf7, 0xa3, 0xe2, 0x95, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 
+0xae, 0x42, 0x60, 0x82
+];
+
+ICON_WINDOW_RESTORE :: u8.[
+0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 
+0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0e, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x48, 0x2d, 
+0xd1, 0x00, 0x00, 0x00, 0x77, 0x49, 0x44, 0x41, 0x54, 0x28, 0x91, 0xed, 0xd2, 0x21, 0x0e, 0x83, 
+0x40, 0x10, 0x85, 0xe1, 0x8f, 0x86, 0x4b, 0x60, 0xab, 0xb9, 0x41, 0x91, 0x5c, 0x81, 0x13, 0xd6, 
+0xf5, 0x0a, 0xf5, 0x75, 0xb8, 0xde, 0xa0, 0x49, 0x45, 0x65, 0x39, 0xc0, 0x90, 0x49, 0x40, 0x55, 
+0xb0, 0x08, 0x5c, 0xff, 0x64, 0xb3, 0x2f, 0x9b, 0xfd, 0x33, 0x62, 0x9e, 0x88, 0xc8, 0xd3, 0xc5, 
+0x4e, 0x6a, 0xf4, 0x68, 0xf1, 0xc6, 0xcd, 0x36, 0x57, 0x8c, 0x29, 0xde, 0xf1, 0x40, 0x60, 0xd8, 
+0xd0, 0x1a, 0x7c, 0x33, 0xd4, 0xcb, 0xc3, 0xa5, 0x60, 0x52, 0xf2, 0x59, 0xc3, 0xa9, 0x50, 0xf8, 
+0xe1, 0x2f, 0x1e, 0x21, 0x56, 0x59, 0xb4, 0xbc, 0x0b, 0xff, 0xe7, 0x1e, 0x27, 0x9c, 0xd7, 0x02, 
+0x94, 0xf2, 0x5a, 0x2a, 0xf7, 0xcc, 0x82, 0xef, 0xa5, 0x8b, 0x08, 0x33, 0x0d, 0x1f, 0x7c, 0xf7, 
+0xc7, 0x6d, 0xb0, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+];

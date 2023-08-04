@@ -452,7 +452,7 @@ ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand
     ImGui.ListClipper.Destructor(*clipper);
 }
 
-
+// nocommitttt Remove these make_XXX functions
 make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
     v: ImGui.ImVec2 = ---;
     v.x = a;

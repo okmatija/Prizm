@@ -48,7 +48,7 @@ CYCLE_VERTEX_SIZE_ACTION_SET := Action_Set.{
 CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
     proc=cycle_wireframe_width_proc,
     progress_proc=cycle_wireframe_width_progress_proc_const,
-    desc="Cycle line width (triangle edges and segments) for selected items",
+    desc="Cycle edge/segment width for selected items",
     key=#char "l",
 };
 
