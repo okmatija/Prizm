@@ -390,7 +390,7 @@ ImGui_ImplSDL2_NewFrame :: ()
 #scope_file
 ImGui :: #import "ImGui";
 
-#import "SDL";
+#import "SDL_beta_0_1_071";
 #import "Math";
 
 make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {

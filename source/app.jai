@@ -366,7 +366,6 @@ set_prism_theme :: (theme : Prism_Color_Theme) {
 #import "Random";
 #import "Reflection";
 #import "Math";
-#import "SDL";
 #import "Window_Type";
 #import "GL";
 #import "Deep_Copy";
@@ -387,6 +386,7 @@ ImGui :: #import "ImGui";
 
 // Prism modules
 Simp :: #import "Simp_beta_0_1_016";
+#import "SDL_beta_0_1_071"; // nocommit Make this SDL :: 
 // #import "Tagged_Union_Enum"(DEBUG=true);
 #load "modules/Tagged_Union_Enum.jai"; // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
 
