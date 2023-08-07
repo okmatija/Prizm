@@ -11,13 +11,19 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
 - Refactored UI to make it more aligned with Common User Access (CUA) standards
 
   - Replaced the default native windows titlebar with an ImGui menu bar and moved existing UI into File, View and Help menus
-  - TODO Changed the key bind for quitting the application from `Ctrl Shift q` to `Alt F4`
+  - TODO Changed the key bind for quitting the application from `Ctrl Shift q` (keep this one) to `Alt F4`
+  - Changed the item details sections to open on hover by default, the old fold-on-click behaviour can be restored via File > Preference > ...
 
-- Added an easy resize feature to make it easy to manipulate the Prism window
+- Improved Prism window manipulation
 
   - `Alt LMB` near the center of the window moves the window
   - `Alt LMB` near the edge of the window resizes the window
   - TODO Removed the previous `Alt` bindings which clashed with above...?
+  - Added an option to change the window opacity. Pressing `Esc` resets the opacity to 1 (fully opaque).
+
+- TODO Added a checkbox to control visibility of the AABB in the Clipping section. Previously the AABB was visualized whenever the Clipping section was open, that feature is now removed.
+- Added an option to enable keyboard navigation, this is still experimental (it may interact badly with keyboard shortcuts) so its off by default
+- Updated the logo
 DONE};
 
 PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE

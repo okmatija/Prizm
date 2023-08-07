@@ -211,10 +211,19 @@ ShowBinding :: (binding : string, description : string) #expand {
     ImGui.Text(description);
 }
 
+begin_box_section :: () {
+    table_flags := ImGui.TableFlags.BordersOuter;
+        // .NoHostExtendX; // Can be useful
+    ImGui.BeginTable("", 1, flags=table_flags);
+}
+
+end_box_section :: () {
+    ImGui.EndTable();
+}
+
 // Note: You need to use the ImGui.TableNextColumn apis after doing this
 BoxSection :: () #expand {
-    table_flags := ImGui.TableFlags
-        .BordersOuter;
+    table_flags := ImGui.TableFlags.BordersOuter;
         // .NoHostExtendX; // Can be useful
     ImGui.BeginTable("", 1, flags=table_flags);
     `defer ImGui.EndTable();

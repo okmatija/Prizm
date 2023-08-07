@@ -156,6 +156,12 @@ App :: struct {
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
 }
 
+Texture :: struct {
+    gl_handle : GLuint;
+    width : s32;
+    height : s32;
+}
+
 // @Incomplete Deduplicate file watcher directories on linux
 
 deinit :: (directory : app.Folder) {
@@ -279,6 +285,8 @@ Selected :: #bake_arguments EntitiesIterator(entity_filter=#code !it.is_selected
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
+    item_details_uses_menu := true; // nocommit Move to a non-auto generated preferences section. Also cleanup the preferences sections
+
     item_list_max_size_before_scroll_px := 300.;
     annotation_list_max_size_before_scroll_px := 400.;
 

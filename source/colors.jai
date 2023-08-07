@@ -33,6 +33,7 @@ Prism_Theme_Dark :: struct {
     camera_ui_button_border_color = BLACK;
 }
 
+TRANSPARENT :: ImGui.ImVec4.{1., 1., 1., 0.};
 RED   :: ImGui.ImVec4.{1., 0., 0., 1.};
 GREEN :: ImGui.ImVec4.{0., 1., 0., 1.};
 BLUE  :: ImGui.ImVec4.{0., 0., 1., 1.};

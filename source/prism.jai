@@ -1,28 +1,28 @@
 #load "app.jai";
 
-// nocommitttt Add the minimize buttons etc
-// nocommit In release post mention that its interesting how much difference icons and more standard UI make
-// nocommit Add the minimize, maximize and close buttons (with tinting)
+// nocommitttt Better font with bold/italic/underlined fonts and better icons and better logo 
+// nocommitttt Add the minimize, maximize and close buttons (with tinting)
+// nocommitt Use modal windows for the loading file popup so that the user can't click outside to close it
+// nocommit Move the misc keybinds into the Items List keybind list
+// nocommit Add option for window move to shrink the window as it passes to the edge
+// nocommit Use capital letters in keybinds? or be consistent, also make the order of modifiers and key/mouse consistent
 // nocommit Scale the world axes with the window size
 // nocommit Get renderdoc, superluminal, zoomit and tracy on laptop
-// nocommit consider using BeginMenu in Details tree so you can get the quick hover opening thing
 // nocommit Rename show console ui to show footer UI so it also shows/hides the action buttons
-
-// nocommittt Move to app
-icon_width : s32;
-icon_height : s32;
-icon_texture : GLuint;
+// nocommit In release post mention that its interesting how much difference icons and more standard UI make
+// nocommit Update to SDL version >= 2.0.16 so that we can change the always on top flag on the window, this could be handy with opacity control
 
 main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
 
+    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS/*|SDL_WINDOW_ALWAYS_ON_TOP*/;
+
     init_changelog();
     app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
-                                  SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS);
-                                //   SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE/*|SDL_WINDOW_BORDERLESS*/); // FIXME can't move the window when its borderless
+                                  sdl_window_flags);
 
     // Check that the window was successfully created
     if app.window == null {
@@ -45,7 +45,9 @@ main :: () {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
-    //SDL_SetWindowOpacity(app.window, .5); // nocommit Needed a change to SDL module
+    // gl_version_major, gl_version_minor = gl_get_version();
+    // print("Using OpenGL %.%", gl_version_major, gl_version_minor);
+
     //SDL_MaximizeWindow(app.window); // nocommit this, and the way of maximizing where you pull to top of screen is broken when using SDL_WINDOW_BORDERLESS
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
@@ -127,6 +129,7 @@ main :: () {
     init_commands();
     init_keymap();
     init_known_issues();
+    init_icons();
 
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
@@ -175,9 +178,6 @@ main :: () {
     set_prism_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
     load_from_command_line();
-
-    icon_success : bool = load_texture_from_file("data/icon.png", *icon_texture, *icon_width, *icon_height);
-    assert(icon_success);
 
     // Main loop
     while !app.closing_application {
@@ -337,6 +337,7 @@ handle_events :: () {
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
                     app.console.show_ui = false;
+                    SDL_SetWindowOpacity(app.window, 1.); // :WindowOpacityControl
                 }
 
             case SDL_KEYUP;
@@ -649,6 +650,4 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     }
 
     ctx = ImGui.CreateContext();
-    io := ImGui.GetIO();
-    // io.ConfigFlags_ |= .NavEnableKeyboard; // This interacts in an annoying way with keyboard shortcuts, fix that before enabling
 }
