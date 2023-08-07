@@ -1,9 +1,6 @@
 #load "app.jai";
 
 // nocommit Move the misc keybinds into the Items List keybind list
-// nocommit Add option for window move to shrink the window as it passes to the edge
-// nocommit Use capital letters in keybinds? or be consistent, also make the order of modifiers and key/mouse consistent
-// nocommit Rename show console ui to show footer UI so it also shows/hides the action buttons
 
 main :: () {
 

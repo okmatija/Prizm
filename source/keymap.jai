@@ -64,14 +64,14 @@ to_string :: (key_code : u32, modifier_flags : Modifier_Flags = .{}) -> string {
     builder : String_Builder;
     init_string_builder(*builder);
     defer free_buffers(*builder);
-    if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl ");
-    if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt ");
+    if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl  ");
+    if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt   ");
     if modifier_flags.shift_pressed   print_to_builder(*builder, "Shift ");
     if key_code == 32 {
         print_to_builder(*builder, "Space");
     } else if key_code > 32 {
-        // upper_case := to_upper(cast(u8) key_code);
-        upper_case := cast(u8) key_code;
+        upper_case := to_upper(cast(u8) key_code);
+        // upper_case := cast(u8) key_code;
         cstr: string;   // This is a dumb way to make a one-character string so you can print it.
         cstr.data  = xx *upper_case;
         cstr.count = 1;

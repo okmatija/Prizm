@@ -57,19 +57,20 @@ show_menu_bar_ui :: () {
     if ImGui.BeginMenu("Edit") {
         defer ImGui.EndMenu();
 
-        if ImGui.MenuItem("Toggle Selected", "Alt   A") {
-            for :All app.entities it.is_selected = !it.is_selected;
+        if ImGui.MenuItem("Toggle Current Item Selection", "Alt   A") {
+            toggle_current_selection();
         }
 
-        if ImGui.MenuItem("Toggle All Selected", "Ctrl  A") {
-            for :All app.entities it.is_selected = true;
+        if ImGui.MenuItem("Select/Deselect All Items", "Ctrl  A") {
+            select_or_deselect_all();
         }
 
-        if ImGui.MenuItem("Toggle Visible Selected", "Shift A") {
-            for :All app.entities it.is_selected = true;
+        if ImGui.MenuItem("Select/Deselect Visible Items", "Shift A") {
+            select_or_deselect_visible();
         }
+        show_tooltip("Also deselects items which are not visible");
 
-        if ImGui.MenuItem("Delete Selected", "Del") {
+        if ImGui.MenuItem("Delete Selected Items", "Del") {
             remove_entities_if_selected();
         }
     }
@@ -663,9 +664,9 @@ show_items_ui :: () {
         bindings : [..]Binding_With_Description;
         bindings.allocator = temp;
         // @Volatile @Cleanup See :SelectionKeybindTooltip
-        array_add(*bindings, make_Binding_With_Description("Ctrl a", "Select/deselect all items"));
-        array_add(*bindings, make_Binding_With_Description("Shift a", "Select/deselect visible items"));
-        array_add(*bindings, make_Binding_With_Description("Alt a", "Toggle current item selection"));
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{control_pressed=true}), "Select/deselect all items"));
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{shift_pressed=true}), "Select/deselect visible items"));
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{alt_pressed=true}), "Toggle current item selection"));
         array_add(*bindings, make_Binding_With_Description("`", "Use the 'select_...' commands"));
         show_tooltip_binding(..bindings);
 
