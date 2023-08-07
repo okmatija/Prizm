@@ -374,8 +374,8 @@ ImGui_ImplOpenGL3_RenderDrawData :: (draw_data : *ImGui.ImDrawData)
             else
             {
                 // Project scissor/clipping rectangles into framebuffer space
-                clip_min := make_ImVec2((pcmd.ClipRect.x - clip_off.x) * clip_scale.x, (pcmd.ClipRect.y - clip_off.y) * clip_scale.y);
-                clip_max := make_ImVec2((pcmd.ClipRect.z - clip_off.x) * clip_scale.x, (pcmd.ClipRect.w - clip_off.y) * clip_scale.y);
+                clip_min := ImGui.ImVec2.{(pcmd.ClipRect.x - clip_off.x) * clip_scale.x, (pcmd.ClipRect.y - clip_off.y) * clip_scale.y};
+                clip_max := ImGui.ImVec2.{(pcmd.ClipRect.z - clip_off.x) * clip_scale.x, (pcmd.ClipRect.w - clip_off.y) * clip_scale.y};
                 if (clip_max.x < clip_min.x || clip_max.y < clip_min.y)
                     continue;
 
@@ -624,10 +624,3 @@ ImGui_ImplOpenGL3_DestroyDeviceObjects :: ()
 
 ImGui :: #import "ImGui";
 #import "GL";
-
-make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
-    v: ImGui.ImVec2 = ---;
-    v.x = a;
-    v.y = b;
-    return v;
-}

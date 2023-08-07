@@ -250,7 +250,7 @@ ImGui_ImplSDL2_UpdateMousePosAndButtons :: ()
     io := ImGui.GetIO();
 
     mouse_pos_prev := io.MousePos;
-    io.MousePos = make_ImVec2(-FLOAT32_MAX, -FLOAT32_MAX);
+    io.MousePos = ImGui.ImVec2.{-FLOAT32_MAX, -FLOAT32_MAX};
 
     // Update mouse buttons
     mouse_x_local, mouse_y_local : s32;
@@ -280,11 +280,11 @@ ImGui_ImplSDL2_UpdateMousePosAndButtons :: ()
         SDL_GetGlobalMouseState(*mouse_x_global, *mouse_y_global);
         window_x, window_y : s32;
         SDL_GetWindowPosition(mouse_window, *window_x, *window_y);
-        io.MousePos = make_ImVec2(xx (mouse_x_global - window_x), xx (mouse_y_global - window_y));
+        io.MousePos = ImGui.ImVec2.{xx (mouse_x_global - window_x), xx (mouse_y_global - window_y)};
     }
     else
     {
-        io.MousePos = make_ImVec2(xx mouse_x_local, xx mouse_y_local);
+        io.MousePos = ImGui.ImVec2.{xx mouse_x_local, xx mouse_y_local};
     }
 }
 
@@ -370,9 +370,9 @@ ImGui_ImplSDL2_NewFrame :: ()
     if (SDL_GetWindowFlags(bd.Window) & SDL_WINDOW_MINIMIZED)
         w, h = 0, 0;
     SDL_GL_GetDrawableSize(bd.Window, *display_w, *display_h);
-    io.DisplaySize = make_ImVec2(xx w, xx h);
+    io.DisplaySize = ImGui.ImVec2.{xx w, xx h};
     if (w > 0 && h > 0)
-        io.DisplayFramebufferScale = make_ImVec2(cast(float)display_w / w, cast(float)display_h / h);
+        io.DisplayFramebufferScale = ImGui.ImVec2.{cast(float)display_w / w, cast(float)display_h / h};
 
     // Setup time step (we don't use SDL_GetTicks() because it is using millisecond resolution)
     frequency := SDL_GetPerformanceFrequency(); // @Cleanup in C this was static
@@ -392,10 +392,3 @@ ImGui :: #import "ImGui";
 
 #import "SDL_beta_0_1_071";
 #import "Math";
-
-make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
-    v: ImGui.ImVec2 = ---;
-    v.x = a;
-    v.y = b;
-    return v;
-}

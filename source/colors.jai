@@ -43,6 +43,11 @@ NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
 NICE_BLUE :: BLUE; // ImGui.ImVec4.{216/255., 109/255., 48/255., 1};
 NICE_GREY :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
 
+Named_Color :: struct {
+    color : Vector4;
+    name : string;
+};
+
 SELECT_TRIANGLE :: Vector4.{190./255, 186./255, 48./255, 1};
 SELECT_SEGMENT :: #run darken(SELECT_TRIANGLE, .8);
 SELECT_POINT :: #run darken(SELECT_SEGMENT, .8);
@@ -81,13 +86,13 @@ color_u32_as_vector4 :: (color : ImGui.ImU32, alpha := 1.) -> ImGui.ImVec4 {
 color_convert_RGB_to_HSV :: (r : float, g : float, b : float, a : float) -> hsv : ImGui.ImVec4 {
     h, s, v : float;
     ImGui.ColorConvertRGBtoHSV(r, g, b, *h, *s, *v);
-    return make_ImVec4(h, s, v, a);
+    return .{h, s, v, a};
 }
 
 color_convert_HSV_to_RGB :: (h : float, s : float, v : float, a : float) -> rgb : ImGui.ImVec4 {
     r, g, b : float;
     ImGui.ColorConvertHSVtoRGB(h, s, v, *r, *g, *b);
-    return make_ImVec4(r, g, b, a);
+    return .{r, g, b, a};
 }
 
 darken :: (rgb : ImGui.ImVec4, darken_factor : float) -> darker_rgb : ImGui.ImVec4 {

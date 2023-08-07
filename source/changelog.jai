@@ -19,7 +19,19 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
   - `Alt LMB` near the center of the window moves the window
   - `Alt LMB` near the edge of the window resizes the window
   - TODO Removed the previous `Alt` bindings which clashed with above...?
-  - Added an option to change the window opacity. Pressing `Esc` resets the opacity to 1 (fully opaque).
+  - Added an option to change the window opacity. Pressing `Esc` resets the opacity to 1 (fully opaque). This is most useful in combination with the new AlwaysOnTop program argument
+
+- Added some program options. These can be added on the command line in the Target box of a windows shortcut
+
+  - `--Help`           Prints a usage message and exits
+  - `--AlwaysOnTop`    Keeps the Prism window on top
+  - `--IconRed`        Set the Prism icon in the title bar to red
+  - `--IconGreen`      Set the Prism icon in the title bar to green
+  - `--IconBlue`       Set the Prism icon in the title bar to blue
+  - `--IconBlack`      Set the Prism icon in the title bar to black
+  - The AlwaysOnTop option is useful in combination with a transparent window and auto file reloading features when stepping though iterations of an algorithm.
+  - The Prism icon color can be helpful
+  - Note: We use SDL 2.0.1, which does not support toggling AlwaysOnTop at runtime, version >= 2.0.16 does though, so this will be supported in future
 
 - TODO Added a checkbox to control visibility of the AABB in the Clipping section. Previously the AABB was visualized whenever the Clipping section was open, that feature is now removed.
 - Added an option to enable keyboard navigation, this is still experimental (it may interact badly with keyboard shortcuts) so its off by default

@@ -461,23 +461,6 @@ ListClipperIterator :: (array : *[..]$T, body : Code, flags : For_Flags) #expand
     ImGui.ListClipper.Destructor(*clipper);
 }
 
-// nocommitttt Remove these make_XXX functions
-make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
-    v: ImGui.ImVec2 = ---;
-    v.x = a;
-    v.y = b;
-    return v;
-}
-
-make_ImVec4 :: inline (a: float, b: float, c: float, d: float) -> ImGui.ImVec4 {
-    v: ImGui.ImVec4 = ---;
-    v.x = a;
-    v.y = b;
-    v.z = c;
-    v.w = d;
-    return v;
-}
-
 
 // See: https://github.com/ocornut/imgui/blob/0f14933577a1de01d90f8e87622296c466146f21/misc/cpp/imgui_stdlib.cpp#L38-L48
 InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None, callback: ImGui.InputTextCallback = null, user_data: *void = null) -> bool {

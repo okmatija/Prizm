@@ -1,24 +1,44 @@
 #load "app.jai";
 
-// nocommitttt Better font with bold/italic/underlined fonts and better icons and better logo 
-// nocommitttt Add the minimize, maximize and close buttons (with tinting)
-// nocommitt Use modal windows for the loading file popup so that the user can't click outside to close it
 // nocommit Move the misc keybinds into the Items List keybind list
 // nocommit Add option for window move to shrink the window as it passes to the edge
 // nocommit Use capital letters in keybinds? or be consistent, also make the order of modifiers and key/mouse consistent
-// nocommit Scale the world axes with the window size
-// nocommit Get renderdoc, superluminal, zoomit and tracy on laptop
 // nocommit Rename show console ui to show footer UI so it also shows/hides the action buttons
-// nocommit In release post mention that its interesting how much difference icons and more standard UI make
-// nocommit Update to SDL version >= 2.0.16 so that we can change the always on top flag on the window, this could be handy with opacity control
 
 main :: () {
 
+    init_changelog(); // Do this first to get the version
+
+    print_usage_and_exit :: () {
+        print("\n");
+        print("Prism % allowed program options:\n\n", app.changelog[0].name);
+        print("--Help           Print this message and exit.\n");
+        print("--AlwaysOnTop    Keeps the Prism window on top.\n");
+        print("--IconRed        Set the Prism icon in the title bar to red.\n");
+        print("--IconGreen      Set the Prism icon in the title bar to green.\n");
+        print("--IconBlue       Set the Prism icon in the title bar to blue.\n");
+        print("--IconBlack      Set the Prism icon in the title bar to black.\n");
+        exit(0);
+    }
+
+    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
+
+    {
+        args := get_command_line_arguments();
+        defer array_free(args);
+        for 1..args.count-1 {
+            if args[it] == "--Help"        print_usage_and_exit();
+            if args[it] == "--AlwaysOnTop" sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+            // @Volatile Sync with :PRISM_ICON_COLORS
+            if args[it] == "--IconBlue"    prism_icon_color_index = 0;
+            if args[it] == "--IconGreen"   prism_icon_color_index = 1;
+            if args[it] == "--IconRed"     prism_icon_color_index = 2;
+            if args[it] == "--IconBlack"   prism_icon_color_index = 3;
+        }
+    }
+
     SDL_Init(SDL_INIT_VIDEO);
 
-    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS/*|SDL_WINDOW_ALWAYS_ON_TOP*/;
-
-    init_changelog();
     app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
@@ -47,8 +67,6 @@ main :: () {
 
     // gl_version_major, gl_version_minor = gl_get_version();
     // print("Using OpenGL %.%", gl_version_major, gl_version_minor);
-
-    //SDL_MaximizeWindow(app.window); // nocommit this, and the way of maximizing where you pull to top of screen is broken when using SDL_WINDOW_BORDERLESS
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
@@ -268,6 +286,9 @@ load_from_command_line :: () {
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
+        if starts_with(args[it], "--") {
+            continue; // Skip program argument
+        }
         handle_load_string(args[it]);
     }
     fit_scene_on_screen();

@@ -4,7 +4,7 @@ app : App;
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
-    window_maximized := false; // nocommit Not sure we need this
+    window_maximized := false;
     window_draggable_rect_min : ImGui.ImVec2;
     window_draggable_rect_max : ImGui.ImVec2;
 

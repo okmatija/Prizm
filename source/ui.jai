@@ -4,23 +4,6 @@ WINDOW_RESIZE_MARGIN_PX :: 3;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
-/*
-
-	void DrawButtonImage(const std::shared_ptr<Walnut::Image>& imageNormal, const std::shared_ptr<Walnut::Image>& imageHovered, const std::shared_ptr<Walnut::Image>& imagePressed,
-		ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed,
-		ImVec2 rectMin, ImVec2 rectMax)
-	{
-		auto* drawList = ImGui::GetForegroundDrawList();
-		if (ImGui::IsItemActive())
-			drawList->AddImage(imagePressed->GetDescriptorSet(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
-		else if (ImGui::IsItemHovered())
-			drawList->AddImage(imagePressed->GetDescriptorSet(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
-		else
-			drawList->AddImage(imagePressed->GetDescriptorSet(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
-	};
-
-*/
-
 init_icons :: () {
     ok : bool;
     icon_prism_logo_texture,      ok = load_texture_from_file("data/logo.png");       assert(ok);
@@ -44,8 +27,11 @@ show_menu_bar_ui :: () {
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        ImGui.Image(cast(ImGui.ImTextureID)icon_prism_icon_texture.gl_handle, icon_size, tint_col=PRISM_ICON_COLORS[prism_icon_color_index]);
+        ImGui.Image(cast(ImGui.ImTextureID)icon_prism_icon_texture.gl_handle, icon_size, tint_col=PRISM_ICON_COLORS[prism_icon_color_index].color);
         click_cycle_prism_color_index();
+        if ImGui.IsItemHovered(.DelayNormal) {
+            show_tooltip(tprint("Prism %", app.changelog[0].name));
+        }
     }
 
     // sz : float = ImGui.GetTextLineHeight();
@@ -325,10 +311,10 @@ show_right_window :: () {
         return;
     }
 
-    window_pos := make_ImVec2(
+    window_pos := ImGui.ImVec2.{
         ImGui.GetMainViewport().WorkSize.x - WINDOW_BORDER_UI_OFFSET.x,
-        ImGui.GetMainViewport().WorkPos.y  + WINDOW_BORDER_UI_OFFSET.y);
-    window_pivot := make_ImVec2(1, 0);
+        ImGui.GetMainViewport().WorkPos.y  + WINDOW_BORDER_UI_OFFSET.y};
+    window_pivot := ImGui.ImVec2.{1, 0};
 
     using ImGui.WindowFlags;
 
@@ -355,12 +341,12 @@ show_item_list_actions_ui :: () {
 
     // Try actions buttons on the bottom by the console
     {
-        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+        window_pivot := ImGui.ImVec2.{0, 1}; // SetNextWindowPos will refer to the bottom left corner of the window
 
         console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
-        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
-        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
+        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx app.current_window_height}, pivot=window_pivot);
+        // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window
+        ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
         window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
         if true {
@@ -401,9 +387,9 @@ show_pending_directories_ui :: () {
         return;
     }
 
-    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
-    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
-    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    ImGui.SetNextWindowPos(ImGui.ImVec2.{app.current_window_width / 2., app.current_window_height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75},
+    //                                    ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75});
     window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
@@ -423,8 +409,8 @@ show_pending_directories_ui :: () {
      | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
      | .ScrollY; // Without this option the outer_size argument is ignored
 
-    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
-    outer_size := make_ImVec2(0, 400);
+    // outer_size := ImGui.ImVec2.{0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200});
+    outer_size := ImGui.ImVec2.{0, 400};
     if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
         defer ImGui.EndTable();
 
@@ -636,7 +622,7 @@ show_items_ui :: () {
                         .PadOuterX |
                         .NoBordersInBody |
                         .ScrollY;
-                    outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
+                    outer_size :=  ImGui.ImVec2.{0, app.settings.item_list_max_size_before_scroll_px};
 
                     show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
                     if !show_scrollbar {
@@ -1553,7 +1539,7 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
+    window_pos := ImGui.ImVec2.{current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y};
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
@@ -2062,7 +2048,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         if annotations.count {
 
             table_flags := attr_anno_table_flags;
-            outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+            outer_size := ImGui.ImVec2.{0, app.settings.annotation_list_max_size_before_scroll_px};
 
             if last_frame_annotation_list_height_px < outer_size.y {
                 table_flags &= ~.ScrollY;
@@ -2180,7 +2166,7 @@ DONE;
                     table_flags := attr_anno_table_flags;
                     table_flags &= ~.Sortable;
 
-                    outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+                    outer_size := ImGui.ImVec2.{0, app.settings.annotation_list_max_size_before_scroll_px};
 
                     if last_frame_annotation_list_height_px < outer_size.y {
                         table_flags &= ~.ScrollY;
@@ -2761,17 +2747,19 @@ click_cycle_prism_color_index :: () {
         if prism_icon_color_index >= PRISM_ICON_COLORS.count {
             prism_icon_color_index = 0;
         }
-        color : [PRISM_ICON_COLORS.count]string = .["blue", "green", "red", "black"];
-        log("Set prism color to %. This is only aesthetic, it could be useful if you are comparing data between instances of Prism.", color[prism_icon_color_index]);
+        color : Named_Color = PRISM_ICON_COLORS[prism_icon_color_index];
+        log("Set prism color to %. This is only aesthetic, it could be useful if you are comparing data between instances of Prism.", color.name);
     }
 }
 
-prism_icon_color_index := 0; // Use green by default since the icon is gree
-PRISM_ICON_COLORS :: Vector4.[
-    .{102./255, 153./255, 1, 1},
-    .{102./255, 153./255, 0, 1},
-    .{204./255, 0, 0, 1},
-    BLACK,
+prism_icon_color_index := 0;
+
+// @Volatile Sync with :PRISM_ICON_COLORS
+PRISM_ICON_COLORS :: Named_Color.[
+    .{.{102./255, 153./255, 1, 1}, "blue"},
+    .{.{102./255, 153./255, 0, 1}, "green"},
+    .{.{204./255, 0, 0, 1}, "red"},
+    .{BLACK, "black"},
 ];
 
 // TODOO Set these at compile-time to make runtime startup as fast as possible, maybe set them at runtime in debug?
