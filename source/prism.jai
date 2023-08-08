@@ -1,7 +1,5 @@
 #load "app.jai";
 
-// nocommit Move the misc keybinds into the Items List keybind list
-
 main :: () {
 
     init_changelog(); // Do this first to get the version

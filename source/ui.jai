@@ -105,90 +105,99 @@ show_menu_bar_ui :: () {
             app.triad.visible = !app.triad.visible;
         }
 
+        if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode) {
+            app.demo_mode = !app.demo_mode;
+        }
+        show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
+
         ImGui.Separator();
 
-        // Window Size
-        {
-            // @Volatile :EasyResizeModeKeybind
-            tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB"); }
+        if ImGui.BeginMenu("Window Settings") {
+            defer ImGui.EndMenu();
 
-            ImGui.Text("Window Size    ");
-            tooltip();
+            // Window Size
+            {
+                // @Volatile :EasyResizeModeKeybind
+                tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB", flags=.None); }
 
-            ImGui.SameLine();
-            size : [2]s32 = .[app.current_window_width, app.current_window_height];
-            ImGui.PushItemWidth(70);
-            if ImGui.DragInt2("##WindowSize", *size) {
-                SDL_SetWindowSize(app.window, size[0], size[1]);
+                ImGui.Text("Window Size    ");
+                tooltip();
+
+                ImGui.SameLine();
+                size : [2]s32 = .[app.current_window_width, app.current_window_height];
+                ImGui.PushItemWidth(70);
+                if ImGui.DragInt2("##WindowSize", *size) {
+                    SDL_SetWindowSize(app.window, size[0], size[1]);
+                }
+                tooltip();
+                ImGui.PopItemWidth();
+
+                ImGui.SameLine();
+                disable_window_resize_reset := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+                if disable_window_resize_reset ImGui.BeginDisabled();
+                if ImGui.Button("Reset##WindowSize") {
+                    SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+                }
+                tooltip();
+                if disable_window_resize_reset ImGui.EndDisabled();
             }
-            tooltip();
-            ImGui.PopItemWidth();
 
-            ImGui.SameLine();
-            disable_window_resize_reset := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
-            if disable_window_resize_reset ImGui.BeginDisabled();
-            if ImGui.Button("Reset##WindowSize") {
-                SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+            // Window Position
+            {
+                // @Volatile :EasyResizeModeKeybind
+                tooltip :: () { show_tooltip_binding("(near window center) Move the window", "Alt LMB", flags=.None); }
+
+                ImGui.Text("Window Position");
+                tooltip();
+
+                ImGui.SameLine();
+                position : [2]s32;
+                SDL_GetWindowPosition(app.window, *position[0], *position[1]);
+                ImGui.PushItemWidth(70);
+                if ImGui.DragInt2("##WindowPosition", *position) {
+                    SDL_SetWindowPosition(app.window, position[0], position[1]);
+                }
+                tooltip();
+                ImGui.PopItemWidth();
+
+                // ImGui.SameLine();
+                // if ImGui.Button("Reset##WindowPosition") {
+                //     SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+                // }
+                // tooltip();
             }
-            tooltip();
-            if disable_window_resize_reset ImGui.EndDisabled();
+
+            // Window Opacity
+            {
+                // @Volatile :WindowOpacityControl
+                tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc", flags=.None); }
+
+                ImGui.Text("Window Opacity ");
+                tooltip(); 
+                ImGui.SameLine();
+
+                window_opacity : float;
+                SDL_GetWindowOpacity(app.window, *window_opacity);
+                ImGui.PushItemWidth(70);
+                if ImGui.DragFloat("##WindowOpacity", *window_opacity, .01, 0.2, 1., format="%.2f") {
+                    window_opacity = clamp(window_opacity, .2, 1.);
+                    SDL_SetWindowOpacity(app.window, window_opacity);
+                }
+                ImGui.PopItemWidth();
+                tooltip(); 
+                ImGui.SameLine();
+
+                disable_window_opacity_reset := (window_opacity == 1.);
+                if disable_window_opacity_reset ImGui.BeginDisabled();
+                if ImGui.Button("Reset##WindowOpacity") {
+                    SDL_SetWindowOpacity(app.window, 1);
+                }
+                if disable_window_opacity_reset ImGui.EndDisabled();
+                tooltip(); 
+            }
+
+            // TODOO Always on top window
         }
-
-        // Window Position
-        {
-            // @Volatile :EasyResizeModeKeybind
-            tooltip :: () { show_tooltip_binding("(near window center) Move the window", "Alt LMB"); }
-
-            ImGui.Text("Window Position");
-            tooltip();
-
-            ImGui.SameLine();
-            position : [2]s32;
-            SDL_GetWindowPosition(app.window, *position[0], *position[1]);
-            ImGui.PushItemWidth(70);
-            if ImGui.DragInt2("##WindowPosition", *position) {
-                SDL_SetWindowPosition(app.window, position[0], position[1]);
-            }
-            tooltip();
-            ImGui.PopItemWidth();
-
-            // ImGui.SameLine();
-            // if ImGui.Button("Reset##WindowPosition") {
-            //     SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-            // }
-            // tooltip();
-        }
-
-        // Window Opacity
-        {
-            // @Volatile :WindowOpacityControl
-            tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc"); }
-
-            ImGui.Text("Window Opacity ");
-            tooltip(); 
-            ImGui.SameLine();
-
-            window_opacity : float;
-            SDL_GetWindowOpacity(app.window, *window_opacity);
-            ImGui.PushItemWidth(70);
-            if ImGui.DragFloat("##WindowOpacity", *window_opacity, .01, 0.2, 1., format="%.2f") {
-                window_opacity = clamp(window_opacity, .2, 1.);
-                SDL_SetWindowOpacity(app.window, window_opacity);
-            }
-            ImGui.PopItemWidth();
-            tooltip(); 
-            ImGui.SameLine();
-
-            disable_window_opacity_reset := (window_opacity == 1.);
-            if disable_window_opacity_reset ImGui.BeginDisabled();
-            if ImGui.Button("Reset##WindowOpacity") {
-                SDL_SetWindowOpacity(app.window, 1);
-            }
-            if disable_window_opacity_reset ImGui.EndDisabled();
-            tooltip(); 
-        }
-
-        // TODOO Always on top window
     }
 
     if ImGui.BeginMenu("Help") {
@@ -614,7 +623,7 @@ icon_window_restore_texture : Texture;
 
 show_tools_ui :: () {
     // Trailing space makes it look nicer
-    do_tree := ImGui.TreeNodeEx("Tools ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    do_tree := ImGui.TreeNodeEx("Tools ", .SpanAvailWidth | .Framed);
     if do_tree {
         defer ImGui.TreePop();
         show_api_ui();
@@ -628,7 +637,7 @@ show_items_ui :: () {
     any_visibility_changed : bool;
 
     // Trailing space makes it look nicer @Cleanup Make this plural properly
-    if ImGui.TreeNodeEx("Items ", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen | .Framed) {
+    if ImGui.TreeNodeEx("Items ", .SpanAvailWidth | .DefaultOpen | .Framed) {
         defer ImGui.TreePop();
 
         for *folder : app.directories {
@@ -956,41 +965,71 @@ show_create_tool_ui :: () {
 }
 
 show_preferences :: () {
-    if ImGui.BeginMenu("Appearance") {
+    item_width :: 100;
+
+    if ImGui.BeginMenu("UI/UX##Preferences>UI") {
         defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
+
+        // nocommit Limit the width of widgets here
 
         if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
             set_prism_theme(app.theme.theme);
         }
 
-        combo_box("Background", *app.background_style, type_info(app.Background_Style));
-        if app.background_style == .SOLID_COLOR {
-            ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
-        }
         ImGui.DragFloat("UI Scale", *io().FontGlobalScale, .001, format="%.3f");
-    }
 
-    if ImGui.BeginMenu("Viewport") {
-        defer ImGui.EndMenu();
+        {
+            combo_box("Background", *app.background_style, type_info(app.Background_Style));
+            if app.background_style == .SOLID_COLOR {
+                ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+            }
+
+            // nocommit Add a shader period thing
+        }
+
+        {
+            // TODO This (maybe!) interacts in an annoying way with keyboard shortcuts, fix that before enabling by default
+            use_keyboard : bool;
+            if ImGui.GetIO().ConfigFlags_ & ImGui.ConfigFlags.NavEnableKeyboard {
+                use_keyboard = true;
+            } else {
+                use_keyboard = false;
+            }
+            ImGui.Checkbox("Enable Keyboard Navigation", *use_keyboard);
+            if use_keyboard {
+                ImGui.GetIO().ConfigFlags_ |= .NavEnableKeyboard;
+            } else {
+                ImGui.GetIO().ConfigFlags_ &= ~.NavEnableKeyboard;
+            }
+        }
 
         {
             radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
             radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
-            ImGui.DragFloat("Closest-Point Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            ImGui.DragFloat("CP Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
             show_tooltip(tprint(#string DONE
-Closest-point query radius in pixels affecting:
-- Selection
+CP Query Radius in pixels, this affects:
+- Selection of items and elements
 - Clipping sphere center seeding
 - Label visibility in % labelling mode
 DONE, Labelling_Mode.RAY_CAST));
             app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
         }
-
-        ImGui.Checkbox("Show World Axes", *app.triad.visible);
     }
+
+    // @Incompletee Add this
+    //if ImGui.BeginMenu("Camera") {
+    //    defer ImGui.EndMenu();
+    //}
 
     if ImGui.BeginMenu("Labelling") {
         defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
 
         combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
         show_tooltip(tprint(#string DONE
@@ -1013,8 +1052,12 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
         format_struct_ui(*app.label_format.format_struct);
     }
 
+    // @Think Maybe we should get rid of the console options button?
     if ImGui.BeginMenu("Console") {
         defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
 
         combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
         show_tooltip(#string DONE
@@ -1024,38 +1067,25 @@ DONE);
         ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
     }
 
-    if ImGui.BeginMenu("Save & Load") {
+    if ImGui.BeginMenu("Item List") {
         defer ImGui.EndMenu();
+
+        // Invalid point widget looks bad with this
+        //ImGui.PushItemWidth(item_width);
+        //defer ImGui.PopItemWidth();
 
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
-        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
-    }
-
-    if ImGui.BeginMenu("Miscellaneous") {
-        defer ImGui.EndMenu();
-
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged);
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-        ImGui.Checkbox("Demo Mode", *app.demo_mode);
-        show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
-
-        // TODO This (maybe!) interacts in an annoying way with keyboard shortcuts, fix that before enabling by default
-        use_keyboard : bool;
-        if ImGui.GetIO().ConfigFlags_ & ImGui.ConfigFlags.NavEnableKeyboard {
-            use_keyboard = true;
-        } else {
-            use_keyboard = false;
-        }
-        ImGui.Checkbox("Keyboard Navigation", *use_keyboard);
-        if use_keyboard {
-            ImGui.GetIO().ConfigFlags_ |= .NavEnableKeyboard;
-        } else {
-            ImGui.GetIO().ConfigFlags_ &= ~.NavEnableKeyboard;
-        }
+        ImGui.Checkbox("Item Details Section Uses Menus", *app.settings.item_details_uses_menu);
     }
 
     if ImGui.BeginMenu("Advanced") {
         defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
 
         // :UserConfig add a button to overwrite the user settings file with new defaults here?
         inspect("Advanced##Impl", *app.settings);
@@ -1793,7 +1823,7 @@ show_help_about_content :: () {
     defer ImGui.PopStyleVar();
 
     ImGui.NewLine();
-    if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth) {
+    if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
 
         sdl_version : SDL_version = sdl_get_version();

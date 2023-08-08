@@ -7,34 +7,34 @@ PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
   - TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
-PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "WIP", #string DONE
-- Refactored UI to make it more aligned with Common User Access (CUA) standards
+PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
+- Improvements to UI/UX
 
+  - Refactored UI to make it more aligned with Common User Access (CUA) standards
   - Replaced the default native windows titlebar with an ImGui menu bar and moved existing UI into File, View and Help menus
   - Changed the key bind for quitting the application from `Ctrl Shift q` to `Alt F4`
-  - Changed the item details sections to open on hover by default, the old fold-on-click behaviour can be restored via File > Preference > ... TODO
+  - Changed the item details section to open-on-hover.  The old open-on-click behaviour can be restored by disabling `Item Details Section Uses Menus` under `File > Preferences > Item List`
+  - Added an option to enable keyboard navigation under `File > Preferences > UI/UX`.  This is still experimental so its off by default.
+  - Added an easy way to move the Prism window: Hold Alt and click/drag with LMB near the center of the window (within middle 50%)
+  - Added an easy way to resize the Prism window: Hold Alt and click/drag with LMB near the edge of the window (within 25%)
+  - Added an option to change the window opacity, this is useful in combination with the AlwaysOnTop program option. Pressing `Esc` resets the opacity to 1 (fully opaque)
+  - Added a Prism icon (which has been redesigned) to the window menu bar, clicking it will cycle colors, the idea is that the color can help compare data loaded in different instances of Prism
 
-- Improved Prism window manipulation
+- Added some program options, run `Prism.exe --Help` prints the following argument list:
 
-  - `Alt LMB` near the center of the window moves the window
-  - `Alt LMB` near the edge of the window resizes the window
-  - TODO Removed the previous `Alt` bindings which clashed with above...?
-  - Added an option to change the window opacity. Pressing `Esc` resets the opacity to 1 (fully opaque). This is most useful in combination with the new AlwaysOnTop program argument
+      ```
+      --Help           Print this message and exit.
+      --AlwaysOnTop    Keeps the Prism window on top.
+      --Red            Use the red   icon in the title bar.
+      --Green          Use the green icon in the title bar.
+      --Blue           Use the blue  icon in the title bar (This is the default).
+      --Black          Use the black icon in the title bar.
+      ```
 
-- Added some (case-insensitive) program options. These can be added on the command line in the Target box of a windows shortcut
-
-  - `--Help`           Prints a usage message and exits
-  - `--AlwaysOnTop`    Keeps the Prism window on top
-  - `--Red`            Use the red   icon variant in the title bar
-  - `--Green`          Use the green icon variant in the title bar
-  - `--Blue`           Use the blue  icon variant in the title bar
-  - `--Black`          Use the black icon variant in the title bar
-  - AlwaysOnTop is useful with a transparent window and auto file reloading: you can step though iterations of an algorithm and see geometry change
-  - The color options are useful if you're comparing results in different instances of Prism. Maybe we should also let users set a title message..
-  - Note: SDL 2.0.1 doesn't support toggling AlwaysOnTop at runtime but version >= 2.0.16 does so we'll support this in a future version
-
-- TODO Added a checkbox to control visibility of the AABB in the Clipping section. Previously the AABB was visualized whenever the Clipping section was open, that feature is now removed.
-- Added an option to enable keyboard navigation, this is still experimental (it may interact badly with keyboard shortcuts) so its off by default
+  - Program options and case-insensitive, always start with "--" and can be interleaved with file/folder arguments ie the data should be loaded
+  - The AlwaysOnTop option is useful with a transparent window and auto file reloading: you can step though iterations of an algorithm and see geometry change. SDL 2.0.1 doesn't support toggling AlwaysOnTop at runtime but version >= 2.0.16 does so we'll support this in a future version.
+  - Maybe we should also let users set a title message.
+  - Note: Part of the agenda regarding adding features to Prism is to keep things orthogonal, so, although we'll keep program options which start with "--", we actually already have a way to configure the application: You could create console commands to do the config you want and execute them as command annotations in an otherwise empty .obj file.
 DONE};
 
 PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
