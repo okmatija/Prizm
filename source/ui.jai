@@ -1,51 +1,327 @@
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
+EASY_RESIZE_FRACTION :: .25;
+WINDOW_RESIZE_MARGIN_PX :: 3;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
+
+init_icons :: () {
+    ok : bool;
+    icon_prism_logo_texture,      ok = load_texture_from_file("data/logo.png");       assert(ok);
+    // @Volatile Sync with :PRISM_ICON_COLORS
+    icon_prism_icon_texture[0],   ok = load_texture_from_file("data/icon_blue.png");  assert(ok);
+    icon_prism_icon_texture[1],   ok = load_texture_from_file("data/icon_green.png"); assert(ok);
+    icon_prism_icon_texture[2],   ok = load_texture_from_file("data/icon_red.png");   assert(ok);
+    icon_prism_icon_texture[3],   ok = load_texture_from_file("data/icon_black.png"); assert(ok);
+    icon_window_close_texture,    ok = load_texture_from_file("data/close.png");      assert(ok);
+    icon_window_maximize_texture, ok = load_texture_from_file("data/maximize.png");   assert(ok);
+    icon_window_minimize_texture, ok = load_texture_from_file("data/minimize.png");   assert(ok);
+    icon_window_restore_texture,  ok = load_texture_from_file("data/restore.png");    assert(ok);
+}
+
+show_menu_bar_ui :: () {
+    // Draw a grey border around the entire screen, if we don't do this its hard to see where the application ends
+    fg_draw_list : *ImGui.ImDrawList = ImGui.GetForegroundDrawList();
+    ImGui.ImDrawList.AddRect(fg_draw_list, ImGui.ImVec2.{}, ImGui.GetMainViewport().Size, ImGui.GetColorU32(ImGui.GetStyle().Colors[ImGui.Col.Border]));
+
+    ImGui.BeginMainMenuBar();
+    defer ImGui.EndMainMenuBar();
+
+    // Put a single pixel border around the entire window to frame the application
+    ScopedChildBorderTheme(ImGui.GetStyle().Colors[ImGui.Col.Border], 1.);
+
+    {
+        icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
+        ImGui.Image(cast(ImGui.ImTextureID)icon_prism_icon_texture[prism_icon_color_index].gl_handle, icon_size);
+        click_cycle_prism_color_index();
+        if ImGui.IsItemHovered(.DelayNormal) {
+            show_tooltip(tprint("Prism %", app.changelog[0].name));
+        }
+    }
+
+    // sz : float = ImGui.GetTextLineHeight();
+    // p : ImGui.ImVec2 = ImGui.GetCursorScreenPos();
+    // ImGui.ImDrawList.AddRectFilled(ImGui.GetWindowDrawList(), p, ImGui.ImVec2.{p.x + xx sz, p.y + xx sz}, ImGui.GetColorU32(RED));
+    // ImGui.Dummy(ImGui.ImVec2.{xx sz, xx sz});
+
+    if (ImGui.BeginMenu("File")) {
+        defer ImGui.EndMenu();
+
+        if ImGui.BeginMenu("Preferences") {
+            defer ImGui.EndMenu();
+            show_preferences();
+        }
+
+        ImGui.Separator();
+
+        if ImGui.MenuItem("Quit", "Alt F4") {
+            app.closing_application = true;
+        }
+    }
+
+    if ImGui.BeginMenu("Edit") {
+        defer ImGui.EndMenu();
+
+        if ImGui.MenuItem("Toggle Current Item Selection", "Alt   A") {
+            toggle_current_selection();
+        }
+
+        if ImGui.MenuItem("Select/Deselect All Items", "Ctrl  A") {
+            select_or_deselect_all();
+        }
+
+        if ImGui.MenuItem("Select/Deselect Visible Items", "Shift A") {
+            select_or_deselect_visible();
+        }
+        show_tooltip("Also deselects items which are not visible");
+
+        if ImGui.MenuItem("Delete Selected Items", "      Del") {
+            remove_entities_if_selected();
+        }
+    }
+
+    if ImGui.BeginMenu("View") {
+        defer ImGui.EndMenu();
+
+        // TODO Have more granular show ui checkboxes
+        if ImGui.MenuItem("Show All UI", "Ctrl `", app.show_ui) {
+            app.show_ui = !app.show_ui;
+        }
+
+        if ImGui.MenuItem("Show Console UI", "     `", app.console.show_ui) {
+            app.console.show_ui = !app.console.show_ui;
+            if app.console.show_ui {
+                app.show_ui = true;
+            }
+        }
+
+        if ImGui.MenuItem("Show Camera UI", null, app.camera.show_ui) {
+            app.camera.show_ui = !app.camera.show_ui;
+            if app.camera.show_ui {
+                app.show_ui = true;
+            }
+        }
+
+        if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
+            app.triad.visible = !app.triad.visible;
+        }
+
+        if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode) {
+            app.demo_mode = !app.demo_mode;
+        }
+        show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
+
+        ImGui.Separator();
+
+        if ImGui.BeginMenu("Window Settings") {
+            defer ImGui.EndMenu();
+
+            // Window Size
+            {
+                // @Volatile :EasyResizeModeKeybind
+                tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB", flags=.None); }
+
+                ImGui.Text("Window Size    ");
+                tooltip();
+
+                ImGui.SameLine();
+                size : [2]s32 = .[app.current_window_width, app.current_window_height];
+                ImGui.PushItemWidth(70);
+                if ImGui.DragInt2("##WindowSize", *size) {
+                    SDL_SetWindowSize(app.window, size[0], size[1]);
+                }
+                tooltip();
+                ImGui.PopItemWidth();
+
+                ImGui.SameLine();
+                disable_window_resize_reset := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+                if disable_window_resize_reset ImGui.BeginDisabled();
+                if ImGui.Button("Reset##WindowSize") {
+                    SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+                }
+                tooltip();
+                if disable_window_resize_reset ImGui.EndDisabled();
+            }
+
+            // Window Position
+            {
+                // @Volatile :EasyResizeModeKeybind
+                tooltip :: () { show_tooltip_binding("(near window center) Move the window", "Alt LMB", flags=.None); }
+
+                ImGui.Text("Window Position");
+                tooltip();
+
+                ImGui.SameLine();
+                position : [2]s32;
+                SDL_GetWindowPosition(app.window, *position[0], *position[1]);
+                ImGui.PushItemWidth(70);
+                if ImGui.DragInt2("##WindowPosition", *position) {
+                    SDL_SetWindowPosition(app.window, position[0], position[1]);
+                }
+                tooltip();
+                ImGui.PopItemWidth();
+
+                // ImGui.SameLine();
+                // if ImGui.Button("Reset##WindowPosition") {
+                //     SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+                // }
+                // tooltip();
+            }
+
+            // Window Opacity
+            {
+                // @Volatile :WindowOpacityControl
+                tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc", flags=.None); }
+
+                ImGui.Text("Window Opacity ");
+                tooltip(); 
+                ImGui.SameLine();
+
+                window_opacity : float;
+                SDL_GetWindowOpacity(app.window, *window_opacity);
+                ImGui.PushItemWidth(70);
+                if ImGui.DragFloat("##WindowOpacity", *window_opacity, .01, 0.2, 1., format="%.2f") {
+                    window_opacity = clamp(window_opacity, .2, 1.);
+                    SDL_SetWindowOpacity(app.window, window_opacity);
+                }
+                ImGui.PopItemWidth();
+                tooltip(); 
+                ImGui.SameLine();
+
+                disable_window_opacity_reset := (window_opacity == 1.);
+                if disable_window_opacity_reset ImGui.BeginDisabled();
+                if ImGui.Button("Reset##WindowOpacity") {
+                    SDL_SetWindowOpacity(app.window, 1);
+                }
+                if disable_window_opacity_reset ImGui.EndDisabled();
+                tooltip(); 
+            }
+
+            // TODOO Always on top window
+        }
+    }
+
+    if ImGui.BeginMenu("Help") {
+        defer ImGui.EndMenu();
+
+        if ImGui.BeginMenu("Window Shortcuts") {
+            defer ImGui.EndMenu();
+            show_window_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Camera Shortcuts") {
+            defer ImGui.EndMenu();
+            show_camera_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Items List Shortcuts") {
+            defer ImGui.EndMenu();
+            show_items_list_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Viewport Shortcuts") {
+            defer ImGui.EndMenu();
+            show_viewport_key_bindings();
+        }
+
+        if ImGui.BeginMenu("Miscellaneous Shortcuts") {
+            defer ImGui.EndMenu();
+            show_miscellaneous_key_bindings();
+        }
+
+        ImGui.Separator();
+
+        if ImGui.BeginMenu("Release Notes") {
+            defer ImGui.EndMenu();
+            show_changelog();
+        }
+
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
+        if ImGui.BeginMenu("About") {
+            defer ImGui.EndMenu();
+
+            show_help_about_content();
+        }
+        ImGui.PopStyleColor();
+    }
+
+    {
+        icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y * .7, xx ImGui.GetWindowSize().y * .7};
+
+        ImGui.PushStyleColor(xx ImGui.Col.Button, ImGui.ImColor.{0, 0, 0, 0});
+        defer ImGui.PopStyleColor();
+        ImGui.PushStyleVar(xx ImGui.StyleVar.FrameBorderSize, 0);
+        defer ImGui.PopStyleVar();
+
+        {
+            ImGui.PushStyleColor(xx ImGui.Col.Button, TRANSPARENT);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, TRANSPARENT);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, TRANSPARENT);
+            defer ImGui.PopStyleColor(3);
+
+            app.window_draggable_rect_min = ImGui.GetCursorScreenPos() + ImGui.ImVec2.{0, WINDOW_RESIZE_MARGIN_PX};
+
+            // Invisible dummy button to figure out where to start putting the minimize, maximize/restore, quit buttons
+            button_width := -ImGui.GetCursorScreenPos().x;
+            ImGui.ImageButton(cast(ImGui.ImTextureID)icon_window_maximize_texture.gl_handle, icon_size, tint_col=TRANSPARENT);
+            button_width +=  ImGui.GetCursorScreenPos().x;
+            start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
+            ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
+
+            app.window_draggable_rect_max = .{start_x, ImGui.GetWindowSize().y};
+            // ImGui.ImDrawList.AddRect(fg_draw_list, app.window_draggable_rect_min, app.window_draggable_rect_max, ImGui.GetColorU32(RED)); // Debug
+        }
+
+        {
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, ImGui.GetStyle().Colors[ImGui.Col.HeaderHovered]);
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, ImGui.GetStyle().Colors[ImGui.Col.HeaderActive]);
+            defer ImGui.PopStyleColor(2);
+
+            if ImGui.ImageButton("##MinimizeButton", cast(ImGui.ImTextureID)icon_window_minimize_texture.gl_handle, icon_size, tint_col=BLACK) {
+                SDL_MinimizeWindow(app.window);
+            }
+
+            if app.window_maximized {
+                if ImGui.ImageButton("##RestoreButton", cast(ImGui.ImTextureID)icon_window_restore_texture.gl_handle, icon_size, tint_col=BLACK) {
+                    SDL_RestoreWindow(app.window);
+                }
+            } else {
+                if ImGui.ImageButton("##MaximizeButton", cast(ImGui.ImTextureID)icon_window_maximize_texture.gl_handle, icon_size, tint_col=BLACK) {
+                    SDL_MaximizeWindow(app.window);
+                }
+            }
+        }
+
+        {
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, ImGui.ImColor.{250./255, 66./255, 66./255, 1});
+            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, RED);
+            defer ImGui.PopStyleColor(2);
+
+            if ImGui.ImageButton("##QuitButton", cast(ImGui.ImTextureID)icon_window_close_texture.gl_handle, icon_size, tint_col=BLACK) {
+                quit_application();
+            }
+        }
+    }
+}
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
 show_left_window :: () {
 
     // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
+    // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
     defer ImGui.PopStyleVar();
 
-    ImGui.SetNextWindowPos(WINDOW_BORDER_UI_OFFSET);
+    ImGui.SetNextWindowPos(ImGui.GetMainViewport().WorkPos + WINDOW_BORDER_UI_OFFSET);
     ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
     defer ImGui.End();
 
-    ScopedWindowBorderTheme(original_border_color, original_border_size);
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    if ImGui.BeginTabBar("##ItemsTab", flags=ImGui.TabBarFlags.None) {
-        defer ImGui.EndTabBar();
-
-        if ImGui.BeginTabItem("Prism") {
-            defer ImGui.EndTabItem();
-
-            // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
-            show_prism_tab_ui();
-        }
-
-        if ImGui.BeginTabItem("Edit") {
-            defer ImGui.EndTabItem();
-
-            show_edit_tab_ui();
-        }
-
-        if ImGui.BeginTabItem("View") {
-            defer ImGui.EndTabItem();
-
-            ImGui.Checkbox("Show Camera UI", *app.camera.show_ui);
-            ImGui.Checkbox("Show Console UI", *app.console.show_ui);
-        }
-
-        if ImGui.BeginTabItem("Help") {
-            defer ImGui.EndTabItem();
-
-            show_help_tab_ui();
-        }
-    }
+    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+    show_tools_ui();
+    show_items_ui();
+    show_details_ui();
 }
 
 show_right_window :: () {
@@ -53,8 +329,10 @@ show_right_window :: () {
         return;
     }
 
-    window_pos := make_ImVec2(ImGui.GetIO().DisplaySize.x - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y);
-    window_pivot := make_ImVec2(1, 0);
+    window_pos := ImGui.ImVec2.{
+        ImGui.GetMainViewport().WorkSize.x - WINDOW_BORDER_UI_OFFSET.x,
+        ImGui.GetMainViewport().WorkPos.y  + WINDOW_BORDER_UI_OFFSET.y};
+    window_pivot := ImGui.ImVec2.{1, 0};
 
     using ImGui.WindowFlags;
 
@@ -62,13 +340,13 @@ show_right_window :: () {
     defer ImGui.PopStyleColor();
 
     // Set window border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
+    // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
 
     ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
     ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
     defer ImGui.End();
 
-    ScopedWindowBorderTheme(original_border_color, original_border_size);
+    // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
     show_camera_controls();
 }
@@ -81,12 +359,12 @@ show_item_list_actions_ui :: () {
 
     // Try actions buttons on the bottom by the console
     {
-        window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+        window_pivot := ImGui.ImVec2.{0, 1}; // SetNextWindowPos will refer to the bottom left corner of the window
 
         console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
-        // ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always); // Full width of OS window
-        ImGui.SetNextWindowSize(make_ImVec2(-1, -1), .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
+        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx app.current_window_height}, pivot=window_pivot);
+        // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window
+        ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
         window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
         if true {
@@ -127,9 +405,9 @@ show_pending_directories_ui :: () {
         return;
     }
 
-    ImGui.SetNextWindowPos(make_ImVec2(app.current_window_width / 2., app.current_window_height / 2.), pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
-    // ImGui.SetNextWindowSizeConstraints(make_ImVec2(app.current_window_width * .6, app.current_window_height * .75),
-    //                                    make_ImVec2(app.current_window_width * .6, app.current_window_height * .75));
+    ImGui.SetNextWindowPos(ImGui.ImVec2.{app.current_window_width / 2., app.current_window_height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75},
+    //                                    ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75});
     window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
@@ -149,8 +427,8 @@ show_pending_directories_ui :: () {
      | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
      | .ScrollY; // Without this option the outer_size argument is ignored
 
-    // outer_size := make_ImVec2(0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200));
-    outer_size := make_ImVec2(0, 400);
+    // outer_size := ImGui.ImVec2.{0, min(cast(float)(FONT_SIZE * dir.loadable_files.count), 200});
+    outer_size := ImGui.ImVec2.{0, 400};
     if ImGui.BeginTable(imgui_label("##loadable_file_table"), 4, flags=table_flags, outer_size=outer_size) {
         defer ImGui.EndTable();
 
@@ -289,16 +567,63 @@ show_imgui_demo_window :: () {
     }
 }
 
-#scope_file
+ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
+ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
 
-show_prism_tab_ui :: () {
-    show_tools_ui();
-    show_items_ui();
-    show_details_ui();
+
+
+//
+// ImGui data needed between frames. @Think There must be a better way to do this...
+//
+
+// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
+// This stuct stores stuff we need to remember to use in the next render frame
+ImGui_Frame_State :: struct {
+    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to implement show/hiding a selection using a selected checkbox
+    index_of_selected_item_where_color_was_changed : int = -1;
+    index_of_selected_item_where_color_was_reset : int = -1;
+    index_of_selected_item_where_mode_was_cycled : int = -1;
 }
 
+// State relevant to the currently rendering frame
+g_this_frame_state : ImGui_Frame_State;
+
+// State relevant to the next rendering frame
+// This will be reset at the start of the currently rendering frame
+// Set fields whenever convenient in the currently rendering frame
+g_next_frame_state : ImGui_Frame_State;
+
+
+
+
+//
+// Textures and icon stuff
+//
+
+prism_icon_color_index := 0;
+
+// @Volatile Sync with :PRISM_ICON_COLORS
+PRISM_ICON_COLORS :: Named_Color.[
+    .{.{102./255, 153./255, 1, 1}, "blue"},
+    .{.{102./255, 153./255, 0, 1}, "green"},
+    .{.{204./255, 0, 0, 1}, "red"},
+    .{BLACK, "black"},
+];
+
+// TODOO Set these at compile-time to make runtime startup as fast as possible, maybe set them at runtime in debug?
+icon_prism_icon_texture : [PRISM_ICON_COLORS.count]Texture;
+icon_prism_logo_texture : Texture;
+icon_window_close_texture : Texture;
+icon_window_minimize_texture : Texture;
+icon_window_maximize_texture : Texture;
+icon_window_restore_texture : Texture;
+
+
+#scope_file
+
 show_tools_ui :: () {
-    do_tree := ImGui.TreeNodeEx("Tools", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    // Trailing space makes it look nicer
+    do_tree := ImGui.TreeNodeEx("Tools ", .SpanAvailWidth | .Framed);
     if do_tree {
         defer ImGui.TreePop();
         show_api_ui();
@@ -311,7 +636,8 @@ show_items_ui :: () {
     entity_to_remove := -1;
     any_visibility_changed : bool;
 
-    if ImGui.TreeNodeEx("Items", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen | .Framed) {
+    // Trailing space makes it look nicer @Cleanup Make this plural properly
+    if ImGui.TreeNodeEx("Items ", .SpanAvailWidth | .DefaultOpen | .Framed) {
         defer ImGui.TreePop();
 
         for *folder : app.directories {
@@ -366,7 +692,7 @@ show_items_ui :: () {
                         .PadOuterX |
                         .NoBordersInBody |
                         .ScrollY;
-                    outer_size :=  make_ImVec2(0, app.settings.item_list_max_size_before_scroll_px);
+                    outer_size :=  ImGui.ImVec2.{0, app.settings.item_list_max_size_before_scroll_px};
 
                     show_scrollbar := folder.last_frame_item_list_height_px >= outer_size.y;
                     if !show_scrollbar {
@@ -407,9 +733,9 @@ show_items_ui :: () {
         bindings : [..]Binding_With_Description;
         bindings.allocator = temp;
         // @Volatile @Cleanup See :SelectionKeybindTooltip
-        array_add(*bindings, make_Binding_With_Description("Ctrl a", "Select/deselect all items"));
-        array_add(*bindings, make_Binding_With_Description("Shift a", "Select/deselect visible items"));
-        array_add(*bindings, make_Binding_With_Description("Alt a", "Toggle current item selection"));
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{control_pressed=true}), "Select/deselect all items"));
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{shift_pressed=true}), "Select/deselect visible items"));
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{alt_pressed=true}), "Toggle current item selection"));
         array_add(*bindings, make_Binding_With_Description("`", "Use the 'select_...' commands"));
         show_tooltip_binding(..bindings);
 
@@ -638,107 +964,133 @@ show_create_tool_ui :: () {
     }
 }
 
+show_preferences :: () {
+    item_width :: 100;
 
-show_edit_tab_ui :: () {
+    if ImGui.BeginMenu("UI/UX##Preferences>UI") {
+        defer ImGui.EndMenu();
 
-    if ImGui.TreeNodeEx("Preferences", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-        defer ImGui.TreePop();
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
 
-        if ImGui.TreeNodeEx("Appearance", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+        // nocommit Limit the width of widgets here
 
-            if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
-                set_prism_theme(app.theme.theme);
-            }
+        if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
+            set_prism_theme(app.theme.theme);
+        }
 
+        ImGui.DragFloat("UI Scale", *io().FontGlobalScale, .001, format="%.3f");
+
+        {
             combo_box("Background", *app.background_style, type_info(app.Background_Style));
             if app.background_style == .SOLID_COLOR {
                 ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
             }
-            ImGui.DragFloat("UI Font Scale", *io().FontGlobalScale, .001, format="%.3f");
+
+            // nocommit Add a shader period thing
         }
 
-        if ImGui.TreeNodeEx("Viewport", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+        {
+            // TODO This (maybe!) interacts in an annoying way with keyboard shortcuts, fix that before enabling by default
+            use_keyboard : bool;
+            if ImGui.GetIO().ConfigFlags_ & ImGui.ConfigFlags.NavEnableKeyboard {
+                use_keyboard = true;
+            } else {
+                use_keyboard = false;
+            }
+            ImGui.Checkbox("Enable Keyboard Navigation", *use_keyboard);
+            if use_keyboard {
+                ImGui.GetIO().ConfigFlags_ |= .NavEnableKeyboard;
+            } else {
+                ImGui.GetIO().ConfigFlags_ &= ~.NavEnableKeyboard;
+            }
+        }
 
-            {
-                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
-                ImGui.DragFloat("Closest-Point Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                show_tooltip(tprint(#string DONE
-Closest-point query radius in pixels affecting:
-- Selection
+        {
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
+            ImGui.DragFloat("CP Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            show_tooltip(tprint(#string DONE
+CP Query Radius in pixels, this affects:
+- Selection of items and elements
 - Clipping sphere center seeding
 - Label visibility in % labelling mode
 DONE, Labelling_Mode.RAY_CAST));
-                app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
-            }
-
-            ImGui.Checkbox("Show World Axes", *app.triad.visible);
+            app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
         }
+    }
 
-        if ImGui.TreeNodeEx("Labelling", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+    // @Incompletee Add this
+    //if ImGui.BeginMenu("Camera") {
+    //    defer ImGui.EndMenu();
+    //}
 
-            combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
-            show_tooltip(tprint(#string DONE
+    if ImGui.BeginMenu("Labelling") {
+        defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
+
+        combo_box("Labelling Mode", *app.settings.labelling_mode, type_info(Labelling_Mode));
+        show_tooltip(tprint(#string DONE
 %: Show labels at the intersection/closest point of a camera ray query
 %: Show labels within some distance of the cursor location
 DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
-            combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
+        combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
 
-            {
-                radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
-                radius_px := cast(float) app.settings.labelling_radius_px;
-                ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
-                show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
-                app.settings.labelling_radius_px = cast(int) radius_px;
-            }
-
-            format_float_ui(*app.label_format.format_float);
-            format_struct_ui(*app.label_format.format_struct);
+        {
+            // @Cleanupp Replace with DragInt
+            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_px := cast(float) app.settings.labelling_radius_px;
+            ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
+            show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
+            app.settings.labelling_radius_px = cast(int) radius_px;
         }
 
-        if ImGui.TreeNodeEx("Console", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
+        format_float_ui(*app.label_format.format_float);
+        format_struct_ui(*app.label_format.format_struct);
+    }
 
+    // @Think Maybe we should get rid of the console options button?
+    if ImGui.BeginMenu("Console") {
+        defer ImGui.EndMenu();
 
-            combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
-            show_tooltip(#string DONE
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
+
+        combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
+        show_tooltip(#string DONE
 Transparent mode: log window ignores mouse input so you can interact with the scene while reading the log
 Interactive mode: log window captures mouse input so you can scroll through log messages
 DONE);
-            ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
-        }
-
-        if ImGui.TreeNodeEx("Save & Load", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
-            show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
-            ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key))), *app.settings.disable_reload_key_if_file_unchanged);
-        }
-
-        if ImGui.TreeNodeEx("Miscellaneous", ImGui.TreeNodeFlags.SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-            ImGui.Checkbox("Demo Mode", *app.demo_mode);
-            show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
-
-            disable_window_resize_button := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
-            if disable_window_resize_button ImGui.BeginDisabled();
-            if ImGui.Button("Reset OS Window Size") SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
-            if disable_window_resize_button ImGui.EndDisabled();
-        }
+        ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
     }
 
+    if ImGui.BeginMenu("Item List") {
+        defer ImGui.EndMenu();
 
-    // :UserConfig add a button to overwrite the user settings file with new defaults here?
-    inspect("Advanced", *app.settings);
-    clamp_user_settings();
+        // Invalid point widget looks bad with this
+        //ImGui.PushItemWidth(item_width);
+        //defer ImGui.PopItemWidth();
 
+        ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
+        show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged);
+        ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
+        ImGui.Checkbox("Item Details Section Uses Menus", *app.settings.item_details_uses_menu);
+    }
+
+    if ImGui.BeginMenu("Advanced") {
+        defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
+
+        // :UserConfig add a button to overwrite the user settings file with new defaults here?
+        inspect("Advanced##Impl", *app.settings);
+        clamp_user_settings();
+    }
 }
 
 // If entity == null then show the details for the template
@@ -758,7 +1110,8 @@ show_details_ui :: () {
         tooltip = tprint("Displaying a template state.\nAny edits will be applied to % selected item%.", selected.count, plural_suffix(selected.count > 1));
     }
 
-    do_tree := ImGui.TreeNodeEx("Details", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    // Trailing space looks better when its shut
+    do_tree := ImGui.TreeNodeEx("Details ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     show_tooltip(tooltip);
     if do_tree {
         defer ImGui.TreePop();
@@ -768,6 +1121,21 @@ show_details_ui :: () {
         } else {
             show_details_pane_ui_for_item_selection();
         }
+    }
+}
+
+begin_item_details_section :: (label : *u8) -> bool {
+    if app.settings.item_details_uses_menu {
+        return ImGui.BeginMenu(label);
+    }
+    return ImGui.TreeNodeEx(label, ImGui.TreeNodeFlags.SpanAvailWidth);
+}
+
+end_item_details_section :: () {
+    if app.settings.item_details_uses_menu {
+        ImGui.EndMenu();
+    } else {
+        ImGui.TreePop();
     }
 }
 
@@ -830,10 +1198,11 @@ show_details_pane_ui_for_item_selection :: () {
 }
 
 show_item_selection_ui :: () {
-    if ImGui.TreeNodeEx("Selection", ImGui.TreeNodeFlags.SpanAvailWidth) {
-        defer ImGui.TreePop();
 
-        BoxSection();
+    if begin_item_details_section("Selection") {
+        defer end_item_details_section();
+        if !app.settings.item_details_uses_menu begin_box_section();
+        defer if !app.settings.item_details_uses_menu end_box_section();
 
         for :Selected entity : app.entities {
 
@@ -1158,6 +1527,16 @@ ScopedWindowBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4,
     return prev_color, prev_size;
 }
 
+ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, float #expand {
+    prev_color := ImGui.GetStyle().Colors[ImGui.Col.Border];
+    prev_size :=  ImGui.GetStyle().ChildBorderSize;
+    ImGui.PushStyleColor(xx ImGui.Col.Border, color);
+    ImGui.PushStyleVar(xx ImGui.StyleVar.ChildBorderSize, size);
+    `defer ImGui.PopStyleColor();
+    `defer ImGui.PopStyleVar();
+    return prev_color, prev_size;
+}
+
 ActionButton :: (_label : string, action_set : *Action_Set) #expand {
     label := copy_string(_label, temp);
     mod := current_modifier_flags(); 
@@ -1200,13 +1579,11 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
         if ImGui.Button(imgui_label(label, *action_set)) {
             action_set.last_interaction_time = current_time_consensus();
             action_set.proc(xx *action_set.last_interaction_time);
-            // action_set.hovered_duration_secs = 0.; // so we can click it without looking at the tooltip
         }
 
-        if ImGui.IsItemHovered() {
-            action_set.hovered_duration_secs += io().DeltaTime;
-        } else {
-            action_set.hovered_duration_secs = 0.;
+        if ImGui.IsItemHovered(.DelayNormal) {
+            push_allocator(temp);
+            show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false));
         }
 
         if do_style {
@@ -1214,11 +1591,6 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
-        }
-
-        if action_set.hovered_duration_secs > 0.5 {
-            push_allocator(temp);
-            show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}));
         }
     }
 
@@ -1251,7 +1623,7 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
     current_pos := ImGui.GetWindowPos();
     current_size := ImGui.GetWindowSize();
-    window_pos := make_ImVec2(current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y);
+    window_pos := ImGui.ImVec2.{current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y};
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
     // Set popup border color to match the selection/RMB target item color
@@ -1284,6 +1656,7 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
 
 show_camera_controls :: () {
 
+    old_padding := ImGui.GetStyle().CellPadding;
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
     defer ImGui.PopStyleVar();
 
@@ -1334,27 +1707,49 @@ show_camera_controls :: () {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
 
-        // @Volatile button text in camera control pane should be kept in sync with keymap!
+        // @Volatile Sync with :RotateLookDirectionUI
         right_label, left_label, amount := "<< ", ">> ", 5.;
         if io().KeyShift {
             right_label, left_label, amount = "<<<", ">>>", 15.;
         } else if io().KeyAlt {
             right_label, left_label, amount = " < ", " > ", 1.;
         }
+
         if ImGui.Button(right_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, amount);
         }
+        {
+            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
+            defer ImGui.PopStyleVar();
+            ccw_bindings := temp_array(Binding_With_Description);
+            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{alt_pressed=true}),   "Rotate  -1 deg about selected rotation axis"));
+            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{}),                   "Rotate  -5 deg about selected rotation axis"));
+            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{shift_pressed=true}), "Rotate -15 deg about selected rotation axis"));
+            show_tooltip_binding(..ccw_bindings);
+        }
+
         ImGui.TableNextColumn();
         if ImGui.Button("XYZ") {
             up := normalize(cross(.{-1, 1, 0}, .{-1, -1, -1}));
             set_look_direction(direction=.{-1, -1, -1}, up=up);
         }
+
         ImGui.TableNextColumn();
         if ImGui.Button(left_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, -amount);
         }
+        {
+            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
+            defer ImGui.PopStyleVar();
+            cw_bindings := temp_array(Binding_With_Description);
+            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{alt_pressed=true}),   "Rotate  1 deg about selected rotation axis"));
+            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{}),                   "Rotate  5 deg about selected rotation axis"));
+            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{shift_pressed=true}), "Rotate 15 deg about selected rotation axis"));
+            show_tooltip_binding(..cw_bindings);
+        }
+
         // ImGui.TableNextColumn();
         ImGui.SameLine();
         combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
@@ -1407,132 +1802,83 @@ show_camera_controls :: () {
     }
 }
 
-show_help_tab_ui :: () {
-    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
+show_help_about_content :: () {
 
-    if ImGui.TreeNodeEx("About", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-        defer ImGui.TreePop();
+    {
+        logo := icon_prism_logo_texture;
+        ImGui.Image(cast(ImGui.ImTextureID)logo.gl_handle, ImGui.ImVec2.{xx logo.width, xx logo.height});
+        ImGui.NewLine();
+    }
 
+    {
+        ImGui.Text("Prism is a tool for debugging geometry algorithms with obj files");
+        ImGui.Text("This is version %. Feedback/Bugs:", app.changelog[0].name);
+        ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
-        ImGui.Text("Prism is a tool for debugging computational geometry algorithms.");
-        ImGui.Text("Load files/folders with drag/drop or via command line arguments.");
-
-        /*
-        Goals
-        - work with .obj file format
-        - writing quads seems not that useful, so make `f a b c d` represent a tet rather than a quad
-        ImGui.Text("Feedback/Bugs can be:");
-        ImGui.Text("- sent to matija.kecman@epicgames.com, or");
-        ImGui.Text("- posted on the slack channel #sig-prism-ext, or");
-        ImGui.Text("- suggested on the User Guide document pinned on slack");
-        */
-
-        COMPILER_VERSION_INFO :: #run tprint("Compiled with Jai version %.", compiler_get_version_info(null));
-        ImGui.Text(COMPILER_VERSION_INFO);
+        ImGui.Text("matija.kecman@epicgames.com"); // TODO Click to copy to clipboard?
     }
 
-    if ImGui.TreeNodeEx("Key Bindings", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
+    ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
+    defer ImGui.PopStyleVar();
+
+    ImGui.NewLine();
+    if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
 
-        if ImGui.TreeNodeEx("Camera Controls", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##CameraControlsKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
+        sdl_version : SDL_version = sdl_get_version();
 
-            ShowBinding("      MMB", "Pan the camera");
-            ShowBinding("      RMB", "Rotate the camera");
-            ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane");
-            ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
-            ShowBinding("      Scroll", "Zoom into the position under the cursor");
-            ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");
-            ShowBinding("Shift Scroll", "Zoom into the camera look position");
+        // BoxSection();
+        // ImGui.TableNextColumn();
+
+        COMPILER_VERSION :: #run stop_at_any(compiler_get_version_info(null), ",");
+        ImGui.Text("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION);
+        ImGui.Text("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch);
+        ImGui.Text("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()));
+        ImGui.Text("Geometric Tools, BSL 1.0 (github.com/davideberly/GeometricTools)");
+        ImGui.Text("par_shapes.h, MIT (github.com/prideout/par)");
+    }
+}
+
+show_changelog :: () {
+    if ImGui.Button("Save to CHANGELOG.md") {
+        contents : string;
+        defer free(contents);
+        time := filetime_to_readable_date(current_time_consensus(), true);
+        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
+        for app.changelog {
+            entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
+            contents = join(contents, entry);
         }
+        write_entire_file_to_cwd("CHANGELOG.md", contents);
+    }
+    show_tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
 
-        if ImGui.TreeNodeEx("In the Items List", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##ItemsListKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
-
-            ShowBinding("      RMB", "(on a color) Cycle shading styles");
-            ShowBinding("      MMB", "(on a color) Reset color from the filename");
-            ShowBinding("      LMB", "(sweep over visibility checkbox) Update item visibility");
-            ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus hovered item");
-            ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus hovered item and update camera");
-            ShowBinding("      LMB", "(on a filename) Select an item");
-            ShowBinding("Ctrl  LMB", "(on a filename) Add an item to selection");
-        }
-
-        if ImGui.TreeNodeEx("In the Viewport", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##ViewportKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
-
-            for app.keymap_actions.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
-            }
-
-            ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
-            ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
-        }
-
-        if ImGui.TreeNodeEx("Miscellaneous", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-            ImGui.BeginTable("##MiscellaneousKeys", 2, flags=table_flags);
-            defer ImGui.EndTable();
-
-            for app.keymap.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
-            }
-            for app.keymap_keydown.mappings {
-                push_allocator(temp);
-                ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
-            }
-        }
+    blank_space :: () {
+        ImGui.Text("                                                                                                                       ");
     }
 
-    outer_size : ImGui.ImVec2;
-    outer_size.x = min(800., app.current_window_width * .75);
-    outer_size.y = 0;
-
-    if ImGui.TreeNodeEx("Changelog", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
+    latest := app.changelog[0];
+    if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
         defer ImGui.TreePop();
 
-        if ImGui.Button("Save to CHANGELOG.md") {
-            contents : string;
-            defer free(contents);
-            time := filetime_to_readable_date(current_time_consensus(), true);
-            contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
-            for app.changelog {
-                entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
-                contents = join(contents, entry);
-            }
-            write_entire_file_to_cwd("CHANGELOG.md", contents);
-        }
-        show_tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
+        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+        ImGui.TextWrapped(latest.description);
+        // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
+        ImGui.PopStyleColor();
+        blank_space();
+    }
 
-        latest := app.changelog[0];
-        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
+    for 1..app.changelog.count-1 {
+        version := app.changelog[it];
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-            ImGui.TextWrapped(latest.description);
-            // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
+            ImGui.TextWrapped(version.description);
+            // ImGui.Text(version.description);
             ImGui.PopStyleColor();
-        }
-
-        for 1..app.changelog.count-1 {
-            version := app.changelog[it];
-            if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
-                defer ImGui.TreePop();
-
-                ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-                ImGui.TextWrapped(version.description);
-                // ImGui.Text(version.description);
-                ImGui.PopStyleColor();
-            }
+            blank_space();
         }
     }
 
@@ -1546,8 +1892,6 @@ show_help_tab_ui :: () {
     //        }
     //    }
     //}
-
-    // @Incomplete add a message about where the keymap is for editing
 }
 
 
@@ -1639,10 +1983,11 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
 }
 
 display_information :: (entity : *Entity) {
-    if ImGui.TreeNodeEx("Information", .SpanAvailWidth) {
-        defer ImGui.TreePop();
+    if  begin_item_details_section("Information") {
+        defer end_item_details_section();
+        table_flags : ImGui.TableFlags;
+        if !app.settings.item_details_uses_menu table_flags |= .BordersOuter;
 
-        table_flags := ImGui.TableFlags.BordersOuter;
         ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
         defer ImGui.EndTable();
 
@@ -1679,10 +2024,10 @@ display_information :: (entity : *Entity) {
 }
 
 display_transform :: (entity : *Entity) {
-    if ImGui.TreeNodeEx("Transform", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
+    if  begin_item_details_section("Transform") {
+        defer end_item_details_section();
+        if !app.settings.item_details_uses_menu begin_box_section();
+        defer if !app.settings.item_details_uses_menu end_box_section();
 
         ImGui.TableNextColumn();
 
@@ -1747,7 +2092,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
         if annotations.count {
 
             table_flags := attr_anno_table_flags;
-            outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+            outer_size := ImGui.ImVec2.{0, app.settings.annotation_list_max_size_before_scroll_px};
 
             if last_frame_annotation_list_height_px < outer_size.y {
                 table_flags &= ~.ScrollY;
@@ -1865,7 +2210,7 @@ DONE;
                     table_flags := attr_anno_table_flags;
                     table_flags &= ~.Sortable;
 
-                    outer_size := make_ImVec2(0, app.settings.annotation_list_max_size_before_scroll_px);
+                    outer_size := ImGui.ImVec2.{0, app.settings.annotation_list_max_size_before_scroll_px};
 
                     if last_frame_annotation_list_height_px < outer_size.y {
                         table_flags &= ~.ScrollY;
@@ -1953,17 +2298,17 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.triangles.count == 0 {
         ImGui.BeginDisabled();
-        if ImGui.TreeNodeEx("Triangles (none)", .SpanAvailWidth) {
-            defer ImGui.TreePop();
+        if  begin_item_details_section("Triangles (none)") {
+            defer end_item_details_section();
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if ImGui.TreeNodeEx("Triangles", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
+    if  begin_item_details_section("Triangles") {
+        defer end_item_details_section();
+        if !app.settings.item_details_uses_menu begin_box_section();
+        defer if !app.settings.item_details_uses_menu end_box_section();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2029,17 +2374,17 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.segments.count == 0 {
         ImGui.BeginDisabled();
-        if ImGui.TreeNodeEx("Segments (none)", .SpanAvailWidth) {
-            defer ImGui.TreePop();
+        if  begin_item_details_section("Segments (none)") {
+            defer end_item_details_section();
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if ImGui.TreeNodeEx("Segments", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
+    if  begin_item_details_section("Segments") {
+        defer end_item_details_section();
+        if !app.settings.item_details_uses_menu begin_box_section();
+        defer if !app.settings.item_details_uses_menu end_box_section();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2072,17 +2417,17 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
 show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.points.count == 0 {
         ImGui.BeginDisabled();
-        if ImGui.TreeNodeEx("Points (none)", .SpanAvailWidth) {
-            defer ImGui.TreePop();
+        if  begin_item_details_section("Points (none)") {
+            defer end_item_details_section();
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if ImGui.TreeNodeEx("Points", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
+    if  begin_item_details_section("Points") {
+        defer end_item_details_section();
+        if !app.settings.item_details_uses_menu begin_box_section();
+        defer if !app.settings.item_details_uses_menu end_box_section();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2116,17 +2461,17 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
 show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.positions.count == 0 {
         ImGui.BeginDisabled();
-        if ImGui.TreeNodeEx("Vertices (none)", .SpanAvailWidth) {
-            defer ImGui.TreePop();
+        if begin_item_details_section("Vertices (none)") {
+            defer end_item_details_section();
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if ImGui.TreeNodeEx("Vertices", .SpanAvailWidth) {
-        defer ImGui.TreePop();
-
-        BoxSection();
+    if  begin_item_details_section("Vertices") {
+        defer end_item_details_section();
+        if !app.settings.item_details_uses_menu begin_box_section();
+        defer if !app.settings.item_details_uses_menu end_box_section();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2168,10 +2513,13 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
 
 show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
-    if ImGui.TreeNodeEx("Clipping", .SpanAvailWidth) {
-        defer ImGui.TreePop();
+    if begin_item_details_section("Clipping") {
+        defer end_item_details_section();
+        table_flags : ImGui.TableFlags;
+        if !app.settings.item_details_uses_menu {
+            table_flags |= .BordersOuter; // | .RowBg; // .SizingFixedFit
+        }
 
-        table_flags := ImGui.TableFlags.BordersOuter; // | .RowBg; // .SizingFixedFit
         if ImGui.BeginTable("##Clipping UI Table", 4, flags=table_flags) {
             defer ImGui.EndTable();
 
@@ -2293,6 +2641,53 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
     }
 }
 
+make_opengl_texture :: (texture_data : *u8, texture_width : s32, texture_height : s32) -> GLuint {
+    gl_handle : GLuint;
+
+    // Create an OpenGL texture identifier
+    glGenTextures(1, *gl_handle);
+    glBindTexture(GL_TEXTURE_2D, gl_handle);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+    // Upload pixels into texture
+    //glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cast(u32)texture_width, cast(u32)texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
+
+    return gl_handle;
+}
+
+load_texture_from_file :: (filename : string) -> Texture, bool {
+    texture : Texture;
+
+    // Load from file
+    texture_data : *u8 = stbi_load(temp_c_string(filename), *texture.width, *texture.height, null, 4);
+    defer stbi_image_free(texture_data);
+
+    if texture_data == null {
+        return texture, false;
+    }
+
+    texture.gl_handle = make_opengl_texture(texture_data, texture.width, texture.height);
+
+    return texture, true;
+}
+
+load_texture_from_memory :: (buffer : []u8) -> Texture, bool {
+    texture : Texture;
+
+    channels : s32;
+    texture_data : *u8 = stbi_load_from_memory(buffer.data, cast(s32)buffer.count, *texture.width, *texture.height, *channels, 4);
+
+    texture.gl_handle = make_opengl_texture(texture_data, texture.width, texture.height);
+
+    return texture, true;
+}
+
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
 
 display_action_buttons := true;
@@ -2342,25 +2737,29 @@ attr_anno_table_flags :: ImGui.TableFlags
     .Sortable |
     .PadOuterX;
 
-#scope_export // @CompilerBug without this scope_export the line below errors!
-ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
-ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
+POSITIVE_INF :: 0h7F800000;
 
-// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
-// This stuct stores stuff we need to remember to use in the next render frame
-ImGui_Frame_State :: struct {
-    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to implement show/hiding a selection using a selected checkbox
-    index_of_selected_item_where_color_was_changed : int = -1;
-    index_of_selected_item_where_color_was_reset : int = -1;
-    index_of_selected_item_where_mode_was_cycled : int = -1;
+sdl_get_version :: () -> SDL_version {
+    wm_info: SDL_SysWMinfo;
+    SDL_VERSION(*wm_info.version);
+    SDL_GetWindowWMInfo(app.window, *wm_info);
+    return wm_info.version;
 }
 
-// State relevant to the currently rendering frame
-g_this_frame_state : ImGui_Frame_State;
+click_cycle_prism_color_index :: () {
+    if ImGui.IsItemClicked() {
+        prism_icon_color_index += 1;
+        if prism_icon_color_index >= PRISM_ICON_COLORS.count {
+            prism_icon_color_index = 0;
+        }
+        color : Named_Color = PRISM_ICON_COLORS[prism_icon_color_index];
+        log("Set prism color to %. This is only aesthetic, it could be useful if you are comparing data between instances of Prism.", color.name);
 
-// State relevant to the next rendering frame
-// This will be reset at the start of the currently rendering frame
-// Set fields whenever convenient in the currently rendering frame
-g_next_frame_state : ImGui_Frame_State;
-
-POSITIVE_INF :: 0h7F800000;
+        // TODO Also set the icon on the desktop, can we the following work??
+        //#if OS == .WINDOWS {
+        //#import "Windows_Resources";
+        //icon_data :: #run read_entire_file("icon.ico");
+        //set_icon_by_data(get_path_of_running_executable(), icon_data);
+        //}
+    }
+}

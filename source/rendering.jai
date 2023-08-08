@@ -836,7 +836,7 @@ to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -
 }
 
 on_screen_in_disk :: (text_position_px : Tuple2i, visible_radius_px : int) -> bool {
-    if io().MousePos == make_ImVec2(-FLOAT32_MAX,-FLOAT32_MAX) {
+    if io().MousePos == ImGui.ImVec2.{-FLOAT32_MAX,-FLOAT32_MAX} {
         return false;
     }
 

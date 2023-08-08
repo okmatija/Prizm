@@ -4,7 +4,12 @@ app : App;
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
+    window_maximized := false;
+    window_draggable_rect_min : ImGui.ImVec2;
+    window_draggable_rect_max : ImGui.ImVec2;
+
     simp_font: *Simp.Dynamic_Font;
+
     theme : Prism_Theme;
 
     Folder :: struct {
@@ -151,6 +156,12 @@ App :: struct {
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
 }
 
+Texture :: struct {
+    gl_handle : GLuint;
+    width : s32;
+    height : s32;
+}
+
 // @Incomplete Deduplicate file watcher directories on linux
 
 deinit :: (directory : app.Folder) {
@@ -274,6 +285,8 @@ Selected :: #bake_arguments EntitiesIterator(entity_filter=#code !it.is_selected
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
+    item_details_uses_menu := true;
+
     item_list_max_size_before_scroll_px := 300.;
     annotation_list_max_size_before_scroll_px := 400.;
 
@@ -361,7 +374,6 @@ set_prism_theme :: (theme : Prism_Color_Theme) {
 #import "Random";
 #import "Reflection";
 #import "Math";
-#import "SDL";
 #import "Window_Type";
 #import "GL";
 #import "Deep_Copy";
@@ -370,6 +382,7 @@ Debug :: #import "Debug";
 #import "Hash_Table";
 #import "freetype255";
 #import "System";
+#import "stb_image";
 ImGui :: #import "ImGui";
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
@@ -381,6 +394,7 @@ ImGui :: #import "ImGui";
 
 // Prism modules
 Simp :: #import "Simp_beta_0_1_016";
+#import "SDL_beta_0_1_071"; // @Cleanupp Make this SDL :: 
 // #import "Tagged_Union_Enum"(DEBUG=true);
 #load "modules/Tagged_Union_Enum.jai"; // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
 

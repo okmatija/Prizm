@@ -6,6 +6,7 @@ Keymap_Proc_Info :: struct {
     data : *void;
 }
 
+// @Think Maybe we shouldn't allow more than one modifier ever, because they are horrible to press!
 Modifier_Flags :: struct {
     shift_pressed   := false;
     control_pressed := false;
@@ -35,6 +36,64 @@ Single_Key_Mapping :: struct {
     override_WantCaptureKeyboard : bool;
 }
 
+KEYBIND_TABLE_FLAGS :: ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
+
+ScopeKeyBindTable :: (table_id : string) -> ImGui.TableFlags #expand {
+    `ImGui.BeginTable(to_c_string(table_id), 2, flags=KEYBIND_TABLE_FLAGS);
+    `defer ImGui.EndTable();
+}
+
+ShowBinding :: (binding : string, description : string) #expand { // @CompilerBug??? Why does this need to be a macro
+    ImGui.TableNextColumn();
+    ImGui.TextColored(app.theme.keymap_color, binding);
+    ImGui.TableNextColumn();
+    ImGui.Text(description);
+}
+
+// @CompilerBug{"0.1.049"} This does not compile if its not a macro, there is an error about 'Undeclared identifier 'app''
+show_tooltip_binding :: (description : string, binding : string, flags := ImGui.HoveredFlags.DelayNormal) #expand {
+    if (ImGui.IsItemHovered(flags)) {
+        ImGui.BeginTooltip();
+        ImGui.TextColored(app.theme.keymap_color, binding);
+        ImGui.SameLine();
+        ImGui.Text(description);
+        ImGui.EndTooltip();
+    }
+}
+
+Binding_With_Description :: struct {
+    binding : string;
+    description : string;
+}
+
+make_Binding_With_Description :: (binding : string, description : string) -> Binding_With_Description {
+    result : Binding_With_Description = ---;
+    result.binding = binding;
+    result.description = description;
+    return result;
+}
+
+show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "", flags := ImGui.HoveredFlags.DelayNormal) #expand {
+    if bindings_with_descriptions.count == 0 return;
+
+    if (ImGui.IsItemHovered(flags)) {
+        ImGui.BeginTooltip();
+        if header_text ImGui.Text(header_text);
+
+        // ImGui.BeginTable("##", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
+        ImGui.BeginTable("##", xx (bindings_with_descriptions.count-1), flags=KEYBIND_TABLE_FLAGS);
+        for bindings_with_descriptions {
+            ImGui.TableNextColumn();
+            ImGui.TextColored(app.theme.keymap_color, it.binding);
+            ImGui.TableNextColumn();
+            ImGui.Text(it.description);
+        }
+        ImGui.EndTable();
+
+        ImGui.EndTooltip();
+    }
+}
+
 // Compile-time check to ensure we don't stomp the ASCII key codes we want
 #assert(enum_highest_value(Special_Key_Code) < 32);
 
@@ -58,20 +117,32 @@ Special_Key_Code :: enum u32 #specified {
     F12     :: 22; // unused
 }
 
-to_string :: (key_code : u32, modifier_flags : Modifier_Flags = .{}) -> string {
+// @Cleanup add a version of this function which also works with mouse buttons, or share the code for adding the modifier
+to_string :: (key_code : u32, using modifier_flags : Modifier_Flags = .{}, pad_unmodified := true) -> string {
     push_allocator(temp);
 
     builder : String_Builder;
     init_string_builder(*builder);
     defer free_buffers(*builder);
-    if modifier_flags.control_pressed print_to_builder(*builder, "Ctrl ");
-    if modifier_flags.alt_pressed     print_to_builder(*builder, "Alt ");
-    if modifier_flags.shift_pressed   print_to_builder(*builder, "Shift ");
+
+    if control_pressed {
+        print_to_builder(*builder, "Ctrl  ");
+    }
+    if alt_pressed {
+        print_to_builder(*builder, "Alt   ");
+    }
+    if shift_pressed {
+        print_to_builder(*builder, "Shift ");
+    }
+    if pad_unmodified && !control_pressed && !alt_pressed && !shift_pressed {
+        print_to_builder(*builder, "      ");
+    }
+
     if key_code == 32 {
         print_to_builder(*builder, "Space");
     } else if key_code > 32 {
-        // upper_case := to_upper(cast(u8) key_code);
-        upper_case := cast(u8) key_code;
+        upper_case := to_upper(cast(u8) key_code);
+        // upper_case := cast(u8) key_code;
         cstr: string;   // This is a dumb way to make a one-character string so you can print it.
         cstr.data  = xx *upper_case;
         cstr.count = 1;
@@ -215,7 +286,7 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, (_)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
     // :SelectionKeybindTooltip @Volatile @Cleanup Keep this in sync with the tooltip
-    add_key(*app.keymap, (_)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
+    // add_key(*app.keymap, (_)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, (_)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, (_)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, (_)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
@@ -240,15 +311,77 @@ init_keymap :: () {
     add_key(*app.keymap_actions, FOCUS_ITEMS_ACTION_SET);
     add_key(*app.keymap_actions, RELOAD_ITEMS_ACTION_SET);
 
-    // @Volatile button text in camera control pane should be kept in sync with keymap!
-    add_key(*app.keymap, (_)=>{rotate_look_direction_5_cw();},   "Rotate  15 deg about selected rotation axis", xx #char "]");
-    add_key(*app.keymap, (_)=>{rotate_look_direction_5_ccw();},  "Rotate -15 deg about selected rotation axis", xx #char "[");
-    add_key(*app.keymap, (_)=>{rotate_look_direction_15_cw();},  "Rotate  5  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
-    add_key(*app.keymap, (_)=>{rotate_look_direction_15_ccw();}, "Rotate -5  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
+    // @Volatile Sync with :RotateLookDirectionUI
+    add_key(*app.keymap, (_)=>{rotate_look_direction_1_cw();},   "Rotate  1  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
+    add_key(*app.keymap, (_)=>{rotate_look_direction_5_cw();},   "Rotate  5  deg about selected rotation axis", xx #char "]");
+    add_key(*app.keymap, (_)=>{rotate_look_direction_15_cw();},  "Rotate  15 deg about selected rotation axis", xx #char "]", .{shift_pressed=true});
+    add_key(*app.keymap, (_)=>{rotate_look_direction_1_ccw();},  "Rotate -1  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
+    add_key(*app.keymap, (_)=>{rotate_look_direction_5_ccw();},  "Rotate -5  deg about selected rotation axis", xx #char "[");
+    add_key(*app.keymap, (_)=>{rotate_look_direction_15_ccw();}, "Rotate -15 deg about selected rotation axis", xx #char "[", .{shift_pressed=true});
 
     // Reserved! Do not change this binding
     add_key(*app.keymap, (_)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
 }
+
+// @Cleanup Use a to_string function for the bindings in the following functions
+
+show_window_key_bindings :: () {
+    ScopeKeyBindTable("##WindowControlsKeys");
+
+    // @Volatile :EasyResizeModeKeybind
+    ShowBinding("Alt   LMB", "(near window border) Resize the window");
+    ShowBinding("Alt   LMB", "(near window center) Move the window");
+}
+
+show_camera_key_bindings :: () {
+    ScopeKeyBindTable("##CameraControlsKeys");
+
+    ShowBinding("      MMB", "Pan the camera");
+    ShowBinding("      RMB", "Rotate the camera");
+    //ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane"); // @Fixmee
+    ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
+    ShowBinding("      Scroll", "Zoom into the position under the cursor");
+    ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");
+    ShowBinding("Shift Scroll", "Zoom into the camera look position");
+}
+
+show_items_list_key_bindings :: () {
+    ScopeKeyBindTable("##ItemsListKeys");
+
+    ShowBinding("      RMB", "(on a color) Cycle shading styles");
+    ShowBinding("      MMB", "(on a color) Reset color from the filename");
+    ShowBinding("      LMB", "(sweep over visibility checkbox) Update visibility");
+    ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus item");
+    ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus item, update camera");
+    ShowBinding("      LMB", "(on a filename) Select an item");
+    ShowBinding("Ctrl  LMB", "(on a filename) Add an item to selection");
+}
+
+show_viewport_key_bindings :: () {
+    ScopeKeyBindTable("##ViewportKeys");
+
+    for app.keymap_actions.mappings {
+        push_allocator(temp);
+        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
+    }
+
+    ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
+    ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
+}
+
+show_miscellaneous_key_bindings :: () {
+    ScopeKeyBindTable("##MiscellaneousKeys");
+
+    for app.keymap.mappings {
+        push_allocator(temp);
+        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
+    }
+    for app.keymap_keydown.mappings {
+        push_allocator(temp);
+        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
+    }
+}
+
 
 //
 // Bindable procedures
@@ -256,12 +389,12 @@ init_keymap :: () {
 
 quit_application               :: () { app.closing_application = true; }
 toggle_show_ui                 :: () { app.show_ui = !app.show_ui; }
+rotate_look_direction_1_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -1); }
+rotate_look_direction_1_ccw    :: () { rotate_look_direction(camera_rotation_axis(),   1); }
 rotate_look_direction_5_cw     :: () { rotate_look_direction(camera_rotation_axis(),  -5); }
 rotate_look_direction_5_ccw    :: () { rotate_look_direction(camera_rotation_axis(),   5); }
 rotate_look_direction_15_cw    :: () { rotate_look_direction(camera_rotation_axis(), -15); }
 rotate_look_direction_15_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  15); }
-rotate_look_direction_45_cw    :: () { rotate_look_direction(camera_rotation_axis(), -45); }
-rotate_look_direction_45_ccw   :: () { rotate_look_direction(camera_rotation_axis(),  45); }
 
 toggle_show_console_ui :: () {
     app.show_ui, app.console.show_ui = true, !app.console.show_ui;

@@ -175,7 +175,7 @@ console_draw :: () {
         return;
     }
 
-    window_pivot := make_ImVec2(0, 1); // SetNextWindowPos will refer to the bottom left corner of the window
+    window_pivot := ImGui.ImVec2.{0, 1}; // SetNextWindowPos will refer to the bottom left corner of the window
     input_window_height : float = -1;
     scroll_delta_request : float;
 
@@ -187,8 +187,8 @@ console_draw :: () {
     // Draw input window
     {
         console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(make_ImVec2(0, xx app.current_window_height), pivot=window_pivot);
-        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, -1), .Always);
+        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx app.current_window_height}, pivot=window_pivot);
+        ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always);
 
         window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
         ImGui.Begin("console_input", flags=window_flags); // TODO if !Begin should close
@@ -206,7 +206,7 @@ console_draw :: () {
         ImGui.PopItemWidth();
 
         // @Refactor Make this type of tooltip a reusable function
-        if ImGui.IsItemHovered() {
+        if ImGui.IsItemHovered(.DelayNormal) {
             ImGui.BeginTooltip();
             ImGui.BeginTable(imgui_label("##InputTooltipTable", *app.console), 3, flags=ImGui.TableFlags.NoBordersInBody);
 
@@ -293,8 +293,8 @@ console_draw :: () {
 
         // The + 20 is just a bit extra that we need, + 1 because... well, something is fishy
         console_height := min(ImGui.GetFontSize() * (app.console.log.count + 1) + 20, app.current_window_height * .4);
-        ImGui.SetNextWindowPos(make_ImVec2(0, xx (app.current_window_height - input_window_height)), pivot=window_pivot);
-        ImGui.SetNextWindowSize(make_ImVec2(xx app.current_window_width, xx console_height), .Always);
+        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx (app.current_window_height - input_window_height)}, pivot=window_pivot);
+        ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, xx console_height}, .Always);
 
         ImGui.Begin("console_output", flags=window_flags); // TODO if !Begin should close
         scrolling_region_flags := ImGui.WindowFlags.HorizontalScrollbar;
@@ -496,13 +496,6 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 }
 
 #scope_file
-
-make_ImVec2 :: inline (a: float, b: float) -> ImGui.ImVec2 {
-    v: ImGui.ImVec2 = ---;
-    v.x = a;
-    v.y = b;
-    return v;
-}
 
 // ImGui.SetScrollY needs to be called in two consecutive frames to scroll to the bottom of the console
 // perhaps this isn't needed, or is a bug in ImGui? @Cleanup

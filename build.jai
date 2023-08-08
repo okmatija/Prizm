@@ -468,12 +468,13 @@ set_icon_and_manifest :: (options: Build_Options) {
     // Set the icon on the executable.
     #if OS == .WINDOWS {
         icon_name := "icon";
-
-        exe_path  := tprint("%1%2.exe", options.output_path, options.output_executable_name);
-        icon_path := tprint("%1%2.ico", options.output_path, icon_name);
+        exe_path  := tprint("%.exe", options.output_executable_name);
+        icon_path := tprint("%.ico", icon_name);
 
         if !file_exists(icon_path) {
-            ico_file := create_ico_file_from_bitmap_filename(tprint("%1/data/%2.png", options.output_path, icon_name));
+            bitmap_filename := tprint("data/%.png", icon_name);
+            print("Create ico file from '%'\n", bitmap_filename);
+            ico_file := create_ico_file_from_bitmap_filename(bitmap_filename);
             print("ico_file.count is: %\n", ico_file.count);
             write_entire_file(icon_path, ico_file);
             free(ico_file);
