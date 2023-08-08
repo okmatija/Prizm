@@ -34,7 +34,7 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
   - Program options and case-insensitive, always start with "--" and can be interleaved with file/folder arguments ie the data should be loaded
   - The AlwaysOnTop option is useful with a transparent window and auto file reloading: you can step though iterations of an algorithm and see geometry change. SDL 2.0.1 doesn't support toggling AlwaysOnTop at runtime but version >= 2.0.16 does so we'll support this in a future version.
   - Maybe we should also let users set a title message.
-  - Note: Part of the agenda regarding adding features to Prism is to keep things orthogonal, so, although we'll keep program options which start with "--", we actually already have a way to configure the application: You could create console commands to do the config you want and execute them as command annotations in an otherwise empty .obj file.
+  - Note: Part of the agenda regarding adding features to Prism is to keep things orthogonal, so, although we'll keep program options, we actually already have a way to configure the application: You could create console commands to do the config you want and execute them as command annotations in an otherwise empty .obj file.
 DONE};
 
 PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE

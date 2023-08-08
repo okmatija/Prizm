@@ -1306,6 +1306,10 @@ render_entities :: () {
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
+    //// When we are moving the mouse to rotate the camera dont bother rendering labels since the mouse position is not in a helpful place,
+    //// perhaps we can just render the previously shown labels rather than nothing though..! its not helpful to. This also helps with
+    //// @Speed, traversing the AABB for large meshes needs profiling!
+    //if !mouse_orbit_camera() {
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
@@ -1315,6 +1319,7 @@ render_entities :: () {
 
             render_entity_text_spotlight(visit_visible);
     }
+    //}
 
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
