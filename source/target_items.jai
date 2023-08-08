@@ -19,7 +19,6 @@ Action_Set :: struct {
     //
     
     last_interaction_time : Apollo_Time;
-    hovered_duration_secs : float; // @Cleanup When switching to ImGui 1.88 which natively supports timed tooltips
 }
 
 // @Cleanup decapitalize non-constant action sets

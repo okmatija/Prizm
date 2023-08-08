@@ -7,7 +7,11 @@ WINDOW_RESIZE_MARGIN_PX :: 3;
 init_icons :: () {
     ok : bool;
     icon_prism_logo_texture,      ok = load_texture_from_file("data/logo.png");       assert(ok);
-    icon_prism_icon_texture,      ok = load_texture_from_file("data/icon_white.png"); assert(ok);
+    // @Volatile Sync with :PRISM_ICON_COLORS
+    icon_prism_icon_texture[0],   ok = load_texture_from_file("data/icon_blue.png");  assert(ok);
+    icon_prism_icon_texture[1],   ok = load_texture_from_file("data/icon_green.png"); assert(ok);
+    icon_prism_icon_texture[2],   ok = load_texture_from_file("data/icon_red.png");   assert(ok);
+    icon_prism_icon_texture[3],   ok = load_texture_from_file("data/icon_black.png"); assert(ok);
     icon_window_close_texture,    ok = load_texture_from_file("data/close.png");      assert(ok);
     icon_window_maximize_texture, ok = load_texture_from_file("data/maximize.png");   assert(ok);
     icon_window_minimize_texture, ok = load_texture_from_file("data/minimize.png");   assert(ok);
@@ -22,12 +26,12 @@ show_menu_bar_ui :: () {
     ImGui.BeginMainMenuBar();
     defer ImGui.EndMainMenuBar();
 
-    // nocommit Not clear why we need this
+    // Put a single pixel border around the entire window to frame the application
     ScopedChildBorderTheme(ImGui.GetStyle().Colors[ImGui.Col.Border], 1.);
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        ImGui.Image(cast(ImGui.ImTextureID)icon_prism_icon_texture.gl_handle, icon_size, tint_col=PRISM_ICON_COLORS[prism_icon_color_index].color);
+        ImGui.Image(cast(ImGui.ImTextureID)icon_prism_icon_texture[prism_icon_color_index].gl_handle, icon_size);
         click_cycle_prism_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
             show_tooltip(tprint("Prism %", app.changelog[0].name));
@@ -70,7 +74,7 @@ show_menu_bar_ui :: () {
         }
         show_tooltip("Also deselects items which are not visible");
 
-        if ImGui.MenuItem("Delete Selected Items", "Del") {
+        if ImGui.MenuItem("Delete Selected Items", "      Del") {
             remove_entities_if_selected();
         }
     }
@@ -105,6 +109,7 @@ show_menu_bar_ui :: () {
 
         // Window Size
         {
+            // @Volatile :EasyResizeModeKeybind
             tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB"); }
 
             ImGui.Text("Window Size    ");
@@ -131,6 +136,7 @@ show_menu_bar_ui :: () {
 
         // Window Position
         {
+            // @Volatile :EasyResizeModeKeybind
             tooltip :: () { show_tooltip_binding("(near window center) Move the window", "Alt LMB"); }
 
             ImGui.Text("Window Position");
@@ -155,7 +161,8 @@ show_menu_bar_ui :: () {
 
         // Window Opacity
         {
-            tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc"); } // See :WindowOpacityControl for implementation
+            // @Volatile :WindowOpacityControl
+            tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc"); }
 
             ImGui.Text("Window Opacity ");
             tooltip(); 
@@ -219,10 +226,13 @@ show_menu_bar_ui :: () {
             show_changelog();
         }
 
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
         if ImGui.BeginMenu("About") {
             defer ImGui.EndMenu();
+
             show_help_about_content();
         }
+        ImGui.PopStyleColor();
     }
 
     {
@@ -286,8 +296,6 @@ show_menu_bar_ui :: () {
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
 show_left_window :: () {
-
-    // nocommit Maybe get rid of the window border styling, it doesn't really fit with the menu bar
 
     // Set window border color to match the selection/RMB target item color
     // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
@@ -550,6 +558,58 @@ show_imgui_demo_window :: () {
     }
 }
 
+ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
+ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
+
+
+
+//
+// ImGui data needed between frames. @Think There must be a better way to do this...
+//
+
+// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
+// This stuct stores stuff we need to remember to use in the next render frame
+ImGui_Frame_State :: struct {
+    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to implement show/hiding a selection using a selected checkbox
+    index_of_selected_item_where_color_was_changed : int = -1;
+    index_of_selected_item_where_color_was_reset : int = -1;
+    index_of_selected_item_where_mode_was_cycled : int = -1;
+}
+
+// State relevant to the currently rendering frame
+g_this_frame_state : ImGui_Frame_State;
+
+// State relevant to the next rendering frame
+// This will be reset at the start of the currently rendering frame
+// Set fields whenever convenient in the currently rendering frame
+g_next_frame_state : ImGui_Frame_State;
+
+
+
+
+//
+// Textures and icon stuff
+//
+
+prism_icon_color_index := 0;
+
+// @Volatile Sync with :PRISM_ICON_COLORS
+PRISM_ICON_COLORS :: Named_Color.[
+    .{.{102./255, 153./255, 1, 1}, "blue"},
+    .{.{102./255, 153./255, 0, 1}, "green"},
+    .{.{204./255, 0, 0, 1}, "red"},
+    .{BLACK, "black"},
+];
+
+// TODOO Set these at compile-time to make runtime startup as fast as possible, maybe set them at runtime in debug?
+icon_prism_icon_texture : [PRISM_ICON_COLORS.count]Texture;
+icon_prism_logo_texture : Texture;
+icon_window_close_texture : Texture;
+icon_window_minimize_texture : Texture;
+icon_window_maximize_texture : Texture;
+icon_window_restore_texture : Texture;
+
+
 #scope_file
 
 show_tools_ui :: () {
@@ -567,7 +627,7 @@ show_items_ui :: () {
     entity_to_remove := -1;
     any_visibility_changed : bool;
 
-    // Trailing space makes it look nicer nocommit Make this plural properly
+    // Trailing space makes it look nicer @Cleanup Make this plural properly
     if ImGui.TreeNodeEx("Items ", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen | .Framed) {
         defer ImGui.TreePop();
 
@@ -1489,13 +1549,11 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
         if ImGui.Button(imgui_label(label, *action_set)) {
             action_set.last_interaction_time = current_time_consensus();
             action_set.proc(xx *action_set.last_interaction_time);
-            // action_set.hovered_duration_secs = 0.; // so we can click it without looking at the tooltip
         }
 
-        if ImGui.IsItemHovered() {
-            action_set.hovered_duration_secs += io().DeltaTime;
-        } else {
-            action_set.hovered_duration_secs = 0.;
+        if ImGui.IsItemHovered(.DelayNormal) {
+            push_allocator(temp);
+            show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false));
         }
 
         if do_style {
@@ -1503,11 +1561,6 @@ ActionButton :: (_label : string, action_set : *Action_Set) #expand {
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
-        }
-
-        if action_set.hovered_duration_secs > 0.5 {
-            push_allocator(temp);
-            show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}));
         }
     }
 
@@ -1573,6 +1626,7 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
 
 show_camera_controls :: () {
 
+    old_padding := ImGui.GetStyle().CellPadding;
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
     defer ImGui.PopStyleVar();
 
@@ -1623,27 +1677,49 @@ show_camera_controls :: () {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
 
-        // @Volatile button text in camera control pane should be kept in sync with keymap!
+        // @Volatile Sync with :RotateLookDirectionUI
         right_label, left_label, amount := "<< ", ">> ", 5.;
         if io().KeyShift {
             right_label, left_label, amount = "<<<", ">>>", 15.;
         } else if io().KeyAlt {
             right_label, left_label, amount = " < ", " > ", 1.;
         }
+
         if ImGui.Button(right_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, amount);
         }
+        {
+            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
+            defer ImGui.PopStyleVar();
+            ccw_bindings := temp_array(Binding_With_Description);
+            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{alt_pressed=true}),   "Rotate  -1 deg about selected rotation axis"));
+            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{}),                   "Rotate  -5 deg about selected rotation axis"));
+            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{shift_pressed=true}), "Rotate -15 deg about selected rotation axis"));
+            show_tooltip_binding(..ccw_bindings);
+        }
+
         ImGui.TableNextColumn();
         if ImGui.Button("XYZ") {
             up := normalize(cross(.{-1, 1, 0}, .{-1, -1, -1}));
             set_look_direction(direction=.{-1, -1, -1}, up=up);
         }
+
         ImGui.TableNextColumn();
         if ImGui.Button(left_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, -amount);
         }
+        {
+            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
+            defer ImGui.PopStyleVar();
+            cw_bindings := temp_array(Binding_With_Description);
+            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{alt_pressed=true}),   "Rotate  1 deg about selected rotation axis"));
+            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{}),                   "Rotate  5 deg about selected rotation axis"));
+            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{shift_pressed=true}), "Rotate 15 deg about selected rotation axis"));
+            show_tooltip_binding(..cw_bindings);
+        }
+
         // ImGui.TableNextColumn();
         ImGui.SameLine();
         combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
@@ -1706,9 +1782,11 @@ show_help_about_content :: () {
 
     {
         ImGui.Text("Prism is a tool for debugging geometry algorithms with obj files");
+        ImGui.Text("This is version %. Feedback/Bugs:", app.changelog[0].name);
+        ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
-        ImGui.Text("This is version %. Feedback/Bugs: matija.kecman@epicgames.com", app.changelog[0].name);
+        ImGui.Text("matija.kecman@epicgames.com"); // TODO Click to copy to clipboard?
     }
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
@@ -1729,71 +1807,6 @@ show_help_about_content :: () {
         ImGui.Text("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()));
         ImGui.Text("Geometric Tools, BSL 1.0 (github.com/davideberly/GeometricTools)");
         ImGui.Text("par_shapes.h, MIT (github.com/prideout/par)");
-    }
-}
-
-ScopeKeyBindTable :: (table_id : string) -> ImGui.TableFlags #expand {
-    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
-
-    `ImGui.BeginTable("##WindowControlsKeys", 2, flags=table_flags);
-    `defer ImGui.EndTable();
-}
-
-show_window_key_bindings :: () {
-    ScopeKeyBindTable("##WindowControlsKeys");
-
-    // nocommit consolidate text for these with the other places they are used
-    ShowBinding("Alt   LMB", "(near window border) Resize the window");
-    ShowBinding("Alt   LMB", "(near window center) Move the window");
-}
-
-show_camera_key_bindings :: () {
-    ScopeKeyBindTable("##CameraControlsKeys");
-
-    // nocommittt Remove the Alt bindings
-    ShowBinding("      MMB", "Pan the camera");
-    ShowBinding("      RMB", "Rotate the camera");
-    ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane");
-    ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
-    ShowBinding("      Scroll", "Zoom into the position under the cursor");
-    ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");
-    ShowBinding("Shift Scroll", "Zoom into the camera look position");
-}
-
-show_items_list_key_bindings :: () {
-    ScopeKeyBindTable("##ItemsListKeys");
-
-    ShowBinding("      RMB", "(on a color) Cycle shading styles");
-    ShowBinding("      MMB", "(on a color) Reset color from the filename");
-    ShowBinding("      LMB", "(sweep over visibility checkbox) Update visibility");
-    ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus item");
-    ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus item, update camera");
-    ShowBinding("      LMB", "(on a filename) Select an item");
-    ShowBinding("Ctrl  LMB", "(on a filename) Add an item to selection");
-}
-
-show_viewport_key_bindings :: () {
-    ScopeKeyBindTable("##ViewportKeys");
-
-    for app.keymap_actions.mappings {
-        push_allocator(temp);
-        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_actions.procs[it.proc_info_index].name);
-    }
-
-    ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
-    ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
-}
-
-show_miscellaneous_key_bindings :: () {
-    ScopeKeyBindTable("##MiscellaneousKeys");
-
-    for app.keymap.mappings {
-        push_allocator(temp);
-        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap.procs[it.proc_info_index].name);
-    }
-    for app.keymap_keydown.mappings {
-        push_allocator(temp);
-        ShowBinding(to_string(it.key_code, it.modifier_flags), app.keymap_keydown.procs[it.proc_info_index].name);
     }
 }
 
@@ -2598,8 +2611,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
     }
 }
 
-#scope_export // nocommit and cleanup the scope of functions in this file
-
 make_opengl_texture :: (texture_data : *u8, texture_width : s32, texture_height : s32) -> GLuint {
     gl_handle : GLuint;
 
@@ -2646,22 +2657,6 @@ load_texture_from_memory :: (buffer : []u8) -> Texture, bool {
 
     return texture, true;
 }
- /*
-	void* Image::Decode(const void* buffer, uint64_t length, uint32_t& outWidth, uint32_t& outHeight)
-	{
-		int width, height, channels;
-		uint8_t* data = nullptr;
-		uint64_t size = 0;
-
-		data = stbi_load_from_memory((const stbi_uc*)buffer, length, &width, &height, &channels, 4);
-		size = width * height * 4;
-
-		outWidth = width;
-		outHeight = height;
-
-		return data;
-	}
-*/
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it
 
@@ -2712,27 +2707,6 @@ attr_anno_table_flags :: ImGui.TableFlags
     .Sortable |
     .PadOuterX;
 
-#scope_export // @CompilerBug without this scope_export the line below errors!
-ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
-ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
-
-// ImGui is immediate mode so we may have already drawn items which we want to change due to a UI interaction we're just drawing now.
-// This stuct stores stuff we need to remember to use in the next render frame
-ImGui_Frame_State :: struct {
-    index_of_selected_item_where_visibility_changed_by_click : int = -1; // This is used to implement show/hiding a selection using a selected checkbox
-    index_of_selected_item_where_color_was_changed : int = -1;
-    index_of_selected_item_where_color_was_reset : int = -1;
-    index_of_selected_item_where_mode_was_cycled : int = -1;
-}
-
-// State relevant to the currently rendering frame
-g_this_frame_state : ImGui_Frame_State;
-
-// State relevant to the next rendering frame
-// This will be reset at the start of the currently rendering frame
-// Set fields whenever convenient in the currently rendering frame
-g_next_frame_state : ImGui_Frame_State;
-
 POSITIVE_INF :: 0h7F800000;
 
 sdl_get_version :: () -> SDL_version {
@@ -2750,23 +2724,12 @@ click_cycle_prism_color_index :: () {
         }
         color : Named_Color = PRISM_ICON_COLORS[prism_icon_color_index];
         log("Set prism color to %. This is only aesthetic, it could be useful if you are comparing data between instances of Prism.", color.name);
+
+        // TODO Also set the icon on the desktop, can we the following work??
+        //#if OS == .WINDOWS {
+        //#import "Windows_Resources";
+        //icon_data :: #run read_entire_file("icon.ico");
+        //set_icon_by_data(get_path_of_running_executable(), icon_data);
+        //}
     }
 }
-
-prism_icon_color_index := 0;
-
-// @Volatile Sync with :PRISM_ICON_COLORS
-PRISM_ICON_COLORS :: Named_Color.[
-    .{.{102./255, 153./255, 1, 1}, "blue"},
-    .{.{102./255, 153./255, 0, 1}, "green"},
-    .{.{204./255, 0, 0, 1}, "red"},
-    .{BLACK, "black"},
-];
-
-// TODOO Set these at compile-time to make runtime startup as fast as possible, maybe set them at runtime in debug?
-icon_prism_icon_texture : Texture;
-icon_prism_logo_texture : Texture;
-icon_window_close_texture : Texture;
-icon_window_minimize_texture : Texture;
-icon_window_maximize_texture : Texture;
-icon_window_restore_texture : Texture;

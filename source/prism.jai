@@ -8,13 +8,13 @@ main :: () {
 
     print_usage_and_exit :: () {
         print("\n");
-        print("Prism % allowed program options:\n\n", app.changelog[0].name);
+        print("Prism % allows the following (case insensitive) program options:\n\n", app.changelog[0].name);
         print("--Help           Print this message and exit.\n");
         print("--AlwaysOnTop    Keeps the Prism window on top.\n");
-        print("--IconRed        Set the Prism icon in the title bar to red.\n");
-        print("--IconGreen      Set the Prism icon in the title bar to green.\n");
-        print("--IconBlue       Set the Prism icon in the title bar to blue.\n");
-        print("--IconBlack      Set the Prism icon in the title bar to black.\n");
+        print("--Red            Use the red   icon in the title bar.\n");
+        print("--Green          Use the green icon in the title bar.\n");
+        print("--Blue           Use the blue  icon in the title bar (This is the default).\n");
+        print("--Black          Use the black icon in the title bar.\n");
         exit(0);
     }
 
@@ -24,13 +24,16 @@ main :: () {
         args := get_command_line_arguments();
         defer array_free(args);
         for 1..args.count-1 {
-            if args[it] == "--Help"        print_usage_and_exit();
-            if args[it] == "--AlwaysOnTop" sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+            arg : string = to_lower_copy(args[it]);
+
+            if arg == "--help"        print_usage_and_exit();
+            if arg == "--alwaysontop" sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+
             // @Volatile Sync with :PRISM_ICON_COLORS
-            if args[it] == "--IconBlue"    prism_icon_color_index = 0;
-            if args[it] == "--IconGreen"   prism_icon_color_index = 1;
-            if args[it] == "--IconRed"     prism_icon_color_index = 2;
-            if args[it] == "--IconBlack"   prism_icon_color_index = 3;
+            if arg == "--blue"  prism_icon_color_index = 0;
+            if arg == "--green" prism_icon_color_index = 1;
+            if arg == "--red"   prism_icon_color_index = 2;
+            if arg == "--black" prism_icon_color_index = 3;
         }
     }
 
@@ -252,7 +255,7 @@ main :: () {
         render_entities();
         render_axes_triad();
 
-        // nocommit This is broken (maybe just on laptop actually..!)
+        // @Fixme This is broken on laptop..!
         do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
 
         ImGui.Render();
@@ -589,6 +592,7 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
     new_context : Context;
     push_context new_context {
 
+        // @Volatile :EasyResizeModeKeybind
         easy_resize_mode := io().KeyAlt;
 
         w := cast(float)app.current_window_width;

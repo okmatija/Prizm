@@ -204,13 +204,6 @@ imgui_label :: (label : string, ptr : *void = null) -> *u8 {
     return temp_c_string(tprint("%##%", label, ptr));
 }
 
-ShowBinding :: (binding : string, description : string) #expand {
-    ImGui.TableNextColumn();
-    ImGui.TextColored(app.theme.keymap_color, binding);
-    ImGui.TableNextColumn();
-    ImGui.Text(description);
-}
-
 begin_box_section :: () {
     table_flags := ImGui.TableFlags.BordersOuter;
         // .NoHostExtendX; // Can be useful
@@ -385,56 +378,12 @@ checkbox_press_or_sweep_to_toggle :: (state : *bool, label : *u8, sweep_state : 
 
 //  @Cleanup Rename show_tooltip* since these dont need to be macros
 
-// @Incomplete add a delay before popup, see https://github.com/ocornut/imgui/issues/1485
-show_tooltip :: (description : string) {
-    if (ImGui.IsItemHovered()) {
+show_tooltip :: (description : string, flags := ImGui.HoveredFlags.DelayNormal) {
+    if (ImGui.IsItemHovered(flags)) {
         ImGui.BeginTooltip();
         // ImGui.PushTextWrapPos(450);
         ImGui.TextUnformatted(description);
         // ImGui.PopTextWrapPos();
-        ImGui.EndTooltip();
-    }
-}
-
-// @CompilerBug{"0.1.049"} This does not compile if its not a macro, there is an error about 'Undeclared identifier 'app''
-show_tooltip_binding :: (description : string, binding : string) #expand {
-    if (ImGui.IsItemHovered()) {
-        ImGui.BeginTooltip();
-        ImGui.TextColored(app.theme.keymap_color, binding);
-        ImGui.SameLine();
-        ImGui.Text(description);
-        ImGui.EndTooltip();
-    }
-}
-
-Binding_With_Description :: struct {
-    binding : string;
-    description : string;
-}
-
-make_Binding_With_Description :: (binding : string, description : string) -> Binding_With_Description {
-    result : Binding_With_Description = ---;
-    result.binding = binding;
-    result.description = description;
-    return result;
-}
-
-show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "") #expand {
-    if bindings_with_descriptions.count == 0 return;
-
-    if (ImGui.IsItemHovered()) {
-        ImGui.BeginTooltip();
-        if header_text ImGui.Text(header_text);
-
-        ImGui.BeginTable("##", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
-        for bindings_with_descriptions {
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            ImGui.TextColored(app.theme.keymap_color, it.binding);
-            ImGui.TableNextColumn();
-            ImGui.Text(it.description);
-        }
-        ImGui.EndTable();
-
         ImGui.EndTooltip();
     }
 }

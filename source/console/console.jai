@@ -206,7 +206,7 @@ console_draw :: () {
         ImGui.PopItemWidth();
 
         // @Refactor Make this type of tooltip a reusable function
-        if ImGui.IsItemHovered() {
+        if ImGui.IsItemHovered(.DelayNormal) {
             ImGui.BeginTooltip();
             ImGui.BeginTable(imgui_label("##InputTooltipTable", *app.console), 3, flags=ImGui.TableFlags.NoBordersInBody);
 
