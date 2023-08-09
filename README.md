@@ -1,7 +1,7 @@
 Prism
 =====
 
-A computational geometry debugging tool written in [Jai](https://youtu.be/TH9VCN6UkyQ).  Press h for help, see the `source/changelog.jai` for a feature list.
+A computational geometry debugging tool written in [Jai](https://youtu.be/TH9VCN6UkyQ).
 
 The intended workflow is:
 

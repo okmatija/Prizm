@@ -22,14 +22,12 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
 
 - Added some program options, run `Prism.exe --Help` prints the following argument list:
 
-      ```
-      --Help           Print this message and exit.
-      --AlwaysOnTop    Keeps the Prism window on top.
-      --Red            Use the red   icon in the title bar.
-      --Green          Use the green icon in the title bar.
-      --Blue           Use the blue  icon in the title bar (This is the default).
-      --Black          Use the black icon in the title bar.
-      ```
+        --Help           Print this message and exit.
+        --AlwaysOnTop    Keeps the Prism window on top.
+        --Red            Use the red   icon in the title bar.
+        --Green          Use the green icon in the title bar.
+        --Blue           Use the blue  icon in the title bar (This is the default).
+        --Black          Use the black icon in the title bar.
 
   - Program options and case-insensitive, always start with "--" and can be interleaved with file/folder arguments ie the data should be loaded
   - The AlwaysOnTop option is useful with a transparent window and auto file reloading: you can step though iterations of an algorithm and see geometry change. SDL 2.0.1 doesn't support toggling AlwaysOnTop at runtime but version >= 2.0.16 does so we'll support this in a future version.
