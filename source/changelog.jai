@@ -1,10 +1,10 @@
 PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
-- New Feature: Attributes TODO Add a feature flag for enabling this
+* New Feature: Attributes TODO Add a feature flag for enabling this
 
-  - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
-  - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
-  - Multiple attributes are supported, and each will have its own tab in the item context menu
-  - TODO Added a preset example to demonstrate the new annotation functionality
+    * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
+    * TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
+    * Multiple attributes are supported, and each will have its own tab in the item context menu
+    * TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
