@@ -5,17 +5,26 @@ WINDOW_RESIZE_MARGIN_PX :: 3;
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
 init_icons :: () {
+    PRISM_ICON_DATA0,     OK0 :: #run read_entire_file("data/icon_blue.png",  zero_terminated=true);  #assert(OK0);
+    PRISM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
+    PRISM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
+    PRISM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
+    PRISM_LOGO_DATA,      OK4 :: #run read_entire_file("data/logo.png",       zero_terminated=true);  #assert(OK4);
+    WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
+    WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
+    WINDOW_MINIMIZE_DATA, OK7 :: #run read_entire_file("data/minimize.png",   zero_terminated=true);  #assert(OK7);
+    WINDOW_RESTORE_DATA,  OK8 :: #run read_entire_file("data/restore.png",    zero_terminated=true);  #assert(OK8);
+
     ok : bool;
-    icon_prism_logo_texture,      ok = load_texture_from_file("data/logo.png");       assert(ok);
-    // @Volatile Sync with :PRISM_ICON_COLORS
-    icon_prism_icon_texture[0],   ok = load_texture_from_file("data/icon_blue.png");  assert(ok);
-    icon_prism_icon_texture[1],   ok = load_texture_from_file("data/icon_green.png"); assert(ok);
-    icon_prism_icon_texture[2],   ok = load_texture_from_file("data/icon_red.png");   assert(ok);
-    icon_prism_icon_texture[3],   ok = load_texture_from_file("data/icon_black.png"); assert(ok);
-    icon_window_close_texture,    ok = load_texture_from_file("data/close.png");      assert(ok);
-    icon_window_maximize_texture, ok = load_texture_from_file("data/maximize.png");   assert(ok);
-    icon_window_minimize_texture, ok = load_texture_from_file("data/minimize.png");   assert(ok);
-    icon_window_restore_texture,  ok = load_texture_from_file("data/restore.png");    assert(ok);
+    icon_prism_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA0);     assert(ok);
+    icon_prism_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA1);     assert(ok);
+    icon_prism_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA2);     assert(ok);
+    icon_prism_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA3);     assert(ok);
+    icon_prism_logo_texture,      ok = load_texture_from_memory(cast([]u8)PRISM_LOGO_DATA);      assert(ok);
+    icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
+    icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
+    icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MINIMIZE_DATA); assert(ok);
+    icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)WINDOW_RESTORE_DATA);  assert(ok);
 }
 
 show_menu_bar_ui :: () {

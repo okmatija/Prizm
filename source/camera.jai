@@ -115,9 +115,6 @@ update_camera :: (delta_time : float) {
         camera_at_mouse_down = app.camera;
     }
 
-    // Mouse delta is zero when current or previous mouse positions were invalid
-    mouse_move_valid := !(io().MouseDelta.x == 0 && io().MouseDelta.y == 0);
-
     world_from_projection := inverse(make_projection_from_world(camera));
 
     if mouse_reposition_camera() {
@@ -145,7 +142,7 @@ update_camera :: (delta_time : float) {
             app.camera.near = look_length - sphere.radius * 2;
         }
 
-    } else if io_mouse_middle_down() && mouse_move_valid { // Pan with middle down.
+    } else if mouse_pan_camera() { // Pan with middle down.
 
         get_pan_position :: (mouse_position_px : Vector2, world_from_projection : Matrix4, camera : Camera) -> Vector3, bool {
             plane := make_hyperplane3(unit_vector(camera.eye_position - camera.look_position), camera.look_position);
@@ -175,7 +172,7 @@ update_camera :: (delta_time : float) {
             // TODOOO We also need to adjust the near and far planes here! Currently when we pan and rotate things start getting clipped
         }
 
-    } else if ImGui.IsMouseDragging(.Right, 0.) && !io().KeyCtrl && mouse_move_valid { // Orbit about the look position using right button. Make sure Ctrl is not down since Ctrl RMB sets the camera orbit and its annoying to have the camera start rotating after you do that..!
+    } else if mouse_orbit_camera() { // Orbit about the look position using right button. Make sure Ctrl is not down since Ctrl RMB sets the camera orbit and its annoying to have the camera start rotating after you do that..!
 
         world_from_projection_at_mouse_down := inverse(make_projection_from_world(camera_at_mouse_down));
 
@@ -216,7 +213,7 @@ update_camera :: (delta_time : float) {
         camera.eye_position = camera_at_mouse_down.look_position + look_to_eye;
         camera.up_direction = rotate(camera_at_mouse_down.up_direction, q);
 
-    } else if io().MouseWheel { // Zoom with scroll wheel
+    } else if mouse_zoom_camera() { // Zoom with scroll wheel
 
         ratio := app.settings.camera_zoom_scrolling_ratio;
         if      io().KeyAlt   ratio = .97;

@@ -224,6 +224,23 @@ mouse_reposition_camera :: () -> bool {
     return ImGui.IsMouseClicked(.Right) && io().KeyCtrl;
 }
 
+mouse_move_valid :: () -> bool {
+    // Mouse delta is zero when current or previous mouse positions were invalid
+    return !(io().MouseDelta.x == 0 && io().MouseDelta.y == 0);
+}
+
+mouse_pan_camera :: () -> bool {
+    return io_mouse_middle_down() && mouse_move_valid();
+}
+
+mouse_orbit_camera :: () -> bool {
+    return ImGui.IsMouseDragging(.Right, 0.) && !io().KeyCtrl && mouse_move_valid;
+}
+
+mouse_zoom_camera :: () -> bool {
+    return io().MouseWheel != 0.;
+}
+
 mouse_init_clip_center :: () -> bool {
     if app.select_tool.entity.display_info.is_visible {
         return false;

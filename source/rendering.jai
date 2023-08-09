@@ -598,6 +598,8 @@ render_mesh_point_normals :: (
 }
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
+    // TODOOOO There is a bug where aabb rendering can get stuck on in the menu version of item details 
+    /*
     glUseProgram(app.aabb_program);
 
     r, g, b, a : float = 0, 0, 1, 1;
@@ -610,6 +612,7 @@ render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
 
     glDrawArrays(GL_LINES, 0, 24);
+    */
 }
 
 render_mesh_positions :: (
@@ -1306,6 +1309,10 @@ render_entities :: () {
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
+    //// When we are moving the mouse to rotate the camera dont bother rendering labels since the mouse position is not in a helpful place,
+    //// perhaps we can just render the previously shown labels rather than nothing though..! its not helpful to. This also helps with
+    //// @Speed, traversing the AABB for large meshes needs profiling!
+    //if !mouse_orbit_camera() {
     if #complete app.settings.labelling_mode == {
         case .RAY_CAST;
 
@@ -1315,6 +1322,7 @@ render_entities :: () {
 
             render_entity_text_spotlight(visit_visible);
     }
+    //}
 
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
