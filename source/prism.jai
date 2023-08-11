@@ -177,13 +177,16 @@ main :: () {
     // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
+    // TODO Option to pass font and size on the command line?
+    FONT, FONT_OK :: #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+    font : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, 18.);
+
     // Set up Simp
     {
         window_type := get_window_type(app.window);
         Simp.ScopeContext();
         Simp.set_render_target(window_type);
 
-        FONT, FONT_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT_OK);
         font_data : []u8;
         font_data.data = FONT.data;
         font_data.count = FONT.count;
@@ -209,6 +212,8 @@ main :: () {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
+
+        ImGui.PushFont(font);
 
         show_menu_bar_ui();
 
@@ -255,6 +260,8 @@ main :: () {
 
         // @Fixme This is broken on laptop..!
         do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
+
+        ImGui.PopFont();
 
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());

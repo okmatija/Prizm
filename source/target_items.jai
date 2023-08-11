@@ -11,7 +11,6 @@ Action_Set :: struct {
 
     desc : string;
     key : u32;
-    regular_button := false; // If true a simple ImGui.Button, otherwise a button which cycles/toggles state and changes color accordingly
     override_WantCaptureKeyboard := false;
 
     //
@@ -22,13 +21,6 @@ Action_Set :: struct {
 }
 
 // @Cleanup decapitalize non-constant action sets
-
-// Note: no action button
-CLEAR_LABELS_ACTION_SET :: Action_Set.{
-    proc=clear_all_labels_proc,
-    desc="Clear labels for selected items",
-    key=#char "x"
-};
 
 TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
     proc=toggle_clipping_proc,
@@ -93,20 +85,27 @@ CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
     key=#char "b",
 };
 
-RELOAD_ITEMS_ACTION_SET := Action_Set.{
+// Note: no action button for the following, they don't have a persistent state so a color for the ribbon button doesn't make sense
+
+CLEAR_LABELS_ACTION_SET :: Action_Set.{
+    proc=clear_all_labels_proc,
+    desc="Clear labels for selected items",
+    key=#char "x"
+};
+
+RELOAD_ITEMS_ACTION_SET :: Action_Set.{
     proc=reload_items_proc,
     desc="Reload selected items",
     key=cast(u32) Special_Key_Code.F5,
-    regular_button=true,
     override_WantCaptureKeyboard=true,
 };
 
-FOCUS_ITEMS_ACTION_SET := Action_Set.{
+FOCUS_ITEMS_ACTION_SET :: Action_Set.{
     proc=focus_items_proc,
     desc="Focus camera on selected items",
     key=#char "f",
-    regular_button=true,
 };
+
 
 // @TODO Add some visual feedback for when an item has state updated?
 

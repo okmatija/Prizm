@@ -80,8 +80,7 @@ show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description
         ImGui.BeginTooltip();
         if header_text ImGui.Text(header_text);
 
-        // ImGui.BeginTable("##", xx bindings_with_descriptions.count, flags=ImGui.TableFlags.NoBordersInBody);
-        ImGui.BeginTable("##", xx (bindings_with_descriptions.count-1), flags=KEYBIND_TABLE_FLAGS);
+        ImGui.BeginTable("##", 2, flags=KEYBIND_TABLE_FLAGS);
         for bindings_with_descriptions {
             ImGui.TableNextColumn();
             ImGui.TextColored(app.theme.keymap_color, it.binding);
@@ -302,7 +301,7 @@ init_keymap :: () {
     add_key(*app.keymap_keydown, (_)=>{toggle_show_ui();}, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
     add_key(*app.keymap_keydown, (_)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
-    // :SelectionKeybindTooltip @Volatile @Cleanup Keep this in sync with the tooltip
+    // @Volatile Sync with :SelectionKeybindTooltip 
     // add_key(*app.keymap, (_)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
     add_key(*app.keymap, (_)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
     add_key(*app.keymap, (_)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});

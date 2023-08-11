@@ -1,3 +1,12 @@
+// nocommittttt Remove the opacity < X% means you can't click the item feature, it sucks in the common case where you have one item and you made it transparent
+// nocommittttt Unstash the most recent changes
+// nocommit Improve the rendering of the changelog, maybe just with different colors and text wrapping which starts at the indent, then post he pic with the changelog
+// nocommit Fix the centering of the Prism logo
+// nocommit Fix the size of the menu bar buttons for the window
+// nocommit Don't hardcode widget size, it needs to depend on the font size
+// nocommit Remove the rouding on the window buttons
+// nocommit Use drag floats for vertex/line sizes, and switch to rendering with quads
+
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 EASY_RESIZE_FRACTION :: .25;
 WINDOW_RESIZE_MARGIN_PX :: 3;
@@ -10,10 +19,21 @@ init_icons :: () {
     PRISM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
     PRISM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
     PRISM_LOGO_DATA,      OK4 :: #run read_entire_file("data/logo.png",       zero_terminated=true);  #assert(OK4);
+
     WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
     WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
     WINDOW_MINIMIZE_DATA, OK7 :: #run read_entire_file("data/minimize.png",   zero_terminated=true);  #assert(OK7);
     WINDOW_RESTORE_DATA,  OK8 :: #run read_entire_file("data/restore.png",    zero_terminated=true);  #assert(OK8);
+
+    BACKFACE_DATA,        OK9 :: #run read_entire_file("data/backface.png",    zero_terminated=true); #assert(OK9);
+    OPACITY_DATA,         OKa :: #run read_entire_file("data/opacity.png",     zero_terminated=true); #assert(OKa);
+    CLIPPING_DATA,        OKb :: #run read_entire_file("data/clipping.png",    zero_terminated=true); #assert(OKb);
+    NORMALS_DATA,         OKc :: #run read_entire_file("data/normals.png",     zero_terminated=true); #assert(OKc);
+    THICKNESS_DATA,       OKd :: #run read_entire_file("data/thickness.png",   zero_terminated=true); #assert(OKd);
+    RADIUS_DATA,          OKe :: #run read_entire_file("data/radius.png",      zero_terminated=true); #assert(OKe);
+    INDICES_DATA,         OKf :: #run read_entire_file("data/indices.png",     zero_terminated=true); #assert(OKf);
+    COORDINATES_DATA,     OKg :: #run read_entire_file("data/coordinates.png", zero_terminated=true); #assert(OKg);
+    ANNOTATIONS_DATA,     OKh :: #run read_entire_file("data/annotations.png", zero_terminated=true); #assert(OKh);
 
     ok : bool;
     icon_prism_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA0);     assert(ok);
@@ -21,10 +41,21 @@ init_icons :: () {
     icon_prism_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA2);     assert(ok);
     icon_prism_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA3);     assert(ok);
     icon_prism_logo_texture,      ok = load_texture_from_memory(cast([]u8)PRISM_LOGO_DATA);      assert(ok);
+
     icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
     icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
     icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MINIMIZE_DATA); assert(ok);
     icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)WINDOW_RESTORE_DATA);  assert(ok);
+
+    icon_backface_texture,    ok = load_texture_from_memory(cast([]u8)BACKFACE_DATA);    assert(ok);
+    icon_opacity_texture,     ok = load_texture_from_memory(cast([]u8)OPACITY_DATA);     assert(ok);
+    icon_clipping_texture,    ok = load_texture_from_memory(cast([]u8)CLIPPING_DATA);    assert(ok);
+    icon_normals_texture,     ok = load_texture_from_memory(cast([]u8)NORMALS_DATA);     assert(ok);
+    icon_thickness_texture,   ok = load_texture_from_memory(cast([]u8)THICKNESS_DATA);   assert(ok);
+    icon_radius_texture,      ok = load_texture_from_memory(cast([]u8)RADIUS_DATA);      assert(ok);
+    icon_indices_texture,     ok = load_texture_from_memory(cast([]u8)INDICES_DATA);     assert(ok);
+    icon_coordinates_texture, ok = load_texture_from_memory(cast([]u8)COORDINATES_DATA); assert(ok);
+    icon_annotations_texture, ok = load_texture_from_memory(cast([]u8)ANNOTATIONS_DATA); assert(ok);
 }
 
 show_menu_bar_ui :: () {
@@ -245,6 +276,10 @@ show_menu_bar_ui :: () {
         }
 
         ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
+        logo_width := icon_prism_logo_texture.width;
+        text_width := ImGui.CalcTextSize("                                                                   ").x;
+        window_width := max(1.2 * logo_width, text_width); // nocommit at some padding to the text_width
+        ImGui.SetNextWindowContentSize(ImGui.ImVec2.{window_width, 0});
         if ImGui.BeginMenu("About") {
             defer ImGui.EndMenu();
 
@@ -361,41 +396,38 @@ show_right_window :: () {
 }
 
 show_item_list_actions_ui :: () {
-    // Hide buttons with no selection. See :DisableUpdateButtonsIfNoSelection 
-    if app.console.show_ui || count_selected_entities() == 0{
+    if app.console.show_ui {
         return;
     }
 
-    // Try actions buttons on the bottom by the console
-    {
-        window_pivot := ImGui.ImVec2.{0, 1}; // SetNextWindowPos will refer to the bottom left corner of the window
+    window_pivot := ImGui.ImVec2.{0, 1}; // SetNextWindowPos will refer to the bottom left corner of the window
 
-        console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx app.current_window_height}, pivot=window_pivot);
-        // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window
-        ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
+    button_count := 9;
+    button_width := ACTION_BUTTON_SIZE.x + 2 * ImGui.GetStyle().FramePadding.x;
+    buttons_space := (button_count - 1) * ImGui.GetStyle().ItemSpacing.x;  
+    buttons_width := button_count * button_width + buttons_space + 2 * ImGui.GetStyle().WindowPadding.x;
 
-        window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
-        if true {
-            window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
-            // window_flags |= .NoInputs;              // So we can interact with the scene behind the console output window
-            window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
-            window_flags |= .NoBackground;          // Makes the console log transparent
-        }
+    ImGui.SetNextWindowPos(ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height}, pivot=window_pivot);
+    // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window, we DONT do this.
+    ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
-        ImGui.Begin("target_items_ribbon", flags=window_flags);
-        defer ImGui.End();
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
+    window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
+    window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
+    window_flags |= .NoBackground;          // Makes the console log transparent
 
-        ActionButton("Backface",       *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
-        ActionButton("Opacity",        *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
-        ActionButton("Clipping",       *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
-        ActionButton("Normals",        *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
-        ActionButton("Line Width",     *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
-        ActionButton("Vertex Size",    *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
-        ActionButton("Element Labels", *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
-        ActionButton("Vertex Labels",  *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
-        ActionButton("Annotations",    *CYCLE_ANNOTATION_ACTION_SET);
-    }
+    ImGui.Begin("target_items_ribbon", flags=window_flags);
+    defer ImGui.End();
+
+    ActionButton(icon_backface_texture,    *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
+    ActionButton(icon_opacity_texture,     *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
+    ActionButton(icon_clipping_texture,    *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
+    ActionButton(icon_normals_texture,     *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
+    ActionButton(icon_thickness_texture,   *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
+    ActionButton(icon_radius_texture,      *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
+    ActionButton(icon_indices_texture,     *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
+    ActionButton(icon_coordinates_texture, *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
+    ActionButton(icon_annotations_texture, *CYCLE_ANNOTATION_ACTION_SET);
 }
 
 show_pending_directories_ui :: () {
@@ -622,13 +654,25 @@ PRISM_ICON_COLORS :: Named_Color.[
 // TODOO Set these at compile-time to make runtime startup as fast as possible, maybe set them at runtime in debug?
 icon_prism_icon_texture : [PRISM_ICON_COLORS.count]Texture;
 icon_prism_logo_texture : Texture;
+
 icon_window_close_texture : Texture;
 icon_window_minimize_texture : Texture;
 icon_window_maximize_texture : Texture;
 icon_window_restore_texture : Texture;
 
+icon_backface_texture : Texture;
+icon_opacity_texture : Texture;
+icon_clipping_texture : Texture;
+icon_normals_texture : Texture;
+icon_thickness_texture : Texture;
+icon_radius_texture : Texture;
+icon_indices_texture : Texture;
+icon_coordinates_texture : Texture;
+icon_annotations_texture : Texture;
 
 #scope_file
+
+ACTION_BUTTON_SIZE :: ImGui.ImVec2.{30, 30};
 
 show_tools_ui :: () {
     // Trailing space makes it look nicer
@@ -738,15 +782,13 @@ show_items_ui :: () {
 
         selected : [..]*Entity = temp_selected_entities();
         ImGui.Text("% item% (% selected)", app.entities.count, ifx app.entities.count > 1 then "s" else "", selected.count);
-        show_tooltip("Summary of ways to select items:");
-        bindings : [..]Binding_With_Description;
-        bindings.allocator = temp;
-        // @Volatile @Cleanup See :SelectionKeybindTooltip
+        bindings : [..]Binding_With_Description = temp_array(Binding_With_Description);
+        // @Volatile Sync with :SelectionKeybindTooltip
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{control_pressed=true}), "Select/deselect all items"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{shift_pressed=true}), "Select/deselect visible items"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{alt_pressed=true}), "Toggle current item selection"));
-        array_add(*bindings, make_Binding_With_Description("`", "Use the 'select_...' commands"));
-        show_tooltip_binding(..bindings);
+        array_add(*bindings, make_Binding_With_Description(to_string(#char "`", .{}), "Use the 'select_...' console commands"));
+        show_tooltip_binding(..bindings, "Summary of ways to select items:");
 
     } // end TreeNodeEx
 
@@ -1242,6 +1284,7 @@ show_item_selection_ui :: () {
                         fit_on_screen_filled(entity);
                     }
                 }
+                // nocommit Fix the padding in the tooltip for the Focus button
                 show_tooltip_binding(FOCUS_ITEMS_ACTION_SET.desc, to_string(FOCUS_ITEMS_ACTION_SET.key));
 
                 ImGui.SameLine();
@@ -1273,6 +1316,7 @@ show_item_selection_ui :: () {
                     reload_entity(entity, triggered_by_button=true);
                 }
             }
+            // nocommit Fix the padding in the tooltip for the Reload button
             show_tooltip_binding(RELOAD_ITEMS_ACTION_SET.desc, to_string(RELOAD_ITEMS_ACTION_SET.key));
             ImGui.SameLine();
             if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
@@ -1546,87 +1590,45 @@ ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, 
     return prev_color, prev_size;
 }
 
-ActionButton :: (_label : string, action_set : *Action_Set) #expand {
-    label := copy_string(_label, temp);
-    mod := current_modifier_flags(); 
+ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
 
     // :DisableUpdateButtonsIfNoSelection Maybe its confusing to see buttons you can't click or see the tooltip of
-    //has_target := false;
-    //for :Selected app.entities {
-    //    has_target = true;
-    //    break;
-    //}
+    has_target := false;
+    for :Selected app.entities {
+       has_target = true;
+       break;
+    }
 
-    base_color := ImGui.GetStyle().Colors[ImGui.Col.ButtonActive];
-    button_color := base_color;
+    base_tint := ImGui.GetStyle().Colors[ImGui.Col.ButtonHovered];
 
-    //if has_target // See :DisableUpdateButtonsIfNoSelection
-    {
-        do_style := !action_set.regular_button ; // && progress.denom != 0;
+    ImGui.PushStyleColor(xx ImGui.Col.Border, TRANSPARENT);
+    ImGui.PushStyleColor(xx ImGui.Col.Button, TRANSPARENT);
+    ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, TRANSPARENT);
+    ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, TRANSPARENT);
+    ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
+    defer ImGui.PopStyleColor(5);
 
-        if do_style {
-            using button_color;
+    tint : Vector4;
+    if has_target {
+        // hue cycles with progress
+        progress := action_set.progress_proc();
+        hsva := color_convert_RGB_to_HSV(base_tint.x, base_tint.y, base_tint.z, base_tint.w);
+        hue := (cast(u16)(hsva.x * 255) + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
+        tint = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
+    } else {
+        // Reproduce visual effect of BeginDisabled/EndDisabled but dont actually call that since it also disables the tooltips...
+        tint = ImGui.GetStyle().Colors[ImGui.Col.TextDisabled];
+        tint.w = ImGui.GetStyle().DisabledAlpha;
+    }
 
-            progress := action_set.progress_proc();
-
-            // The buttons are fully transparent in their default state
-            w = ifx progress.numer == 0 then 0. else .7;
-
-            // hue cycles with progress @Cleanup I think this code is slightly incorrect but its not noticabl
-            // Note: We used to change the text depending on the state but IIRC some clicks don't get registered, maybe because the ImGui ID depends on the label?
-            hsva := color_convert_RGB_to_HSV(x, y, z, w);
-            hue := cast(u16)(hsva.x * 255);
-            hue = (hue + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
-            button_color = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
-
-            ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
-            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive,  button_color);
-            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
-            ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-        }
-
-        if ImGui.Button(imgui_label(label, *action_set)) {
+    assert(texture.gl_handle != 0);
+    if ImGui.ImageButton(imgui_label("##ActionButton", *action_set), cast(ImGui.ImTextureID)texture.gl_handle, ACTION_BUTTON_SIZE, tint_col=tint) {
+        if has_target {
             action_set.last_interaction_time = current_time_consensus();
             action_set.proc(xx *action_set.last_interaction_time);
         }
-
-        if ImGui.IsItemHovered(.DelayNormal) {
-            push_allocator(temp);
-            show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false));
-        }
-
-        if do_style {
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-        }
     }
-
-    //See :DisableUpdateButtonsIfNoSelection
-    //else {
-    #if false {
-        if !action_set.regular_button {
-            button_color.w = 0;
-            ImGui.PushStyleColor(xx ImGui.Col.Button,        button_color);
-            ImGui.PushStyleColor(xx ImGui.Col.ButtonActive,  button_color);
-            ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, button_color);
-            ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-        }
-        ImGui.BeginDisabled();
-
-        if ImGui.Button(imgui_label(label, *action_set)) {
-            // Do nothing, this is a disabled button, only here for rendering
-        }
-
-        if !action_set.regular_button {
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-        }
-        ImGui.EndDisabled();
-    }
+    show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false));
 }
 
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
@@ -1815,6 +1817,7 @@ show_help_about_content :: () {
 
     {
         logo := icon_prism_logo_texture;
+        ImGui.SameLine(ImGui.GetContentRegionAvail().x / 2 - logo.width / 2);
         ImGui.Image(cast(ImGui.ImTextureID)logo.gl_handle, ImGui.ImVec2.{xx logo.width, xx logo.height});
         ImGui.NewLine();
     }
