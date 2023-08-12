@@ -1,7 +1,6 @@
 // nocommittttt Remove the opacity < X% means you can't click the item feature, it sucks in the common case where you have one item and you made it transparent
 // nocommittttt Unstash the most recent changes
 // nocommit Improve the rendering of the changelog, maybe just with different colors and text wrapping which starts at the indent, then post he pic with the changelog
-// nocommit Fix the centering of the Prism logo
 // nocommit Fix the size of the menu bar buttons for the window
 // nocommit Don't hardcode widget size, it needs to depend on the font size
 // nocommit Remove the rouding on the window buttons

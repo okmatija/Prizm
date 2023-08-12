@@ -196,6 +196,11 @@ main :: () {
 
     set_prism_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
+    //ImFont* font1 = ImGui.GetIO().Fonts->AddFontFromFileTTF("font.ttf", size_pixels);
+    size_pixels : float = 20.;
+    // nocommit Use AddFontFromMemoryTTF. The font should be read at compile-time so we don't depend on anything in the data/ folder
+    font2 : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromFileTTF(ImGui.GetIO().Fonts, "data/Inconsolata.otf", size_pixels);
+
     load_from_command_line();
 
     // Main loop

@@ -7,6 +7,11 @@ PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a preset example to demonstrate the new annotation functionality
 DONE};
 
+PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
+* Changed the font to Inconsolata and increased the default font size, the UI now looks **much** better
+* TODO Fixed a crash when opening the latest changelog section
+DONE};
+
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
 * Improvements to UI/UX
 
@@ -534,6 +539,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*app.changelog, PRISM_VERSION_0_8_0);
+    array_add(*app.changelog, PRISM_VERSION_0_7_1);
     array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);
     array_add(*app.changelog, PRISM_VERSION_0_6_0);
