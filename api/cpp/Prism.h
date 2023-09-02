@@ -141,12 +141,30 @@ struct Obj {
     // Current contents of the .obj file
     std::stringstream obj;
 
-    // Number of hash characters on a line, these are significant for Prism:
+    // Number of hash characters on the current line, these are significant for Prism:
     // 0 hash characters => writing geometry
-    // 1 hash character  => writing an annotation. Prism stores the text between the first # and a newline/second # as an annotation
-    // 2 hash characters => writing a comment. Prism ignores everything following the second # character on a line
+    // 1 hash character  => writing an annotation. Prism stores the text between the first hash and a newline/second hash as an annotation
+    // 2 hash characters => writing a comment. Prism ignores everything following the second hash character on a line
     unsigned hash_count = 0;
 
+    // Number of v-directives written to `obj`
+    unsigned v_count = 0;
+
+    // Number of vn-directives written to `obj`
+    unsigned vn_count = 0;
+
+    // Number of vt-directives written to `obj`
+    unsigned vt_count = 0;
+
+    // If true (default) then functions where the user has not explicity passed indices will use negative indices to refer to vertex data
+    // If false then the the above counts will be used to use positive indices when referring to vertex data.
+    //
+    // Using negative indices is the default because it means the Obj can be concatenated with other Objs (which
+    // must also be using negative indices) to write a single file (see Prism::Obj::append). The downsides of doing
+    // this is are i) the obj file may not load in viewers other than Prism since negative indices seem not to be
+    // well supported, and ii) triangles are written as a disconnected soup which increases file size due to
+    // duplicated vertex data
+    bool use_negative_indices = true;
 
 
 
@@ -172,9 +190,13 @@ struct Obj {
     }
 
     // Add a newline, then add the `other` obj and then add another newline
-    // Note: For this to work properly `other` must exclusively use negative (aka relative) indices
+    // Note: `other` must exclusively use negative (aka relative) indices
     Obj& append(const Obj& other) {
-        return newline().add(other.obj.rdbuf()).newline();
+        std::basic_stringbuf<char,std::char_traits<char>,std::allocator<char>>* buf = other.obj.rdbuf();
+        if (buf) {
+            newline().add(buf).newline();
+        }
+        return *this;
     }
 
 
@@ -212,16 +234,19 @@ struct Obj {
 
     // Add a vertex directive to start a vertex on the current line
     Obj& v() {
+        v_count += 1;
         return add('v');
     }
 
     // Add a vertex normal directive to the current line
     Obj& vn() {
+        vn_count += 1;
         return add("vn");
     }
 
     // Add a texture vertex directive to the current line
     Obj& vt() {
+        vt_count += 1;
         return add("vt");
     }
 
@@ -259,7 +284,7 @@ struct Obj {
 
     // Add a # character to the current line, this is used for annotations, comments and attributes
     Obj& hash() {
-        hash_count++;
+        hash_count += 1;
         return add('#');
     }
 
@@ -286,9 +311,9 @@ struct Obj {
     //
     // Annotations.
     //
-    // In Prism the text between the first # and a newline or second # is an 'annotation string' and can be shown in the viewport.
+    // In Prism the text between the first hash and a newline or second hash is an 'annotation string' and can be shown in the viewport.
 
-    // Start an annotation: If there is no # character on the current line add one, otherwise do nothing
+    // Start an annotation: If there is no hash character on the current line add one, otherwise do nothing
     Obj& annotation() {
         if (hash_count == 0) {
             // Add a space here to help other obj viewers which might fail to parse numbers not delimited by whitespace
@@ -322,7 +347,7 @@ struct Obj {
     // In Prism any text that follows the second # on a line is ignored
     //
 
-    // Ensure there are two # characters on the current line
+    // Ensure there are two hash characters on the current line
     Obj& comment() {
         while (hash_count < 2) {
             hash();
@@ -330,7 +355,7 @@ struct Obj {
         return *this;
     }
 
-    // Ensure there are two # characters on the current line then add "anything" to the obj
+    // Ensure there are two hash characters on the current line then add "anything" to the obj
     template <typename T> Obj& comment(T anything) {
         return comment().add(anything);
     }
@@ -387,7 +412,7 @@ struct Obj {
     // :ObjIndexing Vertex indexing is 1-based and can be negative:
     // * If index >  0 the index refers to the index-th added vertex
     // * If index <  0 the index refers to index-th preceeding vertex relative to line containing the element with the reference
-    // * if index == 0 the index is invalid, this is a silent error
+    // * if index == 0 the index is invalid, this is a (silent!) error
     // Vertices should be referenced by elements that are written later in the obj file
     //
 
@@ -407,7 +432,7 @@ struct Obj {
 
 
     //
-    // Normals and Tangents. Indexing is 1-based, see :ObjIndexing
+    // Normals, Textures, Tangents. Indexing is 1-based, see :ObjIndexing
     //
 
     // Add a 3D normal
@@ -454,14 +479,14 @@ struct Obj {
     }
 
     // Add a vertex position and a point element that references it
-    // Note: writes "v a\np -1" to the obj
+    // Note: writes "v a.x a.y a.z\np -1" to the obj
     template <typename T> Obj& point3(Vec3<T> a) {
         return vertex3(a).newline().point();
     }
 
     // Add a vertex position, a normal and an oriented point element referencing them
     template <typename T> Obj& point3_vn(Vec3<T> va, Vec3<T> na) {
-        vertex3(va).newline().vn().vector3(na).newline();
+        vertex3(va).newline().normal3(na).newline();
         return point_vn();
     }
 
@@ -499,8 +524,8 @@ struct Obj {
 
     // Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them
     template <typename T> Obj& segment3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> na, Vec3<T> nb) {
-        vertex3(va).newline().vn().vector3(na).newline();
-        vertex3(vb).newline().vn().vector3(nb).newline();
+        vertex3(va).newline().normal3(na).newline();
+        vertex3(vb).newline().normal3(nb).newline();
         return segment_vn();
     }
 
@@ -576,10 +601,21 @@ struct Obj {
         Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
         Vec3<T> na, Vec3<T> nb, Vec3<T> nc
     ) {
-        vertex3(va).newline().vn().vector3(na).newline();
-        vertex3(vb).newline().vn().vector3(nb).newline();
-        vertex3(vc).newline().vn().vector3(nc).newline();
+        vertex3(va).newline().normal3(na).newline();
+        vertex3(vb).newline().normal3(nb).newline();
+        vertex3(vc).newline().normal3(nc).newline();
         return triangle_vn();
+    }
+
+    // Add 3 vertex positions, 3 uvs and a triangle element referencing them
+    template <typename T> Obj& triangle3_vt(
+        Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+        Vec2<T> ta, Vec2<T> tb, Vec2<T> tc
+    ) {
+        vertex3(va).newline().uv2(ta).newline();
+        vertex3(vb).newline().uv2(tb).newline();
+        vertex3(vc).newline().uv2(tc).newline();
+        return triangle_vt();
     }
 
     // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
@@ -587,9 +623,9 @@ struct Obj {
         Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
         Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
     ) {
-        vertex3(va).newline().vt().vector3(ta).newline();
-        vertex3(vb).newline().vt().vector3(tb).newline();
-        vertex3(vc).newline().vt().vector3(tc).newline();
+        vertex3(va).newline().tangent3(ta).newline();
+        vertex3(vb).newline().tangent3(tb).newline();
+        vertex3(vc).newline().tangent3(tc).newline();
         return triangle_vt();
     }
 
@@ -599,9 +635,9 @@ struct Obj {
         Vec3<T> na, Vec3<T> nb, Vec3<T> nc,
         Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
     ) {
-        vertex3(va).newline().vn().vector3(na).newline().vt().vector3(ta).newline();
-        vertex3(vb).newline().vn().vector3(nb).newline().vt().vector3(tb).newline();
-        vertex3(vc).newline().vn().vector3(nc).newline().vt().vector3(tc).newline();
+        vertex3(va).newline().normal3(na).newline().tangent3(ta).newline();
+        vertex3(vb).newline().normal3(nb).newline().tangent3(tb).newline();
+        vertex3(vc).newline().normal3(nc).newline().tangent3(tc).newline();
         return triangle_vnt();
     }
 
@@ -729,7 +765,7 @@ struct Obj {
     }
 
     // Add a 3D box region defined by min/max, visualized with segment elements
-    template <typename T> Obj& box3_min_max(Vec3<T> min, Vec3<T> max, bool use_segments = true) {
+    template <typename T> Obj& box3_min_max(Vec3<T> min, Vec3<T> max) {
         // This has some redundant edges but having them means we can annotate all sgements in the shape conveniently
         Vec3<T> p000{min.x, min.y, min.z}, p100{max.x, min.y, min.z}, p010{min.x, max.y, min.z}, p110{max.x, max.y, min.z};
         Vec3<T> p001{min.x, min.y, max.z}, p101{max.x, min.y, max.z}, p011{min.x, max.y, max.z}, p111{max.x, max.y, max.z};
@@ -744,12 +780,25 @@ struct Obj {
     }
 
     // Add a 3D box region defined by a center point and extents vector (box side lengths), visualized with segment elements
+    // nocommit Why not also allow triangles?
     template <typename T> Obj& box3_center_extents(Vec3<T> center, Vec3<T> extents) {
         return box3_min_max<T>(
             {center.x - extents.x/2, center.y - extents.y/2, center.z - extents.z/2},
             {center.x + extents.x/2, center.y + extents.y/2, center.z + extents.z/2});
     }
 
+
+
+
+    //
+    // Shapes. nocommit Add other par_shapes
+    //
+
+    // nocommit works for floats and doubles, defined in the cpp.
+    Obj& sphere3(V3f center, float radius, int slices, int stacks);
+
+    // nocommit works for floats and doubles, defined in the cpp. Add an option to rotate it, useful to make the wires intersect an inset aabb vertices
+    //Obj& wire_sphere3(...);
 
 
 
@@ -765,7 +814,7 @@ struct Obj {
     // data, probably by calling this function with no arguments, to restore the precision that round-trips from double
     // to decimal text to double.
     Obj& set_precision(int n = std::numeric_limits<double>::max_digits10, int* old_n = nullptr) {
-        std::streamsize old_precision = obj.precision(n);
+        int old_precision = static_cast<int>(obj.precision(n));
         if (old_n) *old_n = old_precision;
         return *this;
     }
@@ -781,6 +830,12 @@ struct Obj {
         // decimal digits to represent the precise value of a float in decimal notation."
         // https://en.cppreference.com/w/cpp/types/numeric_limits/max_digits10
         return set_precision(std::numeric_limits<Float>::max_digits10, old_n);
+    }
+
+    // See documentation for `use_negative_indices` member
+    Obj& set_use_negative_indices(bool value) {
+        use_negative_indices = value;
+        return *this;
     }
 
 
@@ -1071,27 +1126,6 @@ struct Obj {
     }
 
 
-    // Miscellaneous
-
-    // Save a copy of the current obj *after it is loaded in Prism* but modify the contents to make the file work with
-    // more obj viewers/readers. This function works by applying the following simplifications:
-    //
-    // 1) Replace negative indices with positive indices (some viewers do not support negative indices)
-    //
-    // 2) Replace polyline/polygon elements (l-directives with >2 indices/f-directives with >4 indices respespectively)
-    //    with segment/triangle elements (l-directives with 2 indices/f-directives with 3 indices respectively)
-    //
-    // 3) Reindex positions/textures/normals so that directives referencing them have common indicies so that things
-    //    like f 1/2/3 2/7/3 3/18/77 become f 1/1/1 2/2/2 3/3/3.
-    //
-    // TODO Implement this command in Prism
-    // TODO Prism also doesn't support 3) so we should fix that as well...!
-    // TODO Maybe its a bit weird to expose this function as a command annotation since to get the simplified file you
-    //      need to load the current file in Prism. We could instead just mention it exists in Obj::write documentation?
-    //
-    //Obj& save_simplified_obj(std::string filename) {
-    //    return item_command("save_simplified_obj").insert(filename);
-    //}
 
 
 
@@ -1481,13 +1515,41 @@ p -1
 
 
 
+    // nocommit Some obj viewers do not support negative indices so there is an option to use positive indices instead
+    {
+        using namespace Prism;
+
+        Obj positive;
+        positive.set_use_negative_indices(false);
+        positive.newline();
+        positive.segment2(V2{0, 0}, V2{1, 0});
+        positive.point3(V3{1, 2, 3});
+
+        std::string output = R"DONE(
+v 0 0
+v 1 0
+l 1 2
+v 1 2 3
+p 3
+)DONE";
+
+        if (!test("prism_documentation_ex3.obj", positive.to_std_string(), output)) {
+            tests_pass = false;
+        }
+    }
+
+
+
+
+
+
     // This block illustrates a possibly handy use-case where you can create and write an obj file in one line
     {
         using namespace Prism;
 
         // We don't test this function to keep everything on a single line
         if (write_files) {
-            std::string filename = "prism_documentation_ex3.obj";
+            std::string filename = "prism_documentation_ex4.obj";
             Obj().triangle2(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).an("triangle").point2(V2{3., 3.}).an("point").write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }
@@ -1511,7 +1573,7 @@ p -1
 
         // We don't test this function because the __LINE__ macro makes it brittle
         if (write_files) {
-            std::string filename = "prism_documentation_ex4.obj";
+            std::string filename = "prism_documentation_ex5.obj";
             obj.write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }
@@ -1541,5 +1603,58 @@ p -1
 #endif
 
 } // namespace Prism
+
+#ifdef PRISM_API_IMPLEMENTATION // nocommit Add this to the paste string with a comment saying it should only be pasted once!
+
+#define PAR_SHAPES_IMPLEMENTATION
+#include "ThirdParty/par_shapes.h" // par_shapes_create_parametric_sphere
+
+namespace Prism {
+
+Obj& Obj::sphere3(V3f center, float radius, int slices, int stacks) {
+    int use_slices = std::max(3, slices);
+    int use_stacks = std::max(3, stacks);
+
+    par_shapes_mesh* mesh = par_shapes_create_parametric_sphere(use_slices, use_stacks);
+    par_shapes_scale(mesh, radius, radius, radius);
+    par_shapes_translate(mesh, center.x, center.y, center.z);
+
+    for (int face = 0; face < mesh->ntriangles; face++) {
+        PAR_SHAPES_T* tri = mesh->triangles + face * 3;
+        // for (int d = 0; d < 3; d++) {
+        //     float* vertex = mesh->points + tri[d] * 3;
+        //     vertex3(V3(vertex[0], vertex[1], vertex[2]));
+        //     newline();
+        // }
+
+        float* a = mesh->points + tri[0] * 3;
+        float* b = mesh->points + tri[1] * 3;
+        float* c = mesh->points + tri[2] * 3;
+        triangle3(V3(a[0], a[1], a[2]), V3(b[0], b[1], b[2]), V3(c[0], c[1], c[2])).newline();
+
+        // if (prefer_negative_indices) {
+        //     // Write the triangle using negative indices so that it we can call append()
+        //     triangle().newline();
+        // } else {
+        //     triangle(v_count - 2, v_count - 1, v_count).newline();
+        // }
+    }
+
+    par_shapes_free_mesh(mesh);
+
+    return *this;
+}
+
+// Obj& Obj::sphere3(V3f center, float radius, int segment_count, V3f rotation) {
+//     return *this;
+// }
+
+// Obj& Obj::circle3(V3f center, float radius, V3f normal) {
+//     return *this;
+// }
+
+} // namespace Prism
+
+#endif // PRISM_API_IMPLEMENTATION
 
 #endif // PRISM_API

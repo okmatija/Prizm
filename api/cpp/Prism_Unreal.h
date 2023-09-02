@@ -5,10 +5,18 @@
 
 #include <CoreMinimal.h> // FString
 
+#ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+// #include "Engine.h" // nocommit Don't use this monolithic header
+// // For MakeActorObj
+#include "GameFramework/Actor.h"
+#include "Engine/StaticMesh.h"
+#include "Components/StaticMeshComponent.h"
+#endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+
 // We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
 // the code for different Unreal modules to be in separate files
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 #include <VectorTypes.h>
 #include <BoxTypes.h>
 #include <DynamicMesh/DynamicMesh3.h>
@@ -16,7 +24,7 @@
 #include <DynamicMesh/DynamicMeshAttributeSet.h>
 #include <Image/ImageDimensions.h>
 #include <Util/CompactMaps.h>
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 // The macros below must be defined before including "Prism.h". This compile time error enforces this
 #ifdef PRISM_API
@@ -98,19 +106,79 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		}
 	}
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 	// This block shows some of the provided functions for Geometry Core
 	{
 		// @Incomplete
 	}
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 	return true;
 }
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
+#ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+struct FMakeActorObjOptions
+{
+	// If true/false write triangles using -/+ indices to reference vertex data.
+	bool bUseNegativeIndices = true;
+};
 
+Obj MakeActorObj(AActor* Actor, FString* OutMeshName = nullptr, FMakeActorObjOptions Options = {})
+{
+	Obj Result;
+
+	if (!Actor)
+	{
+		return Result;
+	}
+
+	UStaticMeshComponent* MeshComponent = Actor->FindComponentByClass<UStaticMeshComponent>();
+
+	if (MeshComponent)
+	{
+		UStaticMesh* StaticMesh = MeshComponent->GetStaticMesh();
+		if (StaticMesh)
+		{
+			if (OutMeshName)
+			{
+				*OutMeshName = StaticMesh->GetName();
+			}
+
+			const FTransform ActorTransform = Actor->GetTransform();
+			const FPositionVertexBuffer& Vertices = StaticMesh->GetRenderData()->LODResources[0].VertexBuffers.PositionVertexBuffer;
+			const FIndexArrayView& Triangles = StaticMesh->GetRenderData()->LODResources[0].IndexBuffer.GetArrayView();
+
+			if (Options.bUseNegativeIndices)
+			{
+				for (uint32 i = 0; i < (uint32)Triangles.Num(); i += 3)
+				{
+					V3 a(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(Triangles[i]))));
+					V3 b(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(Triangles[i+1]))));
+					V3 c(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(Triangles[i+2]))));
+					Result.triangle3(a, b, c).newline();
+				}
+			}
+			else
+			{
+				for (uint32 i = 0; i < Vertices.GetNumVertices(); i++)
+				{
+					Result.vertex3(V3(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(i))))).newline();
+				}
+
+				for (uint32 i = 0; i < (uint32)Triangles.Num(); i += 3)
+				{
+					Result.triangle(Triangles[i]+1, Triangles[i+1]+1, Triangles[i+2]+1).newline();
+				}
+			}
+		}
+	}
+
+	return Result;
+}
+#endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 struct FMakeDynamicMeshObjOptions
 {
 	// If true reverses the orientation of the faces
@@ -124,6 +192,9 @@ struct FMakeDynamicMeshObjOptions
 
 	// If true write "TID X" annotations on the OBJ f-directives, where X is the Tid into the input mesh (before the CompactCopy)
 	bool bWriteTidAnnotations = false;
+
+	// nocommit Implement this, by setting it to false you can make an appendable obj but having it as true enables loading in viewers that don't support negative indices
+	bool bUsePositiveIndices = false;
 };
 
 Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMeshObjOptions Options = FMakeDynamicMeshObjOptions{})
@@ -513,7 +584,7 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 	return Result;
 }
 
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 } // namespace Prism
 
