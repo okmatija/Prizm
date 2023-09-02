@@ -10,6 +10,16 @@ DONE};
 PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
 * Changed the font to Inconsolata and increased the default font size, the UI now looks **much** better
 * TODO Fixed a crash when opening the latest changelog section
+* Improvements to C++ API:
+
+    * Reduce number of calls to newline
+    * Add parshapes
+    * Add option to use +ve or -ve indices (later add function to convert between them)
+    * Added actor function
+    * Note no tbox etc since we want to minize marshalling layer
+    * Removed the an(...) functions which wrote annotations followed by a newline, this is not required following the refactoring to write a newline in functions that write data that needs to start on a newline
+    * Removed the ln() function which just abbreviated the newline() function but since newline() is called much less now an abbreviated form is less useful and its better to reduce the API
+    * Changed the `Obj::commment(T data)` so that it always starts a newline before writing the comment, to add a comment on the current line call `comment().insert(data)` i.e., use the overload with no arguments, `Obj::comment()`
 DONE};
 
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE

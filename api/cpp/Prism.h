@@ -135,7 +135,7 @@ bool documentation(bool write_files = false);
 struct Obj {
 
     //
-    // State
+    // State. nocommit maybe this should be an std::vector<Atom> where Atom is like a token
     //
 
     // Current contents of the .obj file
@@ -232,49 +232,53 @@ struct Obj {
     // Directives and special characters/strings
     //
 
-    // Add a vertex directive to start a vertex on the current line
+    // Add a vertex directive to start a vertex on a new line
     Obj& v() {
         v_count += 1;
-        return add('v');
+        return newline().add('v');
     }
 
-    // Add a vertex normal directive to the current line
+    // Add a vertex normal directive on a new line
     Obj& vn() {
         vn_count += 1;
-        return add("vn");
+        return newline().add("vn");
     }
 
-    // Add a texture vertex directive to the current line
+    // Add a texture vertex directive on a new line
     Obj& vt() {
         vt_count += 1;
-        return add("vt");
+        return newline().add("vt");
     }
 
-    // Add a point directive to start a point on the current line
+    // Add a point directive to start a point on a new line
     Obj& p() {
-        return add('p');
+        return newline().add('p');
     }
 
-    // Add a line directive to start a segment/polyline on the current line
+    // Add a line directive to start a segment/polyline on a new line
     Obj& l() {
-        return add('l');
+        return newline().add('l');
     }
 
-    // Add a face directive to start a triangle/polygon on the current line
+    // Add a face directive to start a triangle/polygon on a new line
     Obj& f() {
-        return add('f');
+        return newline().add('f');
     }
 
-    // Add a group directive.
+    // Add a group directive on the current line
     // Note: Currently Prism ignores these
     Obj& g() {
-        return add('g');
+        return newline().add('g');
     }
 
     // Add a newline to the obj and reset hash_count
-    Obj& newline() {
-        hash_count = 0;
-        return add("\n");
+    Obj& newline(int count = 1) {
+        while (count > 0) {
+            hash_count = 0;
+            add("\n");
+            count -= 1;
+        }
+        return *this;
     }
 
     // Add a space to the obj
@@ -283,9 +287,13 @@ struct Obj {
     }
 
     // Add a # character to the current line, this is used for annotations, comments and attributes
-    Obj& hash() {
-        hash_count += 1;
-        return add('#');
+    Obj& hash(int count = 1) {
+        while (count > 0) {
+            hash_count += 1;
+            add("#");
+            count -= 1;
+        }
+        return *this;
     }
 
     // Add a ! character to the current line, this is used by command annotations
@@ -296,11 +304,6 @@ struct Obj {
     // Add an @ character to the current line, this is used for attributes
     Obj& at() {
         return add('@');
-    }
-
-    // An abbreviated version of the newline function
-    Obj& ln() {
-        return newline();
     }
 
 
@@ -327,16 +330,6 @@ struct Obj {
         return annotation().insert(data);
     }
 
-    // Add an annotation containing the given text to the obj then start a newline, if the text is empty just start a newline. See annotation()
-    Obj& an(const std::string& text = "") {
-        return text == "" ? newline() : annotation(text).newline();
-    }
-
-    // Add an annotation containing the given data to the obj then start a newline. See annotation()
-    template <typename T> Obj& an(const T& data) {
-        return annotation(data).newline();
-    }
-
 
 
 
@@ -355,9 +348,10 @@ struct Obj {
         return *this;
     }
 
-    // Ensure there are two hash characters on the current line then add "anything" to the obj
-    template <typename T> Obj& comment(T anything) {
-        return comment().add(anything);
+    // Start a newline with a comment containing the given data
+    // Note: Adds "\n## data" to the obj. Use the zero-argument version to write a comment on the current line
+    template <typename T> Obj& comment(T data) {
+        return newline().comment().insert(data);
     }
 
 
@@ -417,13 +411,13 @@ struct Obj {
     //
 
     // Add a 2D position
-    // Note: writes "v a.x a.y" to the obj
+    // Note: writes "\nv a.x a.y" to the obj
     template <typename T> Obj& vertex2(Vec2<T> a) {
         return v().vector2(a);
     }
 
     // Add a 3D position
-    // Note: writes "v a.x a.y a.z" to the obj
+    // Note: writes "\nv a.x a.y a.z" to the obj
     template <typename T> Obj& vertex3(Vec3<T> a) {
         return v().vector3(a);
     }
@@ -436,19 +430,19 @@ struct Obj {
     //
 
     // Add a 3D normal
-    // Note: writes "vn n.x n.y n.z" to the obj
+    // Note: writes "\nvn n.x n.y n.z" to the obj
     template <typename T> Obj& normal3(Vec3<T> n) {
         return vn().vector3(n);
     }
 
     // Add a UV coordinate (2D texture vertex)
-    // Note: writes "vt t.x t.y" to the obj
+    // Note: writes "\nvt t.x t.y" to the obj
     template <typename T> Obj& uv2(Vec2<T> t) {
         return vt().vector2(t);
     }
 
     // Add a 3D tangent (3D texture vertex)
-    // Note: writes "vt t.x t.y t.z" to the obj
+    // Note: writes "\nvt t.x t.y t.z" to the obj
     template <typename T> Obj& tangent3(Vec3<T> t) {
         return vt().vector3(t);
     }
@@ -460,7 +454,6 @@ struct Obj {
     //
 
     // Add a point element referencing the i-th vertex position
-    // Note: writes "p i" to the obj
     Obj& point(int i = -1) {
         return p().insert(i);
     }
@@ -468,26 +461,22 @@ struct Obj {
     // Add a oriented point element referencing the previous vertex position and normal (default).
     // The user can provide explicit indicies to reference vertex vi and normal ni
     Obj& point_vn(int vi = -1, int ni = -1) {
-        p().insert(vi).add("//").add(ni);
-        return *this;
+        return p().insert(vi).add("//").add(ni);
     }
 
     // Add a vertex position and a point element that references it
-    // Note: writes "v a.x a.y\np -1" to the obj
     template <typename T> Obj& point2(Vec2<T> a) {
-        return vertex2(a).newline().point();
+        return vertex2(a).point();
     }
 
     // Add a vertex position and a point element that references it
-    // Note: writes "v a.x a.y a.z\np -1" to the obj
     template <typename T> Obj& point3(Vec3<T> a) {
-        return vertex3(a).newline().point();
+        return vertex3(a).point();
     }
 
     // Add a vertex position, a normal and an oriented point element referencing them
     template <typename T> Obj& point3_vn(Vec3<T> va, Vec3<T> na) {
-        vertex3(va).newline().normal3(na).newline();
-        return point_vn();
+        return vertex3(va).normal3(na).point_vn();
     }
 
 
@@ -496,7 +485,6 @@ struct Obj {
     //
 
     // Add a segment element connecting vertices i and j
-    // Note: writes "l i j" to the obj
     Obj& segment(int i = -2, int j = -1) {
         return l().insert(i).insert(j);
     }
@@ -504,29 +492,22 @@ struct Obj {
     // Add an oriented segment element referencing the 2 previous vertex positions and normals (default).
     // The user can provide explicit indicies to reference vertices vi/ vj and normals ni/nj
     Obj& segment_vn(int vi = -2, int vj = -1, int ni = -2, int nj = -1) {
-        l();
-        insert(vi).add("//").add(ni);
-        insert(vj).add("//").add(nj);
-        return *this;
+        return l().insert(vi).add("//").add(ni).insert(vj).add("//").add(nj);
     }
 
     // Add 2 vertex positions and a segment element referencing them
-    // Note: writes "v a.x a.y\nv b.x b.y\nl -2 -1" to the obj
     template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b) {
-        return vertex2(a).newline().vertex2(b).newline().segment();
+        return vertex2(a).vertex2(b).segment();
     }
 
     // Add 2 vertex positions and a segment element referencing them
-    // Note: writes "v a.x a.y a.z\nv b.x b.y b.z\nl -2 -1" to the obj
     template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) {
-        return vertex2(a).newline().vertex2(b).newline().segment();
+        return vertex2(a).vertex2(b).segment();
     }
 
     // Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them
     template <typename T> Obj& segment3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> na, Vec3<T> nb) {
-        vertex3(va).newline().normal3(na).newline();
-        vertex3(vb).newline().normal3(nb).newline();
-        return segment_vn();
+        return vertex3(va).normal3(na).vertex3(vb).normal3(nb).segment_vn();
     }
 
 
@@ -582,18 +563,12 @@ struct Obj {
 
     // Add 3 vertex positions and a triangle element referencing them
     template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
-        vertex2(va).newline();
-        vertex2(vb).newline();
-        vertex2(vc).newline();
-        return triangle();
+        return vertex2(va).vertex2(vb).vertex2(vc).triangle();
     }
 
     // Add 3 vertex positions and a triangle element referencing them
     template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
-        vertex3(va).newline();
-        vertex3(vb).newline();
-        vertex3(vc).newline();
-        return triangle();
+        return vertex3(va).vertex3(vb).vertex3(vc).triangle();
     }
 
     // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them
@@ -601,10 +576,7 @@ struct Obj {
         Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
         Vec3<T> na, Vec3<T> nb, Vec3<T> nc
     ) {
-        vertex3(va).newline().normal3(na).newline();
-        vertex3(vb).newline().normal3(nb).newline();
-        vertex3(vc).newline().normal3(nc).newline();
-        return triangle_vn();
+        return vertex3(va).normal3(na).vertex3(vb).normal3(nb).vertex3(vc).normal3(nc).triangle_vn();
     }
 
     // Add 3 vertex positions, 3 uvs and a triangle element referencing them
@@ -612,10 +584,7 @@ struct Obj {
         Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
         Vec2<T> ta, Vec2<T> tb, Vec2<T> tc
     ) {
-        vertex3(va).newline().uv2(ta).newline();
-        vertex3(vb).newline().uv2(tb).newline();
-        vertex3(vc).newline().uv2(tc).newline();
-        return triangle_vt();
+        return vertex3(va).uv2(ta).vertex3(vb).uv2(tb).vertex3(vc).uv2(tc).triangle_vt();
     }
 
     // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
@@ -623,10 +592,7 @@ struct Obj {
         Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
         Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
     ) {
-        vertex3(va).newline().tangent3(ta).newline();
-        vertex3(vb).newline().tangent3(tb).newline();
-        vertex3(vc).newline().tangent3(tc).newline();
-        return triangle_vt();
+        return vertex3(va).tangent3(ta).vertex3(vb).tangent3(tb).vertex3(vc).tangent3(tc).triangle_vt();
     }
 
     // Add 3 vertex positions, 3 vertex normals, 3 texture vertices and a triangle element referencing them
@@ -635,10 +601,7 @@ struct Obj {
         Vec3<T> na, Vec3<T> nb, Vec3<T> nc,
         Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
     ) {
-        vertex3(va).newline().normal3(na).newline().tangent3(ta).newline();
-        vertex3(vb).newline().normal3(nb).newline().tangent3(tb).newline();
-        vertex3(vc).newline().normal3(nc).newline().tangent3(tc).newline();
-        return triangle_vnt();
+        return vertex3(va).normal3(na).tangent3(ta).vertex3(vb).normal3(nb).tangent3(tb).vertex3(vc).normal3(nc).tangent3(tc).triangle_vnt();
     }
 
 
@@ -1144,7 +1107,6 @@ struct Obj {
             for (int d = 0; d < point_dimension; d++) {
                 insert<T>(*(coords + i * point_dimension + d));
             }
-            newline();
         }
 
         directive == 'f' ? f() : l();
@@ -1161,21 +1123,23 @@ struct Obj {
 
     // Write 2D vertex positions as a variadic call
     template <typename T> Obj& vertex2_variadic(int point_count, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, va_list va) {
-        vertex2(p1).newline().vertex2(p2).newline().vertex2(p3).newline();
+        vertex2(p1).vertex2(p2).vertex2(p3);
         for (int i = 0; i < point_count-3; i++) {
             Vec2<T> pn = va_arg(va, Vec2<T>);
-            vertex2(pn).newline();
+            vertex2(pn);
         }
+        // No newline so the caller can add an annotation
         return *this;
     }
 
     // Write 3D vertex positions as a variadic call
     template <typename T> Obj& vertex3_variadic(int point_count, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, va_list va) {
-        vertex3(p1).newline().vertex3(p2).newline().vertex3(p3).newline();
+        vertex3(p1).vertex3(p2).vertex3(p3);
         for (int i = 0; i < point_count-3; i++) {
             Vec3<T> pn = va_arg(va, Vec3<T>);
-            vertex3(pn).newline();
+            vertex3(pn);
         }
+        // No newline so the caller can add an annotation
         return *this;
     }
 
@@ -1223,25 +1187,23 @@ bool documentation(bool write_files) {
     {
         using namespace Prism; // Access Obj struct and typedefs
 
-        // Create an Obj instance and start the file with a newline to make formatting of the raw string literal
-        // `output` a bit nicer
         Obj obj;
-        obj.newline();
 
         // First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
-        // the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment. Note that most
-        // functions in the `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your
-        // debugging code to be concise
-        obj.comment("This file tests the Prism C++ API").newline();
+        // the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment.
+        obj.comment("This file tests the Prism C++ API");
 
-        // Now we'll write 3 vertices and a triangle element in a very verbose way
-        obj.vertex3(V3{0., 0., 1.}).annotation("Vertex A").newline();
-        obj.vertex3(V3{3., 0., 1.}).annotation("Vertex B").newline();
-        obj.vertex3(V3{3., 3., 1.}).annotation("Vertex C").newline();
-        obj.triangle().annotation("Triangle ABC").newline();
+        // Now we'll write 3 vertices and a triangle element in a very verbose way. Note that most functions in the
+        // `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your debugging code
+        // to be concise
+        obj.vertex3(V3{0., 0., 1.}).annotation("Vertex A");
+        obj.vertex3(V3{3., 0., 1.}).annotation("Vertex B");
+        obj.vertex3(V3{3., 3., 1.}).annotation("Vertex C");
+        obj.triangle().annotation("Triangle ABC");
 
-        // The previous block had a lot of typing... you can do something similar as a one-liner as follows:
-        obj.triangle3(V3{0., 0., 2.}, V3{3., 0., 2.}, V3{3., 3., 2.}).an("Triangle ABC");
+        // The previous block had a lot of typing... you can do something similar (without the vertex annotations) as a
+        // one-liner like this:
+        obj.triangle3(V3{0., 0., 2.}, V3{3., 0., 2.}, V3{3., 3., 2.}).annotation("Triangle ABC");
 
         // The triangle element and vertex positions we just added to the obj all have _Annotation_ strings associated
         // with them. These strings can be visualized in Prism by turning on annotation labelling.  The annotations are
@@ -1262,7 +1224,7 @@ bool documentation(bool write_files) {
         } star;
 
         // First we'll write the star as a polyline boundary using a pointer-to-coordinate-buffer API:
-        obj.polyline2(8, star.coords, true).an("star boundary");
+        obj.polyline2(8, star.coords, true).annotation("star boundary");
 
         // Next, we'll write the star as a polygon using a variadic function call, a similar variadic function also
         // exists for writing polyline2 geometry
@@ -1274,12 +1236,12 @@ bool documentation(bool write_files) {
             star.points.e,
             star.points.f,
             star.points.g,
-            star.points.h).an("star polygon");
+            star.points.h).annotation("star polygon");
 
         // The previous line wrote the coordinate data again even though we wrote it when we called polygon2, this
         // is probably fine for debugging code but, just to illustrate another function, we can write only an obj
         // f-directive references the previous vertices as follows:
-        obj.polygon(8).an("star polygon again");
+        obj.polygon(8).annotation("star polygon again");
 
         // Note the obj spec allows you to reference previous vertices by using negative indices.  This feature is
         // pretty handy for not having to track the current vertex index and also for enabling you to concatenate obj
@@ -1304,12 +1266,12 @@ bool documentation(bool write_files) {
             star_max.y = std::max(star_max.y , y);
             star_min.y = std::min(star_min.y , y);
         }
-        obj.box2_min_max(star_min, star_max).an("star bounding box");
+        obj.box2_min_max(star_min, star_max).annotation("star bounding box");
 
         // So far we've only had one annotation per geometric entity (vertex/element), this is because Prism
         // represents annotations with a single string and there are no plans to change this. If you call the
         // annotation function more than once per line each call concatenates into a single annotation string
-        obj.point2(V2{4., 7.}).annotation("these").annotation("are").annotation("concatenated").newline();
+        obj.point2(V2{4., 7.}).annotation("these").annotation("are").annotation("concatenated");
 
         // In some cases it can be useful attach more one or pieces of typed numerical data to the each geometric
         // entity of a mesh e.g., a scalar cost of a triangle edge collapse or a vertex displacement in a finite
@@ -1330,10 +1292,16 @@ bool documentation(bool write_files) {
         // supports any type which defines an operator<<. Actually, the annotation function in this API also
         // supports writing non-string data using operator<< but this is just for convenience; rendering/UI support
         // for annotations in Prism is built around the assumption that they contain only string data).
-        obj.point2(V2{3., 3.}).annotation("some string").attribute(42).attribute(V2{0.,0.}).newline();
+        obj.point2(V2{3., 3.}).annotation("some string").attribute(42).attribute(V2{0.,0.});
+
+        // Add some blank space to clearly separate obj geometry from the command annotations to come.
+        obj.newline(3);
 
         // Next we'll demonstrate how you can configure how Prism displays the obj file when it is loaded by writing
-        // command annotations to the obj file.  This is handy because, depending on your debugging use-case, you
+        // command annotations to the obj file.
+        obj.comment("Command Annotations:");
+
+        // Configuring how Prism displays the obj file is handy because, depending on your debugging use-case, you
         // will want to see different things.  You could configure the display settings you want by clicking around
         // in the UI, or by calling the relevant console commands after the file is loaded but this can be slow or
         // annoying so to save you having to do this manually Prism's command annotation facility enables you to
@@ -1393,7 +1361,7 @@ bool documentation(bool write_files) {
         // obj.write("C:/path/to/my/debug/folder/debug_file.obj");
 
         std::string output = R"DONE(
-##This file tests the Prism C++ API
+## This file tests the Prism C++ API
 v 0 0 1 # Vertex A
 v 3 0 1 # Vertex B
 v 3 3 1 # Vertex C
@@ -1432,6 +1400,9 @@ p -1 # these are concatenated
 v 3 3
 p -1 # some string @ 42 @ 0 0
 
+
+
+## Command Annotations:
 #! set_annotations_visible 0 1
 #! set_annotations_scale 0 1
 #! set_annotations_color 0 0 0 255 255
@@ -1484,29 +1455,31 @@ p -1 # some string @ 42 @ 0 0
     {
         using namespace Prism;
 
-        Obj first, second;
+        Obj a, b, ab;
 
         // Add some geometry to the first obj
-        first.segment2(V2{0, 0}, V2{1, 0});
+        a.segment2(V2{0, 0}, V2{1, 0});
 
         // Add some geometry to the second obj
-        second.point3(V3{1, 2, 3});
+        b.point3(V3{1, 2, 3});
 
         // Concatenate the first and second obj
-        Obj combined;
-        combined.newline().comment("The first obj:").append(first).comment("The second obj:").append(second);
+        ab.comment("The first obj:").append(a).comment("The second obj:").append(b);
 
         std::string output = R"DONE(
-##The first obj:
+## The first obj:
+
 v 0 0
 v 1 0
 l -2 -1
-##The second obj:
+
+## The second obj:
+
 v 1 2 3
 p -1
 )DONE";
 
-        if (!test("prism_documentation_ex2.obj", combined.to_std_string(), output)) {
+        if (!test("prism_documentation_ex2.obj", ab.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1521,17 +1494,14 @@ p -1
 
         Obj positive;
         positive.set_use_negative_indices(false);
-        positive.newline();
         positive.segment2(V2{0, 0}, V2{1, 0});
         positive.point3(V3{1, 2, 3});
 
-        std::string output = R"DONE(
-v 0 0
+        std::string output = R"DONE(v 0 0
 v 1 0
 l 1 2
 v 1 2 3
-p 3
-)DONE";
+p 3)DONE";
 
         if (!test("prism_documentation_ex3.obj", positive.to_std_string(), output)) {
             tests_pass = false;
@@ -1550,7 +1520,7 @@ p 3
         // We don't test this function to keep everything on a single line
         if (write_files) {
             std::string filename = "prism_documentation_ex4.obj";
-            Obj().triangle2(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).an("triangle").point2(V2{3., 3.}).an("point").write(filename);
+            Obj().triangle2(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).annotation("triangle").point2(V2{3., 3.}).annotation("point").write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }
     }
