@@ -135,7 +135,7 @@ bool documentation(bool write_files = false);
 struct Obj {
 
     //
-    // State. nocommit maybe this should be an std::vector<Atom> where Atom is like a token
+    // State
     //
 
     // Current contents of the .obj file
@@ -213,11 +213,12 @@ struct Obj {
     // progress of an algorithm, you will also need to use the same prefix and you may need to run the
     // `sort_by_name` console command in Prism to put the item list into a state where you can use Ctrl LMB or
     // Shift LMB while sweeping the cursor over the visibility checkboxes to create a progress animation.
-    void write(std::string filename) const {
+    Obj& write(std::string filename) {
         std::ofstream file;
         file.open(filename, std::ofstream::out | std::ofstream::trunc);
         file << obj.str();
         file.close();
+        return *this;
     }
 
     // Returns the current state of the obj file as a std::string
@@ -348,10 +349,9 @@ struct Obj {
         return *this;
     }
 
-    // Start a newline with a comment containing the given data
-    // Note: Adds "\n## data" to the obj. Use the zero-argument version to write a comment on the current line
-    template <typename T> Obj& comment(T data) {
-        return newline().comment().insert(data);
+    // Ensure there are two # characters on the current line then insert the comment content
+    template <typename T> Obj& comment(T content) {
+        return comment().insert(content);
     }
 
 
@@ -455,13 +455,13 @@ struct Obj {
 
     // Add a point element referencing the i-th vertex position
     Obj& point(int i = -1) {
-        return p().insert(i);
+        return p().insert(v_index(i));
     }
 
     // Add a oriented point element referencing the previous vertex position and normal (default).
     // The user can provide explicit indicies to reference vertex vi and normal ni
     Obj& point_vn(int vi = -1, int ni = -1) {
-        return p().insert(vi).add("//").add(ni);
+        return p().insert(v_index(vi)).add("//").add(vn_index(ni));
     }
 
     // Add a vertex position and a point element that references it
@@ -484,15 +484,15 @@ struct Obj {
     // Segment Elements.  Indices are 1-based, see :ObjIndexing
     //
 
-    // Add a segment element connecting vertices i and j
-    Obj& segment(int i = -2, int j = -1) {
-        return l().insert(i).insert(j);
+    // Add a segment element connecting vertices vi and vj
+    Obj& segment(int vi = -2, int vj = -1) {
+        return l().insert(v_index(vi)).insert(v_index(vj));
     }
 
     // Add an oriented segment element referencing the 2 previous vertex positions and normals (default).
     // The user can provide explicit indicies to reference vertices vi/ vj and normals ni/nj
     Obj& segment_vn(int vi = -2, int vj = -1, int ni = -2, int nj = -1) {
-        return l().insert(vi).add("//").add(ni).insert(vj).add("//").add(nj);
+        return l().insert(v_index(vi)).add("//").add(vn_index(ni)).insert(v_index(vj)).add("//").add(vn_index(nj));
     }
 
     // Add 2 vertex positions and a segment element referencing them
@@ -518,7 +518,11 @@ struct Obj {
     // Add a triangle element referencing the 3 previous vertex positions (default).
     // The user can provide explicit indicies to reference vertices vi, vj and vk
     Obj& triangle(int vi = -3, int vj = -2, int vk = -1) {
-        return f().insert(vi).insert(vj).insert(vk);
+        f();
+        insert(v_index(vi));
+        insert(v_index(vj));
+        insert(v_index(vk));
+        return *this;
     }
 
     // Add a triangle element referencing the 3 previous vertex positions and normals (default).
@@ -528,9 +532,9 @@ struct Obj {
         int ni = -3, int nj = -2, int nk = -1  // normal vn-directive references
     ) {
         f();
-        insert(vi).add("//").add(ni);
-        insert(vj).add("//").add(nj);
-        insert(vk).add("//").add(nk);
+        insert(v_index(vi)).add("//").add(vn_index(ni));
+        insert(v_index(vj)).add("//").add(vn_index(nj));
+        insert(v_index(vk)).add("//").add(vn_index(nk));
         return *this;
     }
 
@@ -541,9 +545,9 @@ struct Obj {
         int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
     ) {
         f();
-        insert(vi).add("/").add(ti);
-        insert(vj).add("/").add(tj);
-        insert(vk).add("/").add(tk);
+        insert(v_index(vi)).add("/").add(vt_index(ti));
+        insert(v_index(vj)).add("/").add(vt_index(tj));
+        insert(v_index(vk)).add("/").add(vt_index(tk));
         return *this;
     }
 
@@ -555,9 +559,9 @@ struct Obj {
         int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
     ) {
         f();
-        insert(vi).add("/").add(ti).add("/").add(ni);
-        insert(vj).add("/").add(tj).add("/").add(nj);
-        insert(vk).add("/").add(tk).add("/").add(nk);
+        insert(v_index(vi)).add("/").add(vt_index(ti)).add("/").add(vn_index(ni));
+        insert(v_index(vj)).add("/").add(vt_index(tj)).add("/").add(vn_index(nj));
+        insert(v_index(vk)).add("/").add(vt_index(tk)).add("/").add(vn_index(nk));
         return *this;
     }
 
@@ -616,7 +620,16 @@ struct Obj {
     Obj& polyline(int N, bool closed = false) {
         if (N < 2) return *this;
         l(); // Start the element
-        for (int i = -N; i < 0; i++) insert(i); // Continue the element
+        for (int i = -N; i < 0; i++) insert(v_index(i)); // Continue the element
+        if (closed) insert(-N); // Close the polyline
+        return *this;
+    }
+
+    // Add an oriented polyline element referencing the previous N vertex positions and normals
+    Obj& polyline_vn(int N, bool closed = false) {
+        if (N < 2) return *this;
+        l(); // Start the element
+        for (int i = -N; i < 0; i++) insert(v_index(i)).add("//").insert(vn_index(i)); // Continue the element
         if (closed) insert(-N); // Close the polyline
         return *this;
     }
@@ -672,7 +685,7 @@ struct Obj {
     // Add a polygon element referencing the previous N vertices
     Obj& polygon(int N) {
         f(); // Start the element
-        for (int i = -N; i < 0; i++) insert(i); // Continue the element
+        for (int i = -N; i < 0; i++) insert(v_index(i)); // Continue the element
         return *this;
     }
 
@@ -743,7 +756,6 @@ struct Obj {
     }
 
     // Add a 3D box region defined by a center point and extents vector (box side lengths), visualized with segment elements
-    // nocommit Why not also allow triangles?
     template <typename T> Obj& box3_center_extents(Vec3<T> center, Vec3<T> extents) {
         return box3_min_max<T>(
             {center.x - extents.x/2, center.y - extents.y/2, center.z - extents.z/2},
@@ -754,14 +766,13 @@ struct Obj {
 
 
     //
-    // Shapes. nocommit Add other par_shapes
+    // Shapes.
     //
 
-    // nocommit works for floats and doubles, defined in the cpp.
+    // Add a sphere with the given center and radius visualized with triangle elements
+    // The resolution of the sphere is determined by `slices` (an orange) and `stacks` (of a wedding cake)
     Obj& sphere3(V3f center, float radius, int slices, int stacks);
 
-    // nocommit works for floats and doubles, defined in the cpp. Add an option to rotate it, useful to make the wires intersect an inset aabb vertices
-    //Obj& wire_sphere3(...);
 
 
 
@@ -1111,10 +1122,10 @@ struct Obj {
 
         directive == 'f' ? f() : l();
         for (int i = -point_count; i < 0; i++) {
-            insert(i);
+            insert(v_index(i));
         }
 
-        if (repeat_last) insert(-point_count);
+        if (repeat_last) insert(v_index(-point_count));
 
         // No newline so the caller can add an annotation
 
@@ -1143,6 +1154,20 @@ struct Obj {
         return *this;
     }
 
+    // Return the v-directive index to use
+    int v_index(int i) {
+        return (i > 0 || use_negative_indices) ? i : v_count + 1 + i;
+    }
+
+    // Return the vn-directive index to use
+    int vn_index(int i) {
+        return (i > 0 || use_negative_indices) ? i : vn_count + 1 + i;
+    }
+
+    // Return the vt-directive index to use
+    int vt_index(int i) {
+        return (i > 0 || use_negative_indices) ? i : vt_count + 1 + i;
+    }
 
 
 
@@ -1185,7 +1210,8 @@ bool documentation(bool write_files) {
 
     // This block illustrates most of the API
     {
-        using namespace Prism; // Access Obj struct and typedefs
+        // Access Obj struct and typedefs. This isn't strictly necessary here but its likely you'll want it in user code
+        using namespace Prism;
 
         Obj obj;
 
@@ -1360,8 +1386,7 @@ bool documentation(bool write_files) {
         // convenient when working in Unreal because I can never remember the directory the Editor is running in.
         // obj.write("C:/path/to/my/debug/folder/debug_file.obj");
 
-        std::string output = R"DONE(
-## This file tests the Prism C++ API
+        std::string output = R"DONE(## This file tests the Prism C++ API
 v 0 0 1 # Vertex A
 v 3 0 1 # Vertex B
 v 3 3 1 # Vertex C
@@ -1399,7 +1424,6 @@ v 4 7
 p -1 # these are concatenated
 v 3 3
 p -1 # some string @ 42 @ 0 0
-
 
 
 ## Command Annotations:
@@ -1453,33 +1477,27 @@ p -1 # some string @ 42 @ 0 0
     // This block illustrates how, if you use only relative indexing for point/segment/triangle elements, you can use
     // the `append` function to concatenate different obj files
     {
-        using namespace Prism;
+        // Create the first obj
+        Obj first;
+        first.comment("The first obj:").segment2(V2{0, 0}, V2{1, 0});
 
-        Obj a, b, ab;
+        // Create the second obj
+        Obj second;
+        second.comment("The second obj:").point3(V3{1, 2, 3});
 
-        // Add some geometry to the first obj
-        a.segment2(V2{0, 0}, V2{1, 0});
+        // Concatenate the objs
+        first.append(second);
 
-        // Add some geometry to the second obj
-        b.point3(V3{1, 2, 3});
-
-        // Concatenate the first and second obj
-        ab.comment("The first obj:").append(a).comment("The second obj:").append(b);
-
-        std::string output = R"DONE(
-## The first obj:
-
+        std::string output = R"DONE(## The first obj:
 v 0 0
 v 1 0
 l -2 -1
-
 ## The second obj:
-
 v 1 2 3
 p -1
 )DONE";
 
-        if (!test("prism_documentation_ex2.obj", ab.to_std_string(), output)) {
+        if (!test("prism_documentation_ex2.obj", first.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1488,22 +1506,21 @@ p -1
 
 
 
-    // nocommit Some obj viewers do not support negative indices so there is an option to use positive indices instead
+    // Some obj viewers do not support negative indices so there is an option to use positive indices instead
     {
-        using namespace Prism;
+        Obj obj;
+        obj.set_use_negative_indices(false);
+        obj.segment2(V2{0, 0}, V2{1, 0});
+        obj.point3(V3{1, 2, 3});
 
-        Obj positive;
-        positive.set_use_negative_indices(false);
-        positive.segment2(V2{0, 0}, V2{1, 0});
-        positive.point3(V3{1, 2, 3});
-
-        std::string output = R"DONE(v 0 0
+        std::string output = R"DONE(
+v 0 0
 v 1 0
 l 1 2
 v 1 2 3
 p 3)DONE";
 
-        if (!test("prism_documentation_ex3.obj", positive.to_std_string(), output)) {
+        if (!test("prism_documentation_ex3.obj", obj.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1515,8 +1532,6 @@ p 3)DONE";
 
     // This block illustrates a possibly handy use-case where you can create and write an obj file in one line
     {
-        using namespace Prism;
-
         // We don't test this function to keep everything on a single line
         if (write_files) {
             std::string filename = "prism_documentation_ex4.obj";
@@ -1574,7 +1589,7 @@ p 3)DONE";
 
 } // namespace Prism
 
-#ifdef PRISM_API_IMPLEMENTATION // nocommit Add this to the paste string with a comment saying it should only be pasted once!
+#ifdef PRISM_API_IMPLEMENTATION
 
 #define PAR_SHAPES_IMPLEMENTATION
 #include "ThirdParty/par_shapes.h" // par_shapes_create_parametric_sphere
@@ -1591,23 +1606,10 @@ Obj& Obj::sphere3(V3f center, float radius, int slices, int stacks) {
 
     for (int face = 0; face < mesh->ntriangles; face++) {
         PAR_SHAPES_T* tri = mesh->triangles + face * 3;
-        // for (int d = 0; d < 3; d++) {
-        //     float* vertex = mesh->points + tri[d] * 3;
-        //     vertex3(V3(vertex[0], vertex[1], vertex[2]));
-        //     newline();
-        // }
-
         float* a = mesh->points + tri[0] * 3;
         float* b = mesh->points + tri[1] * 3;
         float* c = mesh->points + tri[2] * 3;
         triangle3(V3(a[0], a[1], a[2]), V3(b[0], b[1], b[2]), V3(c[0], c[1], c[2])).newline();
-
-        // if (prefer_negative_indices) {
-        //     // Write the triangle using negative indices so that it we can call append()
-        //     triangle().newline();
-        // } else {
-        //     triangle(v_count - 2, v_count - 1, v_count).newline();
-        // }
     }
 
     par_shapes_free_mesh(mesh);
