@@ -74,6 +74,14 @@ App :: struct {
     show_ui := true;
     show_fps := false;
 
+    Ribbon_Button_Mode :: enum #specified {
+        HIDE :: 0; // Hide the ribbon buttons
+        SHOW :: 1; // Show the ribbon buttons (if ui is showing and console not showing)
+        AUTO :: 2; // Hide/show the ribbon buttons if cursor is near/far
+    }
+
+    ribbon_button_mode := Ribbon_Button_Mode.SHOW;
+
     triad : Axes_Triad;
     // triad.origin.display_info.triangle_style.backface_mode = .FIXED;
     // triad.x_axis.display_info.triangle_style.backface_mode = .FIXED;
@@ -132,6 +140,7 @@ App :: struct {
 
     API :: struct {
         using_unreal := true;
+        using_unreal_engine := true;
         using_unreal_geometrycore := true;
     }
     api : API;

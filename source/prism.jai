@@ -230,7 +230,7 @@ main :: () {
             show_left_window();
             show_right_window();
             show_imgui_demo_window();
-            show_item_list_actions_ui();
+            show_ribbon_buttons_ui();
             console_draw();
             show_pending_directories_ui();
 

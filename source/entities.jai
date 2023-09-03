@@ -814,8 +814,9 @@ is_occluder :: (entity : Entity) -> bool {
     return entity.display_info.is_visible &&
         entity.display_info.triangle_style.visible &&
         entity.mesh.positions.count &&
-        entity.mesh.triangles.count &&
-        entity.display_info.triangle_style.color.w >= .5;
+        entity.mesh.triangles.count;
+        // Do NOT do the following, we did it for a bit but, its super annoying not to be able to select an item because you made transparent!
+        //entity.display_info.triangle_style.color.w >= .5;
 }
 
 // Result positions are in world space

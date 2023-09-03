@@ -3,7 +3,7 @@ Keymap_Proc_Info :: struct {
 
     // @Cleanup Bundle these into a type
     proc: #type (data : *void) -> ();
-    data : *void;
+    data : *void; // nocommit remove this, only used for last interaction time but do we want that??
 }
 
 // @Think Maybe we shouldn't allow more than one modifier ever, because they are horrible to press!
@@ -51,12 +51,14 @@ ShowBinding :: (binding : string, description : string) #expand { // @CompilerBu
 }
 
 // @CompilerBug{"0.1.049"} This does not compile if its not a macro, there is an error about 'Undeclared identifier 'app''
-show_tooltip_binding :: (description : string, binding : string, flags := ImGui.HoveredFlags.DelayNormal) #expand {
+show_tooltip_binding :: (description : string, binding : string, header_text := "", footer_text := "", flags := ImGui.HoveredFlags.DelayNormal) #expand {
     if (ImGui.IsItemHovered(flags)) {
         ImGui.BeginTooltip();
+        if header_text ImGui.Text(header_text);
         ImGui.TextColored(app.theme.keymap_color, binding);
         ImGui.SameLine();
         ImGui.Text(description);
+        if footer_text ImGui.Text(footer_text);
         ImGui.EndTooltip();
     }
 }
@@ -73,7 +75,7 @@ make_Binding_With_Description :: (binding : string, description : string) -> Bin
     return result;
 }
 
-show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "", flags := ImGui.HoveredFlags.DelayNormal) #expand {
+show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description, header_text := "", footer_text := "", flags := ImGui.HoveredFlags.DelayNormal) #expand {
     if bindings_with_descriptions.count == 0 return;
 
     if (ImGui.IsItemHovered(flags)) {
@@ -89,6 +91,7 @@ show_tooltip_binding :: (bindings_with_descriptions : ..Binding_With_Description
         }
         ImGui.EndTable();
 
+        if footer_text ImGui.Text(footer_text);
         ImGui.EndTooltip();
     }
 }
@@ -291,10 +294,6 @@ init_keymap :: () {
         mapping.override_WantCaptureKeyboard = override_WantCaptureKeyboard;
     }
 
-    add_key :: (keymap : *Keymap, using action_set : Action_Set, loc := #caller_location) {
-        add_key(keymap, proc, desc, key, .{}, override_WantCaptureKeyboard, loc, xx *last_interaction_time);
-    }
-
     // TODO Add options here for behaviour customizations?
 
     add_key(*app.keymap_keydown, (_)=>{toggle_fullscreen();}, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
@@ -307,25 +306,16 @@ init_keymap :: () {
     add_key(*app.keymap, (_)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, (_)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
 
+    add_key(*app.keymap, (_)=>{clear_all_labels();}, "Clear labels", #char "x");
+    add_key(*app.keymap, (_)=>{reload_items();}, "Reload", cast(u32) Special_Key_Code.F5); // @Volatile Sync with :ReloadItemsKey
+    add_key(*app.keymap, (_)=>{focus_items();}, "Focus", #char "f");  // @Volatile Sync with :FocusItemsKey
+
     add_key(*app.keymap, (_)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
     // @FIXME Make these presets work with the alt key like the button
     add_key(*app.keymap, (_)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (_)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (_)=>{add_preset_boolean_a();}, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
     add_key(*app.keymap, (_)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
-
-    add_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_VERTEX_SIZE_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_ANNOTATION_ACTION_SET);
-    add_key(*app.keymap_actions, CLEAR_LABELS_ACTION_SET);
-    add_key(*app.keymap_actions, CYCLE_BACKFACE_MODE_ACTION_SET);
-    add_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
-    add_key(*app.keymap_actions, TOGGLE_NORMALS_ACTION_SET);
-    add_key(*app.keymap_actions, FOCUS_ITEMS_ACTION_SET);
-    add_key(*app.keymap_actions, RELOAD_ITEMS_ACTION_SET);
 
     // @Volatile Sync with :RotateLookDirectionUI
     add_key(*app.keymap, (_)=>{rotate_look_direction_1_cw();},   "Rotate  1  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
@@ -337,6 +327,21 @@ init_keymap :: () {
 
     // Reserved! Do not change this binding
     add_key(*app.keymap, (_)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
+
+    add_action_key :: (keymap : *Keymap, using action_set : Action_Set, loc := #caller_location) {
+        add_key(keymap, proc, desc, key, .{}, override_WantCaptureKeyboard, loc, xx *last_interaction_time);
+    }
+
+    add_action_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);
+    add_action_key(*app.keymap_actions, CYCLE_LINE_WIDTH_ACTION_SET);
+    add_action_key(*app.keymap_actions, CYCLE_VERTEX_SIZE_ACTION_SET);
+    add_action_key(*app.keymap_actions, CYCLE_ELEMENT_LABEL_ACTION_SET);
+    add_action_key(*app.keymap_actions, CYCLE_VERTEX_LABEL_ACTION_SET);
+    add_action_key(*app.keymap_actions, CYCLE_ANNOTATION_LABEL_ACTION_SET);
+    add_action_key(*app.keymap_actions, CYCLE_BACKFACE_MODE_ACTION_SET);
+    add_action_key(*app.keymap_actions, TOGGLE_CLIPPING_ACTION_SET);
+    add_action_key(*app.keymap_actions, TOGGLE_NORMALS_ACTION_SET);
+
 }
 
 // @Cleanup Use a to_string function for the bindings in the following functions
@@ -465,7 +470,87 @@ toggle_current_selection :: () {
     }
 }
 
-reset_camera :: () { init_camera(); }
+reload_items :: () {
+
+    no_dependencies_first_then_chronological :: (a : *Entity, b : *Entity) -> s64 {
+        // FILE_ON_DISK and PRESET_SHAPE sources do not depend on other entities, but command outputs can, so we load those last and in order of 
+        if a.source.kind > b.source.kind return  1;
+        if a.source.kind < b.source.kind return -1;
+        assert(a.source.kind == b.source.kind);
+        if get_entity_source(a).creation_time > get_entity_source(b).creation_time return  1;
+        if get_entity_source(a).creation_time < get_entity_source(b).creation_time return -1;
+        return 0;
+    }
+
+    tmp : [..]*Entity = temp_selected_entities();
+    quick_sort(tmp, no_dependencies_first_then_chronological);
+    for tmp {
+        reload_entity(it);
+    }
+}
+
+// @Volatile :FocusItemBehavior Sync with focus button
+focus_items :: () {
+
+    almost_equal :: (a : Camera, b : Camera) -> bool {
+        return
+            almost_equal(a.eye_position, b.eye_position) &&
+            almost_equal(a.look_position, b.look_position) &&
+            almost_equal(a.up_direction, b.up_direction) &&
+            almost_equal(a.left, b.left) &&
+            almost_equal(a.right, b.right) &&
+            almost_equal(a.bottom, b.bottom) &&
+            almost_equal(a.top, b.top) &&
+            almost_equal(a.near, b.near) &&
+            almost_equal(a.far, b.far);
+    }
+
+    prev_camera := app.camera;
+
+    fit_on_screen(visit_visible_selected);
+
+    // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
+    if almost_equal(app.camera, prev_camera) {
+        fit_on_screen_filled(visit_visible_selected);
+    }
+}
+
+clear_all_labels :: () {
+    for :Selected app.entities {
+        // @Cleanup Add a label theme iterator?
+        it.display_info.vertex_label_theme.show_index = false;
+        it.display_info.vertex_label_theme.show_position = false;
+        it.display_info.vertex_label_theme.annotation_label_theme.visible = false;
+
+        it.display_info.point_label_theme.show_index = false;
+        it.display_info.point_label_theme.annotation_label_theme.visible = false;
+
+        it.display_info.segment_label_theme.show_index = false;
+        it.display_info.segment_label_theme.annotation_label_theme.visible = false;
+
+        it.display_info.triangle_label_theme.show_index = false;
+        it.display_info.triangle_label_theme.annotation_label_theme.visible = false;
+    }
+
+    // Also clear the display info used to set action button state
+    display_info : *Display_Info = *app.template_display_info;
+    display_info.vertex_label_theme.show_index = false;
+    display_info.vertex_label_theme.show_position = false;
+    display_info.vertex_label_theme.annotation_label_theme.visible = false;
+
+    display_info.point_label_theme.show_index = false;
+    display_info.point_label_theme.annotation_label_theme.visible = false;
+
+    display_info.segment_label_theme.show_index = false;
+    display_info.segment_label_theme.annotation_label_theme.visible = false;
+
+    display_info.triangle_label_theme.show_index = false;
+    display_info.triangle_label_theme.annotation_label_theme.visible = false;
+}
+
+reset_camera :: () {
+    init_camera();
+}
 
 my_debug_function :: () {
     log(#run join("\nYou pressed SPACE!\n",

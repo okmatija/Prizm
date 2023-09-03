@@ -1,9 +1,7 @@
-// nocommittttt Remove the opacity < X% means you can't click the item feature, it sucks in the common case where you have one item and you made it transparent
 // nocommittttt Unstash the most recent changes
 // nocommit Improve the rendering of the changelog, maybe just with different colors and text wrapping which starts at the indent, then post he pic with the changelog
 // nocommit Fix the size of the menu bar buttons for the window
 // nocommit Don't hardcode widget size, it needs to depend on the font size
-// nocommit Remove the rouding on the window buttons
 // nocommit Use drag floats for vertex/line sizes, and switch to rendering with quads
 
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
@@ -139,6 +137,12 @@ show_menu_bar_ui :: () {
                 app.show_ui = true;
             }
         }
+
+        combo_box("Ribbon Button UI", *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode));
+        show_tooltip(tprint("%: Always hide the ribbon buttons\n%: Always show the ribbon buttons\n%: Only show buttons if cursor nearby", 
+            app.Ribbon_Button_Mode.HIDE,
+            app.Ribbon_Button_Mode.SHOW,
+            app.Ribbon_Button_Mode.AUTO));
 
         if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
             app.triad.visible = !app.triad.visible;
@@ -287,6 +291,9 @@ show_menu_bar_ui :: () {
         ImGui.PopStyleColor();
     }
 
+    ImGui.PushStyleVar(xx ImGui.StyleVar.FrameRounding, 0);
+    defer ImGui.PopStyleVar();
+
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y * .7, xx ImGui.GetWindowSize().y * .7};
 
@@ -394,8 +401,8 @@ show_right_window :: () {
     show_camera_controls();
 }
 
-show_item_list_actions_ui :: () {
-    if app.console.show_ui {
+show_ribbon_buttons_ui :: () {
+    if app.console.show_ui || app.ribbon_button_mode == .HIDE {
         return;
     }
 
@@ -406,7 +413,18 @@ show_item_list_actions_ui :: () {
     buttons_space := (button_count - 1) * ImGui.GetStyle().ItemSpacing.x;  
     buttons_width := button_count * button_width + buttons_space + 2 * ImGui.GetStyle().WindowPadding.x;
 
-    ImGui.SetNextWindowPos(ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height}, pivot=window_pivot);
+    next_window_pos := ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height};
+
+    if app.ribbon_button_mode == .AUTO {
+        pad :: 20;
+        if io().MousePos.x < cast(float)(next_window_pos.x - pad) || 
+           io().MousePos.x > cast(float)(next_window_pos.x + buttons_width + pad) ||
+           io().MousePos.y < cast(float)(next_window_pos.y - ACTION_BUTTON_SIZE.y - ImGui.GetStyle().FramePadding.y - pad) {
+            return; // nocommit
+        } 
+    }
+
+    ImGui.SetNextWindowPos(next_window_pos, pivot=window_pivot);
     // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window, we DONT do this.
     ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
@@ -426,7 +444,7 @@ show_item_list_actions_ui :: () {
     ActionButton(icon_radius_texture,      *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
     ActionButton(icon_indices_texture,     *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
     ActionButton(icon_coordinates_texture, *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
-    ActionButton(icon_annotations_texture, *CYCLE_ANNOTATION_ACTION_SET);
+    ActionButton(icon_annotations_texture, *CYCLE_ANNOTATION_LABEL_ACTION_SET);
 }
 
 show_pending_directories_ui :: () {
@@ -1126,7 +1144,7 @@ DONE);
 
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
-        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(RELOAD_ITEMS_ACTION_SET.key, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged);
+        ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged); // @Volatile Sync with :ReloadItemsKey
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
         ImGui.Checkbox("Item Details Section Uses Menus", *app.settings.item_details_uses_menu);
     }
@@ -1284,7 +1302,7 @@ show_item_selection_ui :: () {
                     }
                 }
                 // nocommit Fix the padding in the tooltip for the Focus button
-                show_tooltip_binding(FOCUS_ITEMS_ACTION_SET.desc, to_string(FOCUS_ITEMS_ACTION_SET.key));
+                show_tooltip_binding("Focus", to_string(#char "f")); // @Volatile Sync with :FocusItemsKey
 
                 ImGui.SameLine();
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
@@ -1316,7 +1334,7 @@ show_item_selection_ui :: () {
                 }
             }
             // nocommit Fix the padding in the tooltip for the Reload button
-            show_tooltip_binding(RELOAD_ITEMS_ACTION_SET.desc, to_string(RELOAD_ITEMS_ACTION_SET.key));
+            show_tooltip_binding("Reload", to_string(cast(u32) Special_Key_Code.F5)); // @Volatile Sync with :ReloadItemsKey
             ImGui.SameLine();
             if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
                 // Find the state to toggle
@@ -1356,39 +1374,53 @@ show_api_ui :: () {
 
 show_cpp_api_ui :: () {
     do_tree := ImGui.TreeNodeEx("C++", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-    show_tooltip("Tools to interface between Prism and your C++ program");
+    show_tooltip("Tools to interface between Prism and your C++ program\nCurrently uses C++ std headers :( will fix someday...");
     if do_tree {
         defer ImGui.TreePop();
 
-        ImGui.Checkbox("Using Unreal", *app.api.using_unreal);
-        show_tooltip("You can turn this off if you're working in project\noutside Unreal. The only dependency will be C++ STL\nheaders, in future we will try to eliminate this");
-
-        if !app.api.using_unreal ImGui.BeginDisabled();
-        ImGui.Checkbox("Using Unreal GeometryCore", *app.api.using_unreal_geometrycore);
-        show_tooltip("You can turn this off if you're working in a module\nwhich doesn't include the GeometryCore module");
-        if !app.api.using_unreal ImGui.EndDisabled();
-
-        exe_directory := get_directory(get_path_of_running_executable());
-
-        // Warning! Do not change this code without THOROUGH testing! e.g., Prism_Unreal.h is mutually exclusive with Prism.h!
         include : string;
-        if app.api.using_unreal && app.api.using_unreal_geometrycore {
-            include = tprint("%\n%\n%",
-                "// See Prism::documentation()",
-                "// See Prism::DocumentationForUnreal()",
-                tprint("#include \"%/api/cpp/Prism_Unreal.h\"", exe_directory));
-        } else if app.api.using_unreal {
-            include = tprint("%\n%\n%\n%",
-                "// See Prism::documentation()",
-                "// See Prism::DocumentationForUnreal()",
-                "#define PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE",
-                tprint("#include \"%/api/cpp/Prism_Unreal.h\"", exe_directory));
-        } else {
-            include = tprint("%\n%",
-                "// See Prism::documentation()",
-                tprint("#include \"%/api/cpp/Prism.h\"", exe_directory));
+
+        ImGui.Checkbox("Using Unreal", *app.api.using_unreal);
+        show_tooltip("Turn this off to include the Unreal extensions\n");
+
+        {
+            ImGui.Indent(ImGui.GetStyle().IndentSpacing);
+            defer ImGui.Unindent(ImGui.GetStyle().IndentSpacing);
+
+            if !app.api.using_unreal ImGui.BeginDisabled();
+            ImGui.Checkbox("Using Engine Module", *app.api.using_unreal_engine);
+            show_tooltip("Turn this off if you're working in a module\nwhich doesn't include the Engine module");
+            if !app.api.using_unreal ImGui.EndDisabled();
+
+            if !app.api.using_unreal ImGui.BeginDisabled();
+            ImGui.Checkbox("Using GeometryCore Module", *app.api.using_unreal_geometrycore);
+            show_tooltip("Turn this off if you're working in a module\nwhich doesn't include the GeometryCore module");
+            if !app.api.using_unreal ImGui.EndDisabled();
+
+            exe_directory := get_directory(get_path_of_running_executable());
+
+            // ModifyInclude :: (line : string) {
+            //     `include = join(`include, line, allocator=temp);
+            // }
+
+            modify :: (include : *string, line : string) {
+                include.* = join(include.*, line, allocator=temp);
+            }
+
+            // Warning! Do not change this code without CAREFUL testing! e.g., Prism_Unreal.h is mutually exclusive with Prism.h!
+            modify(*include, "// Use this define exactly once (https://github.com/nothings/stb#how-do-i-use-these-libraries)\n");
+            modify(*include, "#define PRISM_API_IMPLEMENTATION\n");
+            modify(*include, "// See Prism::documentation()\n");
+            if app.api.using_unreal {
+                modify(*include, "// See Prism::DocumentationForUnreal()\n");
+                if !app.api.using_unreal_engine       modify(*include, "#define PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE\n");
+                if !app.api.using_unreal_geometrycore modify(*include, "#define PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE\n");
+                modify(*include, tprint("#include \"%/api/cpp/Prism_Unreal.h\"\n", exe_directory));
+            } else {
+                modify(*include, tprint("#include \"%/api/cpp/Prism.h\"\n", exe_directory));
+            }
+            path_overwrite_separators(include, #char "/");
         }
-        path_overwrite_separators(include, #char "/");
 
         if ImGui.Button("Copy #include API") {
             SDL_SetClipboardText(temp_c_string(include));
@@ -1589,45 +1621,66 @@ ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, 
     return prev_color, prev_size;
 }
 
+// WIP experiment to make the tint switch between the items of the selection
+
 ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
 
+    assert(texture.gl_handle != 0);
+
     // :DisableUpdateButtonsIfNoSelection Maybe its confusing to see buttons you can't click or see the tooltip of
-    has_target := false;
+    states := temp_array(Fraction);
     for :Selected app.entities {
-       has_target = true;
-       break;
+        progress : Fraction = action_set.query_progress(it.display_info);
+        array_add_if_unique(*states, progress);
     }
 
-    base_tint := ImGui.GetStyle().Colors[ImGui.Col.ButtonHovered];
+    tint : Vector4;
+    footer : string;
+    if states.count > 1 {
+
+        footer = "Detected multiple values.";
+
+        // Cycle detected tints every .5s, fun but distracting. Also, is overflow a problem?
+        //tint = tints[clamp(cast(s64)floor(ImGui.GetTime() / .5) % tints.count, 0, tints.count-1)];
+        tint = BLACK;
+
+    } else if states.count == 1 {
+
+        footer = "";
+
+        // hue cycles with progress
+        progress  := states[0];
+        base_tint := ImGui.GetStyle().Colors[ImGui.Col.ButtonHovered];
+        hsva      := color_convert_RGB_to_HSV(base_tint.x, base_tint.y, base_tint.z, base_tint.w);
+        hue       := (cast(u16)(hsva.x * 255) + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
+        tint       = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
+
+    } else {
+
+        footer = "Requires item selection.";
+
+        // Reproduce visual effect of BeginDisabled/EndDisabled but dont actually call that since it also disables the tooltips...
+        tint   = ImGui.GetStyle().Colors[ImGui.Col.TextDisabled];
+        tint.w = ImGui.GetStyle().DisabledAlpha;
+
+    }
 
     ImGui.PushStyleColor(xx ImGui.Col.Border, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.Button, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-    defer ImGui.PopStyleColor(5);
-
-    tint : Vector4;
-    if has_target {
-        // hue cycles with progress
-        progress := action_set.progress_proc();
-        hsva := color_convert_RGB_to_HSV(base_tint.x, base_tint.y, base_tint.z, base_tint.w);
-        hue := (cast(u16)(hsva.x * 255) + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;
-        tint = color_convert_HSV_to_RGB(xx hue / 255., hsva.y, hsva.z, hsva.w);
-    } else {
-        // Reproduce visual effect of BeginDisabled/EndDisabled but dont actually call that since it also disables the tooltips...
-        tint = ImGui.GetStyle().Colors[ImGui.Col.TextDisabled];
-        tint.w = ImGui.GetStyle().DisabledAlpha;
-    }
-
-    assert(texture.gl_handle != 0);
-    if ImGui.ImageButton(imgui_label("##ActionButton", *action_set), cast(ImGui.ImTextureID)texture.gl_handle, ACTION_BUTTON_SIZE, tint_col=tint) {
-        if has_target {
+    if ImGui.ImageButton(imgui_label("##Action", *action_set), cast(ImGui.ImTextureID)texture.gl_handle, ACTION_BUTTON_SIZE, tint_col=tint) {
+        if states.count > 0 {
+            // nocommit remove this last_interaction_time stuff...
             action_set.last_interaction_time = current_time_consensus();
             action_set.proc(xx *action_set.last_interaction_time);
         }
     }
-    show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false));
+    ImGui.PopStyleColor(5);
+
+    // nocommit Add a header_text saying what item is targetted
+    show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false), footer_text=footer);
 }
 
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {

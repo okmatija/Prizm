@@ -1165,6 +1165,23 @@ item_add_vertex_attribute :: (id : int, attribute_name : string, value_type : Ty
 } @RegisterCommand
 
 /*
+// Save a copy of the current obj but modify the contents to make the file work with
+// more obj viewers/readers. This function works by applying the following simplifications:
+//
+// 1) Replace negative indices with positive indices (some viewers do not support negative indices)
+//
+// 2) Replace polyline/polygon elements (l-directives with >2 indices/f-directives with >4 indices respespectively)
+//    with segment/triangle elements (l-directives with 2 indices/f-directives with 3 indices respectively)
+//
+// 3) Reindex positions/textures/normals so that directives referencing them have common indicies so that things
+//    like f 1/2/3 2/7/3 3/18/77 become f 1/1/1 2/2/2 3/3/3.
+//
+item_save_simplified_obj :: (id : int, filename : string) {
+
+}@RegisterCommand
+*/
+
+/*
 clear_normals :: (id : int) {
     // @Incomplete if the normals are all constant it screws up the normal render, wipe them here
 } @RegisterCommand
