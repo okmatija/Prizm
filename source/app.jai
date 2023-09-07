@@ -140,8 +140,8 @@ App :: struct {
 
     API :: struct {
         using_unreal := true;
-        using_unreal_engine := true;
-        using_unreal_geometrycore := true;
+        using_unreal_engine := false;
+        using_unreal_geometrycore := false;
     }
     api : API;
 
@@ -301,7 +301,7 @@ User_Settings :: struct {
 
     fit_to_screen_on_visibility_change :=  false;
     fit_to_screen_on_file_drop_event :=    true;
-    fit_to_screen_on_file_watcher_event := true;
+    fit_to_screen_on_file_watcher_event := false; // Having this as true can be kinda annoying
 
     camera_controls_keep_up_when_setting_look_along := false;
 

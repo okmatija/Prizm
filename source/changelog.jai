@@ -15,7 +15,6 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
 * Fixed some bugs when cycling clipping and backface mode
 * TODO Test Reload/Focus/Clear labels functions
 * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
-* TODO Clarify which (if any) functions in the API write a newline
 
 * Improvements to C++ API:
 

@@ -469,8 +469,8 @@ make_camera_ray :: () -> Ray3 {
     ray : Ray3 = ---;
     ray.origin = (transform * make_vector4(to_ndc(make_Vector2(io().MousePos)), -1., 1.)).xyz;
     ray.direction = (inverse_transpose * make_vector4(0., 0., 1., 0.)).xyz;
-    check := normalize_or_zero(*ray.direction);
-    assert(check != 0.); // @Robustness: handle this error
+    check := normalize_or_z_axis(*ray.direction);
+    //assert(check != 0.); // @Robustness: handle this error
 
     return ray;
 }

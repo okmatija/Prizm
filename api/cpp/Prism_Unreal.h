@@ -11,6 +11,8 @@
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
+#include "StaticMeshResources.h"
+#include "Rendering/PositionVertexBuffer.h"
 #endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
 
 // We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
@@ -105,7 +107,7 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		Data += "Comes";
 		Data += "Some Data";
 		if (bWriteFiles) {
-			Prism::Obj().Add(Data).annotation(Data).newline().comment(Data).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
+			Prism::Obj().Add(Data).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
 		}
 	}
 

@@ -3,6 +3,7 @@
 // nocommit Fix the size of the menu bar buttons for the window
 // nocommit Don't hardcode widget size, it needs to depend on the font size
 // nocommit Use drag floats for vertex/line sizes, and switch to rendering with quads
+// nocommit Add option to set hot reloading when loading a folder
 
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 EASY_RESIZE_FRACTION :: .25;
