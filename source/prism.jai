@@ -178,8 +178,14 @@ main :: () {
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
     // TODO Option to pass font and size on the command line?
-    FONT, FONT_OK :: #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
-    font : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, 18.);
+    FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+    FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf");          #assert(FONT2_OK);
+
+    font_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*font_config);
+    font_config.FontDataOwnedByAtlas = false;
+    font :  *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, 18., *font_config);
+    font2 : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT2.data, FONT2.count, 18., *font_config);
 
     // Set up Simp
     {
@@ -195,11 +201,6 @@ main :: () {
     }
 
     set_prism_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
-
-    //ImFont* font1 = ImGui.GetIO().Fonts->AddFontFromFileTTF("font.ttf", size_pixels);
-    size_pixels : float = 20.;
-    // nocommit Use AddFontFromMemoryTTF. The font should be read at compile-time so we don't depend on anything in the data/ folder
-    font2 : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromFileTTF(ImGui.GetIO().Fonts, "data/Inconsolata.otf", size_pixels);
 
     load_from_command_line();
 
