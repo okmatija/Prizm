@@ -8,11 +8,14 @@ PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
 DONE};
 
 PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
+* TODO Change the keybinds for the index, vertex and annotation labels
+
 * Changed the font to Inconsolata and increased the default font size, the UI now looks **much** better
 * Added icons for the ribbon buttons along the bottom of the screen. These represent varies pieces of item selection state (TODO Add multiple values color)  are grey if 
-* TODO Fixed a crash when opening the latest changelog section
+* Fixed a crash that could happen when looking at the changelog
 * Fixed a bug where it was not possible to select a transparent item by clicking on it in the viewport
 * Fixed some bugs when cycling clipping and backface mode
+* Fixed smooth shading not working properly (toggle between smooth/flat shading via a per-item checkbox in `Details > Triangles > Advanced`)
 * TODO Test Reload/Focus/Clear labels functions
 * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
 

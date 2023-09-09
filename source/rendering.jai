@@ -73,8 +73,7 @@ Clip_Mode :: enum #specified {
 
 // Things that needs updating when the geometry changes
 Render_Info :: struct {
-    // nocommit Maybe this should say what buffers need updating
-    is_dirty := true;
+    is_dirty := true; // @Think Maybe this should be an enum saying what buffers need updating
 
     // For rendering obj v-directive data
     // @Cleanup Remove the positions_vbo. It doubles the memory requirement and adds complexity. We can just add points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
@@ -337,7 +336,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                     }
                 }
 
-                NP := 3 * size_of(Vector3) * mesh.triangles.count; // nocommit Use triangle_positions here
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
                 NN := size_of(Matrix3) * normals.values.count;
 
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
@@ -352,7 +351,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBindVertexArray(info.triangles_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-                NP := size_of(Vector3) * mesh.positions.count; // nocommit ??? why is this different to above?
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
 
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glEnableVertexAttribArray(ATTRIB_NORMAL);

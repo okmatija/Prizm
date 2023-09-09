@@ -25,6 +25,18 @@ Camera :: struct {
     show_ui := true;
 }
 
+almost_equal :: (a : Camera, b : Camera) -> bool {
+    return
+        almost_equal(a.eye_position, b.eye_position) &&
+        almost_equal(a.look_position, b.look_position) &&
+        almost_equal(a.up_direction, b.up_direction) &&
+        almost_equal(a.left, b.left) &&
+        almost_equal(a.right, b.right) &&
+        almost_equal(a.bottom, b.bottom) &&
+        almost_equal(a.top, b.top) &&
+        almost_equal(a.near, b.near) &&
+        almost_equal(a.far, b.far);
+}
 
 Camera_Rotation_Axis :: enum {
     ROLL :: 0;

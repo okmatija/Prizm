@@ -1,4 +1,3 @@
-// nocommittttt Unstash the most recent changes
 // nocommit Improve the rendering of the changelog, maybe just with different colors and text wrapping which starts at the indent, then post he pic with the changelog
 // nocommit Fix the size of the menu bar buttons for the window
 // nocommit Don't hardcode widget size, it needs to depend on the font size
@@ -139,15 +138,19 @@ show_menu_bar_ui :: () {
             }
         }
 
-        combo_box("Ribbon Button UI", *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode));
+        if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
+            app.triad.visible = !app.triad.visible;
+        }
+
+        ImGui.Text("Ribbon Button UI");
+        ImGui.SameLine();
+        ImGui.PushItemWidth(70);
+        combo_box(to_string(imgui_label("##RibbonButtonUI")), *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode));
+        ImGui.PopItemWidth();
         show_tooltip(tprint("%: Always hide the ribbon buttons\n%: Always show the ribbon buttons\n%: Only show buttons if cursor nearby", 
             app.Ribbon_Button_Mode.HIDE,
             app.Ribbon_Button_Mode.SHOW,
             app.Ribbon_Button_Mode.AUTO));
-
-        if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
-            app.triad.visible = !app.triad.visible;
-        }
 
         if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode) {
             app.demo_mode = !app.demo_mode;
@@ -164,7 +167,7 @@ show_menu_bar_ui :: () {
                 // @Volatile :EasyResizeModeKeybind
                 tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB", flags=.None); }
 
-                ImGui.Text("Window Size    ");
+                ImGui.Text("Window Size     ");
                 tooltip();
 
                 ImGui.SameLine();
@@ -191,7 +194,7 @@ show_menu_bar_ui :: () {
                 // @Volatile :EasyResizeModeKeybind
                 tooltip :: () { show_tooltip_binding("(near window center) Move the window", "Alt LMB", flags=.None); }
 
-                ImGui.Text("Window Position");
+                ImGui.Text("Window Position ");
                 tooltip();
 
                 ImGui.SameLine();
@@ -216,7 +219,7 @@ show_menu_bar_ui :: () {
                 // @Volatile :WindowOpacityControl
                 tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc", flags=.None); }
 
-                ImGui.Text("Window Opacity ");
+                ImGui.Text("Window Opacity  ");
                 tooltip(); 
                 ImGui.SameLine();
 
@@ -417,11 +420,11 @@ show_ribbon_buttons_ui :: () {
     next_window_pos := ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height};
 
     if app.ribbon_button_mode == .AUTO {
-        pad :: 20;
+        pad :: 40;
         if io().MousePos.x < cast(float)(next_window_pos.x - pad) || 
            io().MousePos.x > cast(float)(next_window_pos.x + buttons_width + pad) ||
            io().MousePos.y < cast(float)(next_window_pos.y - ACTION_BUTTON_SIZE.y - ImGui.GetStyle().FramePadding.y - pad) {
-            return; // nocommit
+            return;
         } 
     }
 
@@ -1056,7 +1059,7 @@ show_preferences :: () {
                 ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
             }
 
-            // nocommit Add a shader period thing
+            // TODO Add a shader period thing
         }
 
         {
@@ -1280,19 +1283,6 @@ show_item_selection_ui :: () {
 
                 // @Volatile :FocusItemBehavior Sync with focus items shortcut
                 if ImGui.Button(imgui_label("Focus ", entity)) {
-                    almost_equal :: (a : Camera, b : Camera) -> bool {
-                        return
-                            almost_equal(a.eye_position, b.eye_position) &&
-                            almost_equal(a.look_position, b.look_position) &&
-                            almost_equal(a.up_direction, b.up_direction) &&
-                            almost_equal(a.left, b.left) &&
-                            almost_equal(a.right, b.right) &&
-                            almost_equal(a.bottom, b.bottom) &&
-                            almost_equal(a.top, b.top) &&
-                            almost_equal(a.near, b.near) &&
-                            almost_equal(a.far, b.far);
-                    }
-
                     prev_camera := app.camera;
 
                     fit_on_screen(entity);
@@ -1302,8 +1292,7 @@ show_item_selection_ui :: () {
                         fit_on_screen_filled(entity);
                     }
                 }
-                // nocommit Fix the padding in the tooltip for the Focus button
-                show_tooltip_binding("Focus", to_string(#char "f")); // @Volatile Sync with :FocusItemsKey
+                show_tooltip_binding("Focus", to_string(#char "f", pad_unmodified=false)); // @Volatile Sync with :FocusItemsKey
 
                 ImGui.SameLine();
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
@@ -1334,8 +1323,7 @@ show_item_selection_ui :: () {
                     reload_entity(entity, triggered_by_button=true);
                 }
             }
-            // nocommit Fix the padding in the tooltip for the Reload button
-            show_tooltip_binding("Reload", to_string(cast(u32) Special_Key_Code.F5)); // @Volatile Sync with :ReloadItemsKey
+            show_tooltip_binding("Reload this item", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false)); // @Volatile Sync with :ReloadItemsKey
             ImGui.SameLine();
             if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
                 // Find the state to toggle
@@ -1928,8 +1916,7 @@ show_changelog :: () {
         defer ImGui.TreePop();
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-        ImGui.TextWrapped(latest.description);
-        // ImGui.Text(latest.description); // @Bug This truncated the changelog for PRISM_VERSION_0_2_1
+        ImGui.TextWrapped_CFormat(latest.description.data); // @CompilerBug Using ImGui.TextWrapped(latest.description) here in beta 0.1.071 caused a crash when looking at changelog, is that implementation broken?? I didn't see an obvious bug though...
         ImGui.PopStyleColor();
         blank_space();
     }
@@ -1940,8 +1927,7 @@ show_changelog :: () {
             defer ImGui.TreePop();
 
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-            ImGui.TextWrapped(version.description);
-            // ImGui.Text(version.description);
+            ImGui.TextWrapped_CFormat(version.description.data);
             ImGui.PopStyleColor();
             blank_space();
         }

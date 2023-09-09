@@ -103,34 +103,6 @@ CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
 #scope_file
 
 
-// nocommit Remove this
-get_display_info :: () -> *Display_Info, int {
-    selected : [..]*Entity = temp_selected_entities();
-
-    info : *Display_Info = *app.template_display_info;
-
-    // Don't modify template state if exactly one item is selected
-    if selected.count == 1 {
-        info = *selected[0].display_info;
-    }
-
-    return info, selected.count;
-}
-
-// nocommit Remove this
-maybe_cycle_state :: (progress_proc : (*Display_Info) -> Fraction) -> *Display_Info {
-
-    app_info, selected_count : /*Display_Info, int*/ = get_display_info();
-
-     // We dont want to change the template state if nothing will change
-    if selected_count > 0 {
-        progress_proc(app_info);
-    }
-
-    return app_info;
-}
-
-
 Cycle_Display_Info_Proc :: #type (state : *Display_Info) -> Fraction;
 
 Apply_Display_Info_Proc :: #type (from : Display_Info, onto : *Display_Info) -> ();

@@ -416,7 +416,7 @@ POINT_NORMALS_ATTRIBUTE_NAME :: "Obj Point Normals";
 SEGMENT_NORMALS_ATTRIBUTE_NAME :: "Obj Segment Normals";
 TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals";
 
-Simple_Mesh_Point_Normals :: Simple_Mesh_Attribute(Vector3, .POINT); // nocommit this was previously .SEGMENT, what was the effect?
+Simple_Mesh_Point_Normals :: Simple_Mesh_Attribute(Vector3, .POINT);
 Simple_Mesh_Segment_Normals :: Simple_Mesh_Attribute(Matrix3x2, .SEGMENT);
 Simple_Mesh_Triangle_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
 //Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components
