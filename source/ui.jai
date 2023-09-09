@@ -1616,11 +1616,18 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
 
     assert(texture.gl_handle != 0);
 
+    // To avoid having to #poke_name the operator==, which was causing intermittent failure to compile @CompilerBug
+    // Note that using #poke_name was kinda ugly because it wasn't clear what operator== is being poked? maybe need to use procedure_of_call instead?
+    //    using Basic :: #import "Basic";
+    //    #poke_name Basic operator==;
+    fraction_to_int :: (f : Fraction) -> int { return f.numer + f.denom * 10_000; }
+    int_to_fraction :: (i : int) -> Fraction { return .{i % 10_000, i / 10_0000}; }
+
     // :DisableUpdateButtonsIfNoSelection Maybe its confusing to see buttons you can't click or see the tooltip of
-    states := temp_array(Fraction);
+    states := temp_array(int);
     for :Selected app.entities {
         progress : Fraction = action_set.query_progress(it.display_info);
-        array_add_if_unique(*states, progress);
+        array_add_if_unique(*states, fraction_to_int(progress));
     }
 
     tint : Vector4;
@@ -1638,7 +1645,7 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
         footer = "";
 
         // hue cycles with progress
-        progress  := states[0];
+        progress  := int_to_fraction(states[0]);
         base_tint := ImGui.GetStyle().Colors[ImGui.Col.ButtonHovered];
         hsva      := color_convert_RGB_to_HSV(base_tint.x, base_tint.y, base_tint.z, base_tint.w);
         hue       := (cast(u16)(hsva.x * 255) + cast(u16)(255 * progress.numer / (progress.denom + 1))) % 256;

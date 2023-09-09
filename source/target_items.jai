@@ -7,11 +7,6 @@ operator== :: (a : Fraction, b : Fraction) -> bool {
     return a.numer == b.numer && a.denom == b.denom;
 }
 
-// @Cleanup? This is quite ugly, also, how does it know what overload we are poking? nocommitttt
-// nocommitttttt This sometimes causes compilation to fail..?
-using Basic :: #import "Basic";
-#poke_name Basic operator==;
-
 
 // Actions cycle/toggle item state
 // nocommit this should be a Keymap_Proc_Info, Single_Key_Mapping and the cycle_proc, apply_proc and maybe last_interaction_time?
