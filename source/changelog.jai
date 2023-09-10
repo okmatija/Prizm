@@ -16,6 +16,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
 * Fixed a bug where it was not possible to select a transparent item by clicking on it in the viewport
 * Fixed some bugs when cycling clipping and backface mode
 * Fixed smooth shading not working properly (toggle between smooth/flat shading via a per-item checkbox in `Details > Triangles > Advanced`)
+* Improved the console log warnings/errors when loading files
 * TODO Test Reload/Focus/Clear labels functions
 * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
 

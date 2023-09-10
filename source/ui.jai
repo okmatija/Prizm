@@ -1,7 +1,3 @@
-// nocommit Improve the rendering of the changelog, maybe just with different colors and text wrapping which starts at the indent, then post he pic with the changelog
-// nocommit Fix the size of the menu bar buttons for the window
-// nocommit Don't hardcode widget size, it needs to depend on the font size
-// nocommit Use drag floats for vertex/line sizes, and switch to rendering with quads
 // nocommit Add option to set hot reloading when loading a folder
 
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
@@ -285,7 +281,7 @@ show_menu_bar_ui :: () {
         ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
         logo_width := icon_prism_logo_texture.width;
         text_width := ImGui.CalcTextSize("                                                                   ").x;
-        window_width := max(1.2 * logo_width, text_width); // nocommit at some padding to the text_width
+        window_width := max(1.2 * logo_width, text_width);
         ImGui.SetNextWindowContentSize(ImGui.ImVec2.{window_width, 0});
         if ImGui.BeginMenu("About") {
             defer ImGui.EndMenu();
@@ -468,9 +464,10 @@ show_pending_directories_ui :: () {
     }
 
     ImGui.SetNextWindowPos(ImGui.ImVec2.{app.current_window_width / 2., app.current_window_height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always);
     // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75},
     //                                    ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75});
-    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse | .AlwaysAutoResize;
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
 
@@ -481,11 +478,12 @@ show_pending_directories_ui :: () {
 
     ImGui.Text("Select files to load in:");
     ImGui.SameLine();
-    ImGui.PushStyleColor(xx ImGui.Col.Text, GREEN);
+    ImGui.PushStyleColor(xx ImGui.Col.Text, NICE_BLUE);
     ImGui.Text(dir.path);
     ImGui.PopStyleColor();
 
     table_flags := ImGui.TableFlags.RowBg | .Resizable | .Reorderable | .Hideable | .Sortable
+     | .BordersOuter
      | .PreciseWidths // Maybe (?) helps fix a ugly clipping problem next to the vertical scrollbar
      | .ScrollY; // Without this option the outer_size argument is ignored
 
@@ -1037,15 +1035,13 @@ show_create_tool_ui :: () {
 }
 
 show_preferences :: () {
-    item_width :: 100;
+    item_width :: 120;
 
     if ImGui.BeginMenu("UI/UX##Preferences>UI") {
         defer ImGui.EndMenu();
 
         ImGui.PushItemWidth(item_width);
         defer ImGui.PopItemWidth();
-
-        // nocommit Limit the width of widgets here
 
         if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
             set_prism_theme(app.theme.theme);
@@ -1673,7 +1669,6 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
     }
     ImGui.PopStyleColor(5);
 
-    // nocommit Add a header_text saying what item is targetted
     show_tooltip_binding(action_set.name, to_string(action_set.key_code, Modifier_Flags.{}, pad_unmodified=false), footer_text=footer);
 }
 

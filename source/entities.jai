@@ -1253,7 +1253,8 @@ init_entity_spatial_index :: (using entity : *Entity) {
         spatial = New(AABB_Tree);
         init(spatial, *mesh);
     } else {
-        log_warning("@Incomplete Accelerated spatial queries only supported for triangle-only meshes");
+        // TODOO Address this, but don't write it, its not very useful log info
+        //log_warning("@Incomplete Accelerated spatial queries only supported for triangle-only meshes");
     }
 }
 
@@ -1333,7 +1334,7 @@ load_one_file_from_memory :: (filename : string, contents : string, name : strin
     }
 
     if results.count {
-        log("Loaded file '%'", filename);
+        log("Loaded  file '%'", filename); // Use double space to line up with "Loading file" text
     } else {
         log_error("Could not load file '%'", filename);
     }
