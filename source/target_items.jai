@@ -9,86 +9,76 @@ operator== :: (a : Fraction, b : Fraction) -> bool {
 
 
 // Actions cycle/toggle item state
-// nocommit this should be a Keymap_Proc_Info, Single_Key_Mapping and the cycle_proc, apply_proc and maybe last_interaction_time?
 Action_Set :: struct {
-    proc : (data : *void)->(); // nocommit remove the data pointer
+    using keymap_proc : Keymap_Proc_Info;
+    using mapping : Single_Key_Mapping;
 
     // Returns a fraction representing the progress of the state toggling/cycling
     query_progress : (info : Display_Info) -> Fraction;
-
-    desc : string;
-    key : u32;
-    override_WantCaptureKeyboard := false;
-
-    //
-    // Transient data
-    //
-    
-    last_interaction_time : Apollo_Time; // nocommit I think we don't need this
 }
 
 // @Cleanup decapitalize non-constant action sets
 
 TOGGLE_CLIPPING_ACTION_SET := Action_Set.{
     proc=update_clipping,
-    desc="Toggle clipping",
-    key=#char "c",
+    name="Toggle clipping",
+    key_code=#char "c",
     query_progress=query_progress_clipping,
 };
 
 CYCLE_VERTEX_SIZE_ACTION_SET := Action_Set.{
     proc=update_vertex_size,
-    desc="Cycle vertex radius",
-    key=#char "v",
+    name="Cycle vertex radius",
+    key_code=#char "v",
     query_progress=query_progress_vertex_size,
 };
 
 CYCLE_LINE_WIDTH_ACTION_SET := Action_Set.{
     proc=update_thickness,
-    desc="Cycle line thickness",
-    key=#char "l",
+    name="Cycle line thickness",
+    key_code=#char "l",
     query_progress=query_progress_thickness,
 };
 
 TOGGLE_NORMALS_ACTION_SET := Action_Set.{
     proc=update_normals,
-    desc="Toggle normals",
-    key=#char "n",
+    name="Toggle normals",
+    key_code=#char "n",
     query_progress=query_progress_normals,
 };
 
 CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
     proc=update_vertex_labels,
-    desc="Cycle vertex labels",
-    key=#char "j",
+    name="Cycle vertex labels",
+    key_code=#char "j",
     query_progress=query_progress_vertex_labels,
 };
 
 CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
     proc=update_element_labels,
-    desc="Toggle point/segment/triangle labels",
-    key=#char "i",
+    name="Toggle point/segment/triangle labels",
+    key_code=#char "i",
     query_progress=query_progress_element_labels,
 };
 
 CYCLE_ANNOTATION_LABEL_ACTION_SET := Action_Set.{
     proc=update_annotation_labels,
-    desc="Toggle annotations",
-    key=#char "k",
+    name="Toggle annotations",
+    key_code=#char "k",
     query_progress=query_progress_annotation_labels,
 };
 
 CYCLE_OPACITY_ACTION_SET := Action_Set.{
     proc=update_opacity,
-    desc="Cycle opacity",
-    key=#char "o",
+    name="Cycle opacity",
+    key_code=#char "o",
     query_progress=query_progress_opacity,
 };
 
 CYCLE_BACKFACE_MODE_ACTION_SET := Action_Set.{
     proc=update_backface_mode,
-    desc="Cycle backface rendering mode",
-    key=#char "b",
+    name="Cycle backface rendering mode",
+    key_code=#char "b",
     query_progress=query_progress_backface_mode,
 };
 
@@ -150,7 +140,7 @@ apply_clipping_update :: (from : Display_Info, to : *Display_Info) {
     }
 }
 
-update_clipping :: (_ : *void) {
+update_clipping :: () {
     update_display_info(cycle_clipping, apply_clipping_update);
 }
 
@@ -196,7 +186,7 @@ apply_vertex_size :: (from : Display_Info, to : *Display_Info) {
     //to.point_style.visible  = from.vertex_style.visible;
 }
 
-update_vertex_size :: (_ : *void) {
+update_vertex_size :: () {
     update_display_info(cycle_vertex_size, apply_vertex_size);
 }
 
@@ -244,7 +234,7 @@ apply_thickness :: (from : Display_Info, to : *Display_Info) {
     to.triangle_style.edge_style.width   = from.triangle_style.edge_style.width;
 }
 
-update_thickness :: (_ : *void) {
+update_thickness :: () {
     update_display_info(cycle_thickness, apply_thickness);
 }
 
@@ -284,7 +274,7 @@ apply_normals :: (from : Display_Info, to : *Display_Info) {
     to.point_style.normal_style.visible    = from.point_style.normal_style.visible;
 }
 
-update_normals :: (_ : *void) {
+update_normals :: () {
     update_display_info(cycle_normals, apply_normals);
 }
 
@@ -338,7 +328,7 @@ apply_vertex_labels :: (from : Display_Info, to : *Display_Info) {
     to.vertex_label_theme.show_index    = from.vertex_label_theme.show_index;
 }
 
-update_vertex_labels :: (_ : *void) {
+update_vertex_labels :: () {
     update_display_info(cycle_vertex_labels, apply_vertex_labels);
 }
 
@@ -389,7 +379,7 @@ apply_element_labels :: (from : Display_Info, to : *Display_Info) {
     to.triangle_label_theme.show_index = show_index;
 }
 
-update_element_labels :: (_ : *void) {
+update_element_labels :: () {
     update_display_info(cycle_element_labels, apply_element_labels);
 }
 
@@ -443,7 +433,7 @@ apply_annotation_labels :: (from : Display_Info, to : *Display_Info) {
     to.triangle_label_theme.annotation_label_theme.visible = visible;
 }
 
-update_annotation_labels :: (_ : *void) {
+update_annotation_labels :: () {
     update_display_info(cycle_annotation_labels, apply_annotation_labels);
 }
 
@@ -476,7 +466,7 @@ apply_opacity :: (from : Display_Info, to : *Display_Info) {
     to.triangle_style.color.w = from.triangle_style.color.w;
 }
 
-update_opacity :: (_ : *void) {
+update_opacity :: () {
     update_display_info(cycle_opacity, apply_opacity);
 }
 
@@ -513,7 +503,7 @@ apply_backface_mode :: (from : Display_Info, to : *Display_Info) {
     to.triangle_style.backface_mode = from.triangle_style.backface_mode;
 }
 
-update_backface_mode :: (_ : *void) {
+update_backface_mode :: () {
     update_display_info(cycle_backface_mode, apply_backface_mode);
 }
 

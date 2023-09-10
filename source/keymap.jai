@@ -1,9 +1,6 @@
 Keymap_Proc_Info :: struct {
     name: string;
-
-    // @Cleanup Bundle these into a type
-    proc: #type (data : *void) -> ();
-    data : *void; // nocommit remove this, only used for last interaction time but do we want that??
+    proc: #type () -> ();
 }
 
 // @Think Maybe we shouldn't allow more than one modifier ever, because they are horrible to press!
@@ -266,13 +263,12 @@ mouse_set_clip_radius :: () -> bool {
 init_keymap :: () {
 
     add_key :: (keymap : *Keymap,
-                proc : (*void)->(),
+                proc : ()->(),
                 desc : string,
                 key_code : u32,
                 modifier_flags : Modifier_Flags = .{},
                 override_WantCaptureKeyboard := false, // @Refactor, remove this boolean and have a separate array of bindings with this bool as true
-                loc := #caller_location,
-                data : *void = null) {
+                loc := #caller_location) {
 
         // Check that the binding is available
         for keymap.mappings {
@@ -284,7 +280,6 @@ init_keymap :: () {
         info := array_add(*keymap.procs);
         info.name = desc;
         info.proc = proc;
-        info.data = data;
 
         // @Incomplete: This should be read from a keymap file
         mapping := array_add(*keymap.mappings);
@@ -296,40 +291,40 @@ init_keymap :: () {
 
     // TODO Add options here for behaviour customizations?
 
-    add_key(*app.keymap_keydown, (_)=>{toggle_fullscreen();}, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap_keydown, (_)=>{toggle_show_ui();}, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
-    add_key(*app.keymap_keydown, (_)=>{toggle_show_console_ui();}, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
+    add_key(*app.keymap_keydown, toggle_fullscreen, "Toggle fullscreen", xx Special_Key_Code.F11, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap_keydown, toggle_show_ui, "Toggle entire UI",  xx #char "`", .{control_pressed=true});
+    add_key(*app.keymap_keydown, toggle_show_console_ui, "Toggle console UI",  xx #char "`", override_WantCaptureKeyboard=true);
 
     // @Volatile Sync with :SelectionKeybindTooltip 
-    // add_key(*app.keymap, (_)=>{quit_application();}, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
-    add_key(*app.keymap, (_)=>{select_or_deselect_all();}, "Select/deselect all items", xx #char "a", .{control_pressed=true});
-    add_key(*app.keymap, (_)=>{select_or_deselect_visible();}, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
-    add_key(*app.keymap, (_)=>{toggle_current_selection();}, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
+    // add_key(*app.keymap, quit_application, "Quit application", xx #char "q", .{shift_pressed=true, control_pressed=true}, override_WantCaptureKeyboard=true);
+    add_key(*app.keymap, select_or_deselect_all, "Select/deselect all items", xx #char "a", .{control_pressed=true});
+    add_key(*app.keymap, select_or_deselect_visible, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
+    add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
 
-    add_key(*app.keymap, (_)=>{clear_all_labels();}, "Clear labels", #char "x");
-    add_key(*app.keymap, (_)=>{reload_items();}, "Reload", cast(u32) Special_Key_Code.F5); // @Volatile Sync with :ReloadItemsKey
-    add_key(*app.keymap, (_)=>{focus_items();}, "Focus", #char "f");  // @Volatile Sync with :FocusItemsKey
+    add_key(*app.keymap, clear_all_labels, "Clear labels", #char "x");
+    add_key(*app.keymap, reload_items, "Reload", cast(u32) Special_Key_Code.F5); // @Volatile Sync with :ReloadItemsKey
+    add_key(*app.keymap, focus_items, "Focus", #char "f");  // @Volatile Sync with :FocusItemsKey
 
-    add_key(*app.keymap, (_)=>{remove_entities_if_selected();}, "Remove selected items", xx Special_Key_Code.DELETE);
+    add_key(*app.keymap, remove_entities_if_selected, "Remove selected items", xx Special_Key_Code.DELETE);
     // @FIXME Make these presets work with the alt key like the button
-    add_key(*app.keymap, (_)=>{add_preset_cube();}, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (_)=>{add_preset_widget();}, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (_)=>{add_preset_boolean_a();}, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, (_)=>{add_preset_boolean_b();}, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_cube, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_widget, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_boolean_a, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_boolean_b, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
 
     // @Volatile Sync with :RotateLookDirectionUI
-    add_key(*app.keymap, (_)=>{rotate_look_direction_1_cw();},   "Rotate  1  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
-    add_key(*app.keymap, (_)=>{rotate_look_direction_5_cw();},   "Rotate  5  deg about selected rotation axis", xx #char "]");
-    add_key(*app.keymap, (_)=>{rotate_look_direction_15_cw();},  "Rotate  15 deg about selected rotation axis", xx #char "]", .{shift_pressed=true});
-    add_key(*app.keymap, (_)=>{rotate_look_direction_1_ccw();},  "Rotate -1  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
-    add_key(*app.keymap, (_)=>{rotate_look_direction_5_ccw();},  "Rotate -5  deg about selected rotation axis", xx #char "[");
-    add_key(*app.keymap, (_)=>{rotate_look_direction_15_ccw();}, "Rotate -15 deg about selected rotation axis", xx #char "[", .{shift_pressed=true});
+    add_key(*app.keymap, rotate_look_direction_1_cw,   "Rotate  1  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
+    add_key(*app.keymap, rotate_look_direction_5_cw,   "Rotate  5  deg about selected rotation axis", xx #char "]");
+    add_key(*app.keymap, rotate_look_direction_15_cw,  "Rotate  15 deg about selected rotation axis", xx #char "]", .{shift_pressed=true});
+    add_key(*app.keymap, rotate_look_direction_1_ccw,  "Rotate -1  deg about selected rotation axis", xx #char "[", .{alt_pressed=true});
+    add_key(*app.keymap, rotate_look_direction_5_ccw,  "Rotate -5  deg about selected rotation axis", xx #char "[");
+    add_key(*app.keymap, rotate_look_direction_15_ccw, "Rotate -15 deg about selected rotation axis", xx #char "[", .{shift_pressed=true});
 
     // Reserved! Do not change this binding
-    add_key(*app.keymap, (_)=>{my_debug_function();}, "Call my_debug_function", xx #char " ");
+    add_key(*app.keymap, my_debug_function, "Call my_debug_function", xx #char " ");
 
     add_action_key :: (keymap : *Keymap, using action_set : Action_Set, loc := #caller_location) {
-        add_key(keymap, proc, desc, key, .{}, override_WantCaptureKeyboard, loc, xx *last_interaction_time);
+        add_key(keymap, proc, name, key_code, .{}, override_WantCaptureKeyboard, loc);
     }
 
     add_action_key(*app.keymap_actions, CYCLE_OPACITY_ACTION_SET);

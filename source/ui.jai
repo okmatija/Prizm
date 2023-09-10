@@ -1621,7 +1621,7 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
     //    using Basic :: #import "Basic";
     //    #poke_name Basic operator==;
     fraction_to_int :: (f : Fraction) -> int { return f.numer + f.denom * 10_000; }
-    int_to_fraction :: (i : int) -> Fraction { return .{i % 10_000, i / 10_0000}; }
+    int_to_fraction :: (i : int) -> Fraction { return .{i % 10_000, i / 10_000}; }
 
     // :DisableUpdateButtonsIfNoSelection Maybe its confusing to see buttons you can't click or see the tooltip of
     states := temp_array(int);
@@ -1668,15 +1668,13 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
     ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
     if ImGui.ImageButton(imgui_label("##Action", *action_set), cast(ImGui.ImTextureID)texture.gl_handle, ACTION_BUTTON_SIZE, tint_col=tint) {
         if states.count > 0 {
-            // nocommit remove this last_interaction_time stuff...
-            action_set.last_interaction_time = current_time_consensus();
-            action_set.proc(xx *action_set.last_interaction_time);
+            action_set.proc();
         }
     }
     ImGui.PopStyleColor(5);
 
     // nocommit Add a header_text saying what item is targetted
-    show_tooltip_binding(action_set.desc, to_string(action_set.key, Modifier_Flags.{}, pad_unmodified=false), footer_text=footer);
+    show_tooltip_binding(action_set.name, to_string(action_set.key_code, Modifier_Flags.{}, pad_unmodified=false), footer_text=footer);
 }
 
 show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) {
@@ -1767,7 +1765,7 @@ show_camera_controls :: () {
         ImGui.TableNextColumn();
 
         // @Volatile Sync with :RotateLookDirectionUI
-        right_label, left_label, amount := "<< ", ">> ", 5.;
+        right_label, left_label, amount := "<< ", " >>", 5.;
         if io().KeyShift {
             right_label, left_label, amount = "<<<", ">>>", 15.;
         } else if io().KeyAlt {

@@ -317,7 +317,7 @@ handle_events :: () {
                     return;
                 }
                 info := *keymap.procs[mapping.proc_info_index];
-                info.proc(info.data);
+                info.proc();
                 return;
             }
         }
