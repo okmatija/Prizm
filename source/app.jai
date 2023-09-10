@@ -7,6 +7,8 @@ App :: struct {
     window_maximized := false;
     window_draggable_rect_min : ImGui.ImVec2;
     window_draggable_rect_max : ImGui.ImVec2;
+    window_focussed_opacity : float = 1.;
+    window_unfocussed_opacity : float = 1.;
 
     simp_font: *Simp.Dynamic_Font;
 

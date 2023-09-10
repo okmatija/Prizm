@@ -360,6 +360,14 @@ handle_events :: () {
                     app.window_maximized = false;
                 }
 
+                if event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED {
+                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
+                }
+
+                if event.window.event == SDL_WINDOWEVENT_FOCUS_LOST {
+                    SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
+                }
+
             case SDL_KEYDOWN;
 
                 for app.keymap_keydown.mappings {
@@ -369,7 +377,11 @@ handle_events :: () {
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
                     app.console.show_ui = false;
-                    SDL_SetWindowOpacity(app.window, 1.); // :WindowOpacityControl
+
+                    // :WindowOpacityControl
+                    app.window_focussed_opacity = 1.;
+                    app.window_unfocussed_opacity = 1.;
+                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
                 }
 
             case SDL_KEYUP;

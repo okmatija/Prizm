@@ -16,6 +16,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
 * Fixed a bug where it was not possible to select a transparent item by clicking on it in the viewport
 * Fixed some bugs when cycling clipping and backface mode
 * Fixed smooth shading not working properly (toggle between smooth/flat shading via a per-item checkbox in `Details > Triangles > Advanced`)
+* Added separate window opacity controls for when the window and focussed/unfocussed.  A useful workflow is to change the unfocussed opacity < 1. in combination with running Prism with the --AlwaysOnTop program option so when you click outside the Prism window it becomes transparent, but becomes transparent again when you click into it.
 * Improved the console log warnings/errors when loading files
 * TODO Test Reload/Focus/Clear labels functions
 * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit

@@ -158,17 +158,19 @@ show_menu_bar_ui :: () {
         if ImGui.BeginMenu("Window Settings") {
             defer ImGui.EndMenu();
 
+            item_width :: 120;
+
             // Window Size
             {
                 // @Volatile :EasyResizeModeKeybind
                 tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB", flags=.None); }
 
-                ImGui.Text("Window Size     ");
+                ImGui.Text("Window Size            ");
                 tooltip();
 
                 ImGui.SameLine();
                 size : [2]s32 = .[app.current_window_width, app.current_window_height];
-                ImGui.PushItemWidth(70);
+                ImGui.PushItemWidth(item_width);
                 if ImGui.DragInt2("##WindowSize", *size) {
                     SDL_SetWindowSize(app.window, size[0], size[1]);
                 }
@@ -190,13 +192,13 @@ show_menu_bar_ui :: () {
                 // @Volatile :EasyResizeModeKeybind
                 tooltip :: () { show_tooltip_binding("(near window center) Move the window", "Alt LMB", flags=.None); }
 
-                ImGui.Text("Window Position ");
+                ImGui.Text("Window Position        ");
                 tooltip();
 
                 ImGui.SameLine();
                 position : [2]s32;
                 SDL_GetWindowPosition(app.window, *position[0], *position[1]);
-                ImGui.PushItemWidth(70);
+                ImGui.PushItemWidth(item_width);
                 if ImGui.DragInt2("##WindowPosition", *position) {
                     SDL_SetWindowPosition(app.window, position[0], position[1]);
                 }
@@ -212,31 +214,41 @@ show_menu_bar_ui :: () {
 
             // Window Opacity
             {
-                // @Volatile :WindowOpacityControl
-                tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc", flags=.None); }
+                window_opacity_ui :: (label : string, opacity : *float, immediate_update : bool) {
+                    // @Volatile :WindowOpacityControl
+                    tooltip :: () { show_tooltip_binding("Reset window opacity to 1.", "Esc", flags=.None); }
 
-                ImGui.Text("Window Opacity  ");
-                tooltip(); 
-                ImGui.SameLine();
+                    ImGui.Text(label);
+                    tooltip(); 
+                    ImGui.SameLine();
 
-                window_opacity : float;
-                SDL_GetWindowOpacity(app.window, *window_opacity);
-                ImGui.PushItemWidth(70);
-                if ImGui.DragFloat("##WindowOpacity", *window_opacity, .01, 0.2, 1., format="%.2f") {
-                    window_opacity = clamp(window_opacity, .2, 1.);
-                    SDL_SetWindowOpacity(app.window, window_opacity);
+                    ImGui.PushItemWidth(item_width);
+                    if ImGui.DragFloat(imgui_label("##Opacity", cast(*void)opacity), opacity, .01, 0.2, 1., format="%.2f") {
+                        opacity.* = clamp(opacity.*, .2, 1.);
+                        if immediate_update {
+                            SDL_SetWindowOpacity(app.window, opacity.*);
+                        }
+                    }
+                    ImGui.PopItemWidth();
+                    tooltip(); 
+
+                    disable_window_opacity_reset := (opacity.* == 1.);
+                    if disable_window_opacity_reset {
+                        ImGui.BeginDisabled();
+                    }
+                    ImGui.SameLine();
+                    if ImGui.Button(imgui_label("Reset##Opacity", opacity)) {
+                        opacity.* = 1.;
+                        SDL_SetWindowOpacity(app.window, opacity.*);
+                    }
+                    if disable_window_opacity_reset {
+                        ImGui.EndDisabled();
+                    }
+                    tooltip(); 
                 }
-                ImGui.PopItemWidth();
-                tooltip(); 
-                ImGui.SameLine();
 
-                disable_window_opacity_reset := (window_opacity == 1.);
-                if disable_window_opacity_reset ImGui.BeginDisabled();
-                if ImGui.Button("Reset##WindowOpacity") {
-                    SDL_SetWindowOpacity(app.window, 1);
-                }
-                if disable_window_opacity_reset ImGui.EndDisabled();
-                tooltip(); 
+                window_opacity_ui("Opacity when focussed  ", *app.window_focussed_opacity, true);
+                window_opacity_ui("Opacity when unfocussed", *app.window_unfocussed_opacity, false);
             }
 
             // TODOO Always on top window
