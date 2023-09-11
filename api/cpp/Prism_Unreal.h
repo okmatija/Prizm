@@ -6,8 +6,6 @@
 #include <CoreMinimal.h> // FString
 
 #ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
-// #include "Engine.h" // nocommit Don't use this monolithic header
-// // For MakeActorObj
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
