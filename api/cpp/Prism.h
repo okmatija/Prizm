@@ -502,7 +502,7 @@ struct Obj {
 
     // Add 2 vertex positions and a segment element referencing them
     template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) {
-        return vertex2(a).vertex2(b).segment();
+        return vertex3(a).vertex3(b).segment();
     }
 
     // Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them

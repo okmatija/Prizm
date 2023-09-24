@@ -17,6 +17,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
 * Fixed some bugs when cycling clipping and backface mode
 * Fixed smooth shading not working properly (toggle between smooth/flat shading via a per-item checkbox in `Details > Triangles > Advanced`)
 * Added separate window opacity controls for when the window and focussed/unfocussed.  A useful workflow is to change the unfocussed opacity < 1. in combination with running Prism with the --AlwaysOnTop program option so when you click outside the Prism window it becomes transparent, but becomes transparent again when you click into it.
+* Added error reporting when providing program arguments
 * Improved the console log warnings/errors when loading files
 * TODO Test Reload/Focus/Clear labels functions
 * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
@@ -30,6 +31,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
     * Note no tbox etc since we want to minize marshalling layer
     * Removed the an(...) functions which wrote annotations followed by a newline, this is not required following the refactoring to write a newline in functions that write data that needs to start on a newline
     * Removed the ln() function which just abbreviated the newline() function but since newline() is called much less now an abbreviated form is less useful and its better to reduce the API
+    * Fixed Prism::segment3 function, which previously write 2D coordinates rather than 3D coordinates
 DONE};
 
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE

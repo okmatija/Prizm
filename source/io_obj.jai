@@ -25,7 +25,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         return results;
     }
 
-    parser : Parser;
+    parser : Parser; // TODO Give the filename here too, so it can be used to report errors
     parser.data = data;
     parser.tokens = get_tokens(filename, parser.data, obj_style_comments=true);
     parser.current_token = 0;
@@ -83,6 +83,33 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_triangle_normals_attribute(*mesh);
     segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(*mesh);
     point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(*mesh);
+
+    warning_ignored_texture_reference_p : int;
+    warning_ignored_texture_reference_l : int;
+    warning_ignored_texture_reference_f : int;
+    warning_ignored_invalid_directive_p : int;
+    warning_ignored_invalid_directive_l : int;
+    warning_ignored_invalid_directive_f : int;
+    defer {
+        if warning_ignored_texture_reference_p > 1 {
+            log_warning("'%' warning occurred % times", "Ignoring texture reference in p-directive", warning_ignored_texture_reference_p);
+        }
+        if warning_ignored_texture_reference_l > 1 {
+            log_warning("'%' warning occurred % times", "Ignoring texture reference in l-directive", warning_ignored_texture_reference_l);
+        }
+        if warning_ignored_texture_reference_f > 1 {
+            log_warning("'%' warning occurred % times", "Ignoring texture reference in f-directive", warning_ignored_texture_reference_f);
+        }
+        if warning_ignored_invalid_directive_p > 1 {
+            log_warning("'%' warning occured % times", "Ignoring invalid p-directive", warning_ignored_invalid_directive_p);
+        }
+        if warning_ignored_invalid_directive_l > 1 {
+            log_warning("'%' warning occured % times", "Ignoring invalid l-directive", warning_ignored_invalid_directive_l);
+        }
+        if warning_ignored_invalid_directive_f > 1 {
+            log_warning("'%' warning occured % times", "Ignoring invalid f-directive", warning_ignored_invalid_directive_f);
+        }
+    }
 
     while peek_token(*parser).type != .EOF && !parser.failed {
 
@@ -159,12 +186,18 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
             if nt {
-                log_warning("%:%: Ignoring texture reference in p-directive", filename, current_line);
-                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                if warning_ignored_texture_reference_p == 0 {
+                    log_warning("%:%: Ignoring texture reference in p-directive", filename, current_line);
+                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                }
+                warning_ignored_texture_reference_p += 1;
             }
 
             if nv < 1 {
-                log_warning("%:%: Ignoring invalid p-directive. Expected at least 1 vertex reference, got %\n", filename, current_line, nv);
+                if warning_ignored_invalid_directive_p == 0 {
+                    log_warning("%:%: Ignoring invalid p-directive. Expected at least 1 vertex reference, got %\n", filename, current_line, nv);
+                }
+                warning_ignored_invalid_directive_p += 1;
                 // Do not error here! 
                 refs_valid = false;
             }
@@ -238,12 +271,18 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
             if nt {
-                log_warning("%:%: Ignoring texture reference in l-directive", filename, current_line);
-                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                if warning_ignored_texture_reference_l == 0 {
+                    log_warning("%:%: Ignoring texture reference in l-directive", filename, current_line);
+                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                }
+                warning_ignored_texture_reference_l += 1;
             }
 
             if nv < 2 {
-                log_warning("%:%: Ignoring invalid l-directive. Expected at least 2 vertex references, got %\n", filename, current_line, nv);
+                if warning_ignored_invalid_directive_l == 0 {
+                    log_warning("%:%: Ignoring invalid l-directive. Expected at least 2 vertex references, got %\n", filename, current_line, nv);
+                }
+                warning_ignored_invalid_directive_l += 1;
                 // Do not error here! 
                 refs_valid = false;
             }
@@ -322,12 +361,18 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
             if nt {
-                log_warning("%:%: Ignoring texture reference in f-directive", filename, current_line);
-                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                if warning_ignored_texture_reference_f == 0 {
+                    log_warning("%:%: Ignoring texture reference in f-directive", filename, current_line);
+                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                }
+                warning_ignored_texture_reference_f += 1;
             }
 
             if nv < 3 {
-                log_warning("%:%: Ignoring invalid f-directive. Expected at least 3 vertex references, got %\n", filename, current_line, nv);
+                if warning_ignored_invalid_directive_f == 0 {
+                    log_warning("%:%: Ignoring invalid f-directive. Expected at least 3 vertex references, got %\n", filename, current_line, nv);
+                }
+                warning_ignored_invalid_directive_f += 1;
                 // Do not error here! 
                 refs_valid = false;
             }

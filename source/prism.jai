@@ -2,6 +2,12 @@
 
 main :: () {
 
+
+    // // #if DEBUG {
+    //     UA :: #import "Unmapping_Allocator";
+    //     context.allocator = UA.get_unmapping_allocator();
+    // // }
+
     init_changelog(); // Do this first to get the version
 
     print_usage_and_exit :: () {
@@ -24,14 +30,25 @@ main :: () {
         for 1..args.count-1 {
             arg : string = to_lower_copy(args[it]);
 
-            if arg == "--help"        print_usage_and_exit();
-            if arg == "--alwaysontop" sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-
-            // @Volatile Sync with :PRISM_ICON_COLORS
-            if arg == "--blue"  prism_icon_color_index = 0;
-            if arg == "--green" prism_icon_color_index = 1;
-            if arg == "--red"   prism_icon_color_index = 2;
-            if arg == "--black" prism_icon_color_index = 3;
+            if arg[0] == #char "-" && arg[1] == #char "-" {
+                // @Volatile Sync with :PRISM_ICON_COLORS
+                if arg == "--help" {
+                    print_usage_and_exit();
+                } else if arg == "--alwaysontop" {
+                    sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+                } else if arg == "--blue" {
+                    prism_icon_color_index = 0;
+                } else if arg == "--green" {
+                    prism_icon_color_index = 1;
+                } else if arg == "--red" {
+                    prism_icon_color_index = 2;
+                } else if arg == "--black" {
+                    prism_icon_color_index = 3;
+                } else {
+                    print("Unrecognized program argument '%' at position %\n", args[it], it);
+                    print_usage_and_exit();
+                }
+            }
         }
     }
 
