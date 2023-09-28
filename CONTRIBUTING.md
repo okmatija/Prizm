@@ -30,22 +30,26 @@ From the top-level project directory do the following:
 
 1. Update `changelog.jai` with the release date. Update `EXPECTED_COMPILER_VERSION_INFO`
 2. Compile using: `jai build.jai - release`
-3. Test everything works. Include a test with a large (>200MB) file. Maybe reproduce the steps in the preset tooltips
-4. Copy the following into a directory named `Prism_X.Y.Z`:
+3. Select the following then do `RMB > 7-zip > Add to archive...`, use the naming convention `Prism_X.Y.Z` and set the archive format to zip
 
     api/
     shapes/
     Prism.exe
     SDL2.dll
 
-5. Zip the release folder, do this by clicking on all the files to be included and then RMB > 7-zip > zip, otherwise you get nested folders when you unzip... but who really cares
-6. Unzip the release zip and test everything works
-7. Use the GitHub UI to complete the release: upload the release zip and copy the new section in the changelog to the description and set the git tag
+4. Test the release
+
+    a. Unzip the release zip and launch Prism.exe
+    b. Test all the files in the shapes/ folder load correctly
+    c. Test a large obj file (>200MB) file
+    d. Test the C++ API works by calling the Prism::documentation and Prism::DocumentationForUnreal functions
+
+5. Use the GitHub UI to complete the release: Upload the release zip and copy the new section in the changelog to the description and set the git tag
+
+6. Post a slack message:
+
+    a. Write a changelog summary with a SCREENSHOT
+    b. Post the zip in a followup message on the thread
+    c. Post the full changelog in a further followup
 
 Note: Delete tags using: `git tag --delete vNNN && git push --delete origin vNNN`
-
-Post the changelog summary with a SCREENSHOT
-Post the zip in a followup
-Post the full changelog in a further followup
-
-Note if, after you've made a Prism.zip, you then rename it to Prism_X.Y.Z.zip, it will unzip containing Prism folder, but I think we don't want this.

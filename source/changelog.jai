@@ -1,4 +1,4 @@
-PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
+/*
 * New Feature: Attributes TODO Add a feature flag for enabling this
 
     * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -7,10 +7,12 @@ PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a preset example to demonstrate the new annotation functionality
     * TODO Change the keybinds for the index, vertex and annotation labels
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
+*/
+
+PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
 DONE};
 
 PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
-
 * Changed the font to Inconsolata and increased the default font size, the UI looks *much* better now
 * Added icons for the ribbon buttons along the bottom of the screen
 
@@ -41,7 +43,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
     * Added `triangle3_vt` and `polyline_vn` functions which were variations overlooked in previous versions  
     * Added `sphere3` function to write a triangulated sphere using the parshapes library
     * Added an option to use +ve or -ve indices when writing out obj face/segment/point elements.  By default -ve indices are used so that the `append` function can be used to concatenate objs. Using -ve indices is the default
-    * Fixed Prism::segment3 function, which previously write 2D coordinates rather than 3D coordinates
+    * Fixed the `segment3` function which previously wrote 2D coordinates rather than 3D coordinates
 
 * Changes to api/cpp/Prism_Unreal.h
 
@@ -575,7 +577,7 @@ DONE
 };
 
 init_changelog :: () {
-    //array_add(*app.changelog, PRISM_VERSION_0_8_0);
+    array_add(*app.changelog, PRISM_VERSION_0_8_0);
     array_add(*app.changelog, PRISM_VERSION_0_7_1);
     array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);
