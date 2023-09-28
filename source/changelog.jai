@@ -5,33 +5,48 @@ PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
     * Multiple attributes are supported, and each will have its own tab in the item context menu
     * TODO Added a preset example to demonstrate the new annotation functionality
+    * TODO Change the keybinds for the index, vertex and annotation labels
+    * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
 DONE};
 
-PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "WIP", #string DONE
-* TODO Change the keybinds for the index, vertex and annotation labels
+PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
 
-* Changed the font to Inconsolata and increased the default font size, the UI now looks **much** better
-* Added icons for the ribbon buttons along the bottom of the screen. These represent varies pieces of item selection state (TODO Add multiple values color)  are grey if 
-* Fixed a crash that could happen when looking at the changelog
+* Changed the font to Inconsolata and increased the default font size, the UI looks *much* better now
+* Added icons for the ribbon buttons along the bottom of the screen
+
+    * Icons are grey when there is no item selection
+    * Icons are black when then corresponding state has more than one value present in the item selection
+    * Icons are colored when then corresponding state has only one identical value for each item in the selection
+    * Icons can be configured to hide when the mouse is not near them by setting `View > Ribbon Button UI` to `AUTO`
+
+* Added separate window opacity controls for when the window and focussed/unfocussed
+
+    * A useful workflow is to change the unfocussed opacity to less than 1 in combination with running Prism with the --AlwaysOnTop program option. This way when you click outside the Prism window it becomes transparent, but becomes opaque again when you click into it.
+
+* Added error reporting when providing incorrect program arguments
+* Improved the warnings/errors logged to the Prism console when bad obj loading files
+* Fixed a crash that could happen when looking at the changelog in `View > Release Notes`
 * Fixed a bug where it was not possible to select a transparent item by clicking on it in the viewport
-* Fixed some bugs when cycling clipping and backface mode
-* Fixed smooth shading not working properly (toggle between smooth/flat shading via a per-item checkbox in `Details > Triangles > Advanced`)
-* Added separate window opacity controls for when the window and focussed/unfocussed.  A useful workflow is to change the unfocussed opacity < 1. in combination with running Prism with the --AlwaysOnTop program option so when you click outside the Prism window it becomes transparent, but becomes transparent again when you click into it.
-* Added error reporting when providing program arguments
-* Improved the console log warnings/errors when loading files
-* TODO Test Reload/Focus/Clear labels functions
-* TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
+* Fixed smooth shading not working properly (smooth/flat shading is toggled via a per-item checkbox under `Details > Triangles > Advanced`)
+* Fixed some bugs when cycling clipping and backface rendering state
 
-* Improvements to C++ API:
+* Changes to api/cpp/Prism.h
 
-    * Reduce number of calls to newline
-    * Add parshapes
-    * Add option to use +ve or -ve indices (later add function to convert between them)
-    * Added actor function
-    * Note no tbox etc since we want to minize marshalling layer
-    * Removed the an(...) functions which wrote annotations followed by a newline, this is not required following the refactoring to write a newline in functions that write data that needs to start on a newline
-    * Removed the ln() function which just abbreviated the newline() function but since newline() is called much less now an abbreviated form is less useful and its better to reduce the API
+    * Reduced the need to call the `newline()` function by making all obj directives which need to start a line insert a newline automatically
+
+        * Removed the `an()` functions which wrote annotations followed by a newline, this is not required following the refactoring to write a newline in functions that write data that needs to start on a newline
+        * Removed the `ln()` function which just abbreviated the newline() function but since newline() is called much less now an abbreviated form is less useful and its better to reduce the API
+
+    * Minor tweaks to the `write`, `newline`, `hash`, `comment`, `box3_min_max` functions
+    * Added `triangle3_vt` and `polyline_vn` functions which were variations overlooked in previous versions  
+    * Added `sphere3` function to write a triangulated sphere using the parshapes library
+    * Added an option to use +ve or -ve indices when writing out obj face/segment/point elements.  By default -ve indices are used so that the `append` function can be used to concatenate objs. Using -ve indices is the default
     * Fixed Prism::segment3 function, which previously write 2D coordinates rather than 3D coordinates
+
+* Changes to api/cpp/Prism_Unreal.h
+
+    * Added a `MakeActorObj` function to write objs representing `UStaticMeshComponent` accessed via an `AActor` pointer.  This function is kinda janky and could be improved in many dimensions.
+    * Added a checkbox under `Tools > API > C++` to enable/disable the includes which depend on the Engine module (this is required to access `MakeActorObj`).
 DONE};
 
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
