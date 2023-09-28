@@ -54,7 +54,7 @@ Backface_Mode :: enum #specified {
     FIXED :: 2;
     DARKEN :: 3;
     SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
-    SCREENTONE_2 :: 5;
+    SCREENTONE_2 :: 5; // TODOOO Replace this with an outline mode where we discard all the fragments which aren't near the triangle edge
 }
 
 cycle_display_mode :: (mode : *Display_Mode) {
@@ -73,7 +73,7 @@ Clip_Mode :: enum #specified {
 
 // Things that needs updating when the geometry changes
 Render_Info :: struct {
-    is_dirty := true;
+    is_dirty := true; // @Think Maybe this should be an enum saying what buffers need updating
 
     // For rendering obj v-directive data
     // @Cleanup Remove the positions_vbo. It doubles the memory requirement and adds complexity. We can just add points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
@@ -267,7 +267,6 @@ any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annota
 }
 
 any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    // @Think Maybe we should also check opacity here too
     // @Think Maybe we should check triangle_style.edge_style.visible here?
     // Also checking mesh.positions.count
     return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangle_style.visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
@@ -352,7 +351,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBindVertexArray(info.triangles_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-                NP := size_of(Vector3) * mesh.positions.count;
+                NP := 3 * size_of(Vector3) * mesh.triangles.count;
 
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glEnableVertexAttribArray(ATTRIB_NORMAL);

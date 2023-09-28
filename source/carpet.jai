@@ -153,6 +153,17 @@ make_Vector2 :: inline (v : ImGui.ImVec2) -> Vector2 {
     return result;
 }
 
+//// Example: thing := array_find(all_things, t => t.id, "foo"); // get the thing with an id of "foo"
+//array_find :: (array: []$T, select: (t: T) -> $S, compare: S) -> T, int {
+//    for array {
+//        if select(it) == compare {
+//            return it, it_index;
+//        }
+//    }
+//    default: T;
+//    return default, -1;
+//}
+
 hack_char_to_string :: (c : *u8) -> string {
     result : string;
     result.data = c;

@@ -25,6 +25,18 @@ Camera :: struct {
     show_ui := true;
 }
 
+almost_equal :: (a : Camera, b : Camera) -> bool {
+    return
+        almost_equal(a.eye_position, b.eye_position) &&
+        almost_equal(a.look_position, b.look_position) &&
+        almost_equal(a.up_direction, b.up_direction) &&
+        almost_equal(a.left, b.left) &&
+        almost_equal(a.right, b.right) &&
+        almost_equal(a.bottom, b.bottom) &&
+        almost_equal(a.top, b.top) &&
+        almost_equal(a.near, b.near) &&
+        almost_equal(a.far, b.far);
+}
 
 Camera_Rotation_Axis :: enum {
     ROLL :: 0;
@@ -469,8 +481,8 @@ make_camera_ray :: () -> Ray3 {
     ray : Ray3 = ---;
     ray.origin = (transform * make_vector4(to_ndc(make_Vector2(io().MousePos)), -1., 1.)).xyz;
     ray.direction = (inverse_transpose * make_vector4(0., 0., 1., 0.)).xyz;
-    check := normalize_or_zero(*ray.direction);
-    assert(check != 0.); // @Robustness: handle this error
+    check := normalize_or_z_axis(*ray.direction);
+    //assert(check != 0.); // @Robustness: handle this error
 
     return ray;
 }

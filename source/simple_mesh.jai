@@ -1,3 +1,21 @@
+/*
+
+Vertex :: struct {
+    position : Vector3;
+    normal : Vector3;
+    color : Vector4;
+    uv0 : Vector2;
+    //uv1 : Vector2;
+}
+
+triangles : [..]Vertex;
+segments : [..]Vertex;
+points : [..]Vertex;
+unreferenced_vertices : [..]Vertex;
+
+*/
+
+
 Simple_Mesh :: struct {
     positions : [..]Vector3;
 
@@ -398,7 +416,7 @@ POINT_NORMALS_ATTRIBUTE_NAME :: "Obj Point Normals";
 SEGMENT_NORMALS_ATTRIBUTE_NAME :: "Obj Segment Normals";
 TRIANGLE_NORMALS_ATTRIBUTE_NAME :: "Obj Triangle Normals";
 
-Simple_Mesh_Point_Normals :: Simple_Mesh_Attribute(Vector3, .SEGMENT);
+Simple_Mesh_Point_Normals :: Simple_Mesh_Attribute(Vector3, .POINT);
 Simple_Mesh_Segment_Normals :: Simple_Mesh_Attribute(Matrix3x2, .SEGMENT);
 Simple_Mesh_Triangle_Normals :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
 //Simple_Mesh_UVs :: Simple_Mesh_Attribute(Matrix3, .TRIANGLE); // Filled by vt directives in obj files, which can have 3 components

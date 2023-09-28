@@ -5,10 +5,18 @@
 
 #include <CoreMinimal.h> // FString
 
+#ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+#include "GameFramework/Actor.h"
+#include "Engine/StaticMesh.h"
+#include "Components/StaticMeshComponent.h"
+#include "StaticMeshResources.h"
+#include "Rendering/PositionVertexBuffer.h"
+#endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+
 // We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
 // the code for different Unreal modules to be in separate files
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 #include <VectorTypes.h>
 #include <BoxTypes.h>
 #include <DynamicMesh/DynamicMesh3.h>
@@ -16,7 +24,7 @@
 #include <DynamicMesh/DynamicMeshAttributeSet.h>
 #include <Image/ImageDimensions.h>
 #include <Util/CompactMaps.h>
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 // The macros below must be defined before including "Prism.h". This compile time error enforces this
 #ifdef PRISM_API
@@ -37,8 +45,11 @@
 #define PRISM_COLOR_CLASS_EXTRA\
 	Color(FColor c) : Color(c.R, c.G, c.B, c.A) {}
 
+// These are named to match Unreal coding standards, we can't overload anyway since this would infinitly recurse
 #define PRISM_OBJ_CLASS_EXTRA\
-	void Write(const FString& filename) { return write(TCHAR_TO_UTF8(*filename)); } // not named `write` to prevent infinite recursion
+	Obj& Write(const FString& Filename) { return write(TCHAR_TO_UTF8(*Filename)); }\
+	Obj& Add(const FString& Data) { return add(std::string(TCHAR_TO_UTF8(*Data))); }\
+	Obj& Insert(const FString& Data) { return insert(std::string(TCHAR_TO_UTF8(*Data))); }
 
 #include "Prism.h"
 
@@ -58,21 +69,21 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
 
 		// This is the recommended way of passing Unreal vectors to the Prism::Obj API
-		Obj.triangle3(V3(A), V3(B), V3(C)).newline();
+		Obj.triangle3(V3(A), V3(B), V3(C));
 
 		// You could also do the following but in this case you will need to specify the template parameter, this is
 		// sometimes more convenient than wrapping everything in a V3
-		Obj.triangle3<float>(D, E, F).newline();
+		Obj.triangle3<float>(D, E, F);
 
 		// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
 		// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
-		Obj.v().insert(V3(G)).newline();
-		Obj.v().insert(V3(H)).newline();
-		Obj.v().insert(V3(I)).newline();
+		Obj.v().insert(V3(G));
+		Obj.v().insert(V3(H));
+		Obj.v().insert(V3(I));
 		Obj.triangle();
 
 		// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
-		//Obj.v().insert(I).newline();
+		//Obj.v().insert(I);
 
 		// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
 		// so both of the following work:
@@ -94,23 +105,83 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		Data += "Comes";
 		Data += "Some Data";
 		if (bWriteFiles) {
-			Prism::Obj().add(std::string(TCHAR_TO_UTF8(*Data))).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
+			Prism::Obj().Add(Data).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
 		}
 	}
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 	// This block shows some of the provided functions for Geometry Core
 	{
 		// @Incomplete
 	}
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 	return true;
 }
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
 
+#ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+struct FMakeActorObjOptions
+{
+	// If true/false write triangles using -/+ indices to reference vertex data. See Obj::use_negative_indices documentation
+	bool bUseNegativeIndices = true;
+};
 
+Obj MakeActorObj(AActor* Actor, FString* OutMeshName = nullptr, FMakeActorObjOptions Options = {})
+{
+	Obj Result;
+
+	if (!Actor)
+	{
+		return Result;
+	}
+
+	UStaticMeshComponent* MeshComponent = Actor->FindComponentByClass<UStaticMeshComponent>();
+
+	if (MeshComponent)
+	{
+		UStaticMesh* StaticMesh = MeshComponent->GetStaticMesh();
+		if (StaticMesh)
+		{
+			if (OutMeshName)
+			{
+				*OutMeshName = StaticMesh->GetName();
+			}
+
+			const FTransform ActorTransform = Actor->GetTransform();
+			const FPositionVertexBuffer& Vertices = StaticMesh->GetRenderData()->LODResources[0].VertexBuffers.PositionVertexBuffer;
+			const FIndexArrayView& Triangles = StaticMesh->GetRenderData()->LODResources[0].IndexBuffer.GetArrayView();
+
+			if (Options.bUseNegativeIndices)
+			{
+				for (uint32 i = 0; i < (uint32)Triangles.Num(); i += 3)
+				{
+					V3 a(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(Triangles[i]))));
+					V3 b(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(Triangles[i+1]))));
+					V3 c(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(Triangles[i+2]))));
+					Result.triangle3(a, b, c);
+				}
+			}
+			else
+			{
+				for (uint32 i = 0; i < Vertices.GetNumVertices(); i++)
+				{
+					Result.vertex3(V3(ActorTransform.TransformPosition(FVector(Vertices.VertexPosition(i)))));
+				}
+
+				for (uint32 i = 0; i < (uint32)Triangles.Num(); i += 3)
+				{
+					Result.triangle(Triangles[i]+1, Triangles[i+1]+1, Triangles[i+2]+1);
+				}
+			}
+		}
+	}
+
+	return Result;
+}
+#endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+
+#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 struct FMakeDynamicMeshObjOptions
 {
 	// If true reverses the orientation of the faces
@@ -126,6 +197,7 @@ struct FMakeDynamicMeshObjOptions
 	bool bWriteTidAnnotations = false;
 };
 
+// TODO Rewite this to use negative indices so that the result can be used with Obj::append
 Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMeshObjOptions Options = FMakeDynamicMeshObjOptions{})
 {
 	using namespace UE::Geometry;
@@ -191,18 +263,17 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 			ensure(InMeshVID0 != nullptr);
 			Result.annotation("VID").insert(*InMeshVID0);
 		}
-		Result.newline();
 
 		if (bHasVertexNormals)
 		{
 			FVector3f Normal = Mesh.GetVertexNormal(VID);
-			Result.normal3(V3f(Normal)).newline();
+			Result.normal3(V3f(Normal));
 		}
 
 		if (bHasVertexUVs)
 		{
 			FVector2f UV = Mesh.GetVertexUV(VID);
-			Result.uv2(V2f(UV)).newline();
+			Result.uv2(V2f(UV));
 		}
 	}
 
@@ -218,7 +289,7 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 			{
 				check(UVs->IsElement(UI))
 				FVector2f UV = UVs->GetElement(UI);
-				Result.uv2(V2f(UV)).newline();
+				Result.uv2(V2f(UV));
 			}
 		}
 
@@ -229,7 +300,7 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 			{
 				check(Normals->IsElement(NI));
 				FVector3f Normal = Normals->GetElement(NI);
-				Result.normal3(V3f(Normal)).newline();
+				Result.normal3(V3f(Normal));
 			}
 		}
 	}
@@ -307,7 +378,6 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 			ensure(InMeshTID0 != nullptr);
 			Result.annotation("TID").insert(*InMeshTID0);
 		}
-		Result.newline();
 	}
 
 	// Set some useful item state in Prism via command annotations
@@ -397,7 +467,7 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 			FVector3d CA = UE::Geometry::Lerp(C, A, .5);
 			*/
 
-			Result.triangle3<double>(A, B, C).newline(); // No annotation here, just for viz and to stop visibility checks
+			Result.triangle3<double>(A, B, C); // No annotation here, just for viz and to stop visibility checks
 
 			const double BaryVertex = Options.OverlayPointBaryCoord; // Bary coords for the annotated vertex
 			const double BaryEdge = (1. - Options.OverlayPointBaryCoord) / 2.; // Bary coords corresponding to the vertices on the opposite edge
@@ -414,7 +484,6 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 				Result.insert(DataA[i]);
 				Result.set_precision(OldPrecision);
 			}
-			Result.newline();
 
 			// Result.polygon3(4, V3(B), V3(AB), V3(Centroid), V3(BC));
 			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryEdge, BaryVertex, BaryEdge) + NormalOffset);
@@ -427,7 +496,6 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 				Result.insert(DataB[i]);
 				Result.set_precision(OldPrecision);
 			}
-			Result.newline();
 
 			// Result.polygon3(4, V3(C), V3(BC), V3(Centroid), V3(CA));
 			Result.point3<double>(Overlay.GetParentMesh()->GetTriBaryPoint(TID, BaryEdge, BaryEdge, BaryVertex) + NormalOffset);
@@ -440,7 +508,6 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 				Result.insert(DataC[i]);
 				Result.set_precision(OldPrecision);
 			}
-			Result.newline();
 		}
 	}
 
@@ -482,12 +549,12 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 	{
 		FVector2i TexelIndex = Dims.GetCoords(LinearIndex);
 		FVector2d TexelCenterUV = Dims.GetTexelUV(TexelIndex);
-		Result.box2_center_extents(V2(TexelCenterUV), V2(TexelExtentUV)).newline();
+		Result.box2_center_extents(V2(TexelCenterUV), V2(TexelExtentUV));
 
 		if (Options.bAnnotateTexelCentersWithUVCoordinates ||
 			Options.bAnnotateTexelCentersWithTexelIndex)
 		{
-			Result.point2(V2(TexelCenterUV)); // No newline() here since we might add annotations
+			Result.point2(V2(TexelCenterUV));
 		}
 
 		if (Options.bAnnotateTexelCentersWithTexelIndex)
@@ -501,8 +568,6 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 			Result.annotation("UV(").add(V2(TexelCenterUV)).add(")");
 			Result.set_precision(); // Restore default precision
 		}
-
-		Result.newline();
 	}
 
 	// Set some useful item state in Prism via command annotations
@@ -513,7 +578,7 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 	return Result;
 }
 
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE
+#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 } // namespace Prism
 

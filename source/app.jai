@@ -7,6 +7,8 @@ App :: struct {
     window_maximized := false;
     window_draggable_rect_min : ImGui.ImVec2;
     window_draggable_rect_max : ImGui.ImVec2;
+    window_focussed_opacity : float = 1.;
+    window_unfocussed_opacity : float = 1.;
 
     simp_font: *Simp.Dynamic_Font;
 
@@ -74,6 +76,14 @@ App :: struct {
     show_ui := true;
     show_fps := false;
 
+    Ribbon_Button_Mode :: enum #specified {
+        HIDE :: 0; // Hide the ribbon buttons
+        SHOW :: 1; // Show the ribbon buttons (if ui is showing and console not showing)
+        AUTO :: 2; // Hide/show the ribbon buttons if cursor is near/far
+    }
+
+    ribbon_button_mode := Ribbon_Button_Mode.SHOW;
+
     triad : Axes_Triad;
     // triad.origin.display_info.triangle_style.backface_mode = .FIXED;
     // triad.x_axis.display_info.triangle_style.backface_mode = .FIXED;
@@ -132,7 +142,8 @@ App :: struct {
 
     API :: struct {
         using_unreal := true;
-        using_unreal_geometrycore := true;
+        using_unreal_engine := false;
+        using_unreal_geometrycore := false;
     }
     api : API;
 
@@ -292,7 +303,7 @@ User_Settings :: struct {
 
     fit_to_screen_on_visibility_change :=  false;
     fit_to_screen_on_file_drop_event :=    true;
-    fit_to_screen_on_file_watcher_event := true;
+    fit_to_screen_on_file_watcher_event := false; // Having this as true can be kinda annoying
 
     camera_controls_keep_up_when_setting_look_along := false;
 

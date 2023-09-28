@@ -2,6 +2,12 @@
 
 main :: () {
 
+
+    // // #if DEBUG {
+    //     UA :: #import "Unmapping_Allocator";
+    //     context.allocator = UA.get_unmapping_allocator();
+    // // }
+
     init_changelog(); // Do this first to get the version
 
     print_usage_and_exit :: () {
@@ -24,14 +30,25 @@ main :: () {
         for 1..args.count-1 {
             arg : string = to_lower_copy(args[it]);
 
-            if arg == "--help"        print_usage_and_exit();
-            if arg == "--alwaysontop" sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-
-            // @Volatile Sync with :PRISM_ICON_COLORS
-            if arg == "--blue"  prism_icon_color_index = 0;
-            if arg == "--green" prism_icon_color_index = 1;
-            if arg == "--red"   prism_icon_color_index = 2;
-            if arg == "--black" prism_icon_color_index = 3;
+            if arg[0] == #char "-" && arg[1] == #char "-" {
+                // @Volatile Sync with :PRISM_ICON_COLORS
+                if arg == "--help" {
+                    print_usage_and_exit();
+                } else if arg == "--alwaysontop" {
+                    sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+                } else if arg == "--blue" {
+                    prism_icon_color_index = 0;
+                } else if arg == "--green" {
+                    prism_icon_color_index = 1;
+                } else if arg == "--red" {
+                    prism_icon_color_index = 2;
+                } else if arg == "--black" {
+                    prism_icon_color_index = 3;
+                } else {
+                    print("Unrecognized program argument '%' at position %\n", args[it], it);
+                    print_usage_and_exit();
+                }
+            }
         }
     }
 
@@ -177,13 +194,22 @@ main :: () {
     // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
+    // TODO Option to pass font and size on the command line?
+    FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+    FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf");          #assert(FONT2_OK);
+
+    font_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*font_config);
+    font_config.FontDataOwnedByAtlas = false;
+    font :  *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, 18., *font_config);
+    font2 : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT2.data, FONT2.count, 18., *font_config);
+
     // Set up Simp
     {
         window_type := get_window_type(app.window);
         Simp.ScopeContext();
         Simp.set_render_target(window_type);
 
-        FONT, FONT_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT_OK);
         font_data : []u8;
         font_data.data = FONT.data;
         font_data.count = FONT.count;
@@ -210,6 +236,8 @@ main :: () {
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
+        ImGui.PushFont(font);
+
         show_menu_bar_ui();
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
@@ -220,7 +248,7 @@ main :: () {
             show_left_window();
             show_right_window();
             show_imgui_demo_window();
-            show_item_list_actions_ui();
+            show_ribbon_buttons_ui();
             console_draw();
             show_pending_directories_ui();
 
@@ -255,6 +283,8 @@ main :: () {
 
         // @Fixme This is broken on laptop..!
         do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
+
+        ImGui.PopFont();
 
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
@@ -304,7 +334,7 @@ handle_events :: () {
                     return;
                 }
                 info := *keymap.procs[mapping.proc_info_index];
-                info.proc(info.data);
+                info.proc();
                 return;
             }
         }
@@ -347,6 +377,14 @@ handle_events :: () {
                     app.window_maximized = false;
                 }
 
+                if event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED {
+                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
+                }
+
+                if event.window.event == SDL_WINDOWEVENT_FOCUS_LOST {
+                    SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
+                }
+
             case SDL_KEYDOWN;
 
                 for app.keymap_keydown.mappings {
@@ -356,7 +394,11 @@ handle_events :: () {
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
                     app.console.show_ui = false;
-                    SDL_SetWindowOpacity(app.window, 1.); // :WindowOpacityControl
+
+                    // :WindowOpacityControl
+                    app.window_focussed_opacity = 1.;
+                    app.window_unfocussed_opacity = 1.;
+                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
                 }
 
             case SDL_KEYUP;

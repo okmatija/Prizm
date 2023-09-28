@@ -41,7 +41,7 @@ Obj_Index :: #type,distinct int;
 parse_obj_index :: (p : *Parser) -> Obj_Index {
     index : Obj_Index = xx parse_integer(p);
     if index == 0 {
-        error(p, peek_token(p), "Unexpected 0 index, the OBJ file format uses 1-based indices\n");
+        error(p, peek_token(p), "Unexpected 0 index, the OBJ file format uses 1-based indices\n"); // TODOO Should report the filename/line number here
     }
     return index;
 }

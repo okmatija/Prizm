@@ -25,7 +25,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         return results;
     }
 
-    parser : Parser;
+    parser : Parser; // TODO Give the filename here too, so it can be used to report errors
     parser.data = data;
     parser.tokens = get_tokens(filename, parser.data, obj_style_comments=true);
     parser.current_token = 0;
@@ -84,6 +84,33 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(*mesh);
     point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(*mesh);
 
+    warning_ignored_texture_reference_p : int;
+    warning_ignored_texture_reference_l : int;
+    warning_ignored_texture_reference_f : int;
+    warning_ignored_invalid_directive_p : int;
+    warning_ignored_invalid_directive_l : int;
+    warning_ignored_invalid_directive_f : int;
+    defer {
+        if warning_ignored_texture_reference_p > 1 {
+            log_warning("'%' warning occurred % times", "Ignoring texture reference in p-directive", warning_ignored_texture_reference_p);
+        }
+        if warning_ignored_texture_reference_l > 1 {
+            log_warning("'%' warning occurred % times", "Ignoring texture reference in l-directive", warning_ignored_texture_reference_l);
+        }
+        if warning_ignored_texture_reference_f > 1 {
+            log_warning("'%' warning occurred % times", "Ignoring texture reference in f-directive", warning_ignored_texture_reference_f);
+        }
+        if warning_ignored_invalid_directive_p > 1 {
+            log_warning("'%' warning occured % times", "Ignoring invalid p-directive", warning_ignored_invalid_directive_p);
+        }
+        if warning_ignored_invalid_directive_l > 1 {
+            log_warning("'%' warning occured % times", "Ignoring invalid l-directive", warning_ignored_invalid_directive_l);
+        }
+        if warning_ignored_invalid_directive_f > 1 {
+            log_warning("'%' warning occured % times", "Ignoring invalid f-directive", warning_ignored_invalid_directive_f);
+        }
+    }
+
     while peek_token(*parser).type != .EOF && !parser.failed {
 
         current_line : s64 = peek_token(*parser).line_number;
@@ -131,7 +158,8 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
-                log_warning("Skipping comment annotation at %:%. Comments on 'vn' directives are @Incomplete", filename, current_line);
+                // @Cleanup This warning text is not very useful and possibly incorrect
+                log_warning("%:%: Skipping comment annotation. Comments on 'vn' directives are @Incomplete", filename, current_line);
                 eat_token(*parser);
             }
 
@@ -158,18 +186,24 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
             if nt {
-                log_warning("Ignoring texture reference in p-directive on line %", current_line);
-                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                if warning_ignored_texture_reference_p == 0 {
+                    log_warning("%:%: Ignoring texture reference in p-directive", filename, current_line);
+                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                }
+                warning_ignored_texture_reference_p += 1;
             }
 
             if nv < 1 {
-                log_warning("Ignoring invalid p-directive on line %. Expected at least 1 vertex reference, got %\n", current_line, nv);
+                if warning_ignored_invalid_directive_p == 0 {
+                    log_warning("%:%: Ignoring invalid p-directive. Expected at least 1 vertex reference, got %\n", filename, current_line, nv);
+                }
+                warning_ignored_invalid_directive_p += 1;
                 // Do not error here! 
                 refs_valid = false;
             }
 
             if nn > 0 && nn != nv {
-                log_warning("Ignoring invalid p-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                log_warning("%:%: Ignoring invalid p-directive. Expected vertex/normal reference count to be identical, got %/%\n", filename, current_line, nv, nn);
                 // Do not error here! 
                 refs_valid = false;
             }
@@ -237,18 +271,24 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
             if nt {
-                log_warning("Ignoring texture reference in l-directive on line %", current_line);
-                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                if warning_ignored_texture_reference_l == 0 {
+                    log_warning("%:%: Ignoring texture reference in l-directive", filename, current_line);
+                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                }
+                warning_ignored_texture_reference_l += 1;
             }
 
             if nv < 2 {
-                log_warning("Ignoring invalid l-directive on line %. Expected at least 2 vertex references, got %\n", current_line, nv);
+                if warning_ignored_invalid_directive_l == 0 {
+                    log_warning("%:%: Ignoring invalid l-directive. Expected at least 2 vertex references, got %\n", filename, current_line, nv);
+                }
+                warning_ignored_invalid_directive_l += 1;
                 // Do not error here! 
                 refs_valid = false;
             }
 
             if nn > 0 && nn != nv {
-                log_warning("Ignoring invalid l-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                log_warning("%:%: Ignoring invalid l-directive. Expected vertex/normal reference count to be identical, got %/%\n", filename, current_line, nv, nn);
                 // Do not error here! 
                 refs_valid = false;
             }
@@ -321,18 +361,24 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
             if nt {
-                log_warning("Ignoring texture reference in f-directive on line %", current_line);
-                log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                if warning_ignored_texture_reference_f == 0 {
+                    log_warning("%:%: Ignoring texture reference in f-directive", filename, current_line);
+                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                }
+                warning_ignored_texture_reference_f += 1;
             }
 
             if nv < 3 {
-                log_warning("Ignoring invalid f-directive on line %. Expected at least 3 vertex references, got %\n", current_line, nv);
+                if warning_ignored_invalid_directive_f == 0 {
+                    log_warning("%:%: Ignoring invalid f-directive. Expected at least 3 vertex references, got %\n", filename, current_line, nv);
+                }
+                warning_ignored_invalid_directive_f += 1;
                 // Do not error here! 
                 refs_valid = false;
             }
 
             if nn > 0 && nn != nv {
-                log_warning("Ignoring invalid f-directive on line %. Expected vertex/normal reference count to be identical, got %/%\n", current_line, nv, nn);
+                log_warning("%:%: Ignoring invalid f-directive. Expected vertex/normal reference count to be identical, got %/%\n", filename, current_line, nv, nn);
                 // Do not error here! 
                 refs_valid = false;
             }
@@ -403,7 +449,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                   eat_possible_identifier(*parser, "mtllib") ||
                   eat_possible_identifier(*parser, "usemtl") {
 
-            warning(*parser, peek_token(*parser), "Unsupported '%' token, support is @Incomplete. Attempting to continue...\n", to_string(peek_token(*parser)));
+            warning(*parser, peek_token(*parser), "%: Unsupported '%' token, support is @Incomplete. Attempting to continue...\n", filename, to_string(peek_token(*parser)));
 
             tok := peek_token(*parser);
             while tok.type != Token.Type.EOF && tok.line_number == current_line {
@@ -458,7 +504,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
             }
         } else {
 
-            warning(*parser, peek_token(*parser), "Unexpected '%' token will be ignored. Attempting to continue...\n", to_string(peek_token(*parser)));
+            warning(*parser, peek_token(*parser), "%: Unexpected '%' token will be ignored. Attempting to continue...\n", filename, to_string(peek_token(*parser)));
 
             tok := peek_token(*parser);
             while tok.type != Token.Type.EOF && tok.line_number == current_line {
@@ -470,12 +516,12 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     } // end parsing
 
     if found_inf_or_nan {
-        log_warning("Detected inf/nan floats in file. In 'v' directives these are set using components of \"Invalid Point\", elsewhere these are set to zero");
+        log_warning("%: Detected inf/nan floats in file. In 'v' directives these are set using components of \"Invalid Point\", elsewhere these are set to zero", filename);
     }
 
     // Check obj indices
     if missing_vertices_count {
-        log_warning("Detected % missing points in the mesh file '%'. These will be positioned at %", missing_vertices_count, filename, app.invalid_point);
+        log_warning("%: Detected % missing points. These will be positioned at %", filename, missing_vertices_count, app.invalid_point);
 
         // Direct any elements with missing vertex indices to the missing/invalid position
         for *point : mesh.points {
@@ -498,7 +544,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         array_add(*mesh.positions, app.invalid_point);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
     } else if missing_normals_count {
-        log_warning("Detected % missing normals in the mesh file '%'. These will be set to %.", missing_normals_count, filename, MISSING_NORMAL_FALLBACK);
+        log_warning("%: Detected % missing normals. These will be set to %.", filename, missing_normals_count, MISSING_NORMAL_FALLBACK);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
     }
 
@@ -520,7 +566,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
         for * mesh.points { 
             it.* = xx it_index;
         }
-        log_warning("File '%' contains % position% but has no element directives (p-, l- or f-directives) so we auto-assigned p-directives", filename, mesh.positions.count, plural_suffix(mesh.positions.count > 1));
+        log_warning("%: File contains % position% but has no element directives (p-, l- or f-directives) so we auto-assigned p-directives", filename, mesh.positions.count, plural_suffix(mesh.positions.count > 1));
         log("If you intended to represent a point cloud its recommended that you explicitly add p-directives for each vertex (v-directive)");
     }
 

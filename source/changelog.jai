@@ -1,10 +1,52 @@
 PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
-- New Feature: Attributes TODO Add a feature flag for enabling this
+* New Feature: Attributes TODO Add a feature flag for enabling this
 
-  - Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
-  - TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
-  - Multiple attributes are supported, and each will have its own tab in the item context menu
-  - TODO Added a preset example to demonstrate the new annotation functionality
+    * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
+    * TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
+    * Multiple attributes are supported, and each will have its own tab in the item context menu
+    * TODO Added a preset example to demonstrate the new annotation functionality
+    * TODO Change the keybinds for the index, vertex and annotation labels
+    * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
+DONE};
+
+PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
+
+* Changed the font to Inconsolata and increased the default font size, the UI looks *much* better now
+* Added icons for the ribbon buttons along the bottom of the screen
+
+    * Icons are grey when there is no item selection
+    * Icons are black when then corresponding state has more than one value present in the item selection
+    * Icons are colored when then corresponding state has only one identical value for each item in the selection
+    * Icons can be configured to hide when the mouse is not near them by setting `View > Ribbon Button UI` to `AUTO`
+
+* Added separate window opacity controls for when the window and focussed/unfocussed
+
+    * A useful workflow is to change the unfocussed opacity to less than 1 in combination with running Prism with the --AlwaysOnTop program option. This way when you click outside the Prism window it becomes transparent, but becomes opaque again when you click into it.
+
+* Added error reporting when providing incorrect program arguments
+* Improved the warnings/errors logged to the Prism console when bad obj loading files
+* Fixed a crash that could happen when looking at the changelog in `View > Release Notes`
+* Fixed a bug where it was not possible to select a transparent item by clicking on it in the viewport
+* Fixed smooth shading not working properly (smooth/flat shading is toggled via a per-item checkbox under `Details > Triangles > Advanced`)
+* Fixed some bugs when cycling clipping and backface rendering state
+
+* Changes to api/cpp/Prism.h
+
+    * Reduced the need to call the `newline()` function by making all obj directives which need to start a line insert a newline automatically
+
+        * Removed the `an()` functions which wrote annotations followed by a newline, this is not required following the refactoring to write a newline in functions that write data that needs to start on a newline
+        * Removed the `ln()` function which just abbreviated the newline() function but since newline() is called much less now an abbreviated form is less useful and its better to reduce the API
+
+    * Minor tweaks to the `write`, `newline`, `hash`, `comment`, `box3_min_max` functions
+    * Added `triangle3_vt` and `polyline_vn` functions which were variations overlooked in previous versions  
+    * Added `sphere3` function to write a triangulated sphere using the parshapes library
+    * Added an option to use +ve or -ve indices when writing out obj face/segment/point elements.  By default -ve indices are used so that the `append` function can be used to concatenate objs. Using -ve indices is the default
+    * Fixed Prism::segment3 function, which previously write 2D coordinates rather than 3D coordinates
+
+* Changes to api/cpp/Prism_Unreal.h
+
+    * Added a `MakeActorObj` function to write objs representing `UStaticMeshComponent` accessed via an `AActor` pointer.  This function is kinda janky and could be improved in many dimensions.
+    * Added a checkbox under `Tools > API > C++` to enable/disable the includes which depend on the Engine module (this is required to access `MakeActorObj`).
 DONE};
 
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
@@ -22,14 +64,12 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
 
 * Added some program options, run `Prism.exe --Help` prints the following argument list:
 
-      ```
-      --Help           Print this message and exit.
-      --AlwaysOnTop    Keeps the Prism window on top.
-      --Red            Use the red   icon in the title bar.
-      --Green          Use the green icon in the title bar.
-      --Blue           Use the blue  icon in the title bar (This is the default).
-      --Black          Use the black icon in the title bar.
-      ```
+        --Help           Print this message and exit.
+        --AlwaysOnTop    Keeps the Prism window on top.
+        --Red            Use the red   icon in the title bar.
+        --Green          Use the green icon in the title bar.
+        --Blue           Use the blue  icon in the title bar (This is the default).
+        --Black          Use the black icon in the title bar.
 
     * Program options and case-insensitive, always start with "--" and can be interleaved with file/folder arguments ie the data should be loaded
     * The AlwaysOnTop option is useful with a transparent window and auto file reloading: you can step though iterations of an algorithm and see geometry change. SDL 2.0.1 doesn't support toggling AlwaysOnTop at runtime but version >= 2.0.16 does so we'll support this in a future version.
@@ -536,6 +576,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*app.changelog, PRISM_VERSION_0_8_0);
+    array_add(*app.changelog, PRISM_VERSION_0_7_1);
     array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);
     array_add(*app.changelog, PRISM_VERSION_0_6_0);
