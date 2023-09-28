@@ -1,5 +1,3 @@
-// nocommit Add option to set hot reloading when loading a folder
-
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 EASY_RESIZE_FRACTION :: .25;
 WINDOW_RESIZE_MARGIN_PX :: 3;
@@ -1690,14 +1688,14 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
     window_pos := ImGui.ImVec2.{current_pos.x + current_size.x + WINDOW_BORDER_UI_OFFSET.x, ImGui.GetCursorScreenPos().y};
     ImGui.SetNextWindowPos(pos=window_pos, cond=.ImGuiCond_Appearing);
 
-    // Set popup border color to match the selection/RMB target item color
-    original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
+    // // Set popup border color to match the selection/RMB target item color
+    // original_border_color, original_border_size := ScopedPopupBorderTheme(CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR, CONTEXT_MENU_POPUP_TARGET_BORDER_SIZE);
 
     if ImGui.BeginPopupContextItem(imgui_label("Folder Options", xx *path)) {
         defer ImGui.EndPopup();
 
-        // Undo the previous thing so internals don't have this color
-        ScopedPopupBorderTheme(original_border_color, original_border_size);
+        // // Undo the previous thing so internals don't have this color
+        // ScopedPopupBorderTheme(original_border_color, original_border_size);
 
         ImGui.Text(path);
         ImGui.Separator();
