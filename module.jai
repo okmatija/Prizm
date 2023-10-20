@@ -1,11 +1,11 @@
 // Based on modules/Iprof, but adapted for the Tracy compiler.
 
-Import_Mode :: enum u8 {
-    METAPROGRAM :: 0;
-    CLIENT      :: 1;
+#module_parameters(IMPORT_MODE := Import_Mode.METAPROGRAM, ENABLED := true) {
+    Import_Mode :: enum u8 {
+        METAPROGRAM :: 0;
+        CLIENT      :: 1;
+    }
 }
-
-#module_parameters(IMPORT_MODE := Import_Mode.METAPROGRAM, ENABLED := true);
 
 
 #if IMPORT_MODE == .METAPROGRAM {
