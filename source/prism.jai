@@ -525,7 +525,7 @@ file_change_callback :: (watcher: *File_Watcher(), change: *File_Change, user_da
 
     found_entity : *Entity;
     for :All entity : app.entities {
-        if entity.source.kind == .Entity_Source_File && get_entity_source(entity).path == change.full_path {
+        if entity.source.kind == ._Entity_Source_File && get_entity_source(entity).path == change.full_path {
             found_entity = entity;
             break entity; // There can only be one relevant entity for each file change
         }

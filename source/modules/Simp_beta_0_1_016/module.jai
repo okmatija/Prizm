@@ -31,14 +31,14 @@
 // outside the line, you probably want to switch to a bigger framework or engine
 // that is much more complicated.
 //
-Render_API :: enum {
-    NONE;
-    SOFTWARE;
-    OPENGL;
-    METAL;
+#module_parameters (render_api := Render_API.OPENGL)() {
+    Render_API :: enum u32 {
+        NONE;
+        SOFTWARE;
+        OPENGL;
+        METAL;
+    }
 }
-
-#module_parameters (render_api := Render_API.OPENGL);
 
 #scope_module
 

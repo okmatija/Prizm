@@ -242,7 +242,7 @@ remove_directory_if_unwatched :: (directory : string) {
     // Check if no other entities will need to watch this directory
     remove_directory := true;
     for :All app.entities {
-        if it.source.kind == .Entity_Source_File && get_directory(get_entity_source(it).path) == directory {
+        if it.source.kind == ._Entity_Source_File && get_directory(get_entity_source(it).path) == directory {
             remove_directory = false;
             break;
         }

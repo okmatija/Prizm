@@ -562,7 +562,7 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     result : *Entity = results[0]; 
 
     // Update the source to be a preset
-    assert(result.source.kind == .Entity_Source_File); // because we loaded a file
+    assert(result.source.kind == ._Entity_Source_File); // because we loaded a file
     free(get_entity_source(result).path);
 
 
