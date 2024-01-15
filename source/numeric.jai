@@ -10,11 +10,11 @@ almost_equal :: (a : Vector3, b : Vector3, epsilon : float = 10 * FLOAT_MACHINE_
     return almost_equal(a.x, b.x) && almost_equal(a.y, b.y) && almost_equal(a.z, b.z);
 }
 
-angle :: (a : Vector3, b : Vector3, normalize : bool = false) -> float {
-    if normalize {
+angle :: (a : Vector3, b : Vector3, do_normalize : bool = false) -> float {
+    if do_normalize {
         // @Cleanup make this #if and use a = normalize(a), currently this looks like a @CompilerBug
-        normalize_or_z_axis(*a);
-        normalize_or_z_axis(*b);
+        normalize(*a, fallback=.{z=1});
+        normalize(*b, fallback=.{z=1});
         // a = normalize(a);
         // b = normalize(b);
     }
@@ -22,7 +22,7 @@ angle :: (a : Vector3, b : Vector3, normalize : bool = false) -> float {
     return 2 * atan2(length(a - b), length(a + b));
 }
 
-angle_unit :: #bake_arguments angle(normalize = false);
+angle_unit :: #bake_arguments angle(do_normalize = false);
 
 cwise_max :: (v : Vector3) -> float, int {
     max_component := v.component[0];
@@ -64,10 +64,6 @@ normalize :: (using v: *Vector2, epsilon := 0, fallback := Vector2.{0, 0}) -> fl
     y *= factor;
 
     return sq;
-} @NoProfile
-
-normalize_or_x_axis :: inline (using v: *Vector2) -> float {
-    return normalize(v, fallback=.{x=1});
 } @NoProfile
 
 Tuple2i :: Tuple2(int);

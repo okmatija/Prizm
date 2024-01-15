@@ -28,7 +28,7 @@ main :: () {
         args := get_command_line_arguments();
         defer array_free(args);
         for 1..args.count-1 {
-            arg : string = to_lower_copy(args[it]);
+            arg : string = to_lower_copy_new(args[it]);
 
             if arg[0] == #char "-" && arg[1] == #char "-" {
                 // @Volatile Sync with :PRIZM_ICON_COLORS
@@ -525,7 +525,7 @@ file_change_callback :: (watcher: *File_Watcher(), change: *File_Change, user_da
 
     found_entity : *Entity;
     for :All entity : app.entities {
-        if entity.source.kind == .Entity_Source_File && get_entity_source(entity).path == change.full_path {
+        if entity.source.kind == ._Entity_Source_File && get_entity_source(entity).path == change.full_path {
             found_entity = entity;
             break entity; // There can only be one relevant entity for each file change
         }

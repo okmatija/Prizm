@@ -20,10 +20,10 @@ Annotation :: struct {
 
 deinit :: (annotation : Annotation) {
     if #complete annotation.value.kind == {
-        case .string;
+        case ._string;
             pointer := cast(*string) annotation.value.bytes.data;
             free(pointer.*);
-        case .float32;
+        case ._float32;
             // do nothing
     }
 }
@@ -32,10 +32,10 @@ deinit :: (annotation : Annotation) {
 to_string :: (annotation : Annotation) -> string {
     // @Think maybe prefix with directive that was annotated??
     if #complete annotation.value.kind == {
-        case .string;
+        case ._string;
             pointer := cast(*string) annotation.value.bytes.data;
             return tprint("%", pointer.*); // necessary??
-        case .float32;
+        case ._float32;
             pointer := cast(*float) annotation.value.bytes.data;
             return tprint("%", pointer.*);
     }

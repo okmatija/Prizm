@@ -3,7 +3,7 @@ transform_ray :: (transform : Matrix4, ray : Ray3) -> Ray3 {
     result.origin = transform_point(transform, ray.origin);
     result.direction = transform_vector(transform, ray.direction);
 
-    check := normalize_or_zero(*result.direction);
+    check := normalize(*result.direction, fallback=.{});
     assert(check != 0);
 
     return result;

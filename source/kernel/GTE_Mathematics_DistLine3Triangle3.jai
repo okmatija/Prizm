@@ -75,7 +75,9 @@ closest_point_line_triangle :: (line : Line3, triangle : Triangle3) -> Closest_P
     while i1 < 3 {
         segCenter : Vector3 = cast(float)0.5 * (triangle.v[i0] + triangle.v[i1]);
         segDirection : Vector3 = triangle.v[i1] - triangle.v[i0];
-        segExtent := cast(float).5 * Normalize(*segDirection);
+        // :NormalizeCompilerBug
+        //segExtent := cast(float).5 * Normalize(*segDirection);
+        segExtent := cast(float).5 * normalize(*segDirection);
         segment : Segment3 = SetCenteredForm(segCenter, segDirection, segExtent);
 
         lsResult : Closest_Point_Line_Segment = closest_point_line_segment(line, segment);

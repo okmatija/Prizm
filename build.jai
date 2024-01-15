@@ -10,7 +10,7 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prizm";
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.071, built on 10 July 2023";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.082, built on 14 January 2024";
 
 build :: () {
 

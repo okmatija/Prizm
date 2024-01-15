@@ -499,7 +499,7 @@ CheckShader :: (handle : GLuint, desc : *u8) -> bool
         defer array_reset(*buf);
         array_resize(*buf, log_length + 1);
         glGetShaderInfoLog(handle, xx log_length, null, buf.data);
-        print("%\n", to_string(buf));
+        print("%\n", cast(string)buf);
     }
     return xx status == GL_TRUE;
 }
@@ -519,7 +519,7 @@ CheckProgram :: (handle : GLuint, desc : *u8) -> bool
         defer array_reset(*buf);
         array_resize(*buf, log_length + 1);
         glGetProgramInfoLog(handle, xx log_length, null, buf.data);
-        print("%\n", to_string(buf));
+        print("%\n", cast(string)buf);
     }
     return xx status == GL_TRUE;
 }

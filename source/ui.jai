@@ -518,8 +518,8 @@ show_pending_directories_ui :: () {
                 specs.count = sort_specs.SpecsCount;
                 for spec : specs { // @CompilerBug Should using work on a for loop?
                     // @Cleanup Use a enum id here, ImGui has support for it
-                    direction := spec.SortDirection_;
-                    if spec.SortDirection_ == .Ascending {
+                    direction := spec.SortDirection;
+                    if spec.SortDirection == cast(u8)ImGui.SortDirection.Ascending {
                         if spec.ColumnIndex == {
                             case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
                             case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
@@ -1399,7 +1399,7 @@ show_cpp_api_ui :: () {
             // }
 
             modify :: (include : *string, line : string) {
-                include.* = join(include.*, line, allocator=temp);
+                include.* = join(include.*, line,, temp);
             }
 
             // Warning! Do not change this code without CAREFUL testing! e.g., Prizm_Unreal.h is mutually exclusive with Prizm.h!
@@ -1895,8 +1895,8 @@ show_help_about_content :: () {
         // ImGui.TableNextColumn();
 
         COMPILER_VERSION :: #run stop_at_any(compiler_get_version_info(null), ",");
-        ImGui.Text("Prizm, MIT (github.com/EpicMatijaKecman/Prism)", to_string(ImGui.GetVersion()));
         ImGui.Text("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION);
+        ImGui.Text("Prism, MIT (github.com/EpicMatijaKecman/Prism)");
         ImGui.Text("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch);
         ImGui.Text("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()));
         ImGui.Text("Geometric Tools, BSL 1.0 (github.com/davideberly/GeometricTools)");
@@ -2182,7 +2182,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                         specs.count = sort_specs.SpecsCount;
                         for spec : specs { // @CompilerBug Should using work on a for loop?
                             // @Cleanup Use a enum id here, ImGui has support for it
-                            if spec.SortDirection_ == .Ascending {
+                            if spec.SortDirection == cast(u8)ImGui.SortDirection.Ascending {
                                 if spec.ColumnIndex == {
                                     case 1; quick_sort(annotations, (a,b) => (compare_annotation_ids(a,b)));
                                     case 3; quick_sort(annotations, (a,b) => (compare_annotation_values(a, b)));
@@ -2756,16 +2756,16 @@ display_action_buttons := true;
 
 entity_source_tooltip :: (entity : Entity) {
     if #complete entity.source.kind == {
-        case .Entity_Source_File;
+        case ._Entity_Source_File;
             source := isa(entity.source, Entity_Source_File); assert(source != null); // @CompilerBug Why assert(source) does not work?
             show_tooltip(tprint("File:    %\nCreated: %", source.path, filetime_to_readable_date(source.creation_time)));
-        case .Entity_Source_Command;
+        case ._Entity_Source_Command;
             source := isa(entity.source, Entity_Source_Command); assert(source != null);
             show_tooltip(tprint("Command: %\nCreated: %", source.console_command, filetime_to_readable_date(source.creation_time)));
-        case .Entity_Source_Preset;
+        case ._Entity_Source_Preset;
             source := isa(entity.source, Entity_Source_Preset); assert(source != null);
             show_tooltip(tprint("Example shape\nCreated: %", filetime_to_readable_date(source.creation_time)));
-        case .Entity_Source_Selection;
+        case ._Entity_Source_Selection;
             source := isa(entity.source, Entity_Source_Selection); assert(source != null);
             show_tooltip(tprint("Selection\nCreated: %", filetime_to_readable_date(source.creation_time)));
     }

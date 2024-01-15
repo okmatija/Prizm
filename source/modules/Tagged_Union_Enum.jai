@@ -18,7 +18,7 @@ Tagged_Union :: struct (value_types: .. Type) {
         // Generate Kind which is an enum corresponding to the value_types
         print_to_builder(*builder, "Kind :: enum #specified {\n");
         for value_types {
-            print_to_builder(*builder, "    % :: %;\n", type_to_string(cast(*Type_Info)it), it_index);
+            print_to_builder(*builder, "    _% :: %;\n", type_to_string(cast(*Type_Info)it), it_index);
         }
         print_to_builder(*builder, "}\n");
         print_to_builder(*builder, "kind : Kind;\n\n");

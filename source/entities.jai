@@ -135,11 +135,11 @@ deinit :: (using entity : *Entity) {
 
     free(get_entity_source(entity).path);
     if #complete source.kind == {
-        case .Entity_Source_File;      #through;
-        case .Entity_Source_Preset;    #through;
-        case .Entity_Source_Selection;
+        case ._Entity_Source_File;      #through;
+        case ._Entity_Source_Preset;    #through;
+        case ._Entity_Source_Selection;
             // Do nothing
-        case .Entity_Source_Command;
+        case ._Entity_Source_Command;
             source := isa(entity.source, Entity_Source_Command);
             free(source.console_command);
     }
@@ -218,7 +218,7 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
 
 is_changed_on_disk :: (entity : Entity) -> bool {
     changed := false;
-    if entity.source.kind == .Entity_Source_File {
+    if entity.source.kind == ._Entity_Source_File {
         source := isa(entity.source, Entity_Source_File);
         assert(source != null);
         modtime, size, ok := file_modtime_and_size(source.path);
@@ -1084,11 +1084,11 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
 
     // @Volatile Keep this in sync with the auto_reload checkboxes in the item Display tab
     if #complete entity.source.kind == {
-        case .Entity_Source_Selection;
+        case ._Entity_Source_Selection;
 
             return false;
 
-        case .Entity_Source_File;
+        case ._Entity_Source_File;
 
             // @Cleanup This code is in the wrong place?
             enable_reload_shortcut :: (entity : Entity) -> bool {
@@ -1121,7 +1121,7 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
                 return true;
             }
 
-        case .Entity_Source_Preset;
+        case ._Entity_Source_Preset;
 
             #if false {
                 entity_source := isa(entity.source, Entity_Source_Preset);
@@ -1142,7 +1142,7 @@ reload_entity :: (entity : *Entity, triggered_by_button := false) -> did_reload 
                 return false;
             }
 
-        case .Entity_Source_Command;
+        case ._Entity_Source_Command;
 
             source := isa(entity.source, Entity_Source_Command);
             assert(source != null);
@@ -1273,10 +1273,10 @@ get_entity_source :: (entity : Entity) -> *Entity_Source {
 
 get_entity_source_description :: (entity : Entity) -> string {
     if #complete entity.source.kind == {
-        case .Entity_Source_File; return "file";
-        case .Entity_Source_Preset; return "preset/example shape";
-        case .Entity_Source_Command; return "console command";
-        case .Entity_Source_Selection; return "selection";
+        case ._Entity_Source_File; return "file";
+        case ._Entity_Source_Preset; return "preset/example shape";
+        case ._Entity_Source_Command; return "console command";
+        case ._Entity_Source_Selection; return "selection";
     }
     return "";
 }

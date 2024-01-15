@@ -378,7 +378,7 @@ fit_sphere_on_screen :: (sphere_world : Sphere) {
     app.camera.scene_bounding_sphere = sphere_world;
     buffer_factor := 0.0; // Maybe this should be more than 0?
 
-    look_direction := normalize_or_z_axis(current_look_direction());
+    look_direction := normalize(current_look_direction(), fallback=.{z=1});
     app.camera.look_position = sphere_world.center;
     app.camera.eye_position  = sphere_world.center - sphere_world.radius * look_direction;
     app.camera.far    = (2. + buffer_factor) * sphere_world.radius;
@@ -419,8 +419,8 @@ camera_clamp_orthographic_view_planes :: ()
 
 // @Cleanup use Math.make_look_at_matrix here
 make_look_at_matrix :: (using camera : Camera) -> Matrix4 #must {
-    f := normalize_or_z_axis(look_position - eye_position);
-    s := normalize_or_z_axis(cross(f, up_direction));
+    f := normalize(look_position - eye_position, fallback=.{z=1});
+    s := normalize(cross(f, up_direction), fallback=.{z=1});
     u := cross(s, f);
 
     m := Matrix4_Identity;
@@ -481,7 +481,7 @@ make_camera_ray :: () -> Ray3 {
     ray : Ray3 = ---;
     ray.origin = (transform * make_vector4(to_ndc(make_Vector2(io().MousePos)), -1., 1.)).xyz;
     ray.direction = (inverse_transpose * make_vector4(0., 0., 1., 0.)).xyz;
-    check := normalize_or_z_axis(*ray.direction);
+    check := normalize(*ray.direction, fallback=.{z=1});
     //assert(check != 0.); // @Robustness: handle this error
 
     return ray;

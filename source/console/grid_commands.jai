@@ -7,8 +7,8 @@
 make_Grid_on_near_plane :: (spacing : float, restricted : int=1) {
     frame : Frame = ---;
     {
-        forward := normalize_or_z_axis(app.camera.look_position - app.camera.eye_position);
-        right := normalize_or_z_axis(cross(forward, app.camera.up_direction));
+        forward := normalize(app.camera.look_position - app.camera.eye_position, fallback=.{z=1});
+        right := normalize(cross(forward, app.camera.up_direction), fallback=.{z=1});
         up := cross(right, forward);
         frame = make_Frame(right, up);
     }
@@ -31,8 +31,8 @@ make_Grid_on_near_plane :: (spacing : float, restricted : int=1) {
 make_Grid_on_far_plane :: (spacing : float, restricted : int=1) {
     frame : Frame = ---;
     {
-        forward := normalize_or_z_axis(app.camera.look_position - app.camera.eye_position);
-        right := normalize_or_z_axis(cross(forward, app.camera.up_direction));
+        forward := normalize(app.camera.look_position - app.camera.eye_position, fallback=.{z=1});
+        right := normalize(cross(forward, app.camera.up_direction), fallback=.{z=1});
         up := cross(right, forward);
         frame = make_Frame(right, up);
     }

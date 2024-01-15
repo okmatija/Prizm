@@ -1091,13 +1091,13 @@ item_perturb_positions :: (id : int, radius : float = .001) {
 
     Perturb2 :: (point : *Vector2) #expand {
         delta := make_vector2(Rand(), Rand());
-        normalize_or_x_axis(*delta);
+        normalize(*delta, fallback=.{x=1});
         point.* = point.* + delta * radius;
     }
 
     Perturb3 :: (point : *Vector3) #expand {
         delta := make_vector3(Rand(), Rand(), Rand());
-        normalize_or_z_axis(*delta);
+        normalize(*delta, fallback=.{z=1});
         point.* = point.* + delta * radius;
     }
 
