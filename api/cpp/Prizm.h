@@ -1,5 +1,5 @@
-#ifndef PRISM_API
-#define PRISM_API
+#ifndef PRIZM_API
+#define PRIZM_API
 
 #include <fstream>
 #include <iomanip>
@@ -13,9 +13,9 @@
 #include <iostream> // std::cout
 #include <cmath> // std::max, std::min
 
-namespace Prism {
+namespace Prizm {
 
-// A 2D vector type. Use PRISM_VEC2_CLASS_EXTRA to define additional constructors and implicit casts to your types
+// A 2D vector type. Use PRIZM_VEC2_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec2 {
     union { struct { T x, y; }; T xy[2]; };
@@ -25,8 +25,8 @@ struct Vec2 {
 
     template <typename T> friend std::ostream& operator<<(std::ostream& os, const Vec2<T>& v);
 
-#ifdef PRISM_VEC2_CLASS_EXTRA
-    PRISM_VEC2_CLASS_EXTRA
+#ifdef PRIZM_VEC2_CLASS_EXTRA
+    PRIZM_VEC2_CLASS_EXTRA
 #endif
 };
 
@@ -35,7 +35,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec2<T>& 
     return os;
 }
 
-// A 3D vector type. Use PRISM_VEC3_CLASS_EXTRA to define additional constructors and implicit casts to your types
+// A 3D vector type. Use PRIZM_VEC3_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec3 {
     union { struct { T x, y, z; }; T xyz[3]; };
@@ -45,8 +45,8 @@ struct Vec3 {
 
     template <typename T> friend std::ostream& operator<<(std::ostream& os, const Vec3<T>& v);
 
-#ifdef PRISM_VEC3_CLASS_EXTRA
-    PRISM_VEC3_CLASS_EXTRA
+#ifdef PRIZM_VEC3_CLASS_EXTRA
+    PRIZM_VEC3_CLASS_EXTRA
 #endif
 };
 
@@ -55,7 +55,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec3<T>& 
     return os;
 }
 
-// A 4D vector type. Use PRISM_VEC4_CLASS_EXTRA to define additional constructors and implicit casts to your types
+// A 4D vector type. Use PRIZM_VEC4_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec4 {
     union { struct { T x, y, z, w; }; T xyzw[4]; };
@@ -65,8 +65,8 @@ struct Vec4 {
 
     template <typename T> friend std::ostream& operator<<(std::ostream& os, const Vec4<T>& v);
 
-#ifdef PRISM_VEC4_CLASS_EXTRA
-    PRISM_VEC4_CLASS_EXTRA
+#ifdef PRIZM_VEC4_CLASS_EXTRA
+    PRIZM_VEC4_CLASS_EXTRA
 #endif
 };
 
@@ -75,7 +75,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec4<T>& 
     return os;
 }
 
-// A linear color type. Use PRISM_COLOR_CLASS_EXTRA to define additional constructors and implicit casts to your types
+// A linear color type. Use PRIZM_COLOR_CLASS_EXTRA to define additional constructors and implicit casts to your types
 struct Color {
     union { struct { uint8_t r, g, b, a; }; uint8_t rgba[4]; };
 
@@ -84,8 +84,8 @@ struct Color {
 
     friend std::ostream& operator<<(std::ostream& os, const Color& v);
 
-#ifdef PRISM_COLOR_CLASS_EXTRA
-    PRISM_COLOR_CLASS_EXTRA
+#ifdef PRIZM_COLOR_CLASS_EXTRA
+    PRIZM_COLOR_CLASS_EXTRA
 #endif
 };
 
@@ -120,15 +120,15 @@ const Color YELLOW{255, 255, 0, 255};
 bool documentation(bool write_files = false);
 
 //
-// Writes obj files and Prism-specific extensions.
+// Writes obj files and Prizm-specific extensions.
 //
 // See the documentation() function for a demo of the api, athough it should be self-explanatory.
 //
 // The following page was the reference for the .obj format: http://paulbourke.net/dataformats/obj/
-// (not everything on that page is implemented). Note Prism-specific extensions are designed so that
+// (not everything on that page is implemented). Note Prizm-specific extensions are designed so that
 // .obj files containing such extensions will always open in other obj viewers.
 //
-// You can extend this class by defining a PRISM_OBJ_CLASS_EXTRA macro, this is mostly useful if
+// You can extend this class by defining a PRIZM_OBJ_CLASS_EXTRA macro, this is mostly useful if
 // you want to add functions chain calls (i.e., obj.function1().function2()). If you don't care
 // about this you can make a regular function
 //
@@ -141,10 +141,10 @@ struct Obj {
     // Current contents of the .obj file
     std::stringstream obj;
 
-    // Number of hash characters on the current line, these are significant for Prism:
+    // Number of hash characters on the current line, these are significant for Prizm:
     // 0 hash characters => writing geometry
-    // 1 hash character  => writing an annotation. Prism stores the text between the first hash and a newline/second hash as an annotation
-    // 2 hash characters => writing a comment. Prism ignores everything following the second hash character on a line
+    // 1 hash character  => writing an annotation. Prizm stores the text between the first hash and a newline/second hash as an annotation
+    // 2 hash characters => writing a comment. Prizm ignores everything following the second hash character on a line
     unsigned hash_count = 0;
 
     // Number of v-directives written to `obj`
@@ -160,8 +160,8 @@ struct Obj {
     // If false then the the above counts will be used to use positive indices when referring to vertex data.
     //
     // Using negative indices is the default because it means the Obj can be concatenated with other Objs (which
-    // must also be using negative indices) to write a single file (see Prism::Obj::append). The downsides of doing
-    // this is are i) the obj file may not load in viewers other than Prism since negative indices seem not to be
+    // must also be using negative indices) to write a single file (see Prizm::Obj::append). The downsides of doing
+    // this is are i) the obj file may not load in viewers other than Prizm since negative indices seem not to be
     // well supported, and ii) triangles are written as a disconnected soup which increases file size due to
     // duplicated vertex data
     bool use_negative_indices = true;
@@ -173,7 +173,7 @@ struct Obj {
     //
 
     // Constructor. By default write with enough precision to round-trip from float64 to decimal and back
-    // Note: Prism currently stores mesh data using float32, we will move to float64 so we can show coordinate labels at full precision
+    // Note: Prizm currently stores mesh data using float32, we will move to float64 so we can show coordinate labels at full precision
     Obj() {
         set_precision();
     }
@@ -211,7 +211,7 @@ struct Obj {
     //
     // Tip: Use format string "%05d" to write an int padded with zeros to width 5. This is useful for logging the
     // progress of an algorithm, you will also need to use the same prefix and you may need to run the
-    // `sort_by_name` console command in Prism to put the item list into a state where you can use Ctrl LMB or
+    // `sort_by_name` console command in Prizm to put the item list into a state where you can use Ctrl LMB or
     // Shift LMB while sweeping the cursor over the visibility checkboxes to create a progress animation.
     Obj& write(std::string filename) {
         std::ofstream file;
@@ -267,7 +267,7 @@ struct Obj {
     }
 
     // Add a group directive on the current line
-    // Note: Currently Prism ignores these
+    // Note: Currently Prizm ignores these
     Obj& g() {
         return newline().add('g');
     }
@@ -315,7 +315,7 @@ struct Obj {
     //
     // Annotations.
     //
-    // In Prism the text between the first hash and a newline or second hash is an 'annotation string' and can be shown in the viewport.
+    // In Prizm the text between the first hash and a newline or second hash is an 'annotation string' and can be shown in the viewport.
 
     // Start an annotation: If there is no hash character on the current line add one, otherwise do nothing
     Obj& annotation() {
@@ -338,7 +338,7 @@ struct Obj {
     //
     // Comments.
     //
-    // In Prism any text that follows the second # on a line is ignored
+    // In Prizm any text that follows the second # on a line is ignored
     //
 
     // Ensure there are two hash characters on the current line
@@ -819,11 +819,11 @@ struct Obj {
     // Attributes.
     //
     // Attributes are special annotions which are intended to encode numerical data types/colors in annotation strings
-    // by prefixing them with an @ character.  In a future version of Prism there will be function to parse the encoded
+    // by prefixing them with an @ character.  In a future version of Prizm there will be function to parse the encoded
     // data in order to display or process them specially. Multiple distinct data types placed on the same geometry
     // element will be supported and the @ character will be used parse them.  Even before this is implemented you might
     // still prefer to use attributes to annotations if you find having the @ prefix helps you read your annotations
-    // strings more clearly. See Prism::documentation() for more details.
+    // strings more clearly. See Prizm::documentation() for more details.
     //
 
     // Start an attribute: Start an annotation string if needed, then add an @ to introduce a new attribute
@@ -845,23 +845,23 @@ struct Obj {
     // Command Annotations.
     //
     // Command Annotations are special annotations which start with #! on a newline (this syntax is inspired by the
-    // "hashbang" character sequence used to introduce an interpreter directive on Unix) and allow you specify Prism
+    // "hashbang" character sequence used to introduce an interpreter directive on Unix) and allow you specify Prizm
     // console commands, with arguments, which should be executed immediately after an the obj file has been loaded.
     // Command annotations provide a convenient way to configure the item display settings and save you a few clicks.
     // For example, if you know you want to look annotations you can call `set_annotation_label_visible(true)` to add
     // a command annotation which will enable annotation visibility after the file is loaded (annotation labelling is
     // off by default). Note: You can call these functions whenever you like, the command will be written to this->obj
-    // at the point you call them but Prism will defer execution until the entire file has been parsed.
+    // at the point you call them but Prizm will defer execution until the entire file has been parsed.
     //
     // (Advanced Note) If you look at the output obj file you will notice that command annotations which configure
-    // item state start with a 0, this is a Prism item index.  The Prism application has a global array of items
+    // item state start with a 0, this is a Prizm item index.  The Prizm application has a global array of items
     // (aka meshes) and the index into this list is often used as the first argument in console commands. When console
     // commands are executed by the function which load .obj files as command annotations a _local_ array of items is
     // created, the item with local index 0 is the item with geometry given in the .obj, if a console command which has
     // a side effect of generating a new item is executed as a command annotation then this item will have index >0 and
     // you can pass that value (e.g., to the `item_command` function) to run a console command on one of these
     // generated items which are not explicitly in the .obj file.  Note: This complexity is intentionally avoided in
-    // the Prism::Obj command annotation API, so the functions below are hardcoded to work with item 0 only, but you
+    // the Prizm::Obj command annotation API, so the functions below are hardcoded to work with item 0 only, but you
     // can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command" on the
     // item with index 1.
     //
@@ -871,7 +871,7 @@ struct Obj {
         return newline().hash().bang().insert(command_name);
     }
 
-    // Start a command annotation whose first argument is a Prism item index (See the Advanced Note above)
+    // Start a command annotation whose first argument is a Prizm item index (See the Advanced Note above)
     Obj& item_command(const std::string& command_name, int item_index = 0) {
         return command(command_name).insert(item_index);
     }
@@ -889,7 +889,7 @@ struct Obj {
     }
 
     // Set scale of all annotation text
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4.
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4.
     // TODO :FixScaleParameter The scale parameter is weird, use size in pixels instead
     Obj& set_annotations_scale(float scale) {
         return item_command("set_annotations_scale").insert(scale);
@@ -922,7 +922,7 @@ struct Obj {
     }
 
     // Set scale of vertex index/position labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4 (see :FixScaleParameter)
     Obj& set_vertex_label_scale(float scale) {
         return item_command("set_vertex_label_scale").insert(scale);
     }
@@ -951,7 +951,7 @@ struct Obj {
     }
 
     // Set scale of point index labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4 (see :FixScaleParameter)
     // Note: set_vertex_label_scale is probably the function you want!
     Obj& set_point_label_scale(float scale) {
         return item_command("set_point_label_scale").insert(scale);
@@ -979,7 +979,7 @@ struct Obj {
     }
 
     // Set scale of segment index labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4 (see :FixScaleParameter)
     Obj& set_segment_label_scale(float scale) {
         return item_command("set_segment_label_scale").insert(scale);
     }
@@ -1006,7 +1006,7 @@ struct Obj {
     }
 
     // Set scale of triangle index labels
-    // The scale parameter is a float in the range [0.2, 1.0], by default Prism uses 0.4 (see :FixScaleParameter)
+    // The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4 (see :FixScaleParameter)
     Obj& set_triangle_label_scale(float scale) {
         return item_command("set_triangle_label_scale").insert(scale);
     }
@@ -1176,8 +1176,8 @@ struct Obj {
     // User-provided extension methods
     //
 
-#ifdef PRISM_OBJ_CLASS_EXTRA
-    PRISM_OBJ_CLASS_EXTRA
+#ifdef PRIZM_OBJ_CLASS_EXTRA
+    PRIZM_OBJ_CLASS_EXTRA
 #endif
 };
 
@@ -1211,13 +1211,13 @@ bool documentation(bool write_files) {
     // This block illustrates most of the API
     {
         // Access Obj struct and typedefs. This isn't strictly necessary here but its likely you'll want it in user code
-        using namespace Prism;
+        using namespace Prizm;
 
         Obj obj;
 
         // First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
         // the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment.
-        obj.comment("This file tests the Prism C++ API");
+        obj.comment("This file tests the Prizm C++ API");
 
         // Now we'll write 3 vertices and a triangle element in a very verbose way. Note that most functions in the
         // `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your debugging code
@@ -1232,7 +1232,7 @@ bool documentation(bool write_files) {
         obj.triangle3(V3{0., 0., 2.}, V3{3., 0., 2.}, V3{3., 3., 2.}).annotation("Triangle ABC");
 
         // The triangle element and vertex positions we just added to the obj all have _Annotation_ strings associated
-        // with them. These strings can be visualized in Prism by turning on annotation labelling.  The annotations are
+        // with them. These strings can be visualized in Prizm by turning on annotation labelling.  The annotations are
         // written to the obj file using obj comment syntax which means that adding them doesn't prevent the geometry
         // loading in a different obj viewer (but, of course, in a different viewer you won't be able to see the
         // annotations). Note we need to use the verbose version we want to annotate the vertices.
@@ -1294,21 +1294,21 @@ bool documentation(bool write_files) {
         }
         obj.box2_min_max(star_min, star_max).annotation("star bounding box");
 
-        // So far we've only had one annotation per geometric entity (vertex/element), this is because Prism
+        // So far we've only had one annotation per geometric entity (vertex/element), this is because Prizm
         // represents annotations with a single string and there are no plans to change this. If you call the
         // annotation function more than once per line each call concatenates into a single annotation string
         obj.point2(V2{4., 7.}).annotation("these").annotation("are").annotation("concatenated");
 
         // In some cases it can be useful attach more one or pieces of typed numerical data to the each geometric
         // entity of a mesh e.g., a scalar cost of a triangle edge collapse or a vertex displacement in a finite
-        // element mesh.  A future version of Prism will support this by adding _Attributes_ to its internal mesh
+        // element mesh.  A future version of Prizm will support this by adding _Attributes_ to its internal mesh
         // datastructure along with UI for inspecting and rendering them.  The current plan for attributes is that
         // they will be set by parsing and extracting data stored in the annotation strings.  This extraction step
         // will require users to execute a console command explicity or by adding a _Command Annotation_ to the
         // obj file (command annotations are explained later but they are essentially console commands executed by
-        // the obj file).  In order to facilitate this parsing Prism will assume attributes are prefixed by an @
+        // the obj file).  In order to facilitate this parsing Prizm will assume attributes are prefixed by an @
         // and as part of the attribute extraction the relevant portion of the annotation string will be trimmed.
-        // After extraction, the data structure you can inspect in Prism will have typed attributes as well as
+        // After extraction, the data structure you can inspect in Prizm will have typed attributes as well as
         // annotations corresponding to the part of the raw in-file annotation strings before the first @.
         //
         // Although there is no special rendering/UI for attributes yet (you can only view attributes as the raw
@@ -1317,20 +1317,20 @@ bool documentation(bool write_files) {
         // example of point with an annotation and two attributes of different types. Note the attribute function
         // supports any type which defines an operator<<. Actually, the annotation function in this API also
         // supports writing non-string data using operator<< but this is just for convenience; rendering/UI support
-        // for annotations in Prism is built around the assumption that they contain only string data).
+        // for annotations in Prizm is built around the assumption that they contain only string data).
         obj.point2(V2{3., 3.}).annotation("some string").attribute(42).attribute(V2{0.,0.});
 
         // Add some blank space to clearly separate obj geometry from the command annotations to come.
         obj.newline(3);
 
-        // Next we'll demonstrate how you can configure how Prism displays the obj file when it is loaded by writing
+        // Next we'll demonstrate how you can configure how Prizm displays the obj file when it is loaded by writing
         // command annotations to the obj file.
         obj.comment("Command Annotations:");
 
-        // Configuring how Prism displays the obj file is handy because, depending on your debugging use-case, you
+        // Configuring how Prizm displays the obj file is handy because, depending on your debugging use-case, you
         // will want to see different things.  You could configure the display settings you want by clicking around
         // in the UI, or by calling the relevant console commands after the file is loaded but this can be slow or
-        // annoying so to save you having to do this manually Prism's command annotation facility enables you to
+        // annoying so to save you having to do this manually Prizm's command annotation facility enables you to
         // execute console commands immediately after the file is loaded.
         //
         // For the obj we have been creating so far we are probably only interested in seeing the annotations we added,
@@ -1386,7 +1386,7 @@ bool documentation(bool write_files) {
         // convenient when working in Unreal because I can never remember the directory the Editor is running in.
         // obj.write("C:/path/to/my/debug/folder/debug_file.obj");
 
-        std::string output = R"DONE(## This file tests the Prism C++ API
+        std::string output = R"DONE(## This file tests the Prizm C++ API
 v 0 0 1 # Vertex A
 v 3 0 1 # Vertex B
 v 3 3 1 # Vertex C
@@ -1465,7 +1465,7 @@ p -1 # some string @ 42 @ 0 0
 
         // Since this` documentation` function you are reading is used for testing we actually call the `to_std_string`
         // function here to generate a string to compare with `output`
-        if (!test("prism_documentation_ex1.obj", obj.to_std_string(), output)) {
+        if (!test("prizm_documentation_ex1.obj", obj.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1497,7 +1497,7 @@ v 1 2 3
 p -1
 )DONE";
 
-        if (!test("prism_documentation_ex2.obj", first.to_std_string(), output)) {
+        if (!test("prizm_documentation_ex2.obj", first.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1520,7 +1520,7 @@ l 1 2
 v 1 2 3
 p 3)DONE";
 
-        if (!test("prism_documentation_ex3.obj", obj.to_std_string(), output)) {
+        if (!test("prizm_documentation_ex3.obj", obj.to_std_string(), output)) {
             tests_pass = false;
         }
     }
@@ -1534,7 +1534,7 @@ p 3)DONE";
     {
         // We don't test this function to keep everything on a single line
         if (write_files) {
-            std::string filename = "prism_documentation_ex4.obj";
+            std::string filename = "prizm_documentation_ex4.obj";
             Obj().triangle2(V2{0., 0.}, V2{1., 0.}, V2{1., 1.}).annotation("triangle").point2(V2{3., 3.}).annotation("point").write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }
@@ -1558,7 +1558,7 @@ p 3)DONE";
 
         // We don't test this function because the __LINE__ macro makes it brittle
         if (write_files) {
-            std::string filename = "prism_documentation_ex5.obj";
+            std::string filename = "prizm_documentation_ex5.obj";
             obj.write(filename);
             std::cout << "Wrote " << filename << std::endl;
         }
@@ -1567,34 +1567,34 @@ p 3)DONE";
     return tests_pass;
 }
 
-#ifdef PRISM_VEC2_CLASS_EXTRA
-#undef PRISM_VEC2_CLASS_EXTRA
+#ifdef PRIZM_VEC2_CLASS_EXTRA
+#undef PRIZM_VEC2_CLASS_EXTRA
 #endif
 
-#ifdef PRISM_VEC3_CLASS_EXTRA
-#undef PRISM_VEC3_CLASS_EXTRA
+#ifdef PRIZM_VEC3_CLASS_EXTRA
+#undef PRIZM_VEC3_CLASS_EXTRA
 #endif
 
-#ifdef PRISM_VEC4_CLASS_EXTRA
-#undef PRISM_VEC4_CLASS_EXTRA
+#ifdef PRIZM_VEC4_CLASS_EXTRA
+#undef PRIZM_VEC4_CLASS_EXTRA
 #endif
 
-#ifdef PRISM_COLOR_CLASS_EXTRA
-#undef PRISM_COLOR_CLASS_EXTRA
+#ifdef PRIZM_COLOR_CLASS_EXTRA
+#undef PRIZM_COLOR_CLASS_EXTRA
 #endif
 
-#ifdef PRISM_OBJ_CLASS_EXTRA
-#undef PRISM_OBJ_CLASS_EXTRA
+#ifdef PRIZM_OBJ_CLASS_EXTRA
+#undef PRIZM_OBJ_CLASS_EXTRA
 #endif
 
-} // namespace Prism
+} // namespace Prizm
 
-#ifdef PRISM_API_IMPLEMENTATION
+#ifdef PRIZM_API_IMPLEMENTATION
 
 #define PAR_SHAPES_IMPLEMENTATION
 #include "ThirdParty/par_shapes.h" // par_shapes_create_parametric_sphere
 
-namespace Prism {
+namespace Prizm {
 
 Obj& Obj::sphere3(V3f center, float radius, int slices, int stacks) {
     int use_slices = std::max(3, slices);
@@ -1625,8 +1625,8 @@ Obj& Obj::sphere3(V3f center, float radius, int slices, int stacks) {
 //     return *this;
 // }
 
-} // namespace Prism
+} // namespace Prizm
 
-#endif // PRISM_API_IMPLEMENTATION
+#endif // PRIZM_API_IMPLEMENTATION
 
-#endif // PRISM_API
+#endif // PRIZM_API

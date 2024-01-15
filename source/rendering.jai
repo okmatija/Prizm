@@ -537,7 +537,7 @@ render_mesh_segment_normals :: (
     using display_info : Display_Info) {
 
     // @CompilerBug Add a return here and observe a compilation failure with message:
-    // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prism/.build/Prism_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
+    // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prizm/.build/Prizm_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
 
     if !mesh.segments.count return;
     if !segment_style.normal_style.visible return;

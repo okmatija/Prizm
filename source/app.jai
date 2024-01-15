@@ -12,7 +12,7 @@ App :: struct {
 
     simp_font: *Simp.Dynamic_Font;
 
-    theme : Prism_Theme;
+    theme : Prizm_Theme;
 
     Folder :: struct {
         path : string; // owned
@@ -357,14 +357,14 @@ clamp_user_settings :: ()
     clamp(*closest_point_query_max_dist_px, 0, 100);
 }
 
-set_prism_theme :: (theme : Prism_Color_Theme) {
+set_prizm_theme :: (theme : Prizm_Color_Theme) {
     if #complete theme == {
         case .DARK;
             ImGui.StyleColorsDark();
-            app.theme = Prism_Theme_Dark.{};
+            app.theme = Prizm_Theme_Dark.{};
         case .LIGHT;
             ImGui.StyleColorsLight();
-            app.theme = Prism_Theme_Light.{};
+            app.theme = Prizm_Theme_Light.{};
     }
 
     ImGui.GetStyle().WindowRounding = 4;
@@ -403,7 +403,7 @@ ImGui :: #import "ImGui";
 #import "Windows_Utf8";
 }
 
-// Prism modules
+// Prizm modules
 Simp :: #import "Simp_beta_0_1_016";
 #import "SDL_beta_0_1_071"; // @Cleanupp Make this SDL :: 
 // #import "Tagged_Union_Enum"(DEBUG=true);

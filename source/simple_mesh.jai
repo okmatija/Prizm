@@ -505,7 +505,7 @@ find_or_add_point_normals_attribute :: (mesh : *Simple_Mesh) -> *Simple_Mesh_Poi
 // @Cleanup remove the _hack postfix
 
 /* @CompilerBug
-    E:/Dropbox/Prism/source/mesh.jai:82,66: Error: Internal compiler error: In #bake, we should be guaranteed to find an entry by this name, but we didn't.
+    E:/Dropbox/Prizm/source/mesh.jai:82,66: Error: Internal compiler error: In #bake, we should be guaranteed to find an entry by this name, but we didn't.
     
         get_point_bake_arguments_proc :: #procedure_of_call get_point(Mesh.{}, 0, false);
         get_point_model :: #bake_arguments get_point_bake_arguments_proc(world_space=false);

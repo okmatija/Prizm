@@ -16,7 +16,7 @@ build_gui :: (
     } else if chosen_console_commands {
         task = "Configure Console Commands";
     }
-    window := SDL_CreateWindow(temp_c_string(tprint("Prism Builder: %", task)), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+    window := SDL_CreateWindow(temp_c_string(tprint("Prizm Builder: %", task)), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if window == null {
         print("Could not create window: %\n", to_string(SDL_GetError()));
         return;

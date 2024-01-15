@@ -1,9 +1,9 @@
-//>>>>> Start Prism additions
+//>>>>> Start Prizm additions // @Cleanup Merge these into the par_shapes.h upstream repo
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #pragma warning(disable: 4456)
 #pragma warning(disable: 4244)
-//<<<<< End Prism additions
+//<<<<< End Prizm additions
 
 
 // SHAPES :: https://github.com/prideout/par
@@ -2160,6 +2160,6 @@ void par_shapes_remove_degenerate(par_shapes_mesh* mesh, float mintriarea)
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//>>>>> Start Prism additions
+//>>>>> Start Prizm additions
 #pragma warning(pop)
-//<<<<< End Prism additions
+//<<<<< End Prizm additions

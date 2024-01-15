@@ -7,7 +7,7 @@
 CHANGELOG.md
 LOG.txt
 
-# Ignore prism session persistence files
+# Ignore Prizm session persistence files
 console_history.txt
 
 # Ignore the shapes folder which should not be version controlled

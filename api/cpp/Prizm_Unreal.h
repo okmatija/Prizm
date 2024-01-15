@@ -1,22 +1,22 @@
 // This file uses Unreal Engine 5.0 coding standards https://docs.unrealengine.com/5.0/en-US/epic-cplusplus-coding-standard-for-unreal-engine/
 
-#ifndef PRISM_UNREAL_API
-#define PRISM_UNREAL_API
+#ifndef PRIZM_UNREAL_API
+#define PRIZM_UNREAL_API
 
 #include <CoreMinimal.h> // FString
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+#ifndef PRIZM_UNREAL_API_EXCLUDE_ENGINE_MODULE
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "StaticMeshResources.h"
 #include "Rendering/PositionVertexBuffer.h"
-#endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+#endif // PRIZM_UNREAL_API_EXCLUDE_ENGINE_MODULE
 
-// We use excluding defines like to have everything in one file, which means that we can change the PRISM_VECX_CLASS_EXTRA macros
+// We use excluding defines like to have everything in one file, which means that we can change the PRIZM_VECX_CLASS_EXTRA macros
 // depending on the modules which get included. TODO Figure out a simple alternative way to extend these macros which allows for
 // the code for different Unreal modules to be in separate files
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
+#ifndef PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 #include <VectorTypes.h>
 #include <BoxTypes.h>
 #include <DynamicMesh/DynamicMesh3.h>
@@ -24,58 +24,58 @@
 #include <DynamicMesh/DynamicMeshAttributeSet.h>
 #include <Image/ImageDimensions.h>
 #include <Util/CompactMaps.h>
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
+#endif // PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
-// The macros below must be defined before including "Prism.h". This compile time error enforces this
-#ifdef PRISM_API
-#error Prism_Unreal.h must be included before Prism.h because it defines macros used by the Prism.h
+// The macros below must be defined before including "Prizm.h". This compile time error enforces this
+#ifdef PRIZM_API
+#error Prizm_Unreal.h must be included before Prizm.h because it defines macros used by the Prizm.h
 #endif
 
 // TODO Add a Vec3i? constructed from UE::Geometry::FIndex3i, in GeometryCore
 
-#define PRISM_VEC2_CLASS_EXTRA\
+#define PRIZM_VEC2_CLASS_EXTRA\
 	Vec2(UE::Math::TVector2<T> p) : Vec2(p.X, p.Y) {}
 
-#define PRISM_VEC3_CLASS_EXTRA\
+#define PRIZM_VEC3_CLASS_EXTRA\
 	Vec3(UE::Math::TVector<T> p) : Vec3(p.X, p.Y, p.Z) {}
 
-#define PRISM_VEC4_CLASS_EXTRA\
+#define PRIZM_VEC4_CLASS_EXTRA\
 	Vec4(UE::Math::TVector4<T> p) : Vec4(p.X, p.Y, p.Z, p.W) {}
 
-#define PRISM_COLOR_CLASS_EXTRA\
+#define PRIZM_COLOR_CLASS_EXTRA\
 	Color(FColor c) : Color(c.R, c.G, c.B, c.A) {}
 
 // These are named to match Unreal coding standards, we can't overload anyway since this would infinitly recurse
-#define PRISM_OBJ_CLASS_EXTRA\
+#define PRIZM_OBJ_CLASS_EXTRA\
 	Obj& Write(const FString& Filename) { return write(TCHAR_TO_UTF8(*Filename)); }\
 	Obj& Add(const FString& Data) { return add(std::string(TCHAR_TO_UTF8(*Data))); }\
 	Obj& Insert(const FString& Data) { return insert(std::string(TCHAR_TO_UTF8(*Data))); }
 
-#include "Prism.h"
+#include "Prizm.h"
 
-namespace Prism
+namespace Prizm
 {
 
 bool DocumentationForUnreal(bool bWriteFiles)
 {
 	// This block shows how to work with Unreal vector types
 	{
-		using namespace Prism;
-		Prism::Obj Obj;
+		using namespace Prizm;
+		Prizm::Obj Obj;
 
 		// Define some Unreal data types
 		FVector   A(0,0,1),  B(1,0,1),  C(0,1,1);
 		FVector3f D(0,0,2),  E(1,0,2),  F(0,1,2);
 		FVector3d G(0,0,3),  H(1,0,3),  I(0,1,3);
 
-		// This is the recommended way of passing Unreal vectors to the Prism::Obj API
+		// This is the recommended way of passing Unreal vectors to the Prizm::Obj API
 		Obj.triangle3(V3(A), V3(B), V3(C));
 
 		// You could also do the following but in this case you will need to specify the template parameter, this is
 		// sometimes more convenient than wrapping everything in a V3
 		Obj.triangle3<float>(D, E, F);
 
-		// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prism's vector types
+		// Note that if you use Obj::add or Obj::insert with Unreal vectors you must construct Prizm's vector types
 		// first. You might encounter this if you're doing some low-level stuff and forgot about Obj::vector3.
 		Obj.v().insert(V3(G));
 		Obj.v().insert(V3(H));
@@ -85,7 +85,7 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		// Uncomment this line to see the error message about missing operator<< you get if you omit this wrapping :(
 		//Obj.v().insert(I);
 
-		// For functions using Prism::Color you can directly pass a FColor, you don't need to construct Prism's Color type,
+		// For functions using Prizm::Color you can directly pass a FColor, you don't need to construct Prizm's Color type,
 		// so both of the following work:
 		Obj.set_vertex_label_color(FColor::Red);
 		Obj.set_triangle_label_color(Color(FColor::Blue)); // Works, but redundant and verbose
@@ -94,7 +94,7 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		Obj.set_triangle_index_labels_visible(true);
 
 		if (bWriteFiles) {
-			Obj.write("prism_DocumentationForUnreal_Ex1.obj");
+			Obj.write("prizm_DocumentationForUnreal_Ex1.obj");
 		}
 	}
 
@@ -105,22 +105,22 @@ bool DocumentationForUnreal(bool bWriteFiles)
 		Data += "Comes";
 		Data += "Some Data";
 		if (bWriteFiles) {
-			Prism::Obj().Add(Data).write("E:/Debug/prism_DocumentationForUnreal_Ex2.txt");
+			Prizm::Obj().Add(Data).write("E:/Debug/prizm_DocumentationForUnreal_Ex2.txt");
 		}
 	}
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
+#ifndef PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 	// This block shows some of the provided functions for Geometry Core
 	{
 		// @Incomplete
 	}
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
+#endif // PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
 	return true;
 }
 
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+#ifndef PRIZM_UNREAL_API_EXCLUDE_ENGINE_MODULE
 struct FMakeActorObjOptions
 {
 	// If true/false write triangles using -/+ indices to reference vertex data. See Obj::use_negative_indices documentation
@@ -179,9 +179,9 @@ Obj MakeActorObj(AActor* Actor, FString* OutMeshName = nullptr, FMakeActorObjOpt
 
 	return Result;
 }
-#endif // PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE
+#endif // PRIZM_UNREAL_API_EXCLUDE_ENGINE_MODULE
 
-#ifndef PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
+#ifndef PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 struct FMakeDynamicMeshObjOptions
 {
 	// If true reverses the orientation of the faces
@@ -380,8 +380,8 @@ Obj MakeDynamicMeshObj(const UE::Geometry::FDynamicMesh3& InMesh, FMakeDynamicMe
 		}
 	}
 
-	// Set some useful item state in Prism via command annotations
- 	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Set some useful item state in Prizm via command annotations
+ 	// You could further configure the Prizm item state at the call site before you call Obj::write()
 	// Note the lines written by the following code are ignored by other obj viewers
 
 	if (Options.bWriteVidAnnotations)
@@ -511,8 +511,8 @@ Obj MakeDynamicMeshOverlayObj(const UE::Geometry::TDynamicMeshOverlay<RealType, 
 		}
 	}
 
-	// Set some useful item state in Prism via command annotations
-	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Set some useful item state in Prizm via command annotations
+	// You could further configure the Prizm item state at the call site before you call Obj::write()
 	// Note the lines written by the following code are ignored by other obj viewers
 	Result.set_point_annotations_visible(true);
 	Result.set_edges_width(true);
@@ -536,7 +536,7 @@ struct FMakeImageDimensionsObjOptions
 	int UVAnnotationPrecision = 3;
 };
 
-// Returns a Prism::Obj which only uses negative element indices which means the result can be used with Prism::Obj::append
+// Returns a Prizm::Obj which only uses negative element indices which means the result can be used with Prizm::Obj::append
 Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimensionsObjOptions Options = FMakeImageDimensionsObjOptions{})
 {
 	using namespace UE::Geometry;
@@ -559,7 +559,7 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 
 		if (Options.bAnnotateTexelCentersWithTexelIndex)
 		{
-			Result.annotation("Idx(").add(V2(TexelIndex.X, TexelIndex.Y)).add(")"); // TODO Add a Prism::V2i type
+			Result.annotation("Idx(").add(V2(TexelIndex.X, TexelIndex.Y)).add(")"); // TODO Add a Prizm::V2i type
 		}
 
 		if (Options.bAnnotateTexelCentersWithUVCoordinates)
@@ -570,16 +570,16 @@ Obj MakeImageDimensionsObj(UE::Geometry::FImageDimensions Dims, FMakeImageDimens
 		}
 	}
 
-	// Set some useful item state in Prism via command annotations
- 	// You could further configure the Prism item state at the call site before you call Obj::write()
+	// Set some useful item state in Prizm via command annotations
+ 	// You could further configure the Prizm item state at the call site before you call Obj::write()
 	// Note the lines written by the following code are ignored by other obj viewers
 	Result.set_annotations_visible(true);
 
 	return Result;
 }
 
-#endif // PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
+#endif // PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE
 
-} // namespace Prism
+} // namespace Prizm
 
-#endif // PRISM_UNREAL_API
+#endif // PRIZM_UNREAL_API

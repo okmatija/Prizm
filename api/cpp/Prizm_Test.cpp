@@ -1,9 +1,9 @@
-#include "Prism.h"
+#include "Prizm.h"
 
 int main() {
 
     constexpr bool write_files = true;
-    Prism::documentation(write_files);
+    Prizm::documentation(write_files);
 
     return 0;
 }

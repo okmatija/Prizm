@@ -9,7 +9,7 @@ Build Options:
   custom     build with custom build options set in a gui
 DONE
 
-OUTPUT_EXE_NAME :: "Prism";
+OUTPUT_EXE_NAME :: "Prizm";
 EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.071, built on 10 July 2023";
 
 build :: () {
@@ -96,7 +96,7 @@ build :: () {
         for plugins if it.add_source it.add_source(it);
 
         add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_mode.build_options.output_executable_name), w);
-        add_build_file("source/prism.jai", w);
+        add_build_file("source/prizm.jai", w);
 
         while true {
             message : *Message = compiler_wait_for_message();

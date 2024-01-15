@@ -59,7 +59,7 @@ quit :: () {
     app.closing_application = true;
 } @RegisterCommand
 
-// Load files found in the given path as if it was provided to the Prism executable on the command line.
+// Load files found in the given path as if it was provided to the Prizm executable on the command line.
 // The path may contain * wildcards for matching filenames but not directories (this will be implemented in future)
 load :: (path : string) {
     count := app.entities.count;
@@ -68,7 +68,7 @@ load :: (path : string) {
     log("Loaded % item%", loaded_count, plural_suffix(loaded_count != 1));
 } @RegisterCommand
 
-// Print the path containing the running Prism executable
+// Print the path containing the running Prizm executable
 // Handy to know this if you want to pass a relative path to the `load` function
 pwd :: () {
     log(path_strip_filename(get_path_of_running_executable()));
@@ -382,7 +382,7 @@ set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
 
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
+// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
 set_annotations_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
@@ -419,7 +419,7 @@ set_vertex_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     entity.display_info.vertex_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
+// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
 set_vertex_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
@@ -448,7 +448,7 @@ set_point_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     entity.display_info.point_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
+// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
 set_point_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
@@ -478,7 +478,7 @@ set_segment_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) 
     entity.display_info.segment_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
+// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
 set_segment_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
@@ -507,7 +507,7 @@ set_triangle_label_color :: (id : int, r : int, g : int, b : int, a : int = 255)
     entity.display_info.triangle_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prism uses 0.4 @Cleanup Switch to size in pixels
+// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
 set_triangle_label_scale :: (id : int, scale : float) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
@@ -1111,15 +1111,15 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     }
 } @RegisterCommand
 
-prism_log :: (message : string) {
+prizm_log :: (message : string) {
     log(message);
 } @RegisterCommand
 
-prism_log_warning :: (message : string) {
+prizm_log_warning :: (message : string) {
     log_warning(message);
 } @RegisterCommand
 
-prism_log_error :: (message : string) {
+prizm_log_error :: (message : string) {
     log_error(message);
 } @RegisterCommand
 

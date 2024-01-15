@@ -12,9 +12,9 @@ main :: () {
 
     print_usage_and_exit :: () {
         print("\n");
-        print("Prism % allows the following (case insensitive) program options:\n\n", app.changelog[0].name);
+        print("Prizm % allows the following (case insensitive) program options:\n\n", app.changelog[0].name);
         print("--Help           Print this message and exit.\n");
-        print("--AlwaysOnTop    Keeps the Prism window on top.\n");
+        print("--AlwaysOnTop    Keeps the Prizm window on top.\n");
         print("--Red            Use the red   icon in the title bar.\n");
         print("--Green          Use the green icon in the title bar.\n");
         print("--Blue           Use the blue  icon in the title bar (This is the default).\n");
@@ -31,19 +31,19 @@ main :: () {
             arg : string = to_lower_copy(args[it]);
 
             if arg[0] == #char "-" && arg[1] == #char "-" {
-                // @Volatile Sync with :PRISM_ICON_COLORS
+                // @Volatile Sync with :PRIZM_ICON_COLORS
                 if arg == "--help" {
                     print_usage_and_exit();
                 } else if arg == "--alwaysontop" {
                     sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
                 } else if arg == "--blue" {
-                    prism_icon_color_index = 0;
+                    prizm_icon_color_index = 0;
                 } else if arg == "--green" {
-                    prism_icon_color_index = 1;
+                    prizm_icon_color_index = 1;
                 } else if arg == "--red" {
-                    prism_icon_color_index = 2;
+                    prizm_icon_color_index = 2;
                 } else if arg == "--black" {
-                    prism_icon_color_index = 3;
+                    prizm_icon_color_index = 3;
                 } else {
                     print("Unrecognized program argument '%' at position %\n", args[it], it);
                     print_usage_and_exit();
@@ -217,7 +217,7 @@ main :: () {
         assert(app.simp_font != null);
     }
 
-    set_prism_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
+    set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
     load_from_command_line();
 
@@ -310,7 +310,7 @@ main :: () {
 // @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {
 
-    // @CompilerBug for .\Prism.exe 'C:\Users\MatijaKecman\Desktop\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
+    // @CompilerBug for .\Prizm.exe 'C:\Users\MatijaKecman\Desktop\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
@@ -606,7 +606,7 @@ handle_directory :: (path : string) {
         }
     }
 
-    // We add the pending directory even if there are no loadable files currently in it because we want to support a use-case where the user makes prism watch a directory and then starts loading files
+    // We add the pending directory even if there are no loadable files currently in it because we want to support a use-case where the user makes prizm watch a directory and then starts loading files
     array_add(*app.pending_directories, pending);
 }
 

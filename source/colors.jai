@@ -1,11 +1,11 @@
-Prism_Color_Theme :: enum #specified {
+Prizm_Color_Theme :: enum #specified {
     DARK ::  0;
     LIGHT :: 1;
 }
 
 // Defaults are for light theme
-Prism_Theme :: struct {
-    theme : Prism_Color_Theme = .DARK;
+Prizm_Theme :: struct {
+    theme : Prizm_Color_Theme = .DARK;
     generic_color : Vector4 = NICE_BLUE;
     keymap_color : Vector4 = NICE_BLUE;
     changelog_color : Vector4 = NICE_BLUE;
@@ -18,13 +18,13 @@ Prism_Theme :: struct {
     camera_ui_button_border_color : Vector4 = .{110./255, 110./255, 128./255, 128./255};
 }
 
-Prism_Theme_Light :: struct {
-    using #as base : Prism_Theme;
+Prizm_Theme_Light :: struct {
+    using #as base : Prizm_Theme;
     theme = .LIGHT;
 }
 
-Prism_Theme_Dark :: struct {
-    using #as base : Prism_Theme;
+Prizm_Theme_Dark :: struct {
+    using #as base : Prizm_Theme;
     theme = .DARK;
     generic_color = NICE_YELLOW;
     keymap_color = NICE_YELLOW;

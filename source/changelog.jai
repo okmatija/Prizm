@@ -1,4 +1,4 @@
-PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
+PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
 * New Feature: Attributes TODO Add a feature flag for enabling this
 
     * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -7,6 +7,11 @@ PRISM_VERSION_0_8_0 :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a preset example to demonstrate the new annotation functionality
     * TODO Change the keybinds for the index, vertex and annotation labels
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
+DONE};
+
+PRIZM_VERSION_1_0_0 :: App.Version.{"1.0.0", "WIP", #string DONE
+* Renamed project to Prizm to distingush this version from its ancestor, Prism, which is copyright Epic Games
+* Many thanks to Epic Games for open sourcing the original Prism repository (located at github.com/EpicMatijaKecman/Prism)
 DONE};
 
 PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
@@ -575,7 +580,8 @@ DONE
 };
 
 init_changelog :: () {
-    //array_add(*app.changelog, PRISM_VERSION_0_8_0);
+    //array_add(*app.changelog, PRIZM_VERSION_BACKLOGGED);
+    array_add(*app.changelog, PRIZM_VERSION_1_0_0);
     array_add(*app.changelog, PRISM_VERSION_0_7_1);
     array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);

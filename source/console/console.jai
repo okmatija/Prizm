@@ -265,7 +265,7 @@ console_draw :: () {
                 contents : string;
                 defer free(contents); // @Leaks the intermediate allocations!?
                 time := filetime_to_readable_date(current_time_consensus(), true);
-                contents = join(contents, tprint("This console log was saved at % via a button in the Prism application\n", time));
+                contents = join(contents, tprint("This console log was saved at % via a button in the Prizm application\n", time));
                 contents = join(contents, "Press '`' to open the console and find the button in the Options menu\n\n\n\n");
                 for app.console.log {
                     contents = join(contents, it, separator="\n");

@@ -5,11 +5,11 @@ WINDOW_RESIZE_MARGIN_PX :: 3;
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
 init_icons :: () {
-    PRISM_ICON_DATA0,     OK0 :: #run read_entire_file("data/icon_blue.png",  zero_terminated=true);  #assert(OK0);
-    PRISM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
-    PRISM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
-    PRISM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
-    PRISM_LOGO_DATA,      OK4 :: #run read_entire_file("data/logo.png",       zero_terminated=true);  #assert(OK4);
+    PRIZM_ICON_DATA0,     OK0 :: #run read_entire_file("data/icon_blue.png",  zero_terminated=true);  #assert(OK0);
+    PRIZM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
+    PRIZM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
+    PRIZM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
+    PRIZM_LOGO_DATA,      OK4 :: #run read_entire_file("data/logo.png",       zero_terminated=true);  #assert(OK4);
 
     WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
     WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
@@ -27,11 +27,11 @@ init_icons :: () {
     ANNOTATIONS_DATA,     OKh :: #run read_entire_file("data/annotations.png", zero_terminated=true); #assert(OKh);
 
     ok : bool;
-    icon_prism_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA0);     assert(ok);
-    icon_prism_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA1);     assert(ok);
-    icon_prism_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA2);     assert(ok);
-    icon_prism_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRISM_ICON_DATA3);     assert(ok);
-    icon_prism_logo_texture,      ok = load_texture_from_memory(cast([]u8)PRISM_LOGO_DATA);      assert(ok);
+    icon_prizm_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA0);     assert(ok);
+    icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA1);     assert(ok);
+    icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA2);     assert(ok);
+    icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA3);     assert(ok);
+    icon_prizm_logo_texture,      ok = load_texture_from_memory(cast([]u8)PRIZM_LOGO_DATA);      assert(ok);
 
     icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
     icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
@@ -62,10 +62,10 @@ show_menu_bar_ui :: () {
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        ImGui.Image(cast(ImGui.ImTextureID)icon_prism_icon_texture[prism_icon_color_index].gl_handle, icon_size);
-        click_cycle_prism_color_index();
+        ImGui.Image(cast(ImGui.ImTextureID)icon_prizm_icon_texture[prizm_icon_color_index].gl_handle, icon_size);
+        click_cycle_prizm_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
-            show_tooltip(tprint("Prism %", app.changelog[0].name));
+            show_tooltip(tprint("Prizm %", app.changelog[0].name));
         }
     }
 
@@ -289,7 +289,7 @@ show_menu_bar_ui :: () {
         }
 
         ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
-        logo_width := icon_prism_logo_texture.width;
+        logo_width := icon_prizm_logo_texture.width;
         text_width := ImGui.CalcTextSize("                                                                   ").x;
         window_width := max(1.2 * logo_width, text_width);
         ImGui.SetNextWindowContentSize(ImGui.ImVec2.{window_width, 0});
@@ -670,10 +670,10 @@ g_next_frame_state : ImGui_Frame_State;
 // Textures and icon stuff
 //
 
-prism_icon_color_index := 0;
+prizm_icon_color_index := 0;
 
-// @Volatile Sync with :PRISM_ICON_COLORS
-PRISM_ICON_COLORS :: Named_Color.[
+// @Volatile Sync with :PRIZM_ICON_COLORS
+PRIZM_ICON_COLORS :: Named_Color.[
     .{.{102./255, 153./255, 1, 1}, "blue"},
     .{.{102./255, 153./255, 0, 1}, "green"},
     .{.{204./255, 0, 0, 1}, "red"},
@@ -681,8 +681,8 @@ PRISM_ICON_COLORS :: Named_Color.[
 ];
 
 // TODOO Set these at compile-time to make runtime startup as fast as possible, maybe set them at runtime in debug?
-icon_prism_icon_texture : [PRISM_ICON_COLORS.count]Texture;
-icon_prism_logo_texture : Texture;
+icon_prizm_icon_texture : [PRIZM_ICON_COLORS.count]Texture;
+icon_prizm_logo_texture : Texture;
 
 icon_window_close_texture : Texture;
 icon_window_minimize_texture : Texture;
@@ -742,7 +742,7 @@ show_items_ui :: () {
             }
 
             if entities_in_folder.count == 0 && !folder_exists_on_disk(folder.path) {
-                continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prism and then have files dumped there be autoloaded)
+                continue; // We don't want to show tree nodes for empty folders unless they exists on disk (its handy to watch a currently empty folder in Prizm and then have files dumped there be autoloaded)
             }
 
             // Using this boolean allows us to have BeginPopupContextItem (within show_folder_context_menu) use the TreeNodeEx imgui id
@@ -1053,8 +1053,8 @@ show_preferences :: () {
         ImGui.PushItemWidth(item_width);
         defer ImGui.PopItemWidth();
 
-        if combo_box("Theme", *app.theme.theme, type_info(Prism_Color_Theme)) {
-            set_prism_theme(app.theme.theme);
+        if combo_box("Theme", *app.theme.theme, type_info(Prizm_Color_Theme)) {
+            set_prizm_theme(app.theme.theme);
         }
 
         ImGui.DragFloat("UI Scale", *io().FontGlobalScale, .001, format="%.3f");
@@ -1356,7 +1356,7 @@ show_item_selection_ui :: () {
 
 show_api_ui :: () {
     do_tree := ImGui.TreeNodeEx("API", ImGui.TreeNodeFlags.SpanAvailWidth);
-    show_tooltip("Tools to interface between Prism and your program");
+    show_tooltip("Tools to interface between Prizm and your program");
     if do_tree {
         defer ImGui.TreePop();
 
@@ -1369,7 +1369,7 @@ show_api_ui :: () {
 
 show_cpp_api_ui :: () {
     do_tree := ImGui.TreeNodeEx("C++", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-    show_tooltip("Tools to interface between Prism and your C++ program\nCurrently uses C++ std headers :( will fix someday...");
+    show_tooltip("Tools to interface between Prizm and your C++ program\nCurrently uses C++ std headers :( will fix someday...");
     if do_tree {
         defer ImGui.TreePop();
 
@@ -1402,17 +1402,17 @@ show_cpp_api_ui :: () {
                 include.* = join(include.*, line, allocator=temp);
             }
 
-            // Warning! Do not change this code without CAREFUL testing! e.g., Prism_Unreal.h is mutually exclusive with Prism.h!
+            // Warning! Do not change this code without CAREFUL testing! e.g., Prizm_Unreal.h is mutually exclusive with Prizm.h!
             modify(*include, "// Use this define exactly once (https://github.com/nothings/stb#how-do-i-use-these-libraries)\n");
-            modify(*include, "#define PRISM_API_IMPLEMENTATION\n");
-            modify(*include, "// See Prism::documentation()\n");
+            modify(*include, "#define PRIZM_API_IMPLEMENTATION\n");
+            modify(*include, "// See Prizm::documentation()\n");
             if app.api.using_unreal {
-                modify(*include, "// See Prism::DocumentationForUnreal()\n");
-                if !app.api.using_unreal_engine       modify(*include, "#define PRISM_UNREAL_API_EXCLUDE_ENGINE_MODULE\n");
-                if !app.api.using_unreal_geometrycore modify(*include, "#define PRISM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE\n");
-                modify(*include, tprint("#include \"%/api/cpp/Prism_Unreal.h\"\n", exe_directory));
+                modify(*include, "// See Prizm::DocumentationForUnreal()\n");
+                if !app.api.using_unreal_engine       modify(*include, "#define PRIZM_UNREAL_API_EXCLUDE_ENGINE_MODULE\n");
+                if !app.api.using_unreal_geometrycore modify(*include, "#define PRIZM_UNREAL_API_EXCLUDE_GEOMETRYCORE_MODULE\n");
+                modify(*include, tprint("#include \"%/api/cpp/Prizm_Unreal.h\"\n", exe_directory));
             } else {
-                modify(*include, tprint("#include \"%/api/cpp/Prism.h\"\n", exe_directory));
+                modify(*include, tprint("#include \"%/api/cpp/Prizm.h\"\n", exe_directory));
             }
             path_overwrite_separators(include, #char "/");
         }
@@ -1422,7 +1422,7 @@ show_cpp_api_ui :: () {
         }
 
         show_tooltip(tprint("%\n%", #string DONE
-This button copies the Prism C++ API #include line(s) to your clipboard.
+This button copies the Prizm C++ API #include line(s) to your clipboard.
 You can paste it into your program and use it to write .obj files.
 Having a debug API separate from your project source like this should
 mean your CI system will catch forgotten/leftover debug code.
@@ -1433,7 +1433,7 @@ DONE, include));
 
 show_python_api_ui :: () {
     do_tree := ImGui.TreeNodeEx("Python", ImGui.TreeNodeFlags.SpanAvailWidth);
-    show_tooltip("Tools to interface between Prism and your python program");
+    show_tooltip("Tools to interface between Prizm and your python program");
     if do_tree {
         defer ImGui.TreePop();
 
@@ -1867,14 +1867,14 @@ show_camera_controls :: () {
 show_help_about_content :: () {
 
     {
-        logo := icon_prism_logo_texture;
+        logo := icon_prizm_logo_texture;
         ImGui.SameLine(ImGui.GetContentRegionAvail().x / 2 - logo.width / 2);
         ImGui.Image(cast(ImGui.ImTextureID)logo.gl_handle, ImGui.ImVec2.{xx logo.width, xx logo.height});
         ImGui.NewLine();
     }
 
     {
-        ImGui.Text("Prism is a tool for debugging geometry algorithms with obj files");
+        ImGui.Text("Prizm is a tool for debugging geometry algorithms with obj files");
         ImGui.Text("This is version %. Feedback/Bugs:", app.changelog[0].name);
         ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
@@ -1895,7 +1895,7 @@ show_help_about_content :: () {
         // ImGui.TableNextColumn();
 
         COMPILER_VERSION :: #run stop_at_any(compiler_get_version_info(null), ",");
-        ImGui.Text("Prism, MIT (github.com/EpicMatijaKecman/Prism)", to_string(ImGui.GetVersion()));
+        ImGui.Text("Prizm, MIT (github.com/EpicMatijaKecman/Prism)", to_string(ImGui.GetVersion()));
         ImGui.Text("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION);
         ImGui.Text("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch);
         ImGui.Text("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()));
@@ -1909,7 +1909,7 @@ show_changelog :: () {
         contents : string;
         defer free(contents);
         time := filetime_to_readable_date(current_time_consensus(), true);
-        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prism application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
+        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prizm application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
         for app.changelog {
             entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
             contents = join(contents, entry);
@@ -2808,14 +2808,14 @@ sdl_get_version :: () -> SDL_version {
     return wm_info.version;
 }
 
-click_cycle_prism_color_index :: () {
+click_cycle_prizm_color_index :: () {
     if ImGui.IsItemClicked() {
-        prism_icon_color_index += 1;
-        if prism_icon_color_index >= PRISM_ICON_COLORS.count {
-            prism_icon_color_index = 0;
+        prizm_icon_color_index += 1;
+        if prizm_icon_color_index >= PRIZM_ICON_COLORS.count {
+            prizm_icon_color_index = 0;
         }
-        color : Named_Color = PRISM_ICON_COLORS[prism_icon_color_index];
-        log("Set prism color to %. This is only aesthetic, it could be useful if you are comparing data between instances of Prism.", color.name);
+        color : Named_Color = PRIZM_ICON_COLORS[prizm_icon_color_index];
+        log("Set prizm color to %. This is only aesthetic, it could be useful if you are comparing data between instances of Prizm.", color.name);
 
         // TODO Also set the icon on the desktop, can we the following work??
         //#if OS == .WINDOWS {
