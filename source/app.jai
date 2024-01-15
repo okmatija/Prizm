@@ -403,9 +403,7 @@ ImGui :: #import "ImGui";
 #import "Windows_Utf8";
 }
 
-// Prizm modules
 Simp :: #import "Simp";
-#import "SDL"; // @Cleanupp Make this SDL :: 
 
 // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
 //#import "Tagged_Union_Enum"(DEBUG=true);
