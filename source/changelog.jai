@@ -46,7 +46,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
     * Added `triangle3_vt` and `polyline_vn` functions which were variations overlooked in previous versions  
     * Added `sphere3` function to write a triangulated sphere using the parshapes library
     * Added an option to use +ve or -ve indices when writing out obj face/segment/point elements.  By default -ve indices are used so that the `append` function can be used to concatenate objs. Using -ve indices is the default
-    * Fixed Prism::segment3 function, which previously write 2D coordinates rather than 3D coordinates
+    * Fixed Prism::segment3 function, which previously wrote 2D coordinates rather than 3D coordinates
 
 * Changes to api/cpp/Prism_Unreal.h
 
@@ -54,7 +54,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
     * Added a checkbox under `Tools > API > C++` to enable/disable the includes which depend on the Engine module (this is required to access `MakeActorObj`).
 DONE};
 
-PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "8 August 2023", #string DONE
+PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "08 August 2023", #string DONE
 * Improvements to UI/UX
 
     * Refactored UI to make it more aligned with Common User Access (CUA) guidelines
@@ -258,7 +258,7 @@ PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "6 October 2022", #string DONE
+PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "06 October 2022", #string DONE
 * Improvements to Annotations:
 
     * Moved annotations into a separate "Annotations" tab in the item context menu
@@ -342,7 +342,7 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "6 September 2022", #string DONE
+PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "06 September 2022", #string DONE
 * Improved item reloading behavior
 
     * Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behavior changes:
@@ -505,7 +505,7 @@ PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "4 January 2022", #string DONE
+PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "04 January 2022", #string DONE
 * Improvements to the console:
 
     * Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
@@ -533,7 +533,7 @@ PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "4 January 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1", "1 December 2021", #string DONE
+PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1", "01 December 2021", #string DONE
 * Changed Selection Mode toggle keybinding to s from m
 * Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
 * Changed rendering of back faces to use an darkened version of the front face color
