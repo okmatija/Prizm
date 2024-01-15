@@ -10,7 +10,7 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_1_0_0 :: App.Version.{"1.0.0", "WIP", #string DONE
-* Renamed project to Prizm to distingush this version from its ancestor, Prism, which is copyright Epic Games
+* Renamed project to Prizm to distingush this version from its ancestor, Prism, which is copyright Epic Games. This name is also more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
 * Many thanks to Epic Games for open sourcing the original Prism repository (located at github.com/EpicMatijaKecman/Prism)
 DONE};
 
