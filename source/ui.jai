@@ -1879,7 +1879,7 @@ show_help_about_content :: () {
         ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
-        ImGui.Text("matija.kecman@epicgames.com"); // TODO Click to copy to clipboard?
+        ImGui.Text("matijakecman@gmail.com"); // TODO Click to copy to clipboard?
     }
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
@@ -1895,6 +1895,7 @@ show_help_about_content :: () {
         // ImGui.TableNextColumn();
 
         COMPILER_VERSION :: #run stop_at_any(compiler_get_version_info(null), ",");
+        ImGui.Text("Prism, MIT (github.com/EpicMatijaKecman/Prism)", to_string(ImGui.GetVersion()));
         ImGui.Text("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION);
         ImGui.Text("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch);
         ImGui.Text("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()));
