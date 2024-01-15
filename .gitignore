@@ -34,6 +34,7 @@ imgui*.ini
 
 .build/
 .vscode/
+*.code-workspace
 imgui.ini
 
 debug.log
