@@ -404,11 +404,12 @@ ImGui :: #import "ImGui";
 }
 
 // Prizm modules
-Simp :: #import "Simp_beta_0_1_016";
-#import "SDL_beta_0_1_071"; // @Cleanupp Make this SDL :: 
-// #import "Tagged_Union_Enum"(DEBUG=true);
-#load "modules/Tagged_Union_Enum.jai"; // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
+Simp :: #import "Simp";
+#import "SDL"; // @Cleanupp Make this SDL :: 
 
+// @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
+//#import "Tagged_Union_Enum"(DEBUG=true);
+#load "Tagged_Union_Enum.jai";
 #load "annotations.jai";
 #load "axis_box.jai";
 #load "polyline.jai";

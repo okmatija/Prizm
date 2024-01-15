@@ -390,5 +390,5 @@ ImGui_ImplSDL2_NewFrame :: ()
 #scope_file
 ImGui :: #import "ImGui";
 
-#import "SDL_beta_0_1_071";
+#import "SDL";
 #import "Math";
