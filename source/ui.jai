@@ -289,10 +289,13 @@ show_menu_bar_ui :: () {
         }
 
         ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
-        logo_width := icon_prizm_logo_texture.width;
-        text_width := ImGui.CalcTextSize("                                                                   ").x;
-        window_width := max(1.2 * logo_width, text_width);
-        ImGui.SetNextWindowContentSize(ImGui.ImVec2.{window_width, 0});
+
+        // :ImprovePrizmLogo
+        // logo_width := icon_prizm_logo_texture.width;
+        // text_width := ImGui.CalcTextSize("                                                                   ").x;
+        // window_width := max(1.2 * logo_width, text_width);
+        // ImGui.SetNextWindowContentSize(ImGui.ImVec2.{window_width, 0});
+
         if ImGui.BeginMenu("About") {
             defer ImGui.EndMenu();
 
@@ -1866,12 +1869,13 @@ show_camera_controls :: () {
 
 show_help_about_content :: () {
 
-    {
-        logo := icon_prizm_logo_texture;
-        ImGui.SameLine(ImGui.GetContentRegionAvail().x / 2 - logo.width / 2);
-        ImGui.Image(cast(ImGui.ImTextureID)logo.gl_handle, ImGui.ImVec2.{xx logo.width, xx logo.height});
-        ImGui.NewLine();
-    }
+    // :ImprovePrizmLogo I don't like the current one so we don't show it
+    // {
+    //     logo := icon_prizm_logo_texture;
+    //     ImGui.SameLine(ImGui.GetContentRegionAvail().x / 2 - logo.width / 2);
+    //     ImGui.Image(cast(ImGui.ImTextureID)logo.gl_handle, ImGui.ImVec2.{xx logo.width, xx logo.height});
+    //     ImGui.NewLine();
+    // }
 
     {
         ImGui.Text("Prizm is a tool for debugging geometry algorithms with obj files");
