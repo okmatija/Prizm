@@ -489,11 +489,11 @@ focus_items :: () {
 
     prev_camera := app.camera;
 
-    fit_on_screen(visit_visible_selected);
+    fit_on_screen_multiple(visit_visible_selected);
 
     // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
     if almost_equal(app.camera, prev_camera) {
-        fit_on_screen_filled(visit_visible_selected);
+        fit_on_screen_filled_multiple(visit_visible_selected);
     }
 }
 

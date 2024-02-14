@@ -270,7 +270,7 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 // Adjust the camera position and viewing volume to fit the visible geometry while preserving the camera look direction
 // The camera orbit will be centered on the centroid of all visible entities
 fit_scene_on_screen :: () {
-    fit_on_screen(visit_visible);
+    fit_on_screen_multiple(visit_visible);
 }
 
 // While preserving the camera look direction:
@@ -293,7 +293,7 @@ fit_on_screen :: (entity : *Entity) {
 }
 
 // As `fit_on_screen` but for multiple entities
-fit_on_screen :: ($entity_filter : Code = visit_visible) {
+fit_on_screen_multiple :: ($entity_filter : Code = visit_visible) {
     // Compute a sphere whose center will be the look position
     look_sphere := entities_world_bounding_sphere(entity_filter);
 
@@ -336,7 +336,7 @@ fit_on_screen_filled :: (entity : *Entity) {
 }
 
 // As `fit_on_screen_filled` but for multiple entities
-fit_on_screen_filled :: ($entity_filter : Code = visit_visible) {
+fit_on_screen_filled_multiple :: ($entity_filter : Code = visit_visible) {
 
     // Compute a tight sphere the bounding sphere of the filter-passing geometry
     look_sphere := entities_world_bounding_sphere(entity_filter);
@@ -346,7 +346,7 @@ fit_on_screen_filled :: ($entity_filter : Code = visit_visible) {
     }
 
     // Update the camera as described in `fit_on_screen` and cache it
-    fit_on_screen(entity_filter);
+    fit_on_screen_multiple(entity_filter);
     near_far_camera := app.camera;
     assert(look_sphere.center == near_far_camera.look_position);
 
