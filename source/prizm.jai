@@ -35,14 +35,6 @@ main :: () {
         return;
     }
 
-    // Direct all logging into the console
-    // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in build.jai so that the Windows program console is shown
-    context.logger = console_logger;
-    context.logger_data = *app.console.log;
-
-    // Load console history from file
-    console_load_history();
-
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
     // Set 3,3 to match Simp MINIMUM_GL_MINOR_VERSION, MINIMUM_GL_MAJOR_VERSION??
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -282,7 +274,6 @@ handle_events :: () {
 
                 // @Cleanup Make this a proper function!
                 if event.key.keysym.sym == .SDLK_ESCAPE {
-                    app.console.show_ui = false;
 
                     // :WindowOpacityControl
                     app.window_focussed_opacity = 1.;
@@ -395,7 +386,6 @@ handle_load_string :: (path : string, recursive := false) -> bool {
 
         if !got_directory_valid {
             log_warning("Expected a filename or directory, got '%', maybe this path does not exist?", pattern);
-            app.show_ui, app.console.show_ui = true, true;
         } else if got_directory {
             handle_directory(pattern);
         } else {

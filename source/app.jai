@@ -119,7 +119,6 @@ App :: struct {
     clipping_sphere_mode_last_entity_index_set : [..]int;
 
     camera : Camera;
-    console : Console;
     entities : [..]*Entity;
 
     keymap : Keymap;
@@ -403,7 +402,6 @@ Simp :: #import "Simp";
 #load "mesh_utils.jai";
 #load "simple_mesh.jai";
 #load "numeric.jai";
-#load "intervals.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";
 #load "carpet.jai";
@@ -412,8 +410,6 @@ Simp :: #import "Simp";
 #load "inspector.jai";
 #load "colors.jai";
 #load "updates.jai";
-
-#load "console/console.jai";
 
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
