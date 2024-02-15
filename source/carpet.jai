@@ -1,5 +1,13 @@
 // Things with no clear file to go in just get shoved under the carpet.jai
 
+// Like check_geometry_index but with no logging
+valid_geometry_index :: (index : int) -> bool #must {
+    if index < 0 || index >= app.entities.count {
+        return false;
+    }
+    return true;
+}
+
 // @Incomplete If the message is already present in the log don't add it again... in all cases?
 do_nothing_logger :: (message: string, data: *void, info: Log_Info) {}
 

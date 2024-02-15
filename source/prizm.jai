@@ -8,11 +8,8 @@ main :: () {
     //     context.allocator = UA.get_unmapping_allocator();
     // // }
 
-    init_changelog(); // Do this first to get the version
-
     print_usage_and_exit :: () {
         print("\n");
-        print("Prizm % allows the following (case insensitive) program options:\n\n", app.changelog[0].name);
         print("--Help           Print this message and exit.\n");
         print("--AlwaysOnTop    Keeps the Prizm window on top.\n");
         print("--Red            Use the red   icon in the title bar.\n");
@@ -54,7 +51,7 @@ main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
+    app.window = SDL_CreateWindow("Prizm",
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   sdl_window_flags);
@@ -159,9 +156,8 @@ main :: () {
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_camera();
-    init_commands();
     init_keymap();
-    init_known_issues();
+    // init_known_issues();
     init_icons();
 
     // Setup file watcher
@@ -266,23 +262,6 @@ main :: () {
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
         update_camera(1);
-
-        // These functions all do a ray cast on all visible entities, but usually its only one function per frame, we could make this clear by having them return booleans saying if they executed and putting them in an if-else-if chain
-        // Also, these functions determine what is rendered so its important they are called before the rendering functions
-        do_clipping_sphere_mode();
-        do_geometry_selection_mode();
-        do_item_selection_mode();
-
-
-        // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
-        // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
-        render_background();
-        render_selections();
-        render_entities();
-        render_axes_triad();
-
-        // @Fixme This is broken on laptop..!
-        do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
 
         ImGui.PopFont();
 

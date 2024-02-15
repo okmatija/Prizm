@@ -782,16 +782,7 @@ find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_
 
 // Return true if the given point is further than max_distance_px from the mouse position and false otherwise
 outside_screen_dist :: inline (point_world : Vector3, projection_from_world : Matrix4, max_distance_px : int) -> bool {
-    mouse_px : Vector2 = ---;
-    mouse_px.x = io().MousePos.x;
-    mouse_px.y = io().MousePos.y;
-
-    point_px : Vector2 = ---;
-    point_px_i : Tuple2i = to_screen_position(point_world, projection_from_world);
-    point_px.x = xx point_px_i.x;
-    point_px.y = cast(float) app.current_window_height - xx point_px_i.y;
-
-    return distance(mouse_px, point_px) > xx max_distance_px;
+    return false;
 }
 
 // Return the model space query radius for a given bounding box and query radius in pixels
@@ -1325,19 +1316,6 @@ Entity_Source_Selection :: struct {
 
 load_one_file_from_memory :: (filename : string, contents : string, name : string) -> [..]*Entity {
     results : [..]*Entity;
-
-    // @Refactor Improve the log messaging during file loading e.g., with indents after this message
-    log("Loading file '%'...", filename);
-
-    if ends_with_nocase(filename, "obj") {
-        results = load_obj(filename, contents, name);
-    }
-
-    if results.count {
-        log("Loaded  file '%'", filename); // Use double space to line up with "Loading file" text
-    } else {
-        log_error("Could not load file '%'", filename);
-    }
 
     return results;
 }

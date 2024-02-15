@@ -64,9 +64,6 @@ show_menu_bar_ui :: () {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
         ImGui.Image(cast(ImGui.ImTextureID)icon_prizm_icon_texture[prizm_icon_color_index].gl_handle, icon_size);
         click_cycle_prizm_color_index();
-        if ImGui.IsItemHovered(.DelayNormal) {
-            show_tooltip(tprint("Prizm %", app.changelog[0].name));
-        }
     }
 
     // sz : float = ImGui.GetTextLineHeight();
@@ -145,11 +142,6 @@ show_menu_bar_ui :: () {
             app.Ribbon_Button_Mode.HIDE,
             app.Ribbon_Button_Mode.SHOW,
             app.Ribbon_Button_Mode.AUTO));
-
-        if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode) {
-            app.demo_mode = !app.demo_mode;
-        }
-        show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
 
         ImGui.Separator();
 
@@ -282,11 +274,6 @@ show_menu_bar_ui :: () {
         }
 
         ImGui.Separator();
-
-        if ImGui.BeginMenu("Release Notes") {
-            defer ImGui.EndMenu();
-            show_changelog();
-        }
 
         ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
 
@@ -1879,7 +1866,6 @@ show_help_about_content :: () {
 
     {
         ImGui.Text("Prizm is a tool for debugging geometry algorithms with obj files");
-        ImGui.Text("This is version %. Feedback/Bugs:", app.changelog[0].name);
         ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
@@ -1907,59 +1893,6 @@ show_help_about_content :: () {
         ImGui.Text("par_shapes.h, MIT (github.com/prideout/par)");
     }
 }
-
-show_changelog :: () {
-    if ImGui.Button("Save to CHANGELOG.md") {
-        contents : string;
-        defer free(contents);
-        time := filetime_to_readable_date(current_time_consensus(), true);
-        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prizm application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
-        for app.changelog {
-            entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
-            contents = join(contents, entry);
-        }
-        write_entire_file_to_cwd("CHANGELOG.md", contents);
-    }
-    show_tooltip("Write the changelog to CHANGELOG.md\nHandy if you want to search the changelog");
-
-    blank_space :: () {
-        ImGui.Text("                                                                                                                       ");
-    }
-
-    latest := app.changelog[0];
-    if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
-        defer ImGui.TreePop();
-
-        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-        ImGui.TextWrapped_CFormat(latest.description.data); // @CompilerBug Using ImGui.TextWrapped(latest.description) here in beta 0.1.071 caused a crash when looking at changelog, is that implementation broken?? I didn't see an obvious bug though...
-        ImGui.PopStyleColor();
-        blank_space();
-    }
-
-    for 1..app.changelog.count-1 {
-        version := app.changelog[it];
-        if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
-            defer ImGui.TreePop();
-
-            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
-            ImGui.TextWrapped_CFormat(version.description.data);
-            ImGui.PopStyleColor();
-            blank_space();
-        }
-    }
-
-    // FIXME This is broken
-    //if ImGui.TreeNodeEx("Known Issues", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-    //    defer ImGui.TreePop();
-    //    if ImGui.BeginTable("", 2, flags=table_flags | .ScrollX) {
-    //        defer ImGui.EndTable();
-    //        for app.known_issues {
-    //            ShowBinding(it.name, it.description);
-    //        }
-    //    }
-    //}
-}
-
 
 show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_Label_Theme) {
     ImGui.Text(name);

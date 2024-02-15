@@ -152,15 +152,12 @@ App :: struct {
         date : string;
         description : string;
     }
-    changelog : [..]Version;
 
     Known_Issue :: struct {
         name :        string;
         description : string;
     }
     known_issues : [..]Known_Issue;
-
-    demo_mode := false; // See demo_mode.jai
 
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
     debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
@@ -410,20 +407,13 @@ Simp :: #import "Simp";
 #load "Tagged_Union_Enum.jai";
 #load "annotations.jai";
 #load "axis_box.jai";
-#load "polyline.jai";
-#load "polygon.jai";
 #load "edge.jai";
 #load "mesh_utils.jai";
 #load "simple_mesh.jai";
 #load "aabb_tree.jai";
-#load "grid.jai";
 #load "axes.jai";
-#load "selection_mode.jai";
-#load "clipping_sphere_mode.jai";
 #load "numeric.jai";
 #load "intervals.jai";
-#load "io_obj.jai";
-#load "io_utils.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";
 #load "carpet.jai";
@@ -434,17 +424,10 @@ Simp :: #import "Simp";
 #load "keymap.jai";
 #load "target_items.jai";
 #load "inspector.jai";
-#load "lexer.jai";
-#load "parser.jai";
-#load "changelog.jai";
 #load "colors.jai";
-#load "demo_mode.jai";
 #load "updates.jai";
 
 #load "console/console.jai";
-#load "console/commands.jai";
-#load "console/grid_commands.jai";
-#load "console/aabb_commands.jai";
 
 #load "kernel/distance.jai"; // @Cleanup
 #load "kernel/intersect.jai"; // @Cleanup
