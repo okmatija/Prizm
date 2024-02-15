@@ -290,24 +290,6 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
 
 }
 
-// @FIXME Add a $world_space argument
-bounding_box :: (using mesh : Simple_Mesh) -> AxisBox3 #must {
-    box : AxisBox3;
-    for * mesh.positions {
-        expand(*box, it);
-    }
-    return box;
-}
-
-// @FIXME Add a $world_space argument. WTF is the transform argument??
-bounding_box :: (using mesh : Simple_Mesh, transform : Matrix4) -> AxisBox3 #must {
-    box : AxisBox3;
-    for point_model : mesh.positions {
-        point_transformed := (transform * make_vector4(point_model, 1)).xyz;
-        expand(*box, point_transformed);
-    }
-    return box;
-}
 
 // @FIXME This transform should just update world_from_model???
 transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {

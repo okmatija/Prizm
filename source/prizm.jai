@@ -21,34 +21,6 @@ main :: () {
 
     sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
 
-    {
-        args := get_command_line_arguments();
-        defer array_free(args);
-        for 1..args.count-1 {
-            arg : string = to_lower_copy_new(args[it]);
-
-            if arg[0] == #char "-" && arg[1] == #char "-" {
-                // @Volatile Sync with :PRIZM_ICON_COLORS
-                if arg == "--help" {
-                    print_usage_and_exit();
-                } else if arg == "--alwaysontop" {
-                    sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-                } else if arg == "--blue" {
-                    prizm_icon_color_index = 0;
-                } else if arg == "--green" {
-                    prizm_icon_color_index = 1;
-                } else if arg == "--red" {
-                    prizm_icon_color_index = 2;
-                } else if arg == "--black" {
-                    prizm_icon_color_index = 3;
-                } else {
-                    print("Unrecognized program argument '%' at position %\n", args[it], it);
-                    print_usage_and_exit();
-                }
-            }
-        }
-    }
-
     SDL_Init(SDL_INIT_VIDEO);
 
     app.window = SDL_CreateWindow("Prizm",
@@ -213,10 +185,6 @@ main :: () {
 
     // Main loop
     while !app.closing_application {
-        // Cache the state we need this frame and reset it for the next frame
-        g_this_frame_state = g_next_frame_state; // This should be read-only for this frame
-        g_next_frame_state = ImGui_Frame_State.{};
-
         handle_events();
 
         changed, needs_wait, wait_seconds := process_changes(*app.file_watcher);
@@ -227,8 +195,6 @@ main :: () {
         ImGui.NewFrame();
 
         ImGui.PushFont(font);
-
-        show_menu_bar_ui();
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
