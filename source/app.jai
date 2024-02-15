@@ -398,7 +398,6 @@ Simp :: #import "Simp";
 //#import "Tagged_Union_Enum"(DEBUG=true);
 #load "Tagged_Union_Enum.jai";
 #load "annotations.jai";
-#load "mesh_utils.jai";
 #load "simple_mesh.jai";
 #load "numeric.jai";
 #load "rendering.jai";
