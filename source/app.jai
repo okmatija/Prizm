@@ -415,22 +415,6 @@ Simp :: #import "Simp";
 
 #load "console/console.jai";
 
-#load "kernel/distance.jai"; // @Cleanup
-#load "kernel/intersect.jai"; // @Cleanup
-#load "kernel/closest.jai"; // @Cleanup
-#load "kernel/GTE_Mathematics_Vector.jai";
-#load "kernel/GTE_Mathematics_Vector3.jai";
-#load "kernel/GTE_Mathematics_Segment.jai";
-#load "kernel/GTE_Mathematics_DistPointRay.jai";
-#load "kernel/GTE_Mathematics_DistLineSegment.jai";
-#load "kernel/GTE_Mathematics_DistLine3Triangle3.jai";
-#load "kernel/GTE_Mathematics_DistRay3Triangle3.jai";
-#load "kernel/GTE_Mathematics_DistPointTriangle.jai";
-#load "kernel/GTE_Mathematics_IntrSphere3Sphere3.jai";
-#load "kernel/utility.jai";
-#load "kernel/types.jai";
-#load "kernel/test.jai";
-
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
 #run compiler_set_type_info_flags(ImGui, .NO_SIZE_COMPLAINT);
