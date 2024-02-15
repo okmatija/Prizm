@@ -407,7 +407,6 @@ Simp :: #import "Simp";
 #load "rendering.jai";
 #load "rendering_utils.jai";
 #load "carpet.jai";
-#load "camera.jai";
 #load "entities.jai";
 #load "target_items.jai";
 #load "inspector.jai";

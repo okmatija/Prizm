@@ -124,7 +124,6 @@ main :: () {
         glGenVertexArrays(1, *app.background_vao);
     }
 
-    init_camera();
 
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
@@ -208,8 +207,6 @@ main :: () {
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-        update_camera(1);
-
         ImGui.PopFont();
 
         ImGui.Render();
@@ -276,40 +273,6 @@ handle_events :: () {
                 app.closing_application = true;
 
             case SDL_WINDOWEVENT;
-
-                //print("window event: %\n", event.window.event);
-
-                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
-
-                    width_scale  := cast(float) event.window.data1 / app.current_window_width;
-                    height_scale := cast(float) event.window.data2 / app.current_window_height;
-
-                    camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
-                    camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
-                    app.camera.right  -= camera_delta_rl;
-                    app.camera.left   += camera_delta_rl;
-                    app.camera.top    -= camera_delta_tb;
-                    app.camera.bottom += camera_delta_tb;
-
-                    app.current_window_width  = event.window.data1;
-                    app.current_window_height = event.window.data2;
-                }
-
-                if event.window.event == SDL_WINDOWEVENT_MAXIMIZED {
-                    app.window_maximized = true;
-                }
-
-                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
-                    app.window_maximized = false;
-                }
-
-                if event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED {
-                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
-                }
-
-                if event.window.event == SDL_WINDOWEVENT_FOCUS_LOST {
-                    SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
-                }
 
             case SDL_KEYDOWN;
 
