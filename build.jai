@@ -61,23 +61,12 @@ build :: () {
                 print("message.kind %, repeated % times\n", last_message_kind, last_message_count);
                 last_message_count = 1;
 
-                phase := cast(*Message_Phase)message;
-                print("current  message kind is %1%2\n",
-                    message.kind,
-                    ifx message.kind == .PHASE then tprint(":%", phase.phase) else "");
+                print("current  message kind is %\n", message.kind);
             } else {
                 last_message_count += 1;
             }
 
-            print(". %\n", message.kind);
-
-            // if message.kind == .TYPECHECKED && last_message_kind != .TYPECHECKED {
-            //     print("%\n", message.kind);
-            // }
-            // if message.kind == .PHASE {
-            //     phase := cast(*Message_Phase) message;
-            //     print("%:%\n", message.kind, phase.phase);
-            // }
+            // print(". %\n", message.kind);
 
             if !message {
                 continue;
@@ -104,7 +93,7 @@ build :: () {
 
                         message_file := cast(*Message_File)message;
 
-                        entry, newly_added := find_or_add(*visited_files, message_file.fully_pathed_filename);
+                        entry, _ := find_or_add(*visited_files, message_file.fully_pathed_filename);
 
                         entry.* += 1;
                         postfix := "th";
@@ -127,9 +116,9 @@ build :: () {
 
                         for tc: typechecked.declarations {
                             decl := tc.expression;
-                            if decl {
-                                print("  declarations[%]='%'\n", it_index, print_declaration(decl));
-                            }
+                            // if decl {
+                            //     print("  declarations[%]='%'\n", it_index, print_declaration(decl));
+                            // }
                         }
 
                         for tc: typechecked.procedure_headers {
