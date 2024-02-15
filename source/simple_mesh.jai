@@ -4,6 +4,9 @@ Sphere :: struct {}
 Point3 :: struct {}
 AxisBox3 :: struct {}
 
+Tuple2 :: struct(T : Type) {}
+Tuple3 :: struct(T : Type) {}
+
 Simple_Mesh :: struct {
     positions : [..]Vector3;
 
@@ -44,12 +47,11 @@ deinit :: (using mesh : *Simple_Mesh) {
 // clear :: (using mesh : *Simple_Mesh) {}
 
 no_elements :: (mesh : Simple_Mesh) -> bool {
-    return mesh.points.count == 0 && mesh.segments.count == 0 && mesh.triangles.count == 0;
+    return true;
 }
 
 is_empty :: (mesh : Simple_Mesh) -> bool {
-    return mesh.positions.count == 0;
-    // return inline point_count(entity.mesh) == 0; // @CompilerBug? Error: Attempted use of keyword 'inline' on a non-procedure-call.
+    return true;
 }
 
 // copy_mesh :: (using mesh : Simple_Mesh) -> *Simple_Mesh {
@@ -58,11 +60,11 @@ is_empty :: (mesh : Simple_Mesh) -> bool {
 // }
 
 valid_triangle_tuple :: (using mesh : *Simple_Mesh, tt : Tuple3(u32)) -> bool {
-    return tt.i < positions.count && tt.j < positions.count && tt.k < positions.count;
+    return true;
 }
 
 valid_segment_tuple :: (using mesh : *Simple_Mesh, st : Tuple2(u32)) -> bool {
-    return st.i < positions.count && st.j < positions.count;
+    return true;
 }
 
 valid_point_index :: (using mesh : *Simple_Mesh, pi : u32) -> bool {
@@ -314,15 +316,7 @@ mesh_triangle_world :: #bake_arguments mesh_triangle_hack(world_space=true);
 
 
 mesh_triangle_edges_tuple :: (using mesh : Simple_Mesh, triangle_index : int) -> Tuple3(Tuple2(u32)) {
-    triangle_indices : Tuple3(u32) = inline mesh_triangle_tuple(mesh, triangle_index);
-
-    result : Tuple3(Tuple2(u32)) = ---;
-    for e : 0..2 {
-        TRIANGLE_EDGES :: Tuple2i.[.{0, 1}, .{1, 2}, .{2, 0}];
-        result.component[e].x = triangle_indices.component[TRIANGLE_EDGES[e].x];
-        result.component[e].y = triangle_indices.component[TRIANGLE_EDGES[e].y];
-    }
-    return result;
+    return .{};
 }
 
 

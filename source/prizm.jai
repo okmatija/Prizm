@@ -280,16 +280,6 @@ handle_directory :: (path : string) {
     defer array_free(files);
     not_loadable_count := 0;
     for file : files {
-        if supported_format(file) {
-            using pending_file : app.Pending_Directory.Pending_File;
-            fully_pathed_filename = copy_string(file);
-            modtime, size_in_bytes = file_modtime_and_size(file);
-            is_loaded = find_entity(file, -1) != null;
-            is_selected = !is_loaded;
-            array_add(*pending.loadable_files, pending_file);
-        } else {
-            not_loadable_count += 1;
-        }
     }
 
     // We add the pending directory even if there are no loadable files currently in it because we want to support a use-case where the user makes prizm watch a directory and then starts loading files
