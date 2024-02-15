@@ -6,11 +6,11 @@ build :: () {
 
     set_working_directory(#filepath);
 
-    w := compiler_create_workspace("Prizm");
+    w := compiler_create_workspace("Target Program");
     if !w exit(1);
 
     build_options := get_build_options(w);
-    build_options.output_executable_name = "Prizm";
+    build_options.output_executable_name = "target";
 
     set_build_options(build_options, w);
 
