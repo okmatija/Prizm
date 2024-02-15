@@ -194,7 +194,7 @@ handle_load_string :: (path : string, recursive := false) -> bool {
 
     // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
     // Note: On unix this function fails if the path does not exist, on Windows it does not fail
-    pattern : string = canonically_formatted_path_string(path);
+    pattern : string;
 
     // Note: Previously we also searched for #char "-" but this was confusing since some folder names use this as a separator, if we want to find that one make sure its also within square brackets
     wildcard_index : s64 = find_index_of_any_from_left(pattern, "*"); // From left since we want the first one
@@ -221,7 +221,6 @@ handle_load_string :: (path : string, recursive := false) -> bool {
 
         for _file, file_index : files {
             file := _file;
-            file = canonically_formatted_path_string(file);
             if wildcard_match(file, pattern) {
                 handle_filename(file, .IGNORE);
             }

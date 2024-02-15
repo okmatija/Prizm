@@ -163,98 +163,20 @@ Texture :: struct {
 // @Incomplete Deduplicate file watcher directories on linux
 
 deinit :: (directory : app.Folder) {
-    free(directory.path);
 }
 
 deinit :: (pending : app.Pending_Directory) {
-    deinit(pending.directory);
-    for pending.loadable_files {
-        free(it.fully_pathed_filename);
-    }
-    array_reset(*pending.loadable_files);
 }
 
 add_directory :: (directory_path : string) -> *app.Folder {
-    // post-condition (+2 for Entity_Source.PRESET_SHAPE and .COMMAND_OUTPUT)
-    // defer assert(app.directories.count == app.file_watcher.directories.count + 2);
-
-    result : *app.Folder;
-
-    got_directory, got_directory_valid := is_directory(directory_path);
-    if !got_directory_valid || !got_directory {
-        return result;
-    }
-
-    folder : app.Folder;
-    folder.path = copy_string(directory_path);
-
-#if OS == .WINDOWS {
-    for * app.directories {
-        if it.path == folder.path {
-            result = it;
-            break;
-        }
-    }
-    if !result {
-        array_add(*app.directories, folder);
-
-        path := parse_path(directory_path);
-        fully_exists, how_much_exists := how_much_of_path_exists_on_the_local_filesystem(path);
-        if fully_exists {
-            // Update the list of watched directories so that we can reload this entity
-            add_directories(*app.file_watcher, folder.path);
-        }
-
-        result = *app.directories[app.directories.count - 1];
-    }
-} else {
-    assert(false); // @Incomplete linux support
-}
-    return result;
+    return null;
 }
 
 folder_exists_on_disk :: (directory : string) -> bool {
-    if directory == PRESET_SHAPE_FOLDER || directory == COMMAND_OUTPUT_FOLDER || directory == SELECTION_FOLDER {
-        return false;
-    }
     return true;
 }
 
 remove_directory_if_unwatched :: (directory : string) {
-    if !folder_exists_on_disk(directory) {
-        return; // Do not allow these item folders to be removed
-    }
-
-    // Check if no other entities will need to watch this directory
-    remove_directory := true;
-    for :All app.entities {
-        if it.source.kind == ._Entity_Source_File && get_directory(get_entity_source(it).path) == directory {
-            remove_directory = false;
-            break;
-        }
-    }
-
-    if remove_directory {
-        for app.directories {
-            if it.path == directory {
-                deinit(it);
-                remove it;
-                break;
-            }
-        }
-
-        #if OS == .WINDOWS {
-        for app.file_watcher.directories {
-            if it.name == directory {
-                // @FIXME do we have a memory leak here??
-                remove it;
-                break;
-            }
-        }
-        } else {
-            assert(false); // @Incomplete linux support
-        }
-    }
 }
 
 
@@ -330,34 +252,9 @@ Duplicate_File_Behaviour :: enum u8 #specified {
 
 clamp_user_settings :: ()
 {
-    clamp :: (value : *$T, min : T, max : T) {
-        value.* = clamp(value.*, min, max);
-    }
-
-    using app.settings;
-    // clamp(*camera_zoom_dragging_ratio, .3, .99);
-    clamp(*camera_zoom_scrolling_ratio, .3, .99);
-    clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
-    clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
-    clamp(*closest_point_query_max_dist_px, 0, 100);
 }
 
 set_prizm_theme :: (theme : Prizm_Color_Theme) {
-    if #complete theme == {
-        case .DARK;
-            ImGui.StyleColorsDark();
-            app.theme = Prizm_Theme_Dark.{};
-        case .LIGHT;
-            ImGui.StyleColorsLight();
-            app.theme = Prizm_Theme_Light.{};
-    }
-
-    ImGui.GetStyle().WindowRounding = 4;
-    ImGui.GetStyle().PopupRounding = 4;
-    ImGui.GetStyle().FrameRounding = 2;
-    ImGui.GetStyle().FrameBorderSize = 1;
-    ImGui.GetStyle().ChildBorderSize = 5;
-    ImGui.GetStyle().DisabledAlpha = .5;
 }
 
 #import "Basic";
@@ -395,12 +292,10 @@ Simp :: #import "Simp";
 #load "Tagged_Union_Enum.jai";
 #load "annotations.jai";
 #load "simple_mesh.jai";
-#load "numeric.jai";
 #load "rendering.jai";
 #load "rendering_utils.jai";
 #load "carpet.jai";
 #load "entities.jai";
-#load "target_items.jai";
 #load "colors.jai";
 
 #import "Compiler";

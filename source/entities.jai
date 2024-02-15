@@ -77,12 +77,12 @@ is_changed_on_disk :: (entity : Entity) -> bool {
 }
 
 temp_visible_entities :: () -> [..]*Entity {
-    visible : [..]*Entity = temp_array(*Entity);
+    visible : [..]*Entity;
     return visible;
 }
 
 temp_selected_entities :: () -> [..]*Entity {
-    selected : [..]*Entity = temp_array(*Entity);
+    selected : [..]*Entity;
     return selected;
 }
 
@@ -101,8 +101,6 @@ get_entity_primary_color :: (using entity : *Entity) -> *Vector4, *bool {
 set_entity_primary_color :: (using entity : *Entity) {
 }
 
-// Assumes that fully_pathed_name is canonically formatted (see canonically_formatted_path_string)
-// Returns a string pointing into the argument
 entity_name :: (fully_pathed_name : string) -> string {
     return "";
 }
