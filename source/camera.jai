@@ -88,15 +88,6 @@ rotate_look_direction :: (axis : Vector3, degrees : float)
     up_direction = rotate(up_direction, rotation);
 }
 
-// Return the orthographic view volume in view space coordinates
-current_orthographic_view_volume :: () -> AxisBox3
-{
-    min_point_vs := make_vector3(app.camera.left,  app.camera.bottom, app.camera.near);
-    max_point_vs := make_vector3(app.camera.right, app.camera.top,    app.camera.far);
-    volume_vs := make_axis_box3(min_point_vs, max_point_vs);
-    return volume_vs;
-}
-
 init_camera :: () {
     camera := *app.camera;
 

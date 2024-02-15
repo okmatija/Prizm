@@ -201,9 +201,6 @@ add_entity :: (entity : *Entity, matching_name_behaviour : Duplicate_File_Behavi
 
                 deinit(found);
 
-                // @Cleanup Replace with code to set the dirty flag
-                maybe_update_render_info(*entity.render_info, *entity.mesh);
-
                 app.entities[found_index] = entity;
 
             case .APPEND;
@@ -319,11 +316,8 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
 // @Incomplete @Think Maybe we should handle visiblity on a more granular level e.g., on the element type level? We would need separate bounding geometry on the level of visibility control, which actually kindof makes sense.
 
 // Result could be an empty sphere. Does not check visiblity
-entity_raw_world_bounding_sphere :: (using entity : *Entity) -> Sphere {
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-    result : Sphere = render_info.bounding_sphere;
-    transform(*result, mesh.world_from_model);
-    return result;
+entity_raw_world_bounding_sphere :: (using entity : *Entity) -> Sphere {   
+    return .{};
 }
 
 // Result could be an empty sphere. Does not check visibility
@@ -583,21 +577,6 @@ AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flag
         }
     }
 }
-
-// Returns a result in world space
-entity_selection_aabb :: () -> AxisBox3 {
-    result : AxisBox3;
-    for :Selected app.entities {
-        maybe_update_render_info(*it.render_info, *it.mesh);
-        // @Volatile @Cleanup only works for a shift
-        aabb := it.render_info.bounding_aabb;
-        aabb.min_point = (it.mesh.world_from_model * make_vector4(aabb.min_point, 1)).xyz;
-        aabb.max_point = (it.mesh.world_from_model * make_vector4(aabb.max_point, 1)).xyz;
-        expand(*result, aabb);
-    }
-    return result;
-}
-
 
 color_from_path :: (path : string) -> Vector4 {
     if path.count == 0 {

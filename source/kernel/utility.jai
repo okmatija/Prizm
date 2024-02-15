@@ -149,9 +149,7 @@ bounding_sphere :: (aabb : AxisBox3) -> Sphere
 // Assumes that the given points list is not empty
 bounding_sphere_naive :: (points : []Point3) -> Sphere
 {
-    aabb := make_axis_box3(..points);
-    result := bounding_sphere(aabb);
-    return result;
+    return .{};
 }
 
 bounding_sphere_ritter :: (points : []Point3) -> Sphere

@@ -5,18 +5,3 @@ to_Mesh :: (sphere : Sphere) -> Simple_Mesh {
     return to_Mesh(ps_mesh);
 }
 
-
-to_Mesh :: (m : par_shapes_mesh) -> Simple_Mesh {
-    using result : Simple_Mesh;
-
-    // @Incomplete Copy normals to the triangle normals attribute
-    array_copy(*positions, m.points);
-    array_reserve(*triangles, m.triangles.count);
-    memcpy(triangles.data, m.triangles.data, m.triangles.count * size_of(m.Triangle));
-    triangles.count = m.triangles.count;
-
-    // @Incomplete tcoords
-
-    return result;
-}
-

@@ -152,13 +152,7 @@ main :: () {
         glGenVertexArrays(1, *app.background_vao);
     }
 
-    TRIAD_AXIS_LENGTH :: 1;
-    app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
-
     init_camera();
-    init_keymap();
-    // init_known_issues();
-    init_icons();
 
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
@@ -238,19 +232,6 @@ main :: () {
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
-
-        // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
-        if app.show_ui {
-            show_left_window();
-            show_right_window();
-            show_imgui_demo_window();
-            show_ribbon_buttons_ui();
-            console_draw();
-            show_pending_directories_ui();
-
-            // inspect("Debug", app.entities[0], true);
-            // inspect("Debug", *app.camera, true);
-        }
 
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
         {

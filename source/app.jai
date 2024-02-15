@@ -84,12 +84,6 @@ App :: struct {
 
     ribbon_button_mode := Ribbon_Button_Mode.SHOW;
 
-    triad : Axes_Triad;
-    // triad.origin.display_info.triangle_style.backface_mode = .FIXED;
-    // triad.x_axis.display_info.triangle_style.backface_mode = .FIXED;
-    // triad.y_axis.display_info.triangle_style.backface_mode = .FIXED;
-    // triad.z_axis.display_info.triangle_style.backface_mode = .FIXED;
-
     label_format : Label_Format;
     Label_Format :: struct {
         format_float : FormatFloat;  // We ignore the `value` field
@@ -406,12 +400,10 @@ Simp :: #import "Simp";
 //#import "Tagged_Union_Enum"(DEBUG=true);
 #load "Tagged_Union_Enum.jai";
 #load "annotations.jai";
-#load "axis_box.jai";
 #load "edge.jai";
 #load "mesh_utils.jai";
 #load "simple_mesh.jai";
 #load "aabb_tree.jai";
-#load "axes.jai";
 #load "numeric.jai";
 #load "intervals.jai";
 #load "rendering.jai";
@@ -420,8 +412,6 @@ Simp :: #import "Simp";
 #load "camera.jai";
 #load "entities.jai";
 #load "ui.jai";
-#load "shapes.jai";
-#load "keymap.jai";
 #load "target_items.jai";
 #load "inspector.jai";
 #load "colors.jai";

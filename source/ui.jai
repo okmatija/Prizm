@@ -4,51 +4,6 @@ WINDOW_RESIZE_MARGIN_PX :: 3;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
-init_icons :: () {
-    PRIZM_ICON_DATA0,     OK0 :: #run read_entire_file("data/icon_blue.png",  zero_terminated=true);  #assert(OK0);
-    PRIZM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
-    PRIZM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
-    PRIZM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
-    PRIZM_LOGO_DATA,      OK4 :: #run read_entire_file("data/logo.png",       zero_terminated=true);  #assert(OK4);
-
-    WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
-    WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
-    WINDOW_MINIMIZE_DATA, OK7 :: #run read_entire_file("data/minimize.png",   zero_terminated=true);  #assert(OK7);
-    WINDOW_RESTORE_DATA,  OK8 :: #run read_entire_file("data/restore.png",    zero_terminated=true);  #assert(OK8);
-
-    BACKFACE_DATA,        OK9 :: #run read_entire_file("data/backface.png",    zero_terminated=true); #assert(OK9);
-    OPACITY_DATA,         OKa :: #run read_entire_file("data/opacity.png",     zero_terminated=true); #assert(OKa);
-    CLIPPING_DATA,        OKb :: #run read_entire_file("data/clipping.png",    zero_terminated=true); #assert(OKb);
-    NORMALS_DATA,         OKc :: #run read_entire_file("data/normals.png",     zero_terminated=true); #assert(OKc);
-    THICKNESS_DATA,       OKd :: #run read_entire_file("data/thickness.png",   zero_terminated=true); #assert(OKd);
-    RADIUS_DATA,          OKe :: #run read_entire_file("data/radius.png",      zero_terminated=true); #assert(OKe);
-    INDICES_DATA,         OKf :: #run read_entire_file("data/indices.png",     zero_terminated=true); #assert(OKf);
-    COORDINATES_DATA,     OKg :: #run read_entire_file("data/coordinates.png", zero_terminated=true); #assert(OKg);
-    ANNOTATIONS_DATA,     OKh :: #run read_entire_file("data/annotations.png", zero_terminated=true); #assert(OKh);
-
-    ok : bool;
-    icon_prizm_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA0);     assert(ok);
-    icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA1);     assert(ok);
-    icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA2);     assert(ok);
-    icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA3);     assert(ok);
-    icon_prizm_logo_texture,      ok = load_texture_from_memory(cast([]u8)PRIZM_LOGO_DATA);      assert(ok);
-
-    icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
-    icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
-    icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MINIMIZE_DATA); assert(ok);
-    icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)WINDOW_RESTORE_DATA);  assert(ok);
-
-    icon_backface_texture,    ok = load_texture_from_memory(cast([]u8)BACKFACE_DATA);    assert(ok);
-    icon_opacity_texture,     ok = load_texture_from_memory(cast([]u8)OPACITY_DATA);     assert(ok);
-    icon_clipping_texture,    ok = load_texture_from_memory(cast([]u8)CLIPPING_DATA);    assert(ok);
-    icon_normals_texture,     ok = load_texture_from_memory(cast([]u8)NORMALS_DATA);     assert(ok);
-    icon_thickness_texture,   ok = load_texture_from_memory(cast([]u8)THICKNESS_DATA);   assert(ok);
-    icon_radius_texture,      ok = load_texture_from_memory(cast([]u8)RADIUS_DATA);      assert(ok);
-    icon_indices_texture,     ok = load_texture_from_memory(cast([]u8)INDICES_DATA);     assert(ok);
-    icon_coordinates_texture, ok = load_texture_from_memory(cast([]u8)COORDINATES_DATA); assert(ok);
-    icon_annotations_texture, ok = load_texture_from_memory(cast([]u8)ANNOTATIONS_DATA); assert(ok);
-}
-
 show_menu_bar_ui :: () {
     // Draw a grey border around the entire screen, if we don't do this its hard to see where the application ends
     fg_draw_list : *ImGui.ImDrawList = ImGui.GetForegroundDrawList();
@@ -129,10 +84,6 @@ show_menu_bar_ui :: () {
             }
         }
 
-        if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
-            app.triad.visible = !app.triad.visible;
-        }
-
         ImGui.Text("Ribbon Button UI");
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
@@ -153,8 +104,6 @@ show_menu_bar_ui :: () {
             // Window Size
             {
                 // @Volatile :EasyResizeModeKeybind
-                tooltip :: () { show_tooltip_binding("(near window border) Resize the window", "Alt LMB", flags=.None); }
-
                 ImGui.Text("Window Size            ");
                 tooltip();
 
@@ -243,52 +192,6 @@ show_menu_bar_ui :: () {
 
             // TODOO Always on top window
         }
-    }
-
-    if ImGui.BeginMenu("Help") {
-        defer ImGui.EndMenu();
-
-        if ImGui.BeginMenu("Window Shortcuts") {
-            defer ImGui.EndMenu();
-            show_window_key_bindings();
-        }
-
-        if ImGui.BeginMenu("Camera Shortcuts") {
-            defer ImGui.EndMenu();
-            show_camera_key_bindings();
-        }
-
-        if ImGui.BeginMenu("Items List Shortcuts") {
-            defer ImGui.EndMenu();
-            show_items_list_key_bindings();
-        }
-
-        if ImGui.BeginMenu("Viewport Shortcuts") {
-            defer ImGui.EndMenu();
-            show_viewport_key_bindings();
-        }
-
-        if ImGui.BeginMenu("Miscellaneous Shortcuts") {
-            defer ImGui.EndMenu();
-            show_miscellaneous_key_bindings();
-        }
-
-        ImGui.Separator();
-
-        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.MenuBarBg]);
-
-        // :ImprovePrizmLogo
-        // logo_width := icon_prizm_logo_texture.width;
-        // text_width := ImGui.CalcTextSize("                                                                   ").x;
-        // window_width := max(1.2 * logo_width, text_width);
-        // ImGui.SetNextWindowContentSize(ImGui.ImVec2.{window_width, 0});
-
-        if ImGui.BeginMenu("About") {
-            defer ImGui.EndMenu();
-
-            show_help_about_content();
-        }
-        ImGui.PopStyleColor();
     }
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.FrameRounding, 0);
@@ -397,54 +300,6 @@ show_right_window :: () {
     defer ImGui.End();
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
-
-    show_camera_controls();
-}
-
-show_ribbon_buttons_ui :: () {
-    if app.console.show_ui || app.ribbon_button_mode == .HIDE {
-        return;
-    }
-
-    window_pivot := ImGui.ImVec2.{0, 1}; // SetNextWindowPos will refer to the bottom left corner of the window
-
-    button_count := 9;
-    button_width := ACTION_BUTTON_SIZE.x + 2 * ImGui.GetStyle().FramePadding.x;
-    buttons_space := (button_count - 1) * ImGui.GetStyle().ItemSpacing.x;  
-    buttons_width := button_count * button_width + buttons_space + 2 * ImGui.GetStyle().WindowPadding.x;
-
-    next_window_pos := ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height};
-
-    if app.ribbon_button_mode == .AUTO {
-        pad :: 40;
-        if io().MousePos.x < cast(float)(next_window_pos.x - pad) || 
-           io().MousePos.x > cast(float)(next_window_pos.x + buttons_width + pad) ||
-           io().MousePos.y < cast(float)(next_window_pos.y - ACTION_BUTTON_SIZE.y - ImGui.GetStyle().FramePadding.y - pad) {
-            return;
-        } 
-    }
-
-    ImGui.SetNextWindowPos(next_window_pos, pivot=window_pivot);
-    // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window, we DONT do this.
-    ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
-
-    window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
-    window_flags |= .NoBringToFrontOnFocus; // Prioritize drawing item list if it covers the console
-    window_flags |= .NoFocusOnAppearing;    // So we dont clobber the reclaim_focus stuff in the console input window
-    window_flags |= .NoBackground;          // Makes the console log transparent
-
-    ImGui.Begin("target_items_ribbon", flags=window_flags);
-    defer ImGui.End();
-
-    ActionButton(icon_backface_texture,    *CYCLE_BACKFACE_MODE_ACTION_SET); ImGui.SameLine();
-    ActionButton(icon_opacity_texture,     *CYCLE_OPACITY_ACTION_SET);       ImGui.SameLine();
-    ActionButton(icon_clipping_texture,    *TOGGLE_CLIPPING_ACTION_SET);     ImGui.SameLine();
-    ActionButton(icon_normals_texture,     *TOGGLE_NORMALS_ACTION_SET);      ImGui.SameLine();
-    ActionButton(icon_thickness_texture,   *CYCLE_LINE_WIDTH_ACTION_SET);    ImGui.SameLine();
-    ActionButton(icon_radius_texture,      *CYCLE_VERTEX_SIZE_ACTION_SET);   ImGui.SameLine();
-    ActionButton(icon_indices_texture,     *CYCLE_ELEMENT_LABEL_ACTION_SET); ImGui.SameLine();
-    ActionButton(icon_coordinates_texture, *CYCLE_VERTEX_LABEL_ACTION_SET);  ImGui.SameLine();
-    ActionButton(icon_annotations_texture, *CYCLE_ANNOTATION_LABEL_ACTION_SET);
 }
 
 show_pending_directories_ui :: () {
@@ -801,13 +656,6 @@ show_items_ui :: () {
 
         selected : [..]*Entity = temp_selected_entities();
         ImGui.Text("% item% (% selected)", app.entities.count, ifx app.entities.count > 1 then "s" else "", selected.count);
-        bindings : [..]Binding_With_Description = temp_array(Binding_With_Description);
-        // @Volatile Sync with :SelectionKeybindTooltip
-        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{control_pressed=true}), "Select/deselect all items"));
-        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{shift_pressed=true}), "Select/deselect visible items"));
-        array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{alt_pressed=true}), "Toggle current item selection"));
-        array_add(*bindings, make_Binding_With_Description(to_string(#char "`", .{}), "Use the 'select_...' console commands"));
-        show_tooltip_binding(..bindings, "Summary of ways to select items:");
 
     } // end TreeNodeEx
 
@@ -1246,23 +1094,6 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
 }
 
 show_details_pane_ui_for_item_selection :: () {
-    if ImGui.BeginTabBar("##DetailsTabBar", flags=ImGui.TabBarFlags.None) {
-        defer ImGui.EndTabBar();
-
-        if ImGui.BeginTabItem("Display") {
-            defer ImGui.EndTabItem();
-
-            show_item_selection_ui();
-
-            // @Incomplete We should show the selection information here, helpful e.g., to select all items and know if there are any segment elements in the selection
-
-            app.template_aabb_world = entity_selection_aabb();
-            update := display_info_ui(*app.template_display_info, app.template_aabb_world);
-            for :Selected app.entities {
-               apply_update(update, app.template_display_info, *it.display_info);
-            }
-        }
-    }
 }
 
 show_item_selection_ui :: () {
@@ -1706,154 +1537,6 @@ show_folder_context_menu :: (path : string, auto_load_new_files : *bool = null) 
     }
 }
 
-show_camera_controls :: () {
-
-    old_padding := ImGui.GetStyle().CellPadding;
-    ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, .{0, 0});
-    defer ImGui.PopStyleVar();
-
-    X_AXIS :: Vector3.{1, 0, 0};
-    Y_AXIS :: Vector3.{0, 1, 0};
-    Z_AXIS :: Vector3.{0, 0, 1};
-
-    keep_up := app.settings.camera_controls_keep_up_when_setting_look_along;
-
-    if ImGui.BeginTable("##ViewCube", 3) {
-        defer ImGui.EndTable();
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        if ImGui.Button("+X ") {
-            set_look_direction(direction=X_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-        }
-        ImGui.TableNextColumn();
-        if ImGui.Button("+Y ") {
-            set_look_direction(direction=Y_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-        }
-        ImGui.TableNextColumn();
-        if ImGui.Button("+Z ") {
-            set_look_direction(direction=Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
-        }
-        // ImGui.TableNextColumn();
-        ImGui.SameLine();
-        ImGui.DragFloat( "##Near ", *app.camera.near, .05);
-        show_tooltip("Near plane offset");
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-        if ImGui.Button("-X ") {
-            set_look_direction(direction=-X_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-        }
-        ImGui.TableNextColumn();
-        if ImGui.Button("-Y ") {
-            set_look_direction(direction=-Y_AXIS, up=ifx keep_up then app.camera.up_direction else Z_AXIS);
-        }
-        ImGui.TableNextColumn();
-        if ImGui.Button("-Z ") {
-            set_look_direction(direction=-Z_AXIS, up=ifx keep_up then app.camera.up_direction else Y_AXIS);
-        }
-        // ImGui.TableNextColumn();
-        ImGui.SameLine();
-        ImGui.DragFloat( "##Far  ", *app.camera.far, .05);
-        show_tooltip("Far plane offset");
-
-        ImGui.TableNextRow();
-        ImGui.TableNextColumn();
-
-        // @Volatile Sync with :RotateLookDirectionUI
-        right_label, left_label, amount := "<< ", " >>", 5.;
-        if io().KeyShift {
-            right_label, left_label, amount = "<<<", ">>>", 15.;
-        } else if io().KeyAlt {
-            right_label, left_label, amount = " < ", " > ", 1.;
-        }
-
-        if ImGui.Button(right_label.data) {
-            axis := camera_rotation_axis();
-            rotate_look_direction(axis, amount);
-        }
-        {
-            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
-            defer ImGui.PopStyleVar();
-            ccw_bindings := temp_array(Binding_With_Description);
-            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{alt_pressed=true}),   "Rotate  -1 deg about selected rotation axis"));
-            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{}),                   "Rotate  -5 deg about selected rotation axis"));
-            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{shift_pressed=true}), "Rotate -15 deg about selected rotation axis"));
-            show_tooltip_binding(..ccw_bindings);
-        }
-
-        ImGui.TableNextColumn();
-        if ImGui.Button("XYZ") {
-            up := normalize(cross(.{-1, 1, 0}, .{-1, -1, -1}));
-            set_look_direction(direction=.{-1, -1, -1}, up=up);
-        }
-
-        ImGui.TableNextColumn();
-        if ImGui.Button(left_label.data) {
-            axis := camera_rotation_axis();
-            rotate_look_direction(axis, -amount);
-        }
-        {
-            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
-            defer ImGui.PopStyleVar();
-            cw_bindings := temp_array(Binding_With_Description);
-            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{alt_pressed=true}),   "Rotate  1 deg about selected rotation axis"));
-            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{}),                   "Rotate  5 deg about selected rotation axis"));
-            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{shift_pressed=true}), "Rotate 15 deg about selected rotation axis"));
-            show_tooltip_binding(..cw_bindings);
-        }
-
-        // ImGui.TableNextColumn();
-        ImGui.SameLine();
-        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        show_tooltip_binding("Camera Rotation Axis", "Alt RMB");
-    }
-
-    // @FIXME Having this combo box here screws up the UI when you close the Settings tree :(
-    // ImGui.SetNextItemWidth(-FLOAT32_MIN);
-    // combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-    // show_tooltip("Alt RMB Camera Rotation Axis");
-
-    // compiler_report("Move this menu next to the other buttons and update the changelog")
-
-    /*
-    if ImGui.TreeNodeEx("Advanced") {
-        defer ImGui.TreePop();
-
-        ImGui.Unindent(ImGui.GetTreeNodeToLabelSpacing());
-        defer ImGui.Indent(ImGui.GetTreeNodeToLabelSpacing());
-
-        // @TODO Would be better to set the look direction vector I think
-        ImGui.DragFloat( "##Near ", *app.camera.near, .05);
-        show_tooltip("Near plane offset");
-        ImGui.DragFloat( "##Far  ", *app.camera.far, .05);
-        show_tooltip("Far plane offset");
-        // ImGui.DragFloat3("Orbit", *app.camera.look_position.component);
-        // ImGui.DragFloat3("Eye  ", *app.camera.eye_position.component);
-        // ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
-
-        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        show_tooltip_binding("Camera Rotation Axis", "Alt RMB");
-
-        // Not really needed if you can explicitly set the orbit position
-        // if app.camera.look_position != Vector3.{0, 0, 0} {
-        //     size_of_last_item := ImGui.GetItemRectSize();
-        //     if ImGui.Button("Reset Orbit", size=size_of_last_item) {
-        //         look_direction := current_look_direction();
-        //         app.camera.look_position = .{0, 0, 0};
-        //         app.camera.eye_position = app.camera.look_position - look_direction;
-        //     }
-        // }
-    }
-    */
-
-    // @Incomplete add perspective/orthographic toggle
-    // @Incomplete add button to reset look position
-
-    if app.show_fps {
-        ImGui.Text(tprint("% fps", formatFloat(1. / io().DeltaTime, trailing_width=2)));
-    }
-}
-
 show_help_about_content :: () {
 
     // :ImprovePrizmLogo I don't like the current one so we don't show it
@@ -2237,11 +1920,6 @@ DONE;
                             if ImGui.Button(imgui_label("Focus", xx index)) {
                                 item_focus_triangle(entity_index, index, ifx io().KeyShift then 0. else -1.);
                             }
-                            bindings : [..]Binding_With_Description;
-                            bindings.allocator = temp;
-                            array_add(*bindings, make_Binding_With_Description( "LMB",       "Update camera to focus subject"));
-                            array_add(*bindings, make_Binding_With_Description( "Shift LMB", "As above, with sphere clipping"));
-                            show_tooltip_binding(..bindings);
 
                             ImGui.TableNextColumn();
                             ImGui.Text(tprint("%", index));
@@ -2548,14 +2226,12 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 ImGui.TableSetColumnIndex(2);
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 ImGui.DragFloat3(imgui_label("##clip_sphere.center", *clip_sphere), *clip_sphere.center.component, .05, format="%.3f");
-                show_tooltip_binding(DESCRIBE, BINDING);
 
                 ImGui.SetNextItemWidth(-FLOAT32_MIN);
                 // @Cleanup check this can't go nan, do we need to do the same to the clipping ranges?
                 ImGui.DragFloat(imgui_label("##clip_sphere.radius", *clip_sphere), *clip_sphere.radius, .01, 0., 0., format="%.3f");
                 if isnan(clip_sphere.radius) clip_sphere.radius = POSITIVE_INF;
                 clip_sphere.radius = clamp(clip_sphere.radius, 0., POSITIVE_INF);
-                show_tooltip_binding(DESCRIBE, BINDING);
 
                 ImGui.TableSetColumnIndex(3);
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
