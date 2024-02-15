@@ -175,61 +175,6 @@ set_entity_annotations :: (entity : *Entity,
     line_annotations :   [..]Annotation) {
 }
 
-// @Think Do we need this is we have a default value for kinds?
-AnnotationIterator :: #bake_arguments AnnotationIteratorBase(
-    // @Volatile
-    kinds=Annotation.Kind.COMMAND|.BLOCK|.POINT|.VERTEX|.LINE|.TRIANGLE
-    );
-
-AnnotationIteratorBase :: (using entity : *Entity, body : Code, flags : For_Flags, kinds : Annotation.Kind) #expand {
-    #assert(flags == 0); // No options are supported
-
-    `it : Annotation;
-    `it_index : int;
-
-    if kinds & .COMMAND {
-        for annotation, annotation_index : command_annotations {
-            it, it_index = annotation, annotation_index;
-            #insert body;
-        }
-    }
-
-    if kinds & .BLOCK {
-        for annotation, annotation_index : block_annotations {
-            it, it_index = annotation, annotation_index;
-            #insert body;
-        }
-    }
-
-    if kinds & .VERTEX {
-        for annotation, annotation_index : vertex_annotations {
-            it, it_index = annotation, annotation_index;
-            #insert body;
-        }
-    }
-
-    if kinds & .POINT {
-        for annotation, annotation_index : point_annotations {
-            it, it_index = annotation, annotation_index;
-            #insert body;
-        }
-    }
-
-    if kinds & .LINE {
-        for annotation, annotation_index : line_annotations {
-            it, it_index = annotation, annotation_index;
-            #insert body;
-        }
-    }
-
-    if kinds & .TRIANGLE {
-        for annotation, annotation_index : face_annotations {
-            it, it_index = annotation, annotation_index;
-            #insert body;
-        }
-    }
-}
-
 color_from_path :: (path : string) -> Vector4 {
     if path.count == 0 {
         return .{1., 1., 1., 1.};
@@ -260,45 +205,11 @@ find_entity :: (fully_pathed_name : string, generation_index : int) -> *Entity, 
     return null, 0;
 }
 
-// @Think Add a function to change closest_point_element to .VERTEX if the barycentric/segment parameter is 0/1?
-Closest_Point_Ray_Entity :: struct {
-    // Valid values are POINT/SEGMENT/TRIANGLE.
-    // When the closest point was computed on a triangle this will be .TRIANGLE and not .SEGMENT/.POINT, even if closest_point.triangle.distance > 0. This will be only be .SEGMENT/.POINT when the ray was tested against segments/points
-    closest_point_element : Simple_Mesh_Element = .MESH;
-
-    // If the distance member is zero the closest point is an intersection point
-    using closest_point : union {
-        point : Closest_Point_Ray_Point;
-        segment : Closest_Point_Ray_Segment;
-        triangle : Closest_Point_Ray_Triangle;
-    }
-
-    element_index : int = -1;
-    entity_index : int = -1;
-}
-
-get_ray_parameter :: (using closest : Closest_Point_Ray_Entity) -> float {
-    return 0.;
-}
-
-get_closest_point_on_ray :: (using closest : Closest_Point_Ray_Entity) -> Vector3 {
-    return .{};
-}
-
-get_closest_point_on_element :: (using closest : Closest_Point_Ray_Entity) -> Vector3 {
-    return .{};
-}
-
 
 is_visible :: (e : *Entity) -> bool {
     return e.display_info.is_visible;
 }
 
-// @Refactor Use spatial lookups on triangles/segments/points
-// @Cleanup Remove this function, replace it with a version find_closest_element which has a new arguement which determines what elements are being searched ie to have this behaviour we would only look for vertices
-find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_Ray_Entity {
-    return .{};
-}
 
 // Return true if the given point is further than max_distance_px from the mouse position and false otherwise
 outside_screen_dist :: inline (point_world : Vector3, projection_from_world : Matrix4, max_distance_px : int) -> bool {

@@ -297,13 +297,11 @@ handle_events :: () {
                 drop_file : string = to_string(event.drop.file);
                 dropped, success := canonically_formatted_path_string(drop_file);
                 if !success {
-                    log_warning("Failed to read file path '%', maybe it doesn't exist?", drop_file);
                     continue;
                 }
 
                 got_directory, got_directory_valid := is_directory(dropped);
                 if !got_directory_valid {
-                    log_warning("Expected a filename or directory, got '%'", dropped);
                 } else if got_directory {
                     handle_directory(dropped);
                     // fit_scene_on_screen() is called when the pending directories are actually handled
@@ -385,7 +383,6 @@ handle_load_string :: (path : string, recursive := false) -> bool {
         got_directory, got_directory_valid := is_directory(pattern);
 
         if !got_directory_valid {
-            log_warning("Expected a filename or directory, got '%', maybe this path does not exist?", pattern);
         } else if got_directory {
             handle_directory(pattern);
         } else {

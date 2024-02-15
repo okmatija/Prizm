@@ -185,7 +185,6 @@ add_directory :: (directory_path : string) -> *app.Folder {
 
     got_directory, got_directory_valid := is_directory(directory_path);
     if !got_directory_valid || !got_directory {
-        log_warning("Expected a directory, but got something else ('%')", directory_path);
         return result;
     }
 
@@ -407,7 +406,6 @@ Simp :: #import "Simp";
 #load "carpet.jai";
 #load "entities.jai";
 #load "target_items.jai";
-#load "inspector.jai";
 #load "colors.jai";
 
 #import "Compiler";

@@ -172,45 +172,6 @@ make_Vector2 :: inline (v : ImGui.ImVec2) -> Vector2 {
 //    return default, -1;
 //}
 
-hack_char_to_string :: (c : *u8) -> string {
-    result : string;
-    result.data = c;
-    result.count = 1;
-    return result;
-}
-
-to_radians :: (degrees : float) -> float {
-    scale :: PI / 180;
-    return degrees * scale;
-}
-
-to_degrees :: (radians : float) -> float {
-    scale :: 180 / PI;
-    return radians * scale;
-}
-
-ensure_2d_or_3d :: (T : Type, loc := #caller_location) {
-    dim := dimension_of(T, loc);
-    if dim == 2 || dim == 3 return;
-    compiler_report(loc.fully_pathed_filename, loc.line_number, 0, tprint("Expected Vector2 or Vector3, got %", T));
-}
-
-// Returns a signed int so we can write dim-1 in loops and things just work
-dimension_of :: (T : Type, loc := #caller_location) -> int {
-    if T == Vector2 return 2;
-    if T == Vector3 return 3;
-    compiler_report(loc.fully_pathed_filename, loc.line_number, 0, tprint("Expected Vector2 or Vector3, got %", T));
-    return -1;
-}
-
-log_warning :: (format_string: string, args: .. Any, loc := #caller_location, flags := Log_Flags.NONE, user_flags : u32 = 0) {
-    // In case people prefer to say log_warning instead of putting a flags argument on the end,
-    // we provide this for convenience. Not really sure if it's worth it, but here you go.
-    new_flags := flags | .WARNING;
-    log(format_string, ..args, loc, new_flags, user_flags);
-} @PrintLike
-
-
 //
 // ImGui Widgets
 //
