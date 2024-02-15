@@ -96,11 +96,6 @@ Render_Info :: struct {
     triangles_edges_vao : GLuint;
     triangles_normals_vao : GLuint;
 
-    // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
-    // @Cleanup Use a Box_Sphere here
-    // @Cleanup Consider moving this into the mesh
-    bounding_sphere : Sphere;
-    bounding_aabb : AxisBox3;
 }
 
 // @Volatile Keep synced with shaders
@@ -119,7 +114,7 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
     using #as sphere : Sphere;
-    radius = 0h7F800000; // +inf
+    radius := 0h7F800000; // +inf
     is_active : bool = false;
 }
 

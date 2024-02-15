@@ -1,23 +1,9 @@
 #load "app.jai";
 
+Keymap :: struct {}
+Single_Key_Mapping :: struct {}
+
 main :: () {
-
-
-    // // #if DEBUG {
-    //     UA :: #import "Unmapping_Allocator";
-    //     context.allocator = UA.get_unmapping_allocator();
-    // // }
-
-    print_usage_and_exit :: () {
-        print("\n");
-        print("--Help           Print this message and exit.\n");
-        print("--AlwaysOnTop    Keeps the Prizm window on top.\n");
-        print("--Red            Use the red   icon in the title bar.\n");
-        print("--Green          Use the green icon in the title bar.\n");
-        print("--Blue           Use the blue  icon in the title bar (This is the default).\n");
-        print("--Black          Use the black icon in the title bar.\n");
-        exit(0);
-    }
 
     sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
 
@@ -100,6 +86,7 @@ main :: () {
     // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
+    /*
     // TODO Option to pass font and size on the command line?
     FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
     FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf");          #assert(FONT2_OK);
@@ -122,6 +109,7 @@ main :: () {
         app.simp_font = Simp.get_font_at_size(font_data, FONT_SIZE);
         assert(app.simp_font != null);
     }
+    */
 
     set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
@@ -138,10 +126,6 @@ main :: () {
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
-        ImGui.PushFont(font);
-
-        // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
-        app.select_tool.entity.display_info.is_visible = false;
 
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
         {
@@ -151,8 +135,6 @@ main :: () {
         }
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-        ImGui.PopFont();
 
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
@@ -177,35 +159,12 @@ main :: () {
 
 // @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {
-
-    // @CompilerBug for .\Prizm.exe 'C:\Users\MatijaKecman\Desktop\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
-    args := get_command_line_arguments();
-    defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
-    for 1..args.count-1 {
-        if starts_with(args[it], "--") {
-            continue; // Skip program argument
-        }
-        handle_load_string(args[it]);
-    }
-    fit_scene_on_screen();
 }
 
 handle_events :: () {
 
     // @Cleanup The parameters here are a bit weird, I think the loops that call this function should not be over the mappings, but the keymaps 
     maybe_run_binding :: (sdl_keycode : SDL_Keycode, mapping : Single_Key_Mapping, keymap : Keymap) {
-        if to_sdl_keycode(mapping.key_code) == sdl_keycode {
-            if io().KeyShift == mapping.modifier_flags.shift_pressed   &&
-               io().KeyCtrl  == mapping.modifier_flags.control_pressed &&
-               io().KeyAlt   == mapping.modifier_flags.alt_pressed {
-                if io().WantCaptureKeyboard && !mapping.override_WantCaptureKeyboard {
-                    return;
-                }
-                info := *keymap.procs[mapping.proc_info_index];
-                info.proc();
-                return;
-            }
-        }
     }
 
     event: SDL_Event;
@@ -215,82 +174,19 @@ handle_events :: () {
         if event.type == {
             case SDL_QUIT;
 
-                app.closing_application = true;
-
             case SDL_WINDOWEVENT;
 
             case SDL_KEYDOWN;
 
-                for app.keymap_keydown.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_keydown);
-                }
-
-                // @Cleanup Make this a proper function!
-                if event.key.keysym.sym == .SDLK_ESCAPE {
-
-                    // :WindowOpacityControl
-                    app.window_focussed_opacity = 1.;
-                    app.window_unfocussed_opacity = 1.;
-                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
-                }
-
             case SDL_KEYUP;
-
-                for app.keymap.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap);
-                }
-
-                for app.keymap_actions.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_actions);
-                }
 
             case SDL_DROPFILE;
 
-                // @Leak event.drop.file should be free'd using SDL_free
-                drop_file : string = to_string(event.drop.file);
-                dropped, success := canonically_formatted_path_string(drop_file);
-                if !success {
-                    continue;
-                }
-
-                got_directory, got_directory_valid := is_directory(dropped);
-                if !got_directory_valid {
-                } else if got_directory {
-                    handle_directory(dropped);
-                    // fit_scene_on_screen() is called when the pending directories are actually handled
-                } else {
-                    handle_filename(dropped, app.settings.duplicate_file_behaviour);
-                    if app.settings.fit_to_screen_on_file_drop_event {
-                        fit_scene_on_screen();
-                    }
-                }
         }
     }
 }
 
 to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
-    if key_code >= 32 return xx key_code;
-
-    special_key_code : Special_Key_Code = xx key_code;
-    if #complete special_key_code == {
-        case Special_Key_Code.EMPTY;  return SDLK_UNKNOWN;
-        case Special_Key_Code.ESCAPE; return SDLK_ESCAPE;
-        case Special_Key_Code.ENTER;  return SDLK_RETURN;
-        case Special_Key_Code.TAB;    return SDLK_TAB;
-        case Special_Key_Code.DELETE; return SDLK_DELETE;
-        case Special_Key_Code.F1;     return SDLK_F1;
-        case Special_Key_Code.F2;     return SDLK_F2;
-        case Special_Key_Code.F3;     return SDLK_F3;
-        case Special_Key_Code.F4;     return SDLK_F4;
-        case Special_Key_Code.F5;     return SDLK_F5;
-        case Special_Key_Code.F6;     return SDLK_F6;
-        case Special_Key_Code.F7;     return SDLK_F7;
-        case Special_Key_Code.F8;     return SDLK_F8;
-        case Special_Key_Code.F9;     return SDLK_F9;
-        case Special_Key_Code.F10;    return SDLK_F10;
-        case Special_Key_Code.F11;    return SDLK_F11;
-        case Special_Key_Code.F12;    return SDLK_F12;
-    }
     return SDLK_UNKNOWN;
 }
 
@@ -350,44 +246,6 @@ handle_load_string :: (path : string, recursive := false) -> bool {
 #scope_file
 
 file_change_callback :: (watcher: *File_Watcher(), change: *File_Change, user_data : *void) {
-    // print("Change for path %: %", change.full_path, change.events);
-
-    found_entity : *Entity;
-    for :All entity : app.entities {
-        if entity.source.kind == ._Entity_Source_File && get_entity_source(entity).path == change.full_path {
-            found_entity = entity;
-            break entity; // There can only be one relevant entity for each file change
-        }
-    }
-
-    if found_entity {
-        source := isa(found_entity.source, Entity_Source_File);
-        if source && source.auto_reload {
-            reload_entity(found_entity);
-
-            if app.settings.fit_to_screen_on_file_watcher_event {
-                fit_scene_on_screen();
-            }
-        }
-    } else {
-        found_dir : *app.Folder;
-        for *dir : app.directories {
-            if dir.path == get_directory(change.full_path) {
-                found_dir = dir;
-                break;
-            }
-        }
-        if (change.events & .ADDED) && found_dir && found_dir.auto_load_new_files {
-            entities := load_one_file(change.full_path, .IGNORE);
-            for entity : entities {
-                add_entity(entity, .IGNORE);
-            }
-
-            if app.settings.fit_to_screen_on_file_watcher_event {
-                fit_scene_on_screen();
-            }
-        }
-    }
 }
 
 handle_filename :: (fully_pathed_filename : string, matching_name_behaviour : Duplicate_File_Behaviour) {
@@ -460,59 +318,6 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
 
     new_context : Context;
     push_context new_context {
-
-        // @Volatile :EasyResizeModeKeybind
-        easy_resize_mode := io().KeyAlt;
-
-        w := cast(float)app.current_window_width;
-        h := cast(float)app.current_window_height;
-        x := cast(float)point.x;
-        y := cast(float)point.y;
-
-        left   :=  cast(float)WINDOW_RESIZE_MARGIN_PX;
-        right  := -cast(float)WINDOW_RESIZE_MARGIN_PX + w;
-        top    :=  cast(float)WINDOW_RESIZE_MARGIN_PX;
-        bottom := -cast(float)WINDOW_RESIZE_MARGIN_PX + h;
-        if easy_resize_mode {
-            k := EASY_RESIZE_FRACTION;;
-            left   = w * k;
-            right  = w * (1.-k);
-            top    = h * k;
-            bottom = h * (1.-k);
-        }
-
-        if y <= top {
-            if x <= left {
-                return .SDL_HITTEST_RESIZE_TOPLEFT;
-            } else if x >= right {
-                return .SDL_HITTEST_RESIZE_TOPRIGHT;
-            } else {
-                return .SDL_HITTEST_RESIZE_TOP;
-            }
-        } else if y >= bottom {
-            if x <= left {
-                return .SDL_HITTEST_RESIZE_BOTTOMLEFT;
-            } else if x >= right {
-                return .SDL_HITTEST_RESIZE_BOTTOMRIGHT;
-            } else {
-                return .SDL_HITTEST_RESIZE_BOTTOM;
-            }
-        } else {
-            if x <= left {
-                return .SDL_HITTEST_RESIZE_LEFT;
-            } else if x >= right {
-                return .SDL_HITTEST_RESIZE_RIGHT;
-            } else if easy_resize_mode {
-                return .SDL_HITTEST_DRAGGABLE;
-            }
-        }
-
-        if x >= app.window_draggable_rect_min.x &&
-            x <= app.window_draggable_rect_max.x &&
-            y >= app.window_draggable_rect_min.y &&
-            y <= app.window_draggable_rect_max.y {
-            return .SDL_HITTEST_DRAGGABLE;
-        }
 
         return .SDL_HITTEST_NORMAL;
     }

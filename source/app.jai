@@ -110,15 +110,12 @@ App :: struct {
     template_display_info : Display_Info;
     template_aabb_world : AxisBox3;
 
-    select_tool : Geometry_Select_Tool;
-
     // The entity which set the clipping sphere center
     clipping_sphere_mode_entity_index : int = -1;
 
     // This member is used to implement the handy feature in clipping sphere mode where the use can click far away from a clipped entity and, while the click is held, have the wireframe of the items previously clipped with a sphere to show their wireframes. While this is happening the position/size of the clipping spheres is not changed.
     clipping_sphere_mode_last_entity_index_set : [..]int;
 
-    camera : Camera;
     entities : [..]*Entity;
 
     keymap : Keymap;
@@ -340,7 +337,6 @@ clamp_user_settings :: ()
     using app.settings;
     // clamp(*camera_zoom_dragging_ratio, .3, .99);
     clamp(*camera_zoom_scrolling_ratio, .3, .99);
-    clamp(*camera_zoom_min_screen_filling_length_mm, 0., app.camera.scene_bounding_sphere.radius / 2);
     clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
     clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
     clamp(*closest_point_query_max_dist_px, 0, 100);

@@ -1,3 +1,9 @@
+Triangle3 :: struct {}
+Segment3 :: struct {}
+Sphere :: struct {}
+Point3 :: struct {}
+AxisBox3 :: struct {}
+
 Simple_Mesh :: struct {
     positions : [..]Vector3;
 
@@ -50,45 +56,6 @@ is_empty :: (mesh : Simple_Mesh) -> bool {
 //     result := Deep_Copy(*mesh, .{});
 //     return result;
 // }
-
-add_triangle :: (using mesh : *Simple_Mesh, triangle : Triangle3) {
-    tuple : *Tuple3(u32) = array_add(*mesh.triangles);
-
-    tuple.x = cast(u32)mesh.positions.count;
-    array_add(*mesh.positions, triangle.a);
-
-    tuple.y = cast(u32)mesh.positions.count;
-    array_add(*mesh.positions, triangle.b);
-
-    tuple.z = cast(u32)mesh.positions.count;
-    array_add(*mesh.positions, triangle.c);
-
-    // triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_triangle_normals_attribute(mesh);
-    // array_add(*triangle_normals.values, normals);
-}
-
-add_segment :: (using mesh : *Simple_Mesh, segment : Segment3) {
-    tuple : *Tuple2(u32) = array_add(*mesh.segments);
-
-    tuple.x = cast(u32)mesh.positions.count;
-    array_add(*mesh.positions, segment.start);
-
-    tuple.y = cast(u32)mesh.positions.count;
-    array_add(*mesh.positions, segment.end);
-
-    // segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(mesh);
-    // array_add(*segment_normals.values, normals);
-}
-
-add_point :: (using mesh : *Simple_Mesh, position : Vector3) {
-    index : *u32 = array_add(*mesh.points);
-
-    index.* = cast(u32)mesh.positions.count;
-    array_add(*mesh.positions, position);
-
-    // point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(mesh);
-    // array_add(*point_normals.values, normal);
-}
 
 valid_triangle_tuple :: (using mesh : *Simple_Mesh, tt : Tuple3(u32)) -> bool {
     return tt.i < positions.count && tt.j < positions.count && tt.k < positions.count;
@@ -317,16 +284,11 @@ mesh_point_world :: #bake_arguments mesh_position_hack(world_space=true);
 
 
 mesh_segment3_tuple :: (mesh : Simple_Mesh, segment_index : int) -> Tuple2(u32) {
-    return mesh.segments[segment_index];
+    return .{};
 }
 
 mesh_segment3_hack :: (mesh : Simple_Mesh, segment_index : int, $world_space : bool) -> Segment3 {
-    tuple := inline mesh_segment3_tuple(mesh, segment_index);
-
-    result : Segment3 = ---;
-    result.start = mesh_position_hack(mesh, tuple.component[0], world_space); 
-    result.end   = mesh_position_hack(mesh, tuple.component[1], world_space); 
-    return result;
+    return .{};
 }
 
 mesh_segment3_model :: #bake_arguments mesh_segment3_hack(world_space=false);
@@ -338,17 +300,11 @@ mesh_segment3_world :: #bake_arguments mesh_segment3_hack(world_space=true);
 
 // @Cleanup Remove this
 mesh_triangle_tuple :: (using mesh : Simple_Mesh, triangle_index : int) -> Tuple3(u32) {
-    return mesh.triangles[triangle_index];
+    return .{};
 }
 
 mesh_triangle_hack :: (mesh : Simple_Mesh, triangle_index : int, $world_space : bool) -> Triangle3 {
-    tuple := inline mesh_triangle_tuple(mesh, triangle_index);
-
-    result : Triangle3 = ---;
-    result.a = mesh_position_hack(mesh, tuple.component[0], world_space);
-    result.b = mesh_position_hack(mesh, tuple.component[1], world_space);
-    result.c = mesh_position_hack(mesh, tuple.component[2], world_space);
-    return result;
+    return .{};
 }
 
 mesh_triangle_model :: #bake_arguments mesh_triangle_hack(world_space=false);
@@ -369,14 +325,9 @@ mesh_triangle_edges_tuple :: (using mesh : Simple_Mesh, triangle_index : int) ->
     return result;
 }
 
-mesh_triangle_edges_hack :: (mesh : Simple_Mesh, triangle_index : int, $world_space : bool) -> Tuple3(Segment3) {
-    edge_indices : Tuple3(Tuple2(u32)) = inline mesh_triangle_edges_tuple(mesh, triangle_index);
 
+mesh_triangle_edges_hack :: (mesh : Simple_Mesh, triangle_index : int, $world_space : bool) -> Tuple3(Segment3) {
     result : Tuple3(Segment3) = ---;
-    for e : 0..2 {
-        result.component[e].start = mesh_position_hack(mesh, edge_indices.component[e].x, world_space);
-        result.component[e].end =   mesh_position_hack(mesh, edge_indices.component[e].y, world_space);
-    }
     return result;
 }
 
@@ -422,12 +373,9 @@ TriangleEdgeIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Fla
     #assert(flags == 0); // No options are supported
 
     for triangle_index : 0..mesh.triangles.count-1 {
-        edges : Tuple3(Segment3) = inline mesh_triangle_edges_hack(mesh, triangle_index, world_space);
-        for e : 0..2 {
-            `it_index := 3 * triangle_index + e;
-            `it : Segment3 = edges.component[e]; 
-            #insert (remove=#assert(false), break=break i) body;
-        }
+        `it_index := triangle_index;
+        `it : Segment3; 
+        #insert (remove=#assert(false), break=break i) body;
     }
 }
 

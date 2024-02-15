@@ -118,41 +118,6 @@ entity_description :: (using entity : Entity, with_creation_time : bool) -> stri
 
 // @Incomplete @Think Maybe we should handle visiblity on a more granular level e.g., on the element type level? We would need separate bounding geometry on the level of visibility control, which actually kindof makes sense.
 
-// Result could be an empty sphere. Does not check visiblity
-entity_raw_world_bounding_sphere :: (using entity : *Entity) -> Sphere {   
-    return .{};
-}
-
-// Result could be an empty sphere. Does not check visibility
-entity_raw_world_clipping_sphere :: (using entity : Entity) -> Sphere {
-    if display_info.clip_sphere.is_active {
-        return display_info.clip_sphere.sphere; // Already in world space. Should not be empty (radius may be infinite though)
-    }
-    return .{}; // Empty sphere
-}
-
-// Result could be an empty_sphere.
-// Checks visibility, entity-level state checking like this is probably not a perf problem and makes the API more convenient. Also, it wouldn't really make sense to account for clipping, which affects visibility, but not account for overall visibility
-// Accounts for clipping sphere and @Incomplete clipping ranges
-entity_world_bounding_sphere :: (using entity : *Entity, $radius_of_point : float = 0) -> Sphere {
-    return .{};
-}
-
-visit_visible :: #code !is_visible(it);
-visit_visible_selected :: #code !(is_visible(it) && it.is_selected);
-
-// Result could be an empty_sphere.
-// Accounts for clipping sphere @Incomplete FIXME clipping ranges
-// Note: hidden entities are skipped regardless of entity_filter, because entity_world_bounding_sphere returns an empty sphere in that case
-entities_world_bounding_sphere :: ($entity_filter : Code = visit_visible) -> Sphere {
-    return .{};
-}
-
-entities_world_bounding_radius :: ($entity_filter : Code = visit_visible, center : Vector3) -> Sphere {
-    return .{};
-}
-
-
 entity_annotation_count :: (using entity : Entity, only_geometry_annotations := false) -> int {
     return 0;
 }
@@ -218,10 +183,7 @@ outside_screen_dist :: inline (point_world : Vector3, projection_from_world : Ma
 
 // Return the model space query radius for a given bounding box and query radius in pixels
 get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> float {
-    // @Incomplete Support perspective projection
-    distance_1 : float = ((app.camera.right - app.camera.left) / app.current_window_width) * query_radius_px;
-    distance_2 : float = length(diagonal(bbox)) / 20.;
-    return min(distance_1, distance_2);
+    return 0.;
 }
 
 elements_targetted :: (entity : Entity) -> bool {
@@ -240,6 +202,8 @@ is_occluder :: (entity : Entity) -> bool {
         // Do NOT do the following, we did it for a bit but, its super annoying not to be able to select an item because you made transparent!
         //entity.display_info.triangle_style.color.w >= .5;
 }
+
+Closest_Point_Ray_Entity :: struct {}
 
 // Result positions are in world space
 // Rename these to target_XXX? Since we want to visit triangles for occlusion purposes even if we are not searching for a closest point on triangles (aka targetting triangles)
