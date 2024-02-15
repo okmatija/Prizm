@@ -409,7 +409,6 @@ Simp :: #import "Simp";
 #load "target_items.jai";
 #load "inspector.jai";
 #load "colors.jai";
-#load "updates.jai";
 
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
