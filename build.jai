@@ -62,6 +62,7 @@ build :: () {
     build_mode : Build_Mode;
     build_mode_found : bool;
     if HasArgument("custom") {
+        compiler_report("This feature is currently broken, gl_load does not work at compile-time?");
         print("[%] Compiling with custom build options.\n", OUTPUT_EXE_NAME);
         build_mode, build_mode_found = table_find(*preset_build_modes, "debug"); // Start from debug options
         build_gui(preset_build_modes, chosen_build_mode=*build_mode);
