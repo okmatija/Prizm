@@ -387,8 +387,3 @@ ImGui_ImplSDL2_NewFrame :: ()
     ImGui_ImplSDL2_UpdateGamepads();
 }
 
-#scope_file
-ImGui :: #import "ImGui";
-
-#import "SDL";
-#import "Math";

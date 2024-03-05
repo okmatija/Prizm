@@ -181,8 +181,8 @@ main :: () {
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
     ImGui_Impl_CreateContext();
-    assert(ctx != null, "must call create context");
-    ImGui.SetCurrentContext(ctx);
+    assert(imgui_context != null, "must call create context");
+    ImGui.SetCurrentContext(imgui_context);
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
@@ -689,7 +689,7 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
     }
 }
 
-ctx: *ImGui.ImGuiContext;
+imgui_context : *ImGui.ImGuiContext;
 
 _imgui_alloc_context: Context;
 
@@ -711,5 +711,5 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
         ImGui.SetAllocatorFunctions(c_alloc, c_free, *_imgui_alloc_context);
     }
 
-    ctx = ImGui.CreateContext();
+    imgui_context = ImGui.CreateContext();
 }

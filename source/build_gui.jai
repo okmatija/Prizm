@@ -22,8 +22,8 @@ build_gui :: (
         return;
     }
 
-    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
     gl_context := SDL_GL_CreateContext(window);
@@ -35,10 +35,15 @@ build_gui :: (
     gl_load(*gl, SDL_GL_GetProcAddress);
     //using gl;
 
-    imgui_context := ImGui.CreateContext();
+    // Setup Dear ImGui context
+    // IMGUI_CHECKVERSION();
+    ImGui_Impl_CreateContext();
+    assert(imgui_context != null, "must call create context");
+    ImGui.SetCurrentContext(imgui_context);
 
-    // Setup ImGui binding
-    ImGui_ImplSdl_Init(window);
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    ImGui_ImplOpenGL3_Init("#version 130");
 
     // Setup style
     ImGui.StyleColorsDark();
@@ -63,7 +68,8 @@ build_gui :: (
     while !done {
         event: SDL_Event;
         while SDL_PollEvent(*event) {
-            ImGui_ImplSdl_ProcessEvent(*event);
+            ImGui_ImplSDL2_ProcessEvent(*event);
+
             if event.type == SDL_QUIT {
                 compiler_report("Compilation manually aborted.");
             }
@@ -71,7 +77,10 @@ build_gui :: (
                 done = true;
             }
         }
-        ImGui_ImplSdl_NewFrame(window);
+
+        // Start the Dear ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
         {
@@ -176,26 +185,60 @@ build_gui :: (
 
         // Rendering
         ImGui.Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
+
         glViewport(0, 0, xx io.DisplaySize.x, xx io.DisplaySize.y);
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplSdl_RenderDrawLists(ImGui.GetDrawData());
+
         SDL_GL_SwapWindow(window);
 
         reset_temporary_storage();
     }
 
     // Cleanup
-    ImGui_ImplSdl_Shutdown();
-    ImGui.DestroyContext(imgui_context);
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui.DestroyContext();
+
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
 
+imgui_context : *ImGui.ImGuiContext;
 
-#load "imgui_sdl_gl.jai";
+_imgui_alloc_context: Context;
+
+c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
+    push_context (cast(*Context)userdata).* {
+        return alloc(cast(s64)sz);
+    }
+}
+
+c_free :: (ptr: *void, userdata: *void) -> void #c_call {
+    push_context (cast(*Context)userdata).* {
+        free(ptr);
+    }
+}
+
+ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
+    #if set_default_allocators {
+        _imgui_alloc_context = context;
+        ImGui.SetAllocatorFunctions(c_alloc, c_free, *_imgui_alloc_context);
+    }
+
+    imgui_context = ImGui.CreateContext();
+}
+
+#load "imgui_impl_sdl.jai"; // SDL platform backend
+#load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
 #load "inspector.jai";
+
+ImGui :: #import "ImGui";
+#import "SDL";
+#import "Math";
+
 
 fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
 #load "carpet.jai";

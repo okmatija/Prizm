@@ -394,6 +394,7 @@ Debug :: #import "Debug";
 #import "freetype255";
 #import "System";
 #import "stb_image";
+#import "SDL";
 ImGui :: #import "ImGui";
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
