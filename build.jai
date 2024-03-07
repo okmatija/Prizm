@@ -525,4 +525,5 @@ plugins: [..] *Metaprogram_Plugin;
 #import "Ico_File";
 }
 
+#load "source/carpet.jai"; // for plural_suffix
 #load "source/build_gui.jai";

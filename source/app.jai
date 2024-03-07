@@ -431,6 +431,7 @@ Simp :: #import "Simp";
 #load "camera.jai";
 #load "entities.jai";
 #load "ui.jai";
+#load "ui_utils.jai";
 #load "shapes.jai";
 #load "keymap.jai";
 #load "target_items.jai";

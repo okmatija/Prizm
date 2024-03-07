@@ -92,7 +92,7 @@ build_gui :: (
             if chosen_console_commands {
                 for command, command_index : chosen_console_commands.* {
                     // ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
-                    checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], imgui_label(command.name, *command), *sweep_state, window);
+                    checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], imgui_label(command.name, *command), *sweep_state);
                 }
             }
 
@@ -234,6 +234,7 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
 #load "inspector.jai";
+#load "ui_utils.jai";
 
 ImGui :: #import "ImGui";
 #import "SDL";
@@ -241,4 +242,3 @@ ImGui :: #import "ImGui";
 
 
 fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
-#load "carpet.jai";

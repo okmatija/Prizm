@@ -544,7 +544,7 @@ show_pending_directories_ui :: () {
             using loadable_file;
 
             ImGui.TableNextColumn();
-            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state, app.window);
+            checkbox_press_or_sweep_to_toggle(*is_selected, imgui_label(fully_pathed_filename, loadable_file), *pending_directories_sweep_state);
 
             ImGui.TableNextColumn();
             ImGui.Text(tprint("%", filetime_to_readable_date(modtime)));
@@ -899,7 +899,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
     // if entity.is_selected ImGui.TableSetBgColor(.CellBg, col);
     {
         was_visible := entity.display_info.is_visible;
-        visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state, app.window);
+        visibility_changed, changed_by_click := checkbox_press_or_sweep_to_toggle(*entity.display_info.is_visible, imgui_label("##Visible", entity), *item_list_sweep_state);
         result.visibility_changed = visibility_changed;
         show_tooltip("Visible");
 
