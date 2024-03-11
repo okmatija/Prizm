@@ -327,33 +327,33 @@ par_shapes_merge :: (dst : par_shapes_mesh, src : par_shapes_mesh)
 par_shapes__cylinder :: (uv : Vector2, userdata : *void) -> Vector3
 {
     theta := uv.y * 2 * PI;
-    return make_vector3(sin(theta), cos(theta), uv.x);
+    return Vector3.{sin(theta), cos(theta), uv.x};
 }
 
 par_shapes__cone :: (uv : Vector2, userdata : *void) -> Vector3
 {
     r := 1 - uv.x;
     theta := uv.y * 2 * PI;
-    return make_vector3(r * sin(theta), r * cos(theta), uv.x);
+    return Vector3.{r * sin(theta), r * cos(theta), uv.x};
 }
 
 par_shapes__sphere :: (uv : Vector2, userdata : *void) -> Vector3
 {
     phi := uv.x * PI;
     theta := uv.y * 2 * PI;
-    return make_vector3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
+    return Vector3.{cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi)};
 }
 
 par_shapes__plane :: (uv : Vector2, userdata : *void) -> Vector3
 {
-    return make_vector3(uv.x, uv.y, 0);
+    return Vector3.{uv.x, uv.y, 0};
 }
 
 par_shapes__hemisphere :: (uv : Vector2, userdata : *void) -> Vector3
 {
     phi := uv.x * PI;
     theta := uv.y * PI;
-    return make_vector3(cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi));
+    return Vector3.{cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi)};
 }
 
 par_shapes__torus :: (uv : Vector2, userdata : *void) -> Vector3
@@ -363,7 +363,7 @@ par_shapes__torus :: (uv : Vector2, userdata : *void) -> Vector3
     theta := uv.x * 2 * PI;
     phi := uv.y * 2 * PI;
     beta := major + minor * cos(phi);
-    return make_vector3(cos(theta) * beta, sin(theta) * beta, sin(phi) * minor);
+    return Vector3.{cos(theta) * beta, sin(theta) * beta, sin(phi) * minor};
 }
 
 // Based on https://github.com/prideout/par

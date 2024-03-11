@@ -97,7 +97,7 @@ make_Grid_on_xyz_planes :: (spacing : float, N : u32, restricted : int=1) {
 // `nx`, `ny`, `nz` is the number of grid points in each world axes direction
 // `ox`, `oy`, `oz` is the world position of the grid point with local coordinate {0,0,0}
 make_Grid :: (spacing : float, nx : u32, ny : u32, nz : u32, ox : float, oy : float, oz : float) {
-    grid := make_Grid_from_World(spacing, xx make_vector3(ox, oy, oz));
+    grid := make_Grid_from_World(spacing, xx Vector3.{ox, oy, oz});
     extents := make_Tuple3(nx, ny, nz);
     name := tprint("Grid_%", grid.spacing);
     make_Grid_Entity(grid, extents, name, color_from_string(tprint("%", ImGui.GetFrameCount())));

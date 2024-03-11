@@ -183,14 +183,16 @@ parse_integer :: (p: *Parser) -> s64 {
 // @Incomplete Report when the fallback was used so we can tell the user about nans/infs
 
 parse_vector3 :: (p: *Parser) -> Vector3 {
-    x := parse_float(p);
-    y := parse_float(p);
-    z := parse_float(p);
-    return make_vector3(x, y, z);
+    using result : Vector3 = ---;
+    x = parse_float(p);
+    y = parse_float(p);
+    z = parse_float(p);
+    return result;
 }
 
 parse_vector2 :: (p: *Parser) -> Vector2 {
-    x := parse_float(p);
-    y := parse_float(p);
-    return make_vector2(x, y);
+    using result : Vector2 = ---;
+    x = parse_float(p);
+    y = parse_float(p);
+    return result;
 }

@@ -49,7 +49,7 @@ cwise_min :: (v : Vector3) -> float, int {
 }
 
 transform_point :: (point : Vector3, transform : Matrix4) -> Vector3 {
-    return (transform * make_vector4(point, 1.)).xyz;
+    return (transform * Vector4.{xyz=point, w=1.}).xyz;
 }
 
 normalize :: (using v: *Vector2, epsilon := 0, fallback := Vector2.{0, 0}) -> float {

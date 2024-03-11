@@ -18,7 +18,7 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Simple_Mesh {
 
         point := polyline.points[0];
 #if T == Polyline_Soup2 {
-        array_add(*mesh.positions, make_vector3(point.x, point.y, 0));
+        array_add(*mesh.positions, Vector3.{point.x, point.y, 0});
 } else {
         array_add(*mesh.positions, point);
 }
@@ -26,7 +26,7 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Simple_Mesh {
         for edge_index : 0..polyline.points.count-2 {
             point = polyline.points[edge_index + 1];
 #if T == Polyline_Soup2 {
-            array_add(*mesh.positions, make_vector3(point.x, point.y, 0));
+            array_add(*mesh.positions, Vector3.{point.x, point.y, 0});
 } else {
             array_add(*mesh.positions, point);
 }

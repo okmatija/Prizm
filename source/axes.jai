@@ -45,14 +45,14 @@ render_axes_triad :: () {
     bottom, top = 0., h;
     left, right = 0., w;
     unit_look_direction := normalize(current_look_direction());
-    look_position = make_vector3(0., 0., 0.);
+    look_position = Vector3.{};
     eye_position = look_position - unit_look_direction;
 
-    offset_vs := make_vector3(s, s, 0.) + make_vector3(w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0);
+    offset_vs := Vector3.{s, s, 0.} + Vector3.{w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0};
     world_from_view := inverse(make_look_at_matrix(app.camera));
-    offset_ws := (world_from_view * make_vector4(offset_vs, 0.)).xyz;
+    offset_ws := (world_from_view * Vector4.{xyz=offset_vs}).xyz;
 
-    scale := make_scale_matrix4(.8 * make_vector3(s, s, s));
+    scale := make_scale_matrix4(.8 * Vector3.{s, s, s});
     shift := make_translation_matrix4(offset_ws);
     xform := shift * scale;
 
@@ -125,13 +125,13 @@ make_axis_arrow :: (axis_length : float) -> par_shapes_mesh {
     cone := par_shapes_create_cone(32, 1);
     defer deinit(cone);
     par_shapes_scale(cone, cone_radius, cone_radius, cone_length);
-    par_shapes_translate(cone, make_vector3(0, 0, axis_length));
+    par_shapes_translate(cone, Vector3.{z=axis_length});
 
 
     base := par_shapes_create_disk(32, 1);
     defer deinit(base);
     par_shapes_scale(base, cone_radius, cone_radius, cone_length);
-    par_shapes_translate(base, make_vector3(0, 0, axis_length));
+    par_shapes_translate(base, Vector3.{z=axis_length});
 
     par_shapes_merge(result, cone);
     par_shapes_merge(result, base);

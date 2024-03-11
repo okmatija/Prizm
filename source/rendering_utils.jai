@@ -66,7 +66,7 @@ debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     Simp.ScopeContext();
-    position := make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y);
+    position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
     Simp.draw_text(app.simp_font, xx position.x, xx position.y, text, color, scale=scale);
 }
 

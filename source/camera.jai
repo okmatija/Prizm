@@ -91,8 +91,8 @@ rotate_look_direction :: (axis : Vector3, degrees : float)
 // Return the orthographic view volume in view space coordinates
 current_orthographic_view_volume :: () -> AxisBox3
 {
-    min_point_vs := make_vector3(app.camera.left,  app.camera.bottom, app.camera.near);
-    max_point_vs := make_vector3(app.camera.right, app.camera.top,    app.camera.far);
+    min_point_vs := Vector3.{app.camera.left,  app.camera.bottom, app.camera.near};
+    max_point_vs := Vector3.{app.camera.right, app.camera.top,    app.camera.far};
     volume_vs := make_axis_box3(min_point_vs, max_point_vs);
     return volume_vs;
 }
@@ -159,7 +159,7 @@ update_camera :: (delta_time : float) {
         get_pan_position :: (mouse_position_px : Vector2, world_from_projection : Matrix4, camera : Camera) -> Vector3, bool {
             plane := make_hyperplane3(unit_vector(camera.eye_position - camera.look_position), camera.look_position);
             line : Line3 = ---;
-            line.origin = (world_from_projection * make_vector4(to_ndc(mouse_position_px), -1, 1)).xyz;
+            line.origin = (world_from_projection * Vector4.{xy=to_ndc(mouse_position_px), z=-1., w=1.}).xyz;
             line.direction = -plane.normal;
 
             intersect_count, intersect_t := find_intersect_line3_plane3(line, plane);
@@ -194,7 +194,7 @@ update_camera :: (delta_time : float) {
 
         view_from_world := make_look_at_matrix(camera_at_mouse_down);
         world_from_view := inverse(view_from_world);
-        arcball_axis_world := (world_from_view * make_vector4(arcball_axis_ndc, 0)).xyz;
+        arcball_axis_world := (world_from_view * Vector4.{xyz=arcball_axis_ndc}).xyz;
 
         arcball_angle := angle(curr_arcball_vector, prev_arcball_vector);
 
@@ -214,8 +214,8 @@ update_camera :: (delta_time : float) {
 
         #if false {
             l := (camera.top - camera.bottom) * .15;
-            debug_vector(l, (world_from_projection * make_vector4(prev_arcball_vector, 0)).xyz, .{1., .5, .5, 1.});
-            debug_vector(l, (world_from_projection * make_vector4(curr_arcball_vector, 0)).xyz, .{.5, 1., .5, 1.});
+            debug_vector(l, (world_from_projection * Vector4.{xyz=prev_arcball_vector}).xyz, .{1., .5, .5, 1.});
+            debug_vector(l, (world_from_projection * Vector4.{xyz=curr_arcball_vector}).xyz, .{.5, 1., .5, 1.});
             debug_vector(l, look_to_eye, .{1., 1., 1., 1.});
             debug_vector(l, rotate(camera_at_mouse_down.up_direction, q), .{1., 1., 1., 1.});
             debug_vector(l, camera_at_mouse_down.eye_position - camera_at_mouse_down.look_position, .{1., 1., 0., 1.});
@@ -247,8 +247,8 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
     previous_clip := to_ndc(previous_pos);
     zoomed_clip := previous_clip / zoom_factor;
 
-    previous_view := view_from_clip * make_vector4(previous_clip, 0., 1.);
-    zoomed_view := view_from_clip * make_vector4(zoomed_clip, 0., 1.);
+    previous_view := view_from_clip * Vector4.{xy=previous_clip, w=1.};
+    zoomed_view := view_from_clip * Vector4.{xy=zoomed_clip, w=1.};
 
     camera.top   *= zoom_factor;
     camera.right *= zoom_factor;
@@ -479,9 +479,9 @@ make_camera_ray :: () -> Ray3 {
     inverse_transpose := transpose(inverse(transform));
 
     ray : Ray3 = ---;
-    ray.origin = (transform * make_vector4(to_ndc(make_Vector2(io().MousePos)), -1., 1.)).xyz;
-    ray.direction = (inverse_transpose * make_vector4(0., 0., 1., 0.)).xyz;
-    check := normalize(*ray.direction, fallback=.{z=1});
+    ray.origin = (transform * Vector4.{xy=to_ndc(make_Vector2(io().MousePos)), z=-1., w=1.}).xyz;
+    ray.direction = (inverse_transpose * Vector4.{z=1.}).xyz;
+    check := normalize(*ray.direction, fallback=.{z=1.});
     //assert(check != 0.); // @Robustness: handle this error
 
     return ray;
@@ -491,11 +491,11 @@ make_camera_ray :: () -> Ray3 {
 
 arcball_vector :: (mouse_position_px : Vector2) -> Vector3
 {
-    arcball_center_px := make_vector2(app.current_window_width / 2., app.current_window_height / 2.);
+    arcball_center_px := Vector2.{app.current_window_width / 2., app.current_window_height / 2.};
     // arcball_radius_px := min(app.current_window_height, app.current_window_width) / 2.; // allows room on left/right for rotation look direction
-    arcball_radius_px := 5 * length(make_vector2(xx app.current_window_height, xx app.current_window_width) / 2); // only room to rotate on sphere
+    arcball_radius_px := 5 * length(Vector2.{xx app.current_window_height, xx app.current_window_width} / 2.); // only room to rotate on sphere
 
-    using result := make_vector3((mouse_position_px - arcball_center_px) / arcball_radius_px, 0);
+    using result := Vector3.{xy=(mouse_position_px - arcball_center_px) / arcball_radius_px};
 
     x /= current_window_aspect_ratio_width_over_height();
     y *= -1; // Since y_px increases from the top of the screen to the bottom

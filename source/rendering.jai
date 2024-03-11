@@ -849,8 +849,8 @@ on_screen_in_disk :: (text_position_px : Tuple2i, visible_radius_px : int) -> bo
         return false;
     }
 
-    mouse_position := make_vector2(io().MousePos.x, app.current_window_height - io().MousePos.y);
-    text_position :=  make_vector2(xx text_position_px.x, xx text_position_px.y);
+    mouse_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    text_position :=  Vector2.{xx text_position_px.x, xx text_position_px.y};
     if distance(mouse_position, text_position) > xx visible_radius_px {
         return false;
     }

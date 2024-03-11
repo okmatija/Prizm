@@ -2100,7 +2100,7 @@ display_transform :: (entity : *Entity) {
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         ImGui.Text("This is a \"world from model\" transform");
         ImGui.PopStyleColor();
-        shift := make_vector3(entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34);
+        shift := Vector3.{entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34};
         prev_shift := shift;
         if ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05) {
             update_entity_transform(entity, shift - prev_shift);
@@ -2659,7 +2659,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
                     if almost_equal(length(*p.normal), 0.) p.normal = fallback_normal;
-                    range := make_vector2(p.min, p.max);
+                    range := Vector2.{p.min, p.max};
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {
                         p.min, p.max = range.x, range.y;

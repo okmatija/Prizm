@@ -373,10 +373,10 @@ draw_generated_quads :: (font: *Dynamic_Font, color := Vector4.{1, 1, 1, 1}) {
 
         // @Speed: Get rid of these silly make_vector2s.
         using quad;
-        uv0 := make_vector2(u0, v0);
-        uv1 := make_vector2(u1, v0);
-        uv2 := make_vector2(u1, v1);
-        uv3 := make_vector2(u0, v1);
+        uv0 := Vector2.{u0, v0};
+        uv1 := Vector2.{u1, v0};
+        uv2 := Vector2.{u1, v1};
+        uv3 := Vector2.{u0, v1};
         
         immediate_quad(p0, p1, p2, p3, color, uv0, uv1, uv2, uv3);
     }

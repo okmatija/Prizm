@@ -126,7 +126,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
 
             if dim == 2 {
                 // @Think Maybe use app.invalid_point.z here
-                array_add(*mesh.positions, make_vector3(position2, 0));
+                array_add(*mesh.positions, Vector3.{xy=position2});
             } else if dim == 3 {
                 array_add(*mesh.positions, position3);
             } else if parser.failed {
@@ -171,7 +171,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                 // found_inf_or_nan = true;
             }
 
-            // array_add(*scratch_vt, make_Vector3(uv, 0));
+            // array_add(*scratch_vt, Vector3.{xy=uv});
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {

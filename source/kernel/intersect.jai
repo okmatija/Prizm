@@ -255,7 +255,7 @@ test_intersect_ray3_axis_box3 :: (ray : Ray3, box : AxisBox3) -> intersect : boo
     }
 
     WxD := cross(ray.direction, rayOrigin);
-    absWdU := make_vector3(abs(ray.direction.x), abs(ray.direction.y), abs(ray.direction.z));
+    absWdU := Vector3.{abs(ray.direction.x), abs(ray.direction.y), abs(ray.direction.z)};
 
     if (abs(WxD.x) > boxExtent.y * absWdU.z + boxExtent.z * absWdU.y) {
         return false;

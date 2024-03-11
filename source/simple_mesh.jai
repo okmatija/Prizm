@@ -303,7 +303,7 @@ bounding_box :: (using mesh : Simple_Mesh) -> AxisBox3 #must {
 bounding_box :: (using mesh : Simple_Mesh, transform : Matrix4) -> AxisBox3 #must {
     box : AxisBox3;
     for point_model : mesh.positions {
-        point_transformed := (transform * make_vector4(point_model, 1)).xyz;
+        point_transformed := (transform * Vector4.{xyz=point_model, w=1.}).xyz;
         expand(*box, point_transformed);
     }
     return box;
@@ -314,7 +314,7 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
     if !mesh return;
 
     for * mesh.positions {
-        it.* = (transform * make_vector4(it, 1.)).xyz;
+        it.* = (transform * Vector4.{xyz=it, w=1.}).xyz;
     }
 
     // @Incomplete Transform attributes
@@ -324,7 +324,7 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
         inverse_transpose := transpose(inverse(transform));
         for *matrix : vn.values {
             for i : 0..2 {
-                matrix.v[i] = (inverse_transpose * make_vector4(matrix.v[i], 0.)).xyz;
+                matrix.v[i] = (inverse_transpose * Vector4.{xyz=matrix.v[i]}).xyz;
             }
         }
     }

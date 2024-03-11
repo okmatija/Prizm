@@ -290,13 +290,13 @@ immediate_vertex :: (position: Vector3, color_scale: Vector4, uv: Vector2 = .{},
 immediate_quad :: (x0: float, y0: float, x1: float, y1: float, color: Vector4) {
     CheckSpace(6);
 
-    put_vertex(*v[0], make_vector2(x1, y0), color,  1, 0);
-    put_vertex(*v[1], make_vector2(x0, y0), color,  0, 0);    
-    put_vertex(*v[2], make_vector2(x1, y1), color,  1, 1);
+    put_vertex(*v[0], Vector2.{x1, y0}, color,  1, 0);
+    put_vertex(*v[1], Vector2.{x0, y0}, color,  0, 0);    
+    put_vertex(*v[2], Vector2.{x1, y1}, color,  1, 1);
 
-    put_vertex(*v[3], make_vector2(x1, y1), color,  1, 1);
-    put_vertex(*v[4], make_vector2(x0, y0), color,  0, 0);    
-    put_vertex(*v[5], make_vector2(x0, y1), color,  0, 1);
+    put_vertex(*v[3], Vector2.{x1, y1}, color,  1, 1);
+    put_vertex(*v[4], Vector2.{x0, y0}, color,  0, 0);    
+    put_vertex(*v[5], Vector2.{x0, y1}, color,  0, 1);
 }
 
 // Four 2D points making an arbitrary quad, plus a color,

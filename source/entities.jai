@@ -591,8 +591,8 @@ entity_selection_aabb :: () -> AxisBox3 {
         maybe_update_render_info(*it.render_info, *it.mesh);
         // @Volatile @Cleanup only works for a shift
         aabb := it.render_info.bounding_aabb;
-        aabb.min_point = (it.mesh.world_from_model * make_vector4(aabb.min_point, 1)).xyz;
-        aabb.max_point = (it.mesh.world_from_model * make_vector4(aabb.max_point, 1)).xyz;
+        aabb.min_point = (it.mesh.world_from_model * Vector4.{xyz=aabb.min_point, w=1.}).xyz;
+        aabb.max_point = (it.mesh.world_from_model * Vector4.{xyz=aabb.max_point, w=1.}).xyz;
         expand(*result, aabb);
     }
     return result;
@@ -628,7 +628,7 @@ color_from_string :: (str : string) -> Vector4 {
     r, g, b : float;
     ImGui.ColorConvertHSVtoRGB(h, s, v, *r, *g, *b);
 
-    return make_vector4(r, g, b, 1.);
+    return Vector4.{r, g, b, 1.};
 }
 
 // @FIXME Revisit this find_entity function now that we've added a bunch of fields to the Entity type

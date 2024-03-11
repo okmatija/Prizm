@@ -129,7 +129,7 @@ to_world :: inline (using grid : Grid, local : Grid.Local) -> Grid.World {
     x := u * U_X + v * V_X + w * W_X;
     y := u * U_Y + v * V_Y + w * W_Y;
     z := u * U_Z + v * V_Z + w * W_Z;
-    world_xyz : Grid.World_XYZ = xx make_vector3(x, y, z); // @CompilerBug should auto-cast be needed here?
+    world_xyz : Grid.World_XYZ = xx Vector3.{x, y, z}; // @CompilerBug should auto-cast be needed here?
 
     return world_xyz;
 }
@@ -152,7 +152,7 @@ to_local :: inline (using grid : Grid, world_xyz : Grid.World) -> Grid.Local {
     u := x * U_X + y * U_Y + z * U_Z;
     v := x * V_X + y * V_Y + z * V_Z;
     w := x * W_X + y * W_Y + z * W_Z;
-    world_uvw : Grid.World_UVW = xx make_vector3(u, v, w); // @CompilerBug should auto-cast be needed here?
+    world_uvw : Grid.World_UVW = xx Vector3.{u, v, w}; // @CompilerBug should auto-cast be needed here?
 
     local : Grid.Local = xx (world_uvw * inverse_spacing - origin_offset);
 
