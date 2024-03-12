@@ -1,5 +1,7 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.083, built on 15 January 2024";
+
 HELP_STRING :: #string DONE
 
 Build Options:
@@ -10,11 +12,18 @@ Build Options:
 DONE
 
 OUTPUT_EXE_NAME :: "Prizm";
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.082, built on 14 January 2024";
 
 build :: () {
 
-    #run check_compiler_version();
+    // Check compiler version
+    {
+        version_info := compiler_get_version_info(null);
+        if (version_info != EXPECTED_COMPILER_VERSION_INFO) {
+            message := tprint("Using compiler version '%' but expected version '%'. The program may not compile, or some things may be broken.", version_info, EXPECTED_COMPILER_VERSION_INFO);
+            // compiler_report(message, mode = Report.ERROR_CONTINUABLE);
+            compiler_report(message, mode = Report.ERROR); // @CompilerBug is preventing us from upgrading beyond beta 0.1.083
+        }
+    }
 
     // This is a build file that doesn't generate an executable
     set_build_options_dc(.{do_output=false});
@@ -463,7 +472,7 @@ escape :: (s: string) -> string #must {
 }
 
 
-set_icon_and_manifest :: (options: Build_Options) {
+set_icon_and_manifest :: (options: Build_Options) #compile_time {
     if options.output_type != .EXECUTABLE  return;
 
     // Set the icon on the executable.
@@ -496,13 +505,6 @@ set_icon_and_manifest :: (options: Build_Options) {
     }
 }
 
-check_compiler_version :: () {
-    COMPILER_VERSION_INFO :: #run compiler_get_version_info(null);
-    if (COMPILER_VERSION_INFO != EXPECTED_COMPILER_VERSION_INFO) {
-        message := tprint("Using compiler version '%' but expected version '%'. The program may not compile, or some things may be broken.", COMPILER_VERSION_INFO, EXPECTED_COMPILER_VERSION_INFO);
-        compiler_report(message, mode = Report.ERROR_CONTINUABLE);
-    }
-}
 
 // @Cleanup Make this run in release and OS console disabled. Warning: Enabling this hides prints to the console!
 // #run { #if OS == .WINDOWS { disable_runtime_console(); } } // :DisableRuntimeConsoleCleanup This used to work via a #run but that broke at some point...? @CompilerBug?
