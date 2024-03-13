@@ -9,9 +9,9 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
 DONE};
 
-PRIZM_VERSION_1_0_0 :: App.Version.{"1.0.0", "WIP", #string DONE
-* Renamed project to Prizm to distingush this version from its ancestor, Prism, which is copyright Epic Games. This name is also more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
-* Many thanks to Epic Games for open sourcing the original Prism repository (located at github.com/EpicMatijaKecman/Prism)
+PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "12 March 2024", #string DONE
+* Initial release
+* Thanks to Epic Games for open sourcing the original Prism repository. Renamed project to Prizm to distingush this version from its predecessor, Prism (github.com/EpicMatijaKecman/Prism), which is copyright Epic Games under the MIT license. The new name is also more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
 DONE};
 
 PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
@@ -581,7 +581,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*app.changelog, PRIZM_VERSION_BACKLOGGED);
-    array_add(*app.changelog, PRIZM_VERSION_1_0_0);
+    array_add(*app.changelog, PRIZM_VERSION_0_8_0);
     array_add(*app.changelog, PRISM_VERSION_0_7_1);
     array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);

@@ -28,7 +28,7 @@ This tool is intended to be hackable and compiled from source as you use it. So 
 
 1. Update `changelog.jai` with the release date. Update `EXPECTED_COMPILER_VERSION_INFO`
 
-2. Compile using: `jai build.jai - release`
+2. Compile using: `jai first.jai - release`
 
 3. Select the following then do `RMB > 7-zip > Add to archive...`, use the naming convention `Prizm_X.Y.Z` and set the archive format to zip
     api/

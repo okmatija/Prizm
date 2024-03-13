@@ -20,7 +20,7 @@ data/old
 api/cpp/*.obj
 api/cpp/.vs/
 
-# Ignore the windows icon file which is generated in build.jai
+# Ignore the windows icon file which is generated in first.jai
 *.ico
 
 # Ignore imgui ini files

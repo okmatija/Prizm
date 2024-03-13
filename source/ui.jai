@@ -1883,7 +1883,7 @@ show_help_about_content :: () {
         ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
-        ImGui.Text("matijakecman@gmail.com"); // TODO Click to copy to clipboard?
+        ImGui.Text("github.com/okmatija/Prizm"); // TODO Click to copy to clipboard?
     }
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
