@@ -10,8 +10,11 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "12 March 2024", #string DONE
-* Initial release
-* Thanks to Epic Games for open sourcing the original Prism repository. Renamed project to Prizm to distingush this version from its predecessor, Prism (github.com/EpicMatijaKecman/Prism), which is copyright Epic Games under the MIT license. The new name is also more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
+* Renamed project to Prizm to distingush this version from its predecessor, Prism (github.com/EpicMatijaKecman/Prism) which is copyright Epic Games. The new name is also more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
+* Changed the keybinding to toggle annotation visibility from 'k' to 'a', which is a better memonic for "annotation". This is reflected in the ribbon button icon.
+* Changed the keybinding to cycle vertex labels from 'i' to 'x', which is a better memonic since x is often used for coordinate. This is reflected in the ribbon button icon.
+* Changed the keybinding to clear all labels and annotations from 'x' to 'z'.
+* Thanks to Epic Games for open sourcing the original Prism repository under the MIT license.
 DONE};
 
 PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
@@ -582,6 +585,7 @@ DONE
 init_changelog :: () {
     //array_add(*app.changelog, PRIZM_VERSION_BACKLOGGED);
     array_add(*app.changelog, PRIZM_VERSION_0_8_0);
+    // Releases using the old name "Prism"
     array_add(*app.changelog, PRISM_VERSION_0_7_1);
     array_add(*app.changelog, PRISM_VERSION_0_7_0);
     array_add(*app.changelog, PRISM_VERSION_0_6_1);

@@ -1,3 +1,5 @@
+// @Volatile If you change any keybinds make sure to update all documentation, including the github wiki!
+
 Keymap_Proc_Info :: struct {
     name: string;
     proc: #type () -> ();
@@ -301,7 +303,7 @@ init_keymap :: () {
     add_key(*app.keymap, select_or_deselect_visible, "Select/deselect visible items", xx #char "a", .{shift_pressed=true});
     add_key(*app.keymap, toggle_current_selection, "Toggle/complement current item selection", xx #char "a", .{alt_pressed=true});
 
-    add_key(*app.keymap, clear_all_labels, "Clear labels", #char "x");
+    add_key(*app.keymap, clear_all_labels, "Clear labels", #char "z");
     add_key(*app.keymap, reload_items, "Reload", cast(u32) Special_Key_Code.F5); // @Volatile Sync with :ReloadItemsKey
     add_key(*app.keymap, focus_items, "Focus", #char "f");  // @Volatile Sync with :FocusItemsKey
 

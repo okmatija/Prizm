@@ -50,7 +50,7 @@ TOGGLE_NORMALS_ACTION_SET := Action_Set.{
 CYCLE_VERTEX_LABEL_ACTION_SET := Action_Set.{
     proc=update_vertex_labels,
     name="Cycle vertex labels",
-    key_code=#char "j",
+    key_code=#char "x",
     query_progress=query_progress_vertex_labels,
 };
 
@@ -64,7 +64,7 @@ CYCLE_ELEMENT_LABEL_ACTION_SET := Action_Set.{
 CYCLE_ANNOTATION_LABEL_ACTION_SET := Action_Set.{
     proc=update_annotation_labels,
     name="Toggle annotations",
-    key_code=#char "k",
+    key_code=#char "a",
     query_progress=query_progress_annotation_labels,
 };
 

@@ -1379,7 +1379,7 @@ show_cpp_api_ui :: () {
         include : string;
 
         ImGui.Checkbox("Using Unreal", *app.api.using_unreal);
-        show_tooltip("Turn this off to include the Unreal extensions\n");
+        show_tooltip("Enable this if you are using Prizm to debug Unreal\n");
 
         {
             ImGui.Indent(ImGui.GetStyle().IndentSpacing);
@@ -1387,12 +1387,12 @@ show_cpp_api_ui :: () {
 
             if !app.api.using_unreal ImGui.BeginDisabled();
             ImGui.Checkbox("Using Engine Module", *app.api.using_unreal_engine);
-            show_tooltip("Turn this off if you're working in a module\nwhich doesn't include the Engine module");
+            show_tooltip("Enable this if you are working in a module\nwhich includes the Engine module");
             if !app.api.using_unreal ImGui.EndDisabled();
 
             if !app.api.using_unreal ImGui.BeginDisabled();
             ImGui.Checkbox("Using GeometryCore Module", *app.api.using_unreal_geometrycore);
-            show_tooltip("Turn this off if you're working in a module\nwhich doesn't include the GeometryCore module");
+            show_tooltip("Enable this if you're working in a module\nwhich includes the GeometryCore module");
             if !app.api.using_unreal ImGui.EndDisabled();
 
             exe_directory := get_directory(get_path_of_running_executable());
