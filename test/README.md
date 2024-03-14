@@ -1,1 +1,1 @@
-This folder contains files which have a some point caused crashes/loaded incorrectly
+This folder contains files which have at some point caused crashes or loaded incorrectly
