@@ -9,7 +9,6 @@ init_icons :: () {
     PRIZM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
     PRIZM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
     PRIZM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
-    PRIZM_LOGO_DATA,      OK4 :: #run read_entire_file("data/logo.png",       zero_terminated=true);  #assert(OK4);
 
     WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
     WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
@@ -31,7 +30,6 @@ init_icons :: () {
     icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA1);     assert(ok);
     icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA2);     assert(ok);
     icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA3);     assert(ok);
-    icon_prizm_logo_texture,      ok = load_texture_from_memory(cast([]u8)PRIZM_LOGO_DATA);      assert(ok);
 
     icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
     icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
