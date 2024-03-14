@@ -7,6 +7,7 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a preset example to demonstrate the new annotation functionality
     * TODO Change the keybinds for the index, vertex and annotation labels
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
+    * TODO Fix Alt RMB not rotating about the alternative axis
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "12 March 2024", #string DONE
