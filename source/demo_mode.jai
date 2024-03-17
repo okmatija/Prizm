@@ -3,6 +3,7 @@
 // - There should be a TTL option on the demo text and a stack that pushes older text down while it fades
 
 do_demo_mode :: () {
+    /* nocommit :Linux
     if !app.demo_mode return;
 
     if io_mouse_left_down() {
@@ -73,4 +74,5 @@ do_demo_mode :: () {
         cache_text_quads(*quads, "MMB", text_position_px, 1);
         draw_cached_text_quads(quads, .{0,0,0,1});
     }
+    */
 }

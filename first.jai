@@ -63,7 +63,9 @@ build :: () {
         set_optimization(*mode.build_options, .OPTIMIZED);
         mode.build_options.lazy_foreign_function_lookups = true; // Why do we set this?
         // This disables the runtime console but also hides printing to the console!
+        #if OS == .WINDOWS {
         mode.build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"]; // See :DisableRuntimeConsoleCleanup, setting it this way seems better anyway
+        }
         mode.build_options.output_executable_name = OUTPUT_EXE_NAME;
         table_add(*preset_build_modes, "release", mode);
     }
@@ -237,11 +239,9 @@ registered_console_commands : [..]*Code_Procedure_Header;
 
 generate_code_to_register_console_commands :: (w : Workspace) {
 
-    #if OS == .WINDOWS {
-        SEPARATOR :: "\n"; // Prior to beta 0.1.049 (and I think before beta 0.1.047?) this was \r\n. If this separator is wrong then the split call below breaks too
-    } else {
-        SEPARATOR :: "\n";
-    }
+    // Prior to beta 0.1.049 (and I think before beta 0.1.047?) this was \r\n.
+    // If this separator is wrong then the split call below breaks too
+    SEPARATOR :: "\n";
 
     builder: String_Builder;
     defer free_buffers(*builder);

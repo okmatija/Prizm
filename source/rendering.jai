@@ -892,7 +892,7 @@ render_entities :: () {
     }
 
     render_entity_text_spotlight :: ($entity_filter : Code) {
-
+/* nocommit :Linux
         Simp.ScopeContext();
         glEnable(GL_BLEND);
         defer glDisable(GL_BLEND);
@@ -1083,9 +1083,11 @@ render_entities :: () {
             draw_label_infos(triangle_labels, triangle_label_theme);
             draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
         }
+*/
     }
 
     render_entity_text_ray_cast :: ($entity_filter : Code) {
+        /* nocommit :Linux
 
         should_target_points :: (entity : Entity) -> bool {
             return (any_vertex_label_visible(entity) || any_point_label_visible(entity));
@@ -1286,6 +1288,7 @@ render_entities :: () {
 
         draw_label_infos(triangle_labels, triangle_label_theme);
         draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
+        */
     }
 
     not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
@@ -1456,11 +1459,12 @@ OGL: message = Program/shader state performance warning: Fragment shader in prog
 
 
 // Generate and cache quad data before its lost on the next call to prepare_text
-cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Tuple2i, scale : float) {
-    Simp.prepare_text(app.simp_font, text);
-    Simp.generate_quads_for_prepared_text(app.simp_font, text_position_px.x, text_position_px.y, 0, scale);
-    for app.simp_font.current_quads array_add(cache, it);
-}
+// nocommit enable for :Linux 
+//cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Tuple2i, scale : float) {
+//    Simp.prepare_text(app.simp_font, text);
+//    Simp.generate_quads_for_prepared_text(app.simp_font, text_position_px.x, text_position_px.y, 0, scale);
+//    for app.simp_font.current_quads array_add(cache, it);
+//}
 
 Label_Info :: struct {
     position_px : Tuple2i;
@@ -1480,7 +1484,7 @@ Label_Theme_Interface :: struct {
 }
 
 draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Theme_Interface) {
-
+/* nocommit :Linux
     if !label_infos.count return;
 
     // @CompilerBug why is operator== not found??
@@ -1517,14 +1521,16 @@ draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Them
     }
 
     draw_cached_text_quads(quads, theme.label_color);
+*/
 }
 
-draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
-    if !quads.count return;
-    cached_font : Simp.Dynamic_Font = app.simp_font.*;
-    cached_font.current_quads = quads;
-    Simp.draw_generated_quads(*cached_font, color);
-}
+// nocommit enable for :Linux
+//draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
+//    if !quads.count return;
+//    cached_font : Simp.Dynamic_Font = app.simp_font.*;
+//    cached_font.current_quads = quads;
+//    Simp.draw_generated_quads(*cached_font, color);
+//}
 
 
 #scope_file

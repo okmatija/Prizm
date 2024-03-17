@@ -207,12 +207,15 @@ ImGui_ImplSDL2_Init :: (window : *SDL_Window) -> bool
     bd.MouseCursors[ImGui.MouseCursor.Hand] = SDL_CreateSystemCursor(.HAND);
     // bd.MouseCursors[ImGui.MouseCursor.NotAllowed] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO);
 
-#if OS == .WINDOWS {
     info : SDL_SysWMinfo;
     SDL_VERSION(*info.version);
-    if (SDL_GetWindowWMInfo(window, *info))
-        io.ImeWindowHandle = info.info.win.window;
-}
+    if (SDL_GetWindowWMInfo(window, *info)) {
+        #if OS == .WINDOWS {
+            io.ImeWindowHandle = info.info.win.window;
+        } else #if OS == .LINUX {
+            io.ImeWindowHandle = xx info.info.x11.window;
+        }
+    }
 
     return true;
 }

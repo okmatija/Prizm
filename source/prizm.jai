@@ -166,7 +166,8 @@ main :: () {
 
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
-    file_events_to_watch |= File_Change_Event.ADDED | .MODIFIED;
+    file_events_to_watch |= .ADDED;
+    file_events_to_watch |= .MODIFIED;
     if !init(*app.file_watcher, file_change_callback, null, file_events_to_watch, merge_window_seconds = .1, watch_recursively = false, verbose = false) {
         log_error("Could not init file watcher"); // @Cleanup Should just disable this feature in this case..
         exit(1);
@@ -205,6 +206,7 @@ main :: () {
     font2 : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT2.data, FONT2.count, 18., *font_config);
 
     // Set up Simp
+    /* nocommit :Linux
     {
         window_type := get_window_type(app.window);
         Simp.ScopeContext();
@@ -216,6 +218,7 @@ main :: () {
         app.simp_font = Simp.get_font_at_size(font_data, FONT_SIZE);
         assert(app.simp_font != null);
     }
+    */
 
     set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
@@ -257,11 +260,13 @@ main :: () {
         }
 
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
+        /* nocommit :Linux
         {
             // @Cleanup Window resizing works even without this, why?
             Simp.ScopeContext();
             Simp.update_window(get_window_type(app.window));
         }
+        */
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
@@ -622,7 +627,6 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
         window_type := sdl_wm_info.info.win.window;
     } else #if OS == .LINUX {
         window_type := sdl_wm_info.info.x11.window;
-        #assert(false, "@Incomplete verify that Simp integration works on linux");
     }
     return window_type;
 }

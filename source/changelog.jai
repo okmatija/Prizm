@@ -5,9 +5,15 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
     * Multiple attributes are supported, and each will have its own tab in the item context menu
     * TODO Added a preset example to demonstrate the new annotation functionality
-    * TODO Change the keybinds for the index, vertex and annotation labels
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
     * TODO Fix Alt RMB not rotating about the alternative axis
+DONE};
+
+PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
+* TODO Set the icon on linux
+* TODO Get Simp/text rendering working on linux, it is currently commented out
+* TODO Check various things work
+* TODO Use compiler SDL and add extra bindings in app.jai
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE
@@ -585,6 +591,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*app.changelog, PRIZM_VERSION_BACKLOGGED);
+    array_add(*app.changelog, PRIZM_VERSION_0_9_0);
     array_add(*app.changelog, PRIZM_VERSION_0_8_0);
     // Releases using the old name "Prism"
     array_add(*app.changelog, PRISM_VERSION_0_7_1);

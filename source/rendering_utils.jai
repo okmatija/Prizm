@@ -59,7 +59,7 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 }
 
 debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1, 1}) {
-
+/* nocommit :Linux
     Scope_GL_State();
 
     glEnable(GL_BLEND);
@@ -68,6 +68,7 @@ debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1
     Simp.ScopeContext();
     position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
     Simp.draw_text(app.simp_font, xx position.x, xx position.y, text, color, scale=scale);
+*/
 }
 
 debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {

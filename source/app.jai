@@ -10,7 +10,7 @@ App :: struct {
     window_focussed_opacity : float = 1.;
     window_unfocussed_opacity : float = 1.;
 
-    simp_font: *Simp.Dynamic_Font;
+    //simp_font: *Simp.Dynamic_Font;
 
     theme : Prizm_Theme;
 
@@ -202,7 +202,6 @@ add_directory :: (directory_path : string) -> *app.Folder {
     folder : app.Folder;
     folder.path = copy_string(directory_path);
 
-#if OS == .WINDOWS {
     for * app.directories {
         if it.path == folder.path {
             result = it;
@@ -221,9 +220,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
 
         result = *app.directories[app.directories.count - 1];
     }
-} else {
-    assert(false); // @Incomplete linux support
-}
+
     return result;
 }
 
@@ -258,15 +255,28 @@ remove_directory_if_unwatched :: (directory : string) {
         }
 
         #if OS == .WINDOWS {
+
         for app.file_watcher.directories {
             if it.name == directory {
-                // @FIXME do we have a memory leak here??
                 remove it;
                 break;
             }
         }
+
+        } else if OS == .LINUX {
+
+        // We can't use table_remove since the path is the value not the key
+        for app.file_watcher.watch_paths {
+            if it == directory {
+                remove it;
+                break;
+            }
+        }
+
         } else {
-            assert(false); // @Incomplete linux support
+
+           assert(false);
+
         }
     }
 }
@@ -398,6 +408,11 @@ Debug :: #import "Debug";
 ImGui :: #import "ImGui";
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
+
+// Extra SDL bindings
+SDL_SetWindowOpacity :: (window: *SDL_Window, opacity: float) -> s32 #foreign SDL2;
+SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #foreign SDL2;
+
 
 #if OS == .WINDOWS {
 #import "Windows";
