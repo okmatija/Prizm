@@ -1,7 +1,5 @@
 // Fixed! ISSUE_004 :: "The text rendering implementation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
 
-DEFAULT_LABEL_SCALE :: .4;
-
 Labelling_Mode :: enum {
     RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
@@ -9,7 +7,7 @@ Labelling_Mode :: enum {
 
 Annotation_Label_Theme :: struct {
     visible := false;
-    label_scale := DEFAULT_LABEL_SCALE;
+    label_scale := Font_Size.NORMAL;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
@@ -19,7 +17,7 @@ Vertex_Label_Theme :: struct {
     show_index := false;
     show_position := false;
 
-    label_scale := DEFAULT_LABEL_SCALE;
+    label_scale := Font_Size.NORMAL;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
     annotation_label_theme : Annotation_Label_Theme;
@@ -30,7 +28,7 @@ Vertex_Label_Theme :: struct {
 // For mesh topology/geometry labels
 Element_Label_Theme :: struct {
     show_index := false;
-    label_scale := DEFAULT_LABEL_SCALE;
+    label_scale := Font_Size.NORMAL;
     label_color := Vector4.{1., 1., 0, 1};
 
     annotation_label_theme : Annotation_Label_Theme;
@@ -38,7 +36,7 @@ Element_Label_Theme :: struct {
 
 Attribute_Theme :: struct {
     visible := false;
-    label_scale := DEFAULT_LABEL_SCALE;
+    label_scale := Font_Size.NORMAL;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
@@ -892,8 +890,6 @@ render_entities :: () {
     }
 
     render_entity_text_spotlight :: ($entity_filter : Code) {
-/* nocommit :Linux
-        Simp.ScopeContext();
         glEnable(GL_BLEND);
         defer glDisable(GL_BLEND);
         // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
@@ -930,7 +926,7 @@ render_entities :: () {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             text : string = to_string(`annotation);
-                            array_add(annotation_labels, make_Label_Info(text_position_px, text));
+                            array_add(annotation_labels, Label_Info.{position_px=text_position_px, label=text});
                         }
                     }
                 }
@@ -975,7 +971,7 @@ render_entities :: () {
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
                             text : string = get_point_text(position_model, position_index, vertex_label_theme);
-                            array_add(*vertex_labels, make_Label_Info(text_position_px, text));
+                            array_add(*vertex_labels, Label_Info.{position_px=text_position_px, label=text});
                         }
                     }
                 }
@@ -993,7 +989,7 @@ render_entities :: () {
                         text_position_px : Tuple2i = to_screen_position(position_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             text : string = get_point_text(point_index, point_label_theme);
-                            array_add(*point_labels, make_Label_Info(text_position_px, text));
+                            array_add(*point_labels, Label_Info.{position_px=text_position_px, label=text});
                         }
                     }
                 }
@@ -1012,7 +1008,7 @@ render_entities :: () {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             text : string = get_point_text(it_index, segment_label_theme);
-                            array_add(*segment_labels, make_Label_Info(text_position_px, text));
+                            array_add(*segment_labels, Label_Info.{position_px=text_position_px, label=text});
                         }
                     }
                 }
@@ -1044,7 +1040,7 @@ render_entities :: () {
                         text_position_px : Tuple2i = to_screen_position(point_world, projection_from_world);
                         if on_screen_in_disk(text_position_px, app.settings.labelling_radius_px) {
                             text : string = get_point_text(triangle_index, triangle_label_theme);
-                            array_add(triangle_labels, make_Label_Info(text_position_px, text));
+                            array_add(triangle_labels, Label_Info.{position_px=text_position_px, label=text});
                         }
                     }
                 }
@@ -1083,11 +1079,9 @@ render_entities :: () {
             draw_label_infos(triangle_labels, triangle_label_theme);
             draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
         }
-*/
     }
 
     render_entity_text_ray_cast :: ($entity_filter : Code) {
-        /* nocommit :Linux
 
         should_target_points :: (entity : Entity) -> bool {
             return (any_vertex_label_visible(entity) || any_point_label_visible(entity));
@@ -1121,7 +1115,6 @@ render_entities :: () {
             return;
         }
 
-        Simp.ScopeContext();
         glEnable(GL_BLEND);
         defer glDisable(GL_BLEND);
         // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
@@ -1153,7 +1146,7 @@ render_entities :: () {
             if any_vertex_label_visible(`entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(position_world, `projection_from_world);
                 text : string = get_point_text(position_model, position_index, `vertex_label_theme);
-                array_add(*`vertex_labels, make_Label_Info(text_position_px, text));
+                array_add(*`vertex_labels, Label_Info.{position_px=text_position_px, label=text});
             }
 
             // @Speed this should use the spatial index?? since annotations are sparse, maybe not
@@ -1161,7 +1154,7 @@ render_entities :: () {
                 if annotation.kind == .VERTEX && annotation.id == position_index {
                     text_position_px : Tuple2i = to_screen_position(position_world, `projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*`vertex_annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*`vertex_annotation_labels, Label_Info.{position_px=text_position_px, label=text});
                 }
             }
         }
@@ -1187,7 +1180,7 @@ render_entities :: () {
             if any_point_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, point_label_theme);
-                array_add(*point_labels, make_Label_Info(text_position_px, text));
+                array_add(*point_labels, Label_Info.{position_px=text_position_px, label=text});
             }
 
             // Point annotation label
@@ -1195,7 +1188,7 @@ render_entities :: () {
                if annotation.kind == .POINT && annotation.id == closest_world.element_index {
                    text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                    text : string = to_string(annotation);
-                   array_add(*point_annotation_labels, make_Label_Info(text_position_px, text));
+                   array_add(*point_annotation_labels, Label_Info.{position_px=text_position_px, label=text});
                }
             }
 
@@ -1214,7 +1207,7 @@ render_entities :: () {
             if any_segment_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, segment_label_theme);
-                array_add(*segment_labels, make_Label_Info(text_position_px, text));
+                array_add(*segment_labels, Label_Info.{position_px=text_position_px, label=text});
             }
 
             // Segment annotation label
@@ -1222,7 +1215,7 @@ render_entities :: () {
                 if annotation.kind == .LINE && annotation.id == closest_world.element_index {
                     text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*segment_annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*segment_annotation_labels, Label_Info.{position_px=text_position_px, label=text});
                 }
             }
 
@@ -1244,7 +1237,7 @@ render_entities :: () {
             if any_triangle_label_visible(entity, annotation_labels=false) {
                 text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                 text : string = get_point_text(closest_world.element_index, triangle_label_theme);
-                array_add(*triangle_labels, make_Label_Info(text_position_px, text));
+                array_add(*triangle_labels, Label_Info.{position_px=text_position_px, label=text});
             }
 
             // Triangle annotation label
@@ -1252,7 +1245,7 @@ render_entities :: () {
                 if annotation.kind == .TRIANGLE && annotation.id == closest_world.element_index {
                     text_position_px : Tuple2i = to_screen_position(closest_point_world, projection_from_world);
                     text : string = to_string(annotation);
-                    array_add(*triangle_annotation_labels, make_Label_Info(text_position_px, text));
+                    array_add(*triangle_annotation_labels, Label_Info.{position_px=text_position_px, label=text});
                 }
             }
 
@@ -1288,7 +1281,6 @@ render_entities :: () {
 
         draw_label_infos(triangle_labels, triangle_label_theme);
         draw_label_infos(triangle_annotation_labels, triangle_label_theme.annotation_label_theme);
-        */
     }
 
     not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
@@ -1469,22 +1461,16 @@ OGL: message = Program/shader state performance warning: Fragment shader in prog
 Label_Info :: struct {
     position_px : Tuple2i;
     label : string;
-}
-
-make_Label_Info :: (position_px : Tuple2i, label : string) -> Label_Info {
-    result : Label_Info = ---;
-    result.position_px = position_px;
-    result.label = label;
-    return result;
+    color : Vector4;
 }
 
 Label_Theme_Interface :: struct {
     label_color : Vector4;
     label_scale : float;
 }
-
 draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Theme_Interface) {
-/* nocommit :Linux
+    if io().WantCaptureMouse return; // nocommit Put this is the right place, its intended to stop rendering labels through the UI
+
     if !label_infos.count return;
 
     // @CompilerBug why is operator== not found??
@@ -1501,6 +1487,56 @@ draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Them
         array_add(overlapping_labels, label_info.label);
     }
 
+    for overlapping_labels, position_px : label_table {
+        window_position := ImGui.ImVec2.{xx position_px.x, cast(float)app.current_window_height - cast(float) position_px.y};
+        window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+
+        text_size : ImGui.ImVec2;
+        for overlapping_labels {
+            print("[%] text_size=%\n", it_index, text_size);
+            size := ImGui.CalcTextSize(it);
+            text_size.x = max(text_size.x, size.x);
+            text_size.y += size.y;
+            print("text=%,%,%\n", size, text_size, it);
+        }
+        print("text_size=%\n", text_size);
+        text_size = .{300,300};
+
+        ImGui.SetNextWindowBgAlpha(0.);
+        ImGui.SetNextWindowPos(window_position);
+        ImGui.SetNextWindowSize(text_size);
+        ImGui.Begin(imgui_label("Labels", xx window_position_index), flags=ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs);
+        defer ImGui.End();
+
+/*
+            // Post-baking font scaling. Note that this is NOT the nice way of scaling fonts, read below.
+            // (we enforce hard clamping manually as by default DragFloat/SliderFloat allows CTRL+Click text to get out of bounds).
+            const float MIN_SCALE = 0.3f;
+            const float MAX_SCALE = 2.0f;
+            HelpMarker(
+                "Those are old settings provided for convenience.\n"
+                "However, the _correct_ way of scaling your UI is currently to reload your font at the designed size, "
+                "rebuild the font atlas, and call style.ScaleAllSizes() on a reference ImGuiStyle structure.\n"
+                "Using those settings here will give you poor quality results.");
+            static float window_scale = 1.0f;
+            ImGui::PushItemWidth(ImGui::GetFontSize() * 8);
+            if (ImGui::DragFloat("window scale", &window_scale, 0.005f, MIN_SCALE, MAX_SCALE, "%.2f", ImGuiSliderFlags_AlwaysClamp)) // Scale only this window
+                ImGui::SetWindowFontScale(window_scale);
+            ImGui::DragFloat("global scale", &io.FontGlobalScale, 0.005f, MIN_SCALE, MAX_SCALE, "%.2f", ImGuiSliderFlags_AlwaysClamp); // Scale everything
+            ImGui::PopItemWidth();
+            */
+
+
+        for overlapping_labels {
+            // nocommit PushFont/PopFont here for font size, maybe have 5 steps?
+            ImGui.PushFont(app.font_set.huge);
+            ImGui.TextColored(theme.label_color, "%", it);
+            ImGui.Text("%", it);
+            ImGui.PopFont();
+        }
+    }
+
+    /*
     character_height_px : s32 = xx (app.simp_font.character_height * theme.label_scale);
 
     quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
@@ -1521,7 +1557,7 @@ draw_label_infos :: (label_infos : []Label_Info, theme : $T/interface Label_Them
     }
 
     draw_cached_text_quads(quads, theme.label_color);
-*/
+    */
 }
 
 // nocommit enable for :Linux

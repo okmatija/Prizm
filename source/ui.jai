@@ -1972,7 +1972,7 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
 
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    combo_box(imgui_label("##scale", theme), *theme.label_scale, type_info(theme.label_scale));
     show_tooltip("Text Scale");
     ImGui.PopItemWidth();
 
@@ -1993,10 +1993,11 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     show_tooltip("Text Color");
     ImGui.SameLine();
 
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    show_tooltip("Text Scale");
-    ImGui.PopItemWidth();
+    /// nocommit scale
+    //ImGui.PushItemWidth(70);
+    //ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    //show_tooltip("Text Scale");
+    //ImGui.PopItemWidth();
 }
 
 show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Label_Theme) {
@@ -2011,10 +2012,11 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     show_tooltip("Text Color");
     ImGui.SameLine();
 
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    show_tooltip("Text Scale");
-    ImGui.PopItemWidth();
+    /// nocommit scale
+    // ImGui.PushItemWidth(70);
+    // ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    // show_tooltip("Text Scale");
+    // ImGui.PopItemWidth();
 }
 
 show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_Theme) {
@@ -2029,10 +2031,11 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
     show_tooltip("Text Color");
     ImGui.SameLine();
 
-    ImGui.PushItemWidth(70);
-    ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    show_tooltip("Text Scale");
-    ImGui.PopItemWidth();
+    // nocommit scale
+    // ImGui.PushItemWidth(70);
+    // ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
+    // show_tooltip("Text Scale");
+    // ImGui.PopItemWidth();
 }
 
 

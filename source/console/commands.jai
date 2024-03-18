@@ -352,6 +352,21 @@ set_visible :: (id : int, visible : int) {
 } @RegisterCommand
 
 
+get_best_font :: (desired_size_px : int) -> Font_Size {
+    if desired_size_px <= cast(int)Font_Size.SMALL {
+        return .SMALL;
+    }
+
+    if desired_size_px <= cast(int)Font_Size.NORMAL {
+        return .NORMAL;
+    }
+
+    if desired_size_px <= cast(int)Font_Size.LARGE {
+        return LARGE;
+    }
+
+    return .HUGE;
+}
 
 
 // visible is a boolean
@@ -419,8 +434,7 @@ set_vertex_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
     entity.display_info.vertex_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
-set_vertex_label_scale :: (id : int, scale : float) {
+set_vertex_label_scale :: (id : int, font_size_px : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.vertex_label_theme.label_scale = scale;
@@ -507,8 +521,7 @@ set_triangle_label_color :: (id : int, r : int, g : int, b : int, a : int = 255)
     entity.display_info.triangle_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-// The scale parameter is in the range [0.2, 1.0], by default Prizm uses 0.4 @Cleanup Switch to size in pixels
-set_triangle_label_scale :: (id : int, scale : float) {
+set_triangle_label_scale :: (id : int, size_px : int) {
     if !check_geometry_index(id) return;
     entity := app.entities[id];
     entity.display_info.triangle_label_theme.label_scale = scale;

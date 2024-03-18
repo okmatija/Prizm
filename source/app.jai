@@ -1,16 +1,40 @@
 app : App;
 
+
+// @Volatile :FontSizesShouldMatchFontAtlas
+Font_Size :: enum {
+    SMALL :: 12;
+    NORMAL :: 18;
+    LARGE :: 24;
+    HUGE :: 32;
+}
+
+//@Cleanup have a table from font size in px to font and use that
+Font_Set :: struct {
+
+    // @Volatile :FontSizesShouldMatchFontAtlas
+    small : *ImGui.ImFont;
+    normal : *ImGui.ImFont;
+    large : *ImGui.ImFont;
+    huge : *ImGui.ImFont;
+
+    #place small;
+    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
+}
+
 // Shared global state is stored here
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
+    window_type : Window_Type;
     window_maximized := false;
     window_draggable_rect_min : ImGui.ImVec2;
     window_draggable_rect_max : ImGui.ImVec2;
     window_focussed_opacity : float = 1.;
     window_unfocussed_opacity : float = 1.;
 
-    //simp_font: *Simp.Dynamic_Font;
+    simp_font: *Simp.Dynamic_Font;
+    font_set : Font_Set;
 
     theme : Prizm_Theme;
 
@@ -417,6 +441,8 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #if OS == .WINDOWS {
 #import "Windows";
 #import "Windows_Utf8";
+} else #if OS == .LINUX {
+#import "X11"; // for x_global_display, which needs to be initted before we call Simp.set_render_target, in the Simp example program this is done by the create window call (Window_Creation module), but in Prizm we are using SDL so we do it manually @CompilerBug, perhaps contribute a fix here
 }
 
 Simp :: #import "Simp";

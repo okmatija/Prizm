@@ -4,7 +4,7 @@ v -5 5 0
 v -5 5 -10
 v -5 -5 -10 # Minimum point
 v 5 -5 -10
-v -5 -5 -10
+v -5 -5 -10 # Minimum point
 v -5 5 -10
 v 5 5 -10
 v 5 5 0 # Maximum point
@@ -13,15 +13,15 @@ v 5 5 -10
 v -5 5 -10
 v 5 -5 0
 v -5 -5 0
-v -5 -5 -10
+v -5 -5 -10 # Minimum point
 v 5 -5 -10
 v 5 -5 0
-v 5 5 0
+v 5 5 0# Maximum point
 v 5 -5 -10
 v 5 5 -10
 v 5 -5 0
 v -5 -5 0
-v 5 5 0
+v 5 5 0# Maximum point
 v -5 5 0
 vn -1 0 0
 vn -1 0 0

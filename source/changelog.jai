@@ -9,8 +9,94 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Fix Alt RMB not rotating about the alternative axis
 DONE};
 
+/*
+Simp.Dynamic_Font
+
+        Simp.set_render_target(app.window_type);
+
+        font_data : []u8;
+        font_data.data = FONT.data;
+        font_data.count = FONT.count;
+        app.simp_font = Simp.get_font_at_size(font_data, FONT_SIZE);
+        assert(app.simp_font != null);
+
+                    // @Cleanup Window resizing works even without this, why?
+            Simp.ScopeContext();
+            Simp.update_window(get_window_type(app.window));
+
+//rendering_utils.jai:debug_text_at_cursor
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    Simp.ScopeContext();
+    position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    Simp.draw_text(app.simp_font, xx position.x, xx position.y, text, color, scale=scale);
+
+//rendering.jai
+
+    //    Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, vertex_theme.label_color, scale=vertex_theme.label_scale);
+
+
+//rendering.jai
+
+// Generate and cache quad data before its lost on the next call to prepare_text
+// nocommit enable for :Linux 
+//cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Tuple2i, scale : float) {
+//    Simp.prepare_text(app.simp_font, text);
+//    Simp.generate_quads_for_prepared_text(app.simp_font, text_position_px.x, text_position_px.y, 0, scale);
+//    for app.simp_font.current_quads array_add(cache, it);
+//}
+
+// nocommit enable for :Linux
+//draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
+//    if !quads.count return;
+//    cached_font : Simp.Dynamic_Font = app.simp_font.*;
+//    cached_font.current_quads = quads;
+//    Simp.draw_generated_quads(*cached_font, color);
+//}
+
+    character_height_px : s32 = xx (app.simp_font.character_height * theme.label_scale);
+
+    quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
+    for overlapping_labels, position_px : label_table {
+        for overlapping_labels {
+            // Compute the label label position, we currently draw overlapping labels in a vertical stack
+            label_position_px : Tuple2i = position_px;
+            label_position_px.y -= it_index * character_height_px;
+
+            // If the current label won't be on the screen skip it and also skip all remaining overlapping labels
+            margin : s32 = 2 * character_height_px;
+            if ((label_position_px.y > app.current_window_height + margin) || label_position_px.y < -margin) {
+                break;
+            }
+
+            cache_text_quads(*quads, it, label_position_px, theme.label_scale);
+        }
+    }
+
+    draw_cached_text_quads(quads, theme.label_color);
+
+        quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
+        cache_text_quads(*quads, ifx io().KeyCtrl then "Ctrl LMB" else "LMB", text_position_px, 1);
+        draw_cached_text_quads(quads, .{0,0,0,1});
+
+
+*/
+
 PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
 * TODO Set the icon on linux
+
+Remove Simp, and just use imgui for text rendering
+
+Remove the spotlight thing, its totally useless, we should have a method of pinning labels and searching them with a command, and this was the only application of fast font rendering, also the imgui solution supports borders
+
+Make the imgui text borders customized to be tight fitting and not rounded? Maybe have a very light non-zero alpha?
+
+Make sure the load console command works properly, the path api on unix/windows is different. passing "shapes/*obj" works from commandline but not load, so problem may just be there
+
+Debug perf problems, check they reproduce on windows...?
+
+
 * TODO Get Simp/text rendering working on linux, it is currently commented out
 * TODO Check various things work
 * TODO Use compiler SDL and add extra bindings in app.jai

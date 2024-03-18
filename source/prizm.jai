@@ -195,22 +195,32 @@ main :: () {
     // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
-    // TODO Option to pass font and size on the command line?
-    FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
-    FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf");          #assert(FONT2_OK);
+    {
+        // TODO Option to pass font and size on the command line?
+        FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+        //FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT2_OK);
 
-    font_config : ImGui.ImFontConfig;
-    ImGui.ImFontConfig.Constructor(*font_config);
-    font_config.FontDataOwnedByAtlas = false;
-    font :  *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, 18., *font_config);
-    font2 : *ImGui.ImFont = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT2.data, FONT2.count, 18., *font_config);
+        font_config : ImGui.ImFontConfig;
+        ImGui.ImFontConfig.Constructor(*font_config);
+        font_config.FontDataOwnedByAtlas = false;
+        for enum_values_as_s64(Font_Size) {
+            app.font_set.fonts[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, cast(float)it, *font_config);
+        }
+    }
 
     // Set up Simp
-    /* nocommit :Linux
-    {
-        window_type := get_window_type(app.window);
-        Simp.ScopeContext();
-        Simp.set_render_target(window_type);
+    /* nocommit Remove this totally
+    if false {
+        // #if OS == .LINUX {
+        //     if !x_global_display {
+        //         init_global_display();
+        //     }
+        // }
+
+        app.window_type = get_window_type(app.window);
+
+        //Simp.ScopeContext(app.window_type); // nocommit on linux only works after backend was initted
+        Simp.set_render_target(app.window_type);
 
         font_data : []u8;
         font_data.data = FONT.data;
@@ -239,7 +249,7 @@ main :: () {
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
 
-        ImGui.PushFont(font);
+        ImGui.PushFont(app.font_set.normal);
 
         show_menu_bar_ui();
 
@@ -470,12 +480,19 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 
 handle_load_string :: (path : string, recursive := false) -> bool {
 
+#if OS == .WINDOWS {
     // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
     // Note: On unix this function fails if the path does not exist, on Windows it does not fail
     pattern : string = canonically_formatted_path_string(path);
+} else {
+    pattern : string = path;
+}
 
     // Note: Previously we also searched for #char "-" but this was confusing since some folder names use this as a separator, if we want to find that one make sure its also within square brackets
     wildcard_index : s64 = find_index_of_any_from_left(pattern, "*"); // From left since we want the first one
+
+    // nocommit This needs fixing on :Linux, calling canonically_formatted_path_string when path has wildcards in it seems broken??
+    print("nocommit %, %, %\n", path, pattern, wildcard_index);
 
     if wildcard_index != -1 {
 
@@ -493,6 +510,11 @@ handle_load_string :: (path : string, recursive := false) -> bool {
         if directory == "" || !is_directory(directory){
             directory = ".";
         }
+        
+        print("nocommit directory=%\n", directory);
+        success : bool;
+        directory, success = get_absolute_path(directory);
+
 
         files := file_list(directory, recursive=recursive, follow_symlinks=false);
         defer array_free(files);
