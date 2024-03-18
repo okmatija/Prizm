@@ -1316,15 +1316,26 @@ render_selections :: () {
     // annoying in the case of selections
 
     // Disabled text rendering while selecting, that can be done after caching the selection
-
-    /* nocommit :Linux enable this
+    #if false {
     vertex_theme := entity.display_info.vertex_label_theme;
     for mesh.positions {
         text := get_point_text(it, it_index, vertex_theme);
-        text_position_px : Tuple2i = to_screen_position(it, projection_from_model);
-        Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, vertex_theme.label_color, scale=vertex_theme.label_scale);
+
+        // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
+        to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
+            return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+        }
+
+        window_position : ImGui.ImVec2 = to_imgui_position(to_screen_position(it, projection_from_model));
+
+        font, color := get_label_font(entity, .VERTEX);
+        ImGui.PushFont(font);
+        window_size := 2 * ImGui.CalcTextSize(text); // Factor of 2 is @Hack See :LabelWindowSize
+        LabelWindow(window_position, window_size);
+        ImGui.TextColored(vertex_theme.label_color, "%", text);
+        ImGui.PopFont();
     }
-    */
+    }
 }
 
 // This function was added so that we could use Simp *when it was using the same context as the rest of the
@@ -1491,7 +1502,13 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
     }
 
     for overlapping_labels, position_px : label_table {
-        window_position := ImGui.ImVec2.{xx position_px.x, cast(float)app.current_window_height - cast(float) position_px.y};
+
+        // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
+        to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
+            return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+        }
+
+        window_position := to_imgui_position(position_px);
         window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
 
         text_size : ImGui.ImVec2;
@@ -1506,21 +1523,15 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
 
         label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs;
 
-        ImGui.SetNextWindowBgAlpha(0.);
-        ImGui.SetNextWindowPos(window_position);
-        ImGui.SetNextWindowSize(2*text_size); // @Hack the factor of 2 is a bit too much, and this should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing horrible flickering. We need to figure fix this factor of 2 in order to be able to frame the labels with a box about the right size
-        old_window_border_size := ImGui.GetStyle().WindowBorderSize;
-        ImGui.GetStyle().WindowBorderSize = 0;
-        defer ImGui.GetStyle().WindowBorderSize = old_window_border_size;
+        // @Hack :LabelWindowSize The factor of 2 is a bit too much, and this should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing horrible flickering. We need to figure fix this factor of 2 in order to be able to frame the labels with a box about the right size
+        LabelWindow(window_position, 2*text_size);
 
-        ImGui.Begin(imgui_label("Labels", xx window_position_index), flags=label_window_flags);
         for overlapping_labels {
             font, color := get_label_font(entity, it.kind);
             ImGui.PushFont(font);
             ImGui.TextColored(color, "%", it.label);
             ImGui.PopFont();
         }
-        ImGui.End();
     }
 }
 

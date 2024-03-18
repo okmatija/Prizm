@@ -47,6 +47,22 @@ ScopeZeroCellPaddingY :: () #expand {
     `defer ImGui.PopStyleVar();
 }
 
+LabelWindow :: (window_position : Vector2, window_size : Vector2) #expand {
+    label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs;
+
+    window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+
+    ImGui.SetNextWindowBgAlpha(0.);
+    ImGui.SetNextWindowPos(window_position);
+    ImGui.SetNextWindowSize(window_size);
+    old_window_border_size := ImGui.GetStyle().WindowBorderSize;
+    ImGui.GetStyle().WindowBorderSize = 0;
+    `defer ImGui.GetStyle().WindowBorderSize = old_window_border_size;
+
+    ImGui.Begin(imgui_label("Labels", xx window_position_index), flags=label_window_flags);
+    `defer ImGui.End();
+}
+
 // Combo box to select display mode enum value
 // @Cleanup Deduce the info_enum from the data
 combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum, flags : ImGui.ComboFlags = .None) -> bool {

@@ -12,23 +12,14 @@ DONE};
 
 PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
 * Added support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
-* TODO Improved support resolving resolving label overlaps
+* Improved support for resolving label overlaps
 * TODO Set the icon on linux
-
-Remove Simp, and just use imgui for text rendering
-
-Remove the spotlight thing, its totally useless, we should have a method of pinning labels and searching them with a command, and this was the only application of fast font rendering, also the imgui solution supports borders
-
-Make the imgui text borders customized to be tight fitting and not rounded? Maybe have a very light non-zero alpha?
 
 Make sure the load console command works properly, the path api on unix/windows is different. passing "shapes/*obj" works from commandline but not load, so problem may just be there
 
 Debug perf problems, check they reproduce on windows...?
 
-
-* TODO Get Simp/text rendering working on linux, it is currently commented out
 * TODO Check various things work
-* TODO Use compiler SDL and add extra bindings in app.jai
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE

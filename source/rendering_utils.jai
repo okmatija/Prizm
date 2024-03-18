@@ -58,17 +58,23 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
     return program;
 }
 
-debug_text_at_cursor :: (text : string, scale := .5, color : Vector4 = .{1, 1, 1, 1}) {
-/* nocommit :Linux
-    Scope_GL_State();
+debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : *ImGui.ImFont = null) {
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if font {
+        ImGui.PushFont(font);
+    }
 
-    Simp.ScopeContext();
-    position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
-    Simp.draw_text(app.simp_font, xx position.x, xx position.y, text, color, scale=scale);
-*/
+    // window_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    window_position := io().MousePos;
+    window_size := 2 * ImGui.CalcTextSize(text); // Factor of 2 is @Hack See :LabelWindowSize
+
+    LabelWindow(window_position, window_size);
+
+    ImGui.TextColored(color, "%", text);
+
+    if font {
+        ImGui.PopFont();
+    }
 }
 
 debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {
