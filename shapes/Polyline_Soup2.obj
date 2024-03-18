@@ -7,7 +7,7 @@
 
 v -10 -10 0
 v  10 -10 0
-v  10  10 0 # Wowee, 10/10 coorindates!
+v  10  10 0 # Wowee, 10/10 coordinates!
 v -10  10 0
 l 1 2
 l 2 3
