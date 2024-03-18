@@ -1972,8 +1972,8 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
 
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
-    combo_box(imgui_label("##scale", theme), *theme.label_scale, type_info(theme.label_scale));
-    show_tooltip("Text Scale");
+    combo_box(imgui_label2("##scale", theme), *theme.label_scale, type_info(Font_Size));
+    show_tooltip("Text Size");
     ImGui.PopItemWidth();
 
     ImGui.SameLine();
@@ -1983,59 +1983,56 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
 
 show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Element_Label_Theme) {
     ImGui.Text(name);
-    ImGui.SameLine();
 
+    ImGui.SameLine();
     ImGui.Checkbox(imgui_label("##index", theme), *theme.show_index);
     show_tooltip(tooltip);
-    ImGui.SameLine();
 
+    ImGui.SameLine();
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
     show_tooltip("Text Color");
-    ImGui.SameLine();
 
-    /// nocommit scale
-    //ImGui.PushItemWidth(70);
-    //ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    //show_tooltip("Text Scale");
-    //ImGui.PopItemWidth();
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    combo_box(imgui_label2("##scale", theme), *theme.label_scale, type_info(Font_Size));
+    show_tooltip("Text Size");
+    ImGui.PopItemWidth();
 }
 
 show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Label_Theme) {
     ImGui.Text(name);
-    ImGui.SameLine();
 
+    ImGui.SameLine();
     ImGui.Checkbox(imgui_label("##visible", theme), *theme.visible);
     show_tooltip(tooltip);
-    ImGui.SameLine();
 
+    ImGui.SameLine();
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
     show_tooltip("Text Color");
-    ImGui.SameLine();
 
-    /// nocommit scale
-    // ImGui.PushItemWidth(70);
-    // ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    // show_tooltip("Text Scale");
-    // ImGui.PopItemWidth();
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    combo_box(imgui_label2("##scale", theme), *theme.label_scale, type_info(Font_Size));
+    show_tooltip("Text Size");
+    ImGui.PopItemWidth();
 }
 
 show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_Theme) {
     ImGui.Text(name);
-    ImGui.SameLine();
 
+    ImGui.SameLine();
     ImGui.Checkbox(imgui_label("##visible", theme), *theme.visible);
     show_tooltip(tooltip);
-    ImGui.SameLine();
 
+    ImGui.SameLine();
     ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
     show_tooltip("Text Color");
-    ImGui.SameLine();
 
-    // nocommit scale
-    // ImGui.PushItemWidth(70);
-    // ImGui.DragFloat(imgui_label("##scale", theme), *theme.label_scale, .005, .2, 1., format="%.3f");
-    // show_tooltip("Text Scale");
-    // ImGui.PopItemWidth();
+    ImGui.SameLine();
+    ImGui.PushItemWidth(70);
+    combo_box(imgui_label2("##scale", theme), *theme.label_scale, type_info(Font_Size));
+    show_tooltip("Text Scale");
+    ImGui.PopItemWidth();
 }
 
 

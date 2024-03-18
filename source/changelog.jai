@@ -7,83 +7,12 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Added a preset example to demonstrate the new annotation functionality
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
     * TODO Fix Alt RMB not rotating about the alternative axis
+    * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
 DONE};
 
-/*
-Simp.Dynamic_Font
-
-        Simp.set_render_target(app.window_type);
-
-        font_data : []u8;
-        font_data.data = FONT.data;
-        font_data.count = FONT.count;
-        app.simp_font = Simp.get_font_at_size(font_data, FONT_SIZE);
-        assert(app.simp_font != null);
-
-                    // @Cleanup Window resizing works even without this, why?
-            Simp.ScopeContext();
-            Simp.update_window(get_window_type(app.window));
-
-//rendering_utils.jai:debug_text_at_cursor
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    Simp.ScopeContext();
-    position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
-    Simp.draw_text(app.simp_font, xx position.x, xx position.y, text, color, scale=scale);
-
-//rendering.jai
-
-    //    Simp.draw_text(app.simp_font, xx text_position_px.x, xx text_position_px.y, text, vertex_theme.label_color, scale=vertex_theme.label_scale);
-
-
-//rendering.jai
-
-// Generate and cache quad data before its lost on the next call to prepare_text
-// nocommit enable for :Linux 
-//cache_text_quads :: (cache : *[..]Simp.Font_Quad, text : string, text_position_px : Tuple2i, scale : float) {
-//    Simp.prepare_text(app.simp_font, text);
-//    Simp.generate_quads_for_prepared_text(app.simp_font, text_position_px.x, text_position_px.y, 0, scale);
-//    for app.simp_font.current_quads array_add(cache, it);
-//}
-
-// nocommit enable for :Linux
-//draw_cached_text_quads :: (quads : [..]Simp.Font_Quad, color : Vector4) {
-//    if !quads.count return;
-//    cached_font : Simp.Dynamic_Font = app.simp_font.*;
-//    cached_font.current_quads = quads;
-//    Simp.draw_generated_quads(*cached_font, color);
-//}
-
-    character_height_px : s32 = xx (app.simp_font.character_height * theme.label_scale);
-
-    quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
-    for overlapping_labels, position_px : label_table {
-        for overlapping_labels {
-            // Compute the label label position, we currently draw overlapping labels in a vertical stack
-            label_position_px : Tuple2i = position_px;
-            label_position_px.y -= it_index * character_height_px;
-
-            // If the current label won't be on the screen skip it and also skip all remaining overlapping labels
-            margin : s32 = 2 * character_height_px;
-            if ((label_position_px.y > app.current_window_height + margin) || label_position_px.y < -margin) {
-                break;
-            }
-
-            cache_text_quads(*quads, it, label_position_px, theme.label_scale);
-        }
-    }
-
-    draw_cached_text_quads(quads, theme.label_color);
-
-        quads : [..]Simp.Font_Quad = temp_array(Element_Type=Simp.Font_Quad);
-        cache_text_quads(*quads, ifx io().KeyCtrl then "Ctrl LMB" else "LMB", text_position_px, 1);
-        draw_cached_text_quads(quads, .{0,0,0,1});
-
-
-*/
-
 PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
+* Added support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
+* TODO Improved support resolving resolving label overlaps
 * TODO Set the icon on linux
 
 Remove Simp, and just use imgui for text rendering

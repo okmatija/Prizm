@@ -362,7 +362,7 @@ compute_vertex_normals_from_triangles :: (mesh : *Simple_Mesh, triangle_normals 
 }
 
 
-Simple_Mesh_Element :: enum {
+Simple_Mesh_Element :: enum s8 {
     VERTEX;   // a.k.a "position". Set via the v-directive (not really an element, just position data)
 
     POINT;    // Set via the p-directive

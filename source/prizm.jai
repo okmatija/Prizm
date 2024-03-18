@@ -75,7 +75,6 @@ main :: () {
     console_load_history();
 
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
-    // Set 3,3 to match Simp MINIMUM_GL_MINOR_VERSION, MINIMUM_GL_MAJOR_VERSION??
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
@@ -208,28 +207,6 @@ main :: () {
         }
     }
 
-    // Set up Simp
-    /* nocommit Remove this totally
-    if false {
-        // #if OS == .LINUX {
-        //     if !x_global_display {
-        //         init_global_display();
-        //     }
-        // }
-
-        app.window_type = get_window_type(app.window);
-
-        //Simp.ScopeContext(app.window_type); // nocommit on linux only works after backend was initted
-        Simp.set_render_target(app.window_type);
-
-        font_data : []u8;
-        font_data.data = FONT.data;
-        font_data.count = FONT.count;
-        app.simp_font = Simp.get_font_at_size(font_data, FONT_SIZE);
-        assert(app.simp_font != null);
-    }
-    */
-
     set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
     load_from_command_line();
@@ -270,13 +247,6 @@ main :: () {
         }
 
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
-        /* nocommit :Linux
-        {
-            // @Cleanup Window resizing works even without this, why?
-            Simp.ScopeContext();
-            Simp.update_window(get_window_type(app.window));
-        }
-        */
         glEnable(GL_DEPTH_TEST);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 

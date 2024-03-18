@@ -1,26 +1,6 @@
 app : App;
 
 
-// @Volatile :FontSizesShouldMatchFontAtlas
-Font_Size :: enum {
-    SMALL :: 12;
-    NORMAL :: 18;
-    LARGE :: 24;
-    HUGE :: 32;
-}
-
-//@Cleanup have a table from font size in px to font and use that
-Font_Set :: struct {
-
-    // @Volatile :FontSizesShouldMatchFontAtlas
-    small : *ImGui.ImFont;
-    normal : *ImGui.ImFont;
-    large : *ImGui.ImFont;
-    huge : *ImGui.ImFont;
-
-    #place small;
-    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
-}
 
 // Shared global state is stored here
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
@@ -33,7 +13,6 @@ App :: struct {
     window_focussed_opacity : float = 1.;
     window_unfocussed_opacity : float = 1.;
 
-    simp_font: *Simp.Dynamic_Font;
     font_set : Font_Set;
 
     theme : Prizm_Theme;
@@ -409,6 +388,53 @@ set_prizm_theme :: (theme : Prizm_Color_Theme) {
     ImGui.GetStyle().DisabledAlpha = .5;
 }
 
+// @Volatile :FontSizesShouldMatchFontAtlas
+Font_Size :: enum u8 {
+    SMALL :: 12;
+    NORMAL :: 18;
+    LARGE :: 24;
+    HUGE :: 32;
+}
+
+//@Cleanup have a table from font size in px to font and use that
+Font_Set :: struct {
+
+    // @Volatile :FontSizesShouldMatchFontAtlas
+    small : *ImGui.ImFont;
+    normal : *ImGui.ImFont;
+    large : *ImGui.ImFont;
+    huge : *ImGui.ImFont;
+
+    #place small;
+    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
+}
+
+get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
+    if #complete font_size == {
+        case .SMALL; return app.font_set.small;
+        case .NORMAL; return app.font_set.normal;
+        case .LARGE; return app.font_set.large;
+        case .HUGE; return app.font_set.huge;
+    }
+    return app.font_set.normal;
+}
+
+get_best_font_size :: (desired_size_px : int) -> Font_Size {
+    if desired_size_px <= cast(int)Font_Size.SMALL {
+        return .SMALL;
+    }
+
+    if desired_size_px <= cast(int)Font_Size.NORMAL {
+        return .NORMAL;
+    }
+
+    if desired_size_px <= cast(int)Font_Size.LARGE {
+        return .LARGE;
+    }
+
+    return .HUGE;
+}
+
 #import "Basic";
 // #import "Basic"()(MEMORY_DEBUGGER=true);
 #import "File";
@@ -442,10 +468,8 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #import "Windows";
 #import "Windows_Utf8";
 } else #if OS == .LINUX {
-#import "X11"; // for x_global_display, which needs to be initted before we call Simp.set_render_target, in the Simp example program this is done by the create window call (Window_Creation module), but in Prizm we are using SDL so we do it manually @CompilerBug, perhaps contribute a fix here
+//#import "X11";
 }
-
-Simp :: #import "Simp";
 
 // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module
 //#import "Tagged_Union_Enum"(DEBUG=true);

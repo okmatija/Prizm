@@ -17,6 +17,10 @@ imgui_label :: (label : string, ptr : *void = null) -> *u8 {
     return temp_c_string(tprint("%##%", label, ptr));
 }
 
+imgui_label2 :: (label : string, ptr : *void = null) -> string {
+    return tprint("%##%", label, ptr);
+}
+
 begin_box_section :: () {
     table_flags := ImGui.TableFlags.BordersOuter;
         // .NoHostExtendX; // Can be useful
