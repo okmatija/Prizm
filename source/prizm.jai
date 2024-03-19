@@ -389,6 +389,8 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
 //      "nested/path/file*set*again"
 //      "../../path/file"
 //      "../../path/directory"
+//
+// @Volatile This function should be carefully tested on both linux and windows...!
 handle_load_string :: (path : string, recursive := false) {
 
     // @Incomplete Remove this constraint, make it recursive if the * isn't in the filename
@@ -401,7 +403,7 @@ handle_load_string :: (path : string, recursive := false) {
             return; // Fail if the wildcard didn't occur in the filename
         }
 
-        directory_path := ifx path_directory_index >= 0 then slice(path, 0, path_directory_index + 1) else ".";
+        directory_path := ifx path_directory_index >= 0 then slice(path, 0, path_directory_index) else ".";
 
         abs_directory_path, abs_directory_path_valid := canonically_formatted_path_string(directory_path);
         if !abs_directory_path_valid {
