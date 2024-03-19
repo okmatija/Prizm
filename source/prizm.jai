@@ -128,6 +128,10 @@ main :: () {
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
 
+    // Disable writing the .ini and .log files
+    io().IniFilename = null;
+    io().LogFilename = null;
+
     SDL_SetWindowHitTest(app.window, window_hit_test, null);
 
     // // Using those as a base value to create width/height that are factor of the size of our font

@@ -1878,7 +1878,7 @@ show_help_about_content :: () {
 
     {
         ImGui.Text("Prizm is a tool for debugging geometry algorithms with obj files");
-        ImGui.Text("This is version %. Feedback/Bugs:", changelog[0].name);
+        ImGui.Text("This is version %.  Project website:" , changelog[0].name);
         ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();

@@ -15,9 +15,8 @@ DONE
 OUTPUT_EXE_NAME :: "Prizm";
 
 // This is used to implement the shipping build option (it creates the .zip for distribution)
-#if OS == {
-case .WINDOWS; ARCHIVER :: "c:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\7z.exe";
-case .LINUX;   ARCHIVER :: "TODO";
+#if OS == .WINDOWS {
+PATH_TO_7z :: "c:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\7z.exe";
 }
 
 build :: () {
@@ -140,17 +139,30 @@ build :: () {
 
                         #if OS == {
                         case .WINDOWS;
+
                             zip_name := tprint("%-%-Windows-x86_64.zip", OUTPUT_EXE_NAME, changelog[0].name);
-                            run_command(ARCHIVER, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL2.dll", "shapes", "api");
+
+                            // @Incomplete We should check that this worked
+                            run_command(PATH_TO_7z, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL2.dll", "shapes", "api");
+
+                            print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
+                            print("[%] To cleanup you can run 'rm -rf % %'\n", OUTPUT_EXE_NAME, zip_basename, zip_name);
+
                         case .LINUX;
-                            // @Incomplete @TODO Can we just cross compile?
-                            zip_name := tprint("%-%-Linux-x86_64.zip", OUTPUT_EXE_NAME, changelog[0].name);
-                            run_command(ARCHIVER, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "libSDL2_linux.so", "libSDL2-2.0.so.0", "shapes", "api");
+
+                            // @TODO Can we just cross compile?
+                            zip_basename := tprint("%-%-Linux-x86_64", OUTPUT_EXE_NAME, changelog[0].name);
+                            zip_name := tprint("%.zip", zip_basename);
+
+                            // @Incomplete We should check that this worked
+                            run_command("mkdir", zip_basename); // Do this so that the user always unzips to a folder with the Prizm version
+                            run_command("cp", "-r", OUTPUT_EXE_NAME, "shapes", "api", zip_basename); // Note: SDL is statically linked on linux
+                            run_command("zip", "-r", zip_name, zip_basename);
+
+                            print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
+                            print("[%] To cleanup you can run 'rm -rf % %'\n", OUTPUT_EXE_NAME, zip_basename, zip_name);
 
                         }
-
-                        // @Incomplete We should check that this worked
-                        print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
                     }
                 }
                 break;

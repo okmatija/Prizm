@@ -29,6 +29,8 @@ PRIZM_VERSION_0_9_0 :: Version.{"0.9.0", "19 March 2024", #string DONE
 * Added a recursive argument to the 'load' command
 * Added full license text to "Help > About > Credits and Licenses"
 * Fixed a rare crash that could happen when passing arguements to the Prizm executable
+* Stopped writing the imgui.ini file when Prizm is closed
+* Updated the build script (first.jai) to automated the release/shipping process
 * Updated to compiler version beta 0.1.088
 DONE};
 
