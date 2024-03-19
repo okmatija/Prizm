@@ -1,6 +1,6 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.083, built on 15 January 2024";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.088, built on 10 March 2024";
 
 HELP_STRING :: #string DONE
 
@@ -20,8 +20,7 @@ build :: () {
         version_info := compiler_get_version_info(null);
         if (version_info != EXPECTED_COMPILER_VERSION_INFO) {
             message := tprint("Using compiler version '%' but expected version '%'. The program may not compile, or some things may be broken.", version_info, EXPECTED_COMPILER_VERSION_INFO);
-            // compiler_report(message, mode = Report.ERROR_CONTINUABLE);
-            compiler_report(message, mode = Report.ERROR); // @CompilerBug is preventing us from upgrading beyond beta 0.1.083
+            compiler_report(message, mode = Report.ERROR_CONTINUABLE);
         }
     }
 
