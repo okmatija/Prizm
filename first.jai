@@ -146,7 +146,7 @@ build :: () {
                             run_command(PATH_TO_7z, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL2.dll", "shapes", "api");
 
                             print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
-                            print("[%] To cleanup you can run 'rm -rf % %'\n", OUTPUT_EXE_NAME, zip_basename, zip_name);
+                            print("[%] To cleanup you can run 'del %'\n", OUTPUT_EXE_NAME, zip_name);
 
                         case .LINUX;
 
