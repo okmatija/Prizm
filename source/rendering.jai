@@ -1267,14 +1267,16 @@ render_entities :: () {
     //// perhaps we can just render the previously shown labels rather than nothing though..! its not helpful to. This also helps with
     //// @Speed, traversing the AABB for large meshes needs profiling!
     //if !mouse_orbit_camera() {
-    if #complete app.settings.labelling_mode == {
-        case .RAY_CAST;
+    if !io().WantCaptureMouse {
+        if #complete app.settings.labelling_mode == {
+            case .RAY_CAST;
 
-            render_entity_text_ray_cast(visit_visible);
+                render_entity_text_ray_cast(visit_visible);
 
-        case .SPOTLIGHT;
+            case .SPOTLIGHT;
 
-            render_entity_text_spotlight(visit_visible);
+                render_entity_text_spotlight(visit_visible);
+        }
     }
     //}
 
@@ -1483,8 +1485,6 @@ Label_Info :: struct {
 }
 
 draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
-    if io().WantCaptureMouse return; // nocommit Put this is the right place, its intended to stop rendering labels through the UI
-
     if !label_infos.count return;
 
     // @CompilerBug why is operator== not found??
