@@ -147,13 +147,6 @@ App :: struct {
     }
     api : API;
 
-    Version :: struct {
-        name : string;
-        date : string;
-        description : string;
-    }
-    changelog : [..]Version;
-
     Known_Issue :: struct {
         name :        string;
         description : string;

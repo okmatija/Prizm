@@ -1,4 +1,13 @@
-PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
+// This is not in App since we use it in the build program as well (we just need the version name there actually)
+changelog : [..]Version;
+
+Version :: struct {
+    name : string;
+    date : string;
+    description : string;
+}
+
+PRIZM_VERSION_BACKLOGGED :: Version.{"0.8.0", "WIP", #string DONE
 
 * New Feature: Attributes TODO Add a feature flag for enabling this
 
@@ -13,16 +22,17 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODOOOOO Fix long change logs being truncated
 DONE};
 
-PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "19 March 2024", #string DONE
+PRIZM_VERSION_0_9_0 :: Version.{"0.9.0", "19 March 2024", #string DONE
 
 * Added initial support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
 * Improved support for resolving label overlaps in the viewport
 * Added a recursive argument to the 'load' command
 * Added full license text to "Help > About > Credits and Licenses"
+* Fixed a rare crash that could happen when passing arguements to the Prizm executable
 * Updated to compiler version beta 0.1.088
 DONE};
 
-PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE
+PRIZM_VERSION_0_8_0 :: Version.{"0.8.0", "14 March 2024", #string DONE
 
 * Renamed project to Prizm to distingush this version from its predecessor. The new name is more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
 * Changed the keybinding to toggle annotation visibility from 'k' to 'a'.  This is reflected in the ribbon button icon and is a better memonic for "annotation"
@@ -31,7 +41,7 @@ PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE
 * Many thanks to Epic Games for open sourcing the original Prism repository under the MIT license, it can be found at github.com/EpicMatijaKecman/Prism
 DONE};
 
-PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
+PRISM_VERSION_0_7_1 :: Version.{"0.7.1", "28 September 2023", #string DONE
 
 * Changed the font to Inconsolata and increased the default font size, the UI looks *much* better now
 * Added icons for the ribbon buttons along the bottom of the screen
@@ -71,7 +81,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
     * Added a checkbox under `Tools > API > C++` to enable/disable the includes which depend on the Engine module (this is required to access `MakeActorObj`).
 DONE};
 
-PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "08 August 2023", #string DONE
+PRISM_VERSION_0_7_0 :: Version.{"0.7.0", "08 August 2023", #string DONE
 
 * Improvements to UI/UX
 
@@ -99,7 +109,8 @@ PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "08 August 2023", #string DONE
     * Note: Part of the agenda regarding adding features to Prism is to keep things orthogonal, so, although we'll keep program options, we actually already have a way to configure the application: You could create console commands to do the config you want and execute them as command annotations in an otherwise empty .obj file.
 DONE};
 
-PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
+PRISM_VERSION_0_6_1 :: Version.{"0.6.1", "23 July 2023", #string DONE
+
 * Replaced the per-item annotation settings with settings for vertices/points/segments/triangles
 * Replaced Rendering and Labeling sections of the Details panel with fields in new Vertices/Points/Segments/Triangles sections
 * Added support for `f i//a j//b k//c` lines in the .obj file where i,j,k can be different from  a,b,c (previously this was only working if i,j,k==a,b,c)
@@ -127,7 +138,7 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
     * Added a MakeDynamicMeshOverlayObj function to write TDynamicMeshOverlay to an .obj. This function visualizes the mesh and adds overlay elements as points annotated with the overlay element id and element value.
 DONE};
 
-PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
+PRISM_VERSION_0_6_0 :: Version.{"0.6.0", "10 May 2023", #string DONE
 
 * Added a header-only C++ API for writing .obj files with Prism-specific extensions
 
@@ -155,7 +166,7 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
 * Fixed a minor bug where the order of items changed when items were deleted, previously the last item in the list would replace the deleted item
 DONE};
 
-PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE
+PRISM_VERSION_0_5_1 :: Version.{"0.5.1", "17 Feburary 2023", #string DONE
 
 * Fixed a bug where obj files with command annotations that should have created more than one item were not working
 * Fixed a bug where obj files with 2D vertex directives (e.g., `v 1 2`) where not parsed correctly
@@ -172,7 +183,7 @@ PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE
 
 DONE};
 
-PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE
+PRISM_VERSION_0_5_0 :: Version.{"0.5.0", "15 January 2023", #string DONE
 
 * Changes to the UI
 
@@ -279,7 +290,7 @@ PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "06 October 2022", #string DONE
+PRISM_VERSION_0_4_0 :: Version.{"0.4.0", "06 October 2022", #string DONE
 
 * Improvements to Annotations:
 
@@ -331,7 +342,7 @@ PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "06 October 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
+PRISM_VERSION_0_3_1 :: Version.{"0.3.1", "22 September 2022", #string DONE
 
 * Replaced the buttons previously in the "Actions" menu of the Item List with "Update" buttons along the bottom edge of the viewport. Update buttons work in the same way as the action buttons did but this was never properly explained, so here is how things work: Each item has its own settings struct storing geometry/text rendering info (point size, line width, clipping shape etc), there is also a stand-alone "template" setting struct which is used to implement the update buttons. When an update button is pressed two things happen: first, the corresponding member in the template is changed and second, the change is copied over to the settings struct of each targetted item. Note this template setting struct is also used to implement the selection context menu which appears when you RMB on a selected item in the item list (use Ctrl LMB to select an item in the Item List)
 
@@ -365,7 +376,7 @@ PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "06 September 2022", #string DONE
+PRISM_VERSION_0_3_0 :: Version.{"0.3.0", "06 September 2022", #string DONE
 
 * Improved item reloading behavior
 
@@ -412,7 +423,7 @@ PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "06 September 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "26 May 2022", #string DONE
+PRISM_VERSION_0_2_3 :: Version.{"0.2.3", "26 May 2022", #string DONE
 
 * Added a basic annotation functionality where comments in obj files are parsed and stored on the items
 
@@ -432,7 +443,7 @@ PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "26 May 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "18 May 2022", #string DONE
+PRISM_VERSION_0_2_2 :: Version.{"0.2.2", "18 May 2022", #string DONE
 
 * Improved performance of text label rendering (Fixes ISSUE_004)
 
@@ -457,7 +468,7 @@ PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "18 May 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
+PRISM_VERSION_0_2_1 :: Version.{"0.2.1", "27 March 2022", #string DONE
 
 * Changed the modifier used to make mouse scrolling zoom into the camera look position from Control to Shift
 
@@ -503,7 +514,7 @@ PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
+PRISM_VERSION_0_2_0 :: Version.{"0.2.0", "15 March 2022", #string DONE
 
 * Major UI/UX overhaul/improvements:
 
@@ -533,7 +544,7 @@ PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "04 January 2022", #string DONE
+PRISM_VERSION_0_1_2 :: Version.{"0.1.2", "04 January 2022", #string DONE
 
 * Improvements to the console:
 
@@ -562,7 +573,7 @@ PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "04 January 2022", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1", "01 December 2021", #string DONE
+PRISM_VERSION_0_1_1 :: Version.{"0.1.1", "01 December 2021", #string DONE
 
 * Changed Selection Mode toggle keybinding to s from m
 * Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
@@ -593,7 +604,7 @@ PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1", "01 December 2021", #string DONE
 DONE
 };
 
-PRISM_VERSION_0_1_0 :: App.Version.{"0.1.0", "20 October 2021", #string DONE
+PRISM_VERSION_0_1_0 :: Version.{"0.1.0", "20 October 2021", #string DONE
 
 Initial release. Press h for help, features not mentioned in the help message include:
 
@@ -611,23 +622,23 @@ DONE
 };
 
 init_changelog :: () {
-    //array_add(*app.changelog, PRIZM_VERSION_BACKLOGGED);
-    array_add(*app.changelog, PRIZM_VERSION_0_9_0);
-    array_add(*app.changelog, PRIZM_VERSION_0_8_0);
+    //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
+    array_add(*changelog, PRIZM_VERSION_0_9_0);
+    array_add(*changelog, PRIZM_VERSION_0_8_0);
     // Releases using the old name "Prism"
-    array_add(*app.changelog, PRISM_VERSION_0_7_1);
-    array_add(*app.changelog, PRISM_VERSION_0_7_0);
-    array_add(*app.changelog, PRISM_VERSION_0_6_1);
-    array_add(*app.changelog, PRISM_VERSION_0_6_0);
-    array_add(*app.changelog, PRISM_VERSION_0_5_1);
-    array_add(*app.changelog, PRISM_VERSION_0_5_0);
-    array_add(*app.changelog, PRISM_VERSION_0_4_0);
-    array_add(*app.changelog, PRISM_VERSION_0_3_1);
-    array_add(*app.changelog, PRISM_VERSION_0_3_0);
-    array_add(*app.changelog, PRISM_VERSION_0_2_2);
-    array_add(*app.changelog, PRISM_VERSION_0_2_1);
-    array_add(*app.changelog, PRISM_VERSION_0_2_0);
-    array_add(*app.changelog, PRISM_VERSION_0_1_2);
-    array_add(*app.changelog, PRISM_VERSION_0_1_1);
-    array_add(*app.changelog, PRISM_VERSION_0_1_0);
+    array_add(*changelog, PRISM_VERSION_0_7_1);
+    array_add(*changelog, PRISM_VERSION_0_7_0);
+    array_add(*changelog, PRISM_VERSION_0_6_1);
+    array_add(*changelog, PRISM_VERSION_0_6_0);
+    array_add(*changelog, PRISM_VERSION_0_5_1);
+    array_add(*changelog, PRISM_VERSION_0_5_0);
+    array_add(*changelog, PRISM_VERSION_0_4_0);
+    array_add(*changelog, PRISM_VERSION_0_3_1);
+    array_add(*changelog, PRISM_VERSION_0_3_0);
+    array_add(*changelog, PRISM_VERSION_0_2_2);
+    array_add(*changelog, PRISM_VERSION_0_2_1);
+    array_add(*changelog, PRISM_VERSION_0_2_0);
+    array_add(*changelog, PRISM_VERSION_0_1_2);
+    array_add(*changelog, PRISM_VERSION_0_1_1);
+    array_add(*changelog, PRISM_VERSION_0_1_0);
 }

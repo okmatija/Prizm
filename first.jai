@@ -7,11 +7,18 @@ HELP_STRING :: #string DONE
 Build Options:
   help       print this help message
   debug      build debug mode (default)
-  release    build release mode (optimized, checks disabled, application icon set)
+  release    build release mode
+  shipping   build release mode, set application icon and bundle zip file
   custom     build with custom build options set in a gui
 DONE
 
 OUTPUT_EXE_NAME :: "Prizm";
+
+// This is used to implement the shipping build option (it creates the .zip for distribution)
+#if OS == {
+case .WINDOWS; ARCHIVER :: "c:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\7z.exe";
+case .LINUX;   ARCHIVER :: "TODO";
+}
 
 build :: () {
 
@@ -45,50 +52,46 @@ build :: () {
     }
 
     {
-        mode : Build_Mode;
-        mode.set_icon = false; // @FIXME Replace this with the icon plugin
-        mode.build_options = get_build_options(w);
-        set_optimization(*mode.build_options, .DEBUG, preserve_debug_info=true);
-        mode.build_options.lazy_foreign_function_lookups = true; // Why do we set this?
-        mode.build_options.stack_trace = true; // So that we can use the NoteEntryExit helper in carpet.jai
-        mode.build_options.output_executable_name = OUTPUT_EXE_NAME;
-        table_add(*preset_build_modes, "debug", mode);
+        build_options := get_build_options(w);
+        set_optimization(*build_options, .DEBUG, preserve_debug_info=true);
+        build_options.lazy_foreign_function_lookups = true; // Why do we set this?
+        build_options.stack_trace = true; // So that we can use the NoteEntryExit helper in carpet.jai
+        build_options.output_executable_name = OUTPUT_EXE_NAME;
+        table_add(*preset_build_options, "debug", build_options);
     }
 
     {
-        mode : Build_Mode;
-        mode.set_icon = true;
-        mode.build_options = get_build_options(w);
-        set_optimization(*mode.build_options, .OPTIMIZED);
-        mode.build_options.lazy_foreign_function_lookups = true; // Why do we set this?
+        build_options := get_build_options(w);
+        set_optimization(*build_options, .OPTIMIZED);
+        build_options.lazy_foreign_function_lookups = true; // Why do we set this?
         // This disables the runtime console but also hides printing to the console!
         #if OS == .WINDOWS {
-        mode.build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"]; // See :DisableRuntimeConsoleCleanup, setting it this way seems better anyway
+        build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"]; // See :DisableRuntimeConsoleCleanup, setting it this way seems better anyway
         }
-        mode.build_options.output_executable_name = OUTPUT_EXE_NAME;
-        table_add(*preset_build_modes, "release", mode);
+        build_options.output_executable_name = OUTPUT_EXE_NAME;
+        table_add(*preset_build_options, "release", build_options);
     }
 
-    build_mode : Build_Mode;
-    build_mode_found : bool;
+    build_options : Build_Options;
+    build_options_found : bool;
     if HasArgument("custom") {
         compiler_report("This feature is currently broken, gl_load does not work at compile-time?");
         print("[%] Compiling with custom build options.\n", OUTPUT_EXE_NAME);
-        build_mode, build_mode_found = table_find(*preset_build_modes, "debug"); // Start from debug options
-        build_gui(preset_build_modes, chosen_build_mode=*build_mode);
-    } else if HasArgument("release") {
+        build_options, build_options_found = table_find(*preset_build_options, "debug"); // Start from debug options
+        build_gui(preset_build_options, chosen_build_options=*build_options);
+    } else if HasArgument("release") || HasArgument("shipping") {
         print("[%] Compiling with release build options.\n", OUTPUT_EXE_NAME);
-        build_mode, build_mode_found = table_find(*preset_build_modes, "release");
+        build_options, build_options_found = table_find(*preset_build_options, "release");
     } else {
         print("[%] Compiling with debug build options.\n", OUTPUT_EXE_NAME);
-        build_mode, build_mode_found = table_find(*preset_build_modes, "debug");
+        build_options, build_options_found = table_find(*preset_build_options, "debug");
     }
-    assert(build_mode_found);
+    assert(build_options_found);
 
     new_path: [..] string;
-    array_add(*new_path, ..build_mode.build_options.import_path);
+    array_add(*new_path, ..build_options.import_path);
     array_add(*new_path, "source/modules");
-    build_mode.build_options.import_path = new_path;
+    build_options.import_path = new_path;
 
     plugin_names : [..]string;
     array_add(*plugin_names, "Check");
@@ -96,7 +99,7 @@ build :: () {
     // Now that we know what the plugins are, init them.
     init_plugins(plugin_names, *plugins, w);
 
-    set_build_options(build_mode.build_options, w);
+    set_build_options(build_options, w);
 
     {
         intercept_flags : Intercept_Flags;
@@ -106,7 +109,7 @@ build :: () {
 
         for plugins if it.add_source it.add_source(it);
 
-        add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_mode.build_options.output_executable_name), w);
+        add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_options.output_executable_name), w);
         add_build_file("source/prizm.jai", w);
 
         while true {
@@ -121,11 +124,34 @@ build :: () {
 
             if message.kind == .COMPLETE {
                 // @Cleanup If this fails (why does it fail?) we need to sit through the entire compilation again, can it be made to fail sooner?
-                if build_mode.set_icon {
-                    print("[%] Setting application icon\n", OUTPUT_EXE_NAME);
+                if HasArgument("shipping") {
+                    {
+                        print("[%] Setting application icon\n", OUTPUT_EXE_NAME);
 
-                    // @CompilerBug I had a problem where I hit the "Failure to set the icon." compilation error here because I had an empty icon.ico file. ie it was read correctly but had zero bytes. To fix the problem I deleted icon.ico, the icon module could do a better job of error messages in this case
-                    set_icon_and_manifest(build_mode.build_options);
+                        // @FIXME Replace this with the icon plugin
+                        // @CompilerBug I had a problem where I hit the "Failure to set the icon." compilation error here because I had an empty icon.ico file. ie it was read correctly but had zero bytes. To fix the problem I deleted icon.ico, the icon module could do a better job of error messages in this case
+                        set_icon_and_manifest(build_options);
+                    }
+
+                    {
+                        print("[%] Setting application icon\n", OUTPUT_EXE_NAME);
+
+                        init_changelog();
+
+                        #if OS == {
+                        case .WINDOWS;
+                            zip_name := tprint("%-%-Windows-x86_64.zip", OUTPUT_EXE_NAME, changelog[0].name);
+                            run_command(ARCHIVER, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL2.dll", "shapes", "api");
+                        case .LINUX;
+                            // @Incomplete @TODO Can we just cross compile?
+                            zip_name := tprint("%-%-Linux-x86_64.zip", OUTPUT_EXE_NAME, changelog[0].name);
+                            run_command(ARCHIVER, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "libSDL2_linux.so", "libSDL2-2.0.so.0", "shapes", "api");
+
+                        }
+
+                        // @Incomplete We should check that this worked
+                        print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
+                    }
                 }
                 break;
             }
@@ -178,7 +204,7 @@ build :: () {
                         if phase.phase == .TYPECHECKED_ALL_WE_CAN {
                             if !generated_code {
                                 if HasArgument("custom") {
-                                    build_gui(preset_build_modes, chosen_console_commands=*registered_console_commands);
+                                    build_gui(preset_build_options, chosen_console_commands=*registered_console_commands);
                                 }
                                 generate_code_to_register_console_commands(message.workspace);
                                 generate_code_to_register_known_issues(message.workspace);
@@ -199,12 +225,7 @@ build :: () {
     }
 }
 
-Build_Mode :: struct {
-    build_options : Build_Options;
-    set_icon : bool;
-}
-
-preset_build_modes : Table(string, Build_Mode);
+preset_build_options : Table(string, Build_Options);
 
 // @Refactor
 // - Make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)
@@ -520,11 +541,13 @@ plugins: [..] *Metaprogram_Plugin;
 #import "File_Utilities";
 #import "Hash_Table";
 #import "Reflection";
+#import "Process";
 
 #if OS == .WINDOWS {
 #import "Windows_Resources";
 #import "Ico_File";
 }
 
+#load "source/changelog.jai"; // to get the latest version name when making a zip
 #load "source/carpet.jai"; // for plural_suffix
 #load "source/build_gui.jai";

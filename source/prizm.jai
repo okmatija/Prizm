@@ -12,7 +12,7 @@ main :: () {
 
     print_usage_and_exit :: () {
         print("\n");
-        print("Prizm % allows the following (case insensitive) program options:\n\n", app.changelog[0].name);
+        print("Prizm % allows the following (case insensitive) program options:\n\n", changelog[0].name);
         print("--Help           Print this message and exit.\n");
         print("--AlwaysOnTop    Keeps the Prizm window on top.\n");
         print("--Red            Use the red   icon in the title bar.\n");
@@ -30,7 +30,7 @@ main :: () {
         for 1..args.count-1 {
             arg : string = to_lower_copy_new(args[it]);
 
-            if arg[0] == #char "-" && arg[1] == #char "-" {
+            if arg.count >= 2 && arg[0] == #char "-" && arg[1] == #char "-" {
                 // @Volatile Sync with :PRIZM_ICON_COLORS
                 if arg == "--help" {
                     print_usage_and_exit();
@@ -54,7 +54,7 @@ main :: () {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, app.changelog[0].name, ifx app.changelog[0].date == "WIP" then "WIP" else "").data,
+    app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, changelog[0].name, ifx changelog[0].date == "WIP" then "WIP" else "").data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   sdl_window_flags);

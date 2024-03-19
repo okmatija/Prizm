@@ -63,7 +63,7 @@ show_menu_bar_ui :: () {
         ImGui.Image(cast(ImGui.ImTextureID)icon_prizm_icon_texture[prizm_icon_color_index].gl_handle, icon_size);
         click_cycle_prizm_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
-            show_tooltip(tprint("Prizm %", app.changelog[0].name));
+            show_tooltip(tprint("Prizm %", changelog[0].name));
         }
     }
 
@@ -1878,7 +1878,7 @@ show_help_about_content :: () {
 
     {
         ImGui.Text("Prizm is a tool for debugging geometry algorithms with obj files");
-        ImGui.Text("This is version %. Feedback/Bugs:", app.changelog[0].name);
+        ImGui.Text("This is version %. Feedback/Bugs:", changelog[0].name);
         ImGui.SameLine();
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
         defer ImGui.PopStyleColor();
@@ -2063,7 +2063,7 @@ show_changelog :: () {
         defer free(contents);
         time := filetime_to_readable_date(current_time_consensus(), true);
         contents = join(contents, tprint("This Changelog was saved at % via a button in the Prizm application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
-        for app.changelog {
+        for changelog {
             entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
             contents = join(contents, entry);
         }
@@ -2075,7 +2075,7 @@ show_changelog :: () {
         ImGui.Text("                                                                                                                       ");
     }
 
-    latest := app.changelog[0];
+    latest := changelog[0];
     if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, % (latest)", latest.name, latest.date))) {
         defer ImGui.TreePop();
 
@@ -2085,8 +2085,8 @@ show_changelog :: () {
         blank_space();
     }
 
-    for 1..app.changelog.count-1 {
-        version := app.changelog[it];
+    for 1..changelog.count-1 {
+        version := changelog[it];
         if ImGui.TreeNodeEx(temp_c_string(tprint("Version %, %", version.name, version.date))) {
             defer ImGui.TreePop();
 

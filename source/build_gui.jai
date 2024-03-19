@@ -1,17 +1,17 @@
 build_gui :: (
-    preset_build_modes : Table(string, Build_Mode),
-    chosen_build_mode : *Build_Mode = null,
+    preset_build_options : Table(string, Build_Options), // @Unused?
+    chosen_build_options : *Build_Options = null,
     chosen_console_commands : *[..]*Code_Procedure_Header = null)
 {
-    if (chosen_build_mode == null && chosen_console_commands == null) ||
-       (chosen_build_mode != null && chosen_console_commands != null) {
+    if (chosen_build_options == null && chosen_console_commands == null) ||
+       (chosen_build_options != null && chosen_console_commands != null) {
         compiler_report("build_gui expected to set exactly one of build options or console commands");
     }
 
     SDL_Init(SDL_INIT_VIDEO);
 
     task : string;
-    if chosen_build_mode {
+    if chosen_build_options {
         task = "Configure Build Options";
     } else if chosen_console_commands {
         task = "Configure Console Commands";
@@ -96,8 +96,8 @@ build_gui :: (
                 }
             }
 
-            if chosen_build_mode {
-                using chosen_build_mode.build_options;
+            if chosen_build_options {
+                using chosen_build_options;
 
                 // @Refactor This can lookup a string in the Build_Options struct using reflection, so usage can be Check_Box("optimization_level"), and we insert the string as code, too
                 // Note: Use of get_ident_name is only possible at compile-time, so this code
@@ -159,7 +159,7 @@ build_gui :: (
                 //x64_options:  X64_Options;
                 //llvm_options: Llvm_Options;
 
-                inspect("Chosen Build Mode (Auto Generated UI)", chosen_build_mode);
+                inspect("Chosen Build Options (Auto Generated UI)", chosen_build_options);
             }
 
             if ImGui.Button("Submit") {
