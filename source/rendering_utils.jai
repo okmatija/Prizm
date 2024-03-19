@@ -1,3 +1,53 @@
+init_shaders :: () {
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
+        app.points_lines_program = get_shader_program(VERT, FRAG);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/triangles.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
+        app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.triangles_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.segments_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        app.points_normal_program = get_shader_program(VERT, FRAG, GEOM);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/aabb.frag"); #assert(FRAG_OK);
+        app.aabb_program = get_shader_program(VERT, FRAG);
+    }
+
+    {
+        // We may want to hot-load this file in future to allow the user to customize the background
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/background.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/background.frag"); #assert(FRAG_OK);
+        app.background_program = get_shader_program(VERT, FRAG);
+        glGenVertexArrays(1, *app.background_vao);
+    }
+}
+
 get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_geometry : string = "") -> GLuint {
 
     make_shader_object :: (shader : string, shader_type : GLenum) -> GLuint {

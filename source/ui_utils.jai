@@ -6,6 +6,45 @@
 
 io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
+// @Volatile :FontSizesShouldMatchFontAtlas
+Font_Size :: enum u8 {
+    SMALL :: 12;
+    NORMAL :: 18;
+    LARGE :: 24;
+    HUGE :: 32;
+}
+
+//@Cleanup have a table from font size in px to font and use that
+Font_Set :: struct {
+
+    // @Volatile :FontSizesShouldMatchFontAtlas
+    small : *ImGui.ImFont;
+    normal : *ImGui.ImFont;
+    large : *ImGui.ImFont;
+    huge : *ImGui.ImFont;
+
+    #place small;
+    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
+}
+
+get_best_font_size :: (desired_size_px : int) -> Font_Size {
+    if desired_size_px <= cast(int)Font_Size.SMALL {
+        return .SMALL;
+    }
+
+    if desired_size_px <= cast(int)Font_Size.NORMAL {
+        return .NORMAL;
+    }
+
+    if desired_size_px <= cast(int)Font_Size.LARGE {
+        return .LARGE;
+    }
+
+    return .HUGE;
+}
+
+
+
 make_Vector2 :: inline (v : ImGui.ImVec2) -> Vector2 {
     result : Vector2 = ---;
     result.x = v.x;

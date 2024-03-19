@@ -93,70 +93,10 @@ main :: () {
     gl_enable_debug_output(true);
     // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
 
-    // Prepare VAO for text quads.
-    {
-        glGenVertexArrays(1, *app.text_vao);
-        glGenBuffers(1, *app.text_vbo);
-        glBindVertexArray(app.text_vao);
-        glBindBuffer(GL_ARRAY_BUFFER, app.text_vbo);
-        glBufferData(GL_ARRAY_BUFFER, size_of(GLfloat) * 6 * 4, null, GL_DYNAMIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * size_of(GLfloat), xx 0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
-        app.points_lines_program = get_shader_program(VERT, FRAG);
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/triangles.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
-        app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.triangles_normal_program = get_shader_program(VERT, FRAG, GEOM);
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.segments_normal_program = get_shader_program(VERT, FRAG, GEOM);
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.points_normal_program = get_shader_program(VERT, FRAG, GEOM);
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/aabb.frag"); #assert(FRAG_OK);
-        app.aabb_program = get_shader_program(VERT, FRAG);
-    }
-
-    {
-        // We may want to hot-load this file in future to allow the user to customize the background
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/background.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/background.frag"); #assert(FRAG_OK);
-        app.background_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.background_vao);
-    }
-
     TRIAD_AXIS_LENGTH :: 1;
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
+    init_shaders();
     init_camera();
     init_commands();
     init_keymap();
@@ -194,18 +134,7 @@ main :: () {
     // const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
-    {
-        // TODO Option to pass font and size on the command line?
-        FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
-        //FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT2_OK);
-
-        font_config : ImGui.ImFontConfig;
-        ImGui.ImFontConfig.Constructor(*font_config);
-        font_config.FontDataOwnedByAtlas = false;
-        for enum_values_as_s64(Font_Size) {
-            app.font_set.fonts[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, cast(float)it, *font_config);
-        }
-    }
+    imgui_init_fonts();
 
     set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
 
@@ -684,6 +613,20 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
         return .SDL_HITTEST_NORMAL;
     }
 }
+
+imgui_init_fonts :: () {
+    // TODO Option to pass font and size on the command line?
+    FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+    //FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT2_OK);
+
+    font_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*font_config);
+    font_config.FontDataOwnedByAtlas = false;
+    for enum_values_as_s64(Font_Size) {
+        app.font_set.fonts[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, cast(float)it, *font_config);
+    }
+}
+
 
 imgui_context : *ImGui.ImGuiContext;
 

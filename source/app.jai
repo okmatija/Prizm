@@ -56,9 +56,6 @@ App :: struct {
     current_window_height := INITIAL_WINDOW_HEIGHT;
     fullscreen := false;
 
-    text_vao : GLuint;
-    text_vbo : GLuint;
-
     aabb_program : GLuint;
     triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     points_lines_program : GLuint;
@@ -388,27 +385,6 @@ set_prizm_theme :: (theme : Prizm_Color_Theme) {
     ImGui.GetStyle().DisabledAlpha = .5;
 }
 
-// @Volatile :FontSizesShouldMatchFontAtlas
-Font_Size :: enum u8 {
-    SMALL :: 12;
-    NORMAL :: 18;
-    LARGE :: 24;
-    HUGE :: 32;
-}
-
-//@Cleanup have a table from font size in px to font and use that
-Font_Set :: struct {
-
-    // @Volatile :FontSizesShouldMatchFontAtlas
-    small : *ImGui.ImFont;
-    normal : *ImGui.ImFont;
-    large : *ImGui.ImFont;
-    huge : *ImGui.ImFont;
-
-    #place small;
-    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
-}
-
 get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
     if #complete font_size == {
         case .SMALL; return app.font_set.small;
@@ -419,21 +395,6 @@ get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
     return app.font_set.normal;
 }
 
-get_best_font_size :: (desired_size_px : int) -> Font_Size {
-    if desired_size_px <= cast(int)Font_Size.SMALL {
-        return .SMALL;
-    }
-
-    if desired_size_px <= cast(int)Font_Size.NORMAL {
-        return .NORMAL;
-    }
-
-    if desired_size_px <= cast(int)Font_Size.LARGE {
-        return .LARGE;
-    }
-
-    return .HUGE;
-}
 
 #import "Basic";
 // #import "Basic"()(MEMORY_DEBUGGER=true);
