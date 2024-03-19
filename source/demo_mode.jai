@@ -3,7 +3,7 @@
 // - There should be a TTL option on the demo text and a stack that pushes older text down while it fades
 
 do_demo_mode :: () {
-    /* nocommit :Linux
+    /* @TODO :EnableDemoMode
     if !app.demo_mode return;
 
     if io_mouse_left_down() {

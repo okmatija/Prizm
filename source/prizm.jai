@@ -377,71 +377,77 @@ to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
     return SDLK_UNKNOWN;
 }
 
-handle_load_string :: (path : string, recursive := false) -> bool {
+// Note: path can have * wildcards in the filename part only
+//
+// Examples:
+//      "file"
+//      "file*set"
+//      "file*set**again"
+//      "directory"
+//      "nested/path/file"
+//      "nested/path/file*set"
+//      "nested/path/file*set*again"
+//      "../../path/file"
+//      "../../path/directory"
+handle_load_string :: (path : string, recursive := false) {
 
-#if OS == .WINDOWS {
-    // file_list uses the / separator but on windows we may have passed an input using the \ separator, so we fix that here.
-    // Note: On unix this function fails if the path does not exist, on Windows it does not fail
-    pattern : string = canonically_formatted_path_string(path);
-} else {
-    pattern : string = path;
-}
+    // @Incomplete Remove this constraint, make it recursive if the * isn't in the filename
+    path_wildcard_index : s64 = find_index_of_any_from_left(path, "*"); // From left since we want the first one
+    if path_wildcard_index >= 0 {
 
-    // Note: Previously we also searched for #char "-" but this was confusing since some folder names use this as a separator, if we want to find that one make sure its also within square brackets
-    wildcard_index : s64 = find_index_of_any_from_left(pattern, "*"); // From left since we want the first one
-
-    // nocommit This needs fixing on :Linux, calling canonically_formatted_path_string when path has wildcards in it seems broken??
-    print("nocommit %, %, %\n", path, pattern, wildcard_index);
-
-    if wildcard_index != -1 {
-
-        // Fail if the wildcard didn't occur in the filename
-        // @Incomplete Remove this constraint, make it recursive if the * isn't in the filename
-        directory_index : s64 = find_index_from_right(pattern, "/"); // From right since we want the last one
-        if directory_index != -1 {
-            if wildcard_index < directory_index {
-                log_error("Wildcard * can only occur in the filename but it preceeded a directory separator, got '%'", path);
-                return false;
-            }
+        path_directory_index : s64 = find_index_from_right(path, "/"); // From right since we want the last one
+        if path_wildcard_index < path_directory_index {
+            log_error("Wildcard * can only occur in the filename but it preceeded a directory separator in path '%'", path);
+            return; // Fail if the wildcard didn't occur in the filename
         }
 
-        directory : string = slice(pattern, 0, directory_index + 1);
-        if directory == "" || !is_directory(directory){
-            directory = ".";
+        directory_path := ifx path_directory_index >= 0 then slice(path, 0, path_directory_index + 1) else ".";
+
+        abs_directory_path, abs_directory_path_valid := canonically_formatted_path_string(directory_path);
+        if !abs_directory_path_valid {
+            log_error("Could not compute absolute path for '%', maybe this path does not exist?", directory_path);
+            return;
         }
-        
-        print("nocommit directory=%\n", directory);
-        success : bool;
-        directory, success = get_absolute_path(directory);
 
+        filename_path := slice(path, path_directory_index + 1, path.count); // Note: The 3rd argument gets clamped
+        pattern := join(abs_directory_path, filename_path, separator="/",, temp);
 
-        files := file_list(directory, recursive=recursive, follow_symlinks=false);
+        match_count := 0;
+
+        files := file_list(abs_directory_path, recursive=recursive, follow_symlinks=false);
         defer array_free(files);
-
         for _file, file_index : files {
             file := _file;
             file = canonically_formatted_path_string(file);
             if wildcard_match(file, pattern) {
-                handle_filename(file, .IGNORE);
+                handle_filename(file, .IGNORE); // @TODO Perhaps this should be app.settings.duplicate_file_behaviour?
+                match_count += 1;
             }
         }
 
+        log("Loaded % file% matching path pattern '%'", match_count, plural_suffix(match_count > 1), pattern);
+
     } else {
 
-        got_directory, got_directory_valid := is_directory(pattern);
+        abs_path, abs_path_valid := canonically_formatted_path_string(path);
+        if !abs_path_valid {
+            log_error("Could not compute absolute path for '%', maybe this path does not exist?", path);
+            return;
+        }
 
+        got_directory, got_directory_valid := is_directory(abs_path);
         if !got_directory_valid {
-            log_warning("Expected a filename or directory, got '%', maybe this path does not exist?", pattern);
-            app.show_ui, app.console.show_ui = true, true;
+            log_error("Expected a filename or directory for '%', maybe this path does not exist?", abs_path);
+            return;
         } else if got_directory {
-            handle_directory(pattern);
+            handle_directory(abs_path);
+            return;
         } else {
-            handle_filename(pattern, app.settings.duplicate_file_behaviour);
+            handle_filename(abs_path, app.settings.duplicate_file_behaviour);
+            return;
         }
 
     }
-
-    return true;
 }
 
 #scope_file

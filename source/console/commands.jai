@@ -61,9 +61,9 @@ quit :: () {
 
 // Load files found in the given path as if it was provided to the Prizm executable on the command line.
 // The path may contain * wildcards for matching filenames but not directories (this will be implemented in future)
-load :: (path : string) {
+load :: (path : string, recursive : int = 0) {
     count := app.entities.count;
-    handle_load_string(path); 
+    handle_load_string(path, recursive != 0);
     loaded_count := app.entities.count - count;
     log("Loaded % item%", loaded_count, plural_suffix(loaded_count != 1));
 } @RegisterCommand

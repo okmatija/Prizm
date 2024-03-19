@@ -6,20 +6,15 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * Multiple attributes are supported, and each will have its own tab in the item context menu
     * TODO Added a preset example to demonstrate the new annotation functionality
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
-    * TODO Fix Alt RMB not rotating about the alternative axis
+    * TODO Fix Alt RMB not rotating about the alternative axis on windows
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
 DONE};
 
 PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
-* Added support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
-* Improved support for resolving label overlaps
+* Added initial support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
+* Improved support for resolving label overlaps in the viewport
+* Added a recursive argument to the 'load' command
 * TODO Set the icon on linux
-
-Make sure the load console command works properly, the path api on unix/windows is different. passing "shapes/*obj" works from commandline but not load, so problem may just be there
-
-Debug perf problems, check they reproduce on windows...?
-
-* TODO Check various things work
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE

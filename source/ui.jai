@@ -144,10 +144,11 @@ show_menu_bar_ui :: () {
             app.Ribbon_Button_Mode.SHOW,
             app.Ribbon_Button_Mode.AUTO));
 
-        if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode) {
-            app.demo_mode = !app.demo_mode;
-        }
-        show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
+        // @TODO :EnableDemoMode
+        // if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode) {
+        //     app.demo_mode = !app.demo_mode;
+        // }
+        // show_tooltip("Show Keyboard/Mouse presses in the viewport\nIntended to be useful for screen share/demos\nEarly WIP feature, only mouse supported");
 
         ImGui.Separator();
 
