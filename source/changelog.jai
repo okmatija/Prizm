@@ -1,4 +1,5 @@
 PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
+
 * New Feature: Attributes TODO Add a feature flag for enabling this
 
     * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -9,16 +10,20 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Fix Alt RMB not rotating about the alternative axis on windows
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
     * TODO Set the icon on linux
+    * TODOOOOO Fix long change logs being truncated
 DONE};
 
-PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
+PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "19 March 2024", #string DONE
+
 * Added initial support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
 * Improved support for resolving label overlaps in the viewport
 * Added a recursive argument to the 'load' command
+* Added full license text to "Help > About > Credits and Licenses"
 * Updated to compiler version beta 0.1.088
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE
+
 * Renamed project to Prizm to distingush this version from its predecessor. The new name is more seachable: there are 12.7M google search results for "Prizm" compared to 364M for "Prism"
 * Changed the keybinding to toggle annotation visibility from 'k' to 'a'.  This is reflected in the ribbon button icon and is a better memonic for "annotation"
 * Changed the keybinding to cycle vertex labels from 'i' to 'x'.  This is reflected in the ribbon button icon and is a better memonic for vertex coordinates
@@ -67,6 +72,7 @@ PRISM_VERSION_0_7_1 :: App.Version.{"0.7.1", "28 September 2023", #string DONE
 DONE};
 
 PRISM_VERSION_0_7_0 :: App.Version.{"0.7.0", "08 August 2023", #string DONE
+
 * Improvements to UI/UX
 
     * Refactored UI to make it more aligned with Common User Access (CUA) guidelines
@@ -122,6 +128,7 @@ PRISM_VERSION_0_6_1 :: App.Version.{"0.6.1", "23 July 2023", #string DONE
 DONE};
 
 PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
+
 * Added a header-only C++ API for writing .obj files with Prism-specific extensions
 
     * Usage: Navigate to the "Prism > Tools > API > C++", configure the API by pressing checkboxes and press the button to copy the relevant string (containing #includes and config #defines) to your clipboard, then paste that string into the file you want to debug
@@ -149,6 +156,7 @@ PRISM_VERSION_0_6_0 :: App.Version.{"0.6.0", "10 May 2023", #string DONE
 DONE};
 
 PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE
+
 * Fixed a bug where obj files with command annotations that should have created more than one item were not working
 * Fixed a bug where obj files with 2D vertex directives (e.g., `v 1 2`) where not parsed correctly
 * Fixed a bug where the state displayed by some widgets in the Details pane when multiple items were selected was incorrect
@@ -165,6 +173,7 @@ PRISM_VERSION_0_5_1 :: App.Version.{"0.5.1", "17 Feburary 2023", #string DONE
 DONE};
 
 PRISM_VERSION_0_5_0 :: App.Version.{"0.5.0", "15 January 2023", #string DONE
+
 * Changes to the UI
 
     * Made the Light theme the default, the Dark theme can be set in "Edit > Preferences > Appearance"
@@ -271,6 +280,7 @@ DONE
 };
 
 PRISM_VERSION_0_4_0 :: App.Version.{"0.4.0", "06 October 2022", #string DONE
+
 * Improvements to Annotations:
 
     * Moved annotations into a separate "Annotations" tab in the item context menu
@@ -322,6 +332,7 @@ DONE
 };
 
 PRISM_VERSION_0_3_1 :: App.Version.{"0.3.1", "22 September 2022", #string DONE
+
 * Replaced the buttons previously in the "Actions" menu of the Item List with "Update" buttons along the bottom edge of the viewport. Update buttons work in the same way as the action buttons did but this was never properly explained, so here is how things work: Each item has its own settings struct storing geometry/text rendering info (point size, line width, clipping shape etc), there is also a stand-alone "template" setting struct which is used to implement the update buttons. When an update button is pressed two things happen: first, the corresponding member in the template is changed and second, the change is copied over to the settings struct of each targetted item. Note this template setting struct is also used to implement the selection context menu which appears when you RMB on a selected item in the item list (use Ctrl LMB to select an item in the Item List)
 
     * Update buttons toggle or cycle state of the targetted items (see the tooltips) and are triggered by pressing the corresponding button/keyboard shortcut
@@ -355,6 +366,7 @@ DONE
 };
 
 PRISM_VERSION_0_3_0 :: App.Version.{"0.3.0", "06 September 2022", #string DONE
+
 * Improved item reloading behavior
 
     * Detected changes to file mod time (using GetFileTime/stat.st_mtime on windows/linux resp.) and changes to file size on disk. Related behavior changes:
@@ -401,6 +413,7 @@ DONE
 };
 
 PRISM_VERSION_0_2_3 :: App.Version.{"0.2.3", "26 May 2022", #string DONE
+
 * Added a basic annotation functionality where comments in obj files are parsed and stored on the items
 
     * Annotations are accessible in a foldable section in the item context menu
@@ -420,6 +433,7 @@ DONE
 };
 
 PRISM_VERSION_0_2_2 :: App.Version.{"0.2.2", "18 May 2022", #string DONE
+
 * Improved performance of text label rendering (Fixes ISSUE_004)
 
 * Reorganised the main panel:
@@ -444,6 +458,7 @@ DONE
 };
 
 PRISM_VERSION_0_2_1 :: App.Version.{"0.2.1", "27 March 2022", #string DONE
+
 * Changed the modifier used to make mouse scrolling zoom into the camera look position from Control to Shift
 
     * This change improves the UX when looking at small details with clip spheres/`item_focus_*` commands because the user can hold Shift while rotating/zooming/clipping the scene
@@ -489,6 +504,7 @@ DONE
 };
 
 PRISM_VERSION_0_2_0 :: App.Version.{"0.2.0", "15 March 2022", #string DONE
+
 * Major UI/UX overhaul/improvements:
 
     * Changed the key-binding modifier pattern introduced in Version 0.1.1
@@ -518,6 +534,7 @@ DONE
 };
 
 PRISM_VERSION_0_1_2 :: App.Version.{"0.1.2", "04 January 2022", #string DONE
+
 * Improvements to the console:
 
     * Command history is saved and loaded to a `console_history.txt` file in the current working directory to preserve it across sessions
@@ -546,6 +563,7 @@ DONE
 };
 
 PRISM_VERSION_0_1_1 :: App.Version.{"0.1.1", "01 December 2021", #string DONE
+
 * Changed Selection Mode toggle keybinding to s from m
 * Changed to flat shading by default, the old smooth shading behavior is accessible in the item context menu
 * Changed rendering of back faces to use an darkened version of the front face color
@@ -576,6 +594,7 @@ DONE
 };
 
 PRISM_VERSION_0_1_0 :: App.Version.{"0.1.0", "20 October 2021", #string DONE
+
 Initial release. Press h for help, features not mentioned in the help message include:
 
 * Supports simple .obj files (containing v, vn, p, l, f directives) and .wkt files (containing POINT, MULTIPOINT, LINESTRING, MULTILINESTRING directives)

@@ -1898,12 +1898,162 @@ show_help_about_content :: () {
         // ImGui.TableNextColumn();
 
         COMPILER_VERSION :: #run stop_at_any(compiler_get_version_info(null), ",");
-        ImGui.Text("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION);
-        ImGui.Text("Prism, MIT (github.com/EpicMatijaKecman/Prism)");
-        ImGui.Text("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch);
-        ImGui.Text("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()));
-        ImGui.Text("Geometric Tools, BSL 1.0 (github.com/davideberly/GeometricTools)");
-        ImGui.Text("par_shapes.h, MIT (github.com/prideout/par)");
+        if ImGui.TreeNodeEx("Prism, MIT (github.com/EpicMatijaKecman/Prism)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+            defer ImGui.PopStyleColor();
+            ImGui.Text(#string DONE
+MIT License
+
+Copyright (c) 2024 Epic Games
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+DONE);
+        }
+
+        if ImGui.TreeNodeEx(to_c_string(tprint("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch),, temp), .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+            defer ImGui.PopStyleColor();
+            ImGui.Text(#string DONE
+Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+  
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+  
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required. 
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+DONE);
+        }
+
+        if ImGui.TreeNodeEx(to_c_string(tprint("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion())),, temp), .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+            defer ImGui.PopStyleColor();
+            ImGui.Text(#string DONE
+The MIT License (MIT)
+
+Copyright (c) 2014-2023 Omar Cornut
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+DONE);
+        }
+
+        if ImGui.TreeNodeEx("Geometric Tools, BSL 1.0 (github.com/davideberly/GeometricTools)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+            defer ImGui.PopStyleColor();
+            ImGui.Text(#string DONE
+Boost Software License - Version 1.0 - August 17th, 2003
+
+Permission is hereby granted, free of charge, to any person or organization
+obtaining a copy of the software and accompanying documentation covered by
+this license (the "Software") to use, reproduce, display, distribute,
+execute, and transmit the Software, and to prepare derivative works of the
+Software, and to permit third-parties to whom the Software is furnished to
+do so, all subject to the following:
+
+The copyright notices in the Software and this entire statement, including
+the above license grant, this restriction and the following disclaimer,
+must be included in all copies of the Software, in whole or in part, and
+all derivative works of the Software, unless such copies or derivative
+works are solely in the form of machine-executable object code generated by
+a source language processor.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
+SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
+FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+DONE);
+        }
+
+        if ImGui.TreeNodeEx("par_shapes.h, MIT (github.com/prideout/par)", .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+            defer ImGui.PopStyleColor();
+            ImGui.Text(#string DONE
+par_shapes is distributed under the MIT license:
+
+Copyright (c) 2019 Philip Rideout
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+DONE);
+        }
+
+        if ImGui.TreeNodeEx(to_c_string(tprint("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION),, temp), .SpanAvailWidth) {
+            defer ImGui.TreePop();
+            ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
+            defer ImGui.PopStyleColor();
+            ImGui.Text(#string DONE
+There is currently no license file distributed with the compiler, but on
+23/11/2023 Jonathan Blow posted the following message to the Jai beta Discord:
+
+"Standard license is usable free for any legal purpose by anyone in the beta
+except cloning to make their own competitor to this programming language.
+Getting more specific about this is one of the things ew'll do for the open beta."
+DONE);
+        }
     }
 }
 
