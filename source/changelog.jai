@@ -8,13 +8,14 @@ PRIZM_VERSION_BACKLOGGED :: App.Version.{"0.8.0", "WIP", #string DONE
     * TODO Fix camera flipping around when doing Ctrl LMB to place the orbit
     * TODO Fix Alt RMB not rotating about the alternative axis on windows
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
+    * TODO Set the icon on linux
 DONE};
 
 PRIZM_VERSION_0_9_0 :: App.Version.{"0.9.0", "WIP", #string DONE
 * Added initial support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
 * Improved support for resolving label overlaps in the viewport
 * Added a recursive argument to the 'load' command
-* TODO Set the icon on linux
+* Updated to compiler version beta 0.1.088
 DONE};
 
 PRIZM_VERSION_0_8_0 :: App.Version.{"0.8.0", "14 March 2024", #string DONE
