@@ -27,6 +27,7 @@ message_loop :: () {
         print("Call compiler_wait_for_message()...\n");
         message : *Message = compiler_wait_for_message();
         print("Done, got message.kind = %\n", message.kind);
+        if message.kind == .COMPLETE break;
     }
 }
 
