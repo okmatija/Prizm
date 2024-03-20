@@ -28,6 +28,7 @@ PRIZM_VERSION_0_9_1 :: Version.{"0.9.1", "20 March 2024", #string DONE
 * Changed default label positioning to be slightly offset from the cursor to reduce possible cursor/label overlap
 * Added a "File > Preferences > Labelling > Ray Cast Label Offet" setting to enable you to further tweak the label positioning
 * Added "Demo Mode", which can be enabled via "View > Enable Demo Mode".  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
+* [Windows] Changed F11 to toggle window maximized rather than window fullscreen since an SDL bug (?) caused the screen to go blank for a short period when entering/exiting a fullscreen window
 DONE};
 
 PRIZM_VERSION_0_9_0 :: Version.{"0.9.0", "19 March 2024", #string DONE

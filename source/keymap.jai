@@ -446,8 +446,19 @@ toggle_show_console_ui :: () {
 
 toggle_fullscreen :: () {
     app.fullscreen = !app.fullscreen;
+
+#if OS == .WINDOWS {
+    // @FIXME The other branch is the correct thing to do but it causes a black screen on windows..!
+    // Perhaps there is useful info here: https://github.com/libsdl-org/SDL/issues/5788
+    if app.fullscreen {
+        SDL_MaximizeWindow(app.window);
+    } else {
+        SDL_RestoreWindow(app.window);
+    }
+} else {
     flags : u32 = ifx app.fullscreen then cast(u32) 0 else xx SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP;
     ok := SDL_SetWindowFullscreen(app.window, flags); // @Robustness handle error
+}
 }
 
 select_or_deselect_all :: () {
