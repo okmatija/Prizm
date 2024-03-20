@@ -22,7 +22,7 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODOOOOO Fix long change logs being truncated
 DONE};
 
-PRIZM_VERSION_0_9_1 :: Version.{"0.9.0", "20 March 2024", #string DONE
+PRIZM_VERSION_0_9_1 :: Version.{"0.9.1", "20 March 2024", #string DONE
 
 * Changed the keybind for rotating around the alternative camera axis from Alt LMB-drag to Shift LMB-drag. This works around a windows bug windows where the Alt key could not be used for both easy window resizing and rotating around alternative camera axis.
 * Changed default label positioning to be slightly offset from the cursor to reduce possible cursor/label overlap
