@@ -22,6 +22,11 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"0.8.0", "WIP", #string DONE
     * TODOOOOO Fix long change logs being truncated
 DONE};
 
+PRIZM_VERSION_0_9_1 :: Version.{"0.9.0", "19 March 2024", #string DONE
+* Changed default label positioning to be slightly offset from the cursor to reduce possible cursor/label overlap
+* Added a "File > Preferences > Labelling > Ray Cast Label Offet" setting to enable you to further tweak the label positioning
+DONE};
+
 PRIZM_VERSION_0_9_0 :: Version.{"0.9.0", "19 March 2024", #string DONE
 
 * Added initial support for running Prizm on Linux (tested on Ubuntu 22.04 using X11)
@@ -625,6 +630,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
+    array_add(*changelog, PRIZM_VERSION_0_9_1);
     array_add(*changelog, PRIZM_VERSION_0_9_0);
     array_add(*changelog, PRIZM_VERSION_0_8_0);
     // Releases using the old name "Prism"

@@ -116,8 +116,7 @@ debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : 
 
     // window_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
     window_position := io().MousePos;
-    window_size := 2 * ImGui.CalcTextSize(text); // Factor of 2 is @Hack See :LabelWindowSize
-
+    window_size := ImGui.CalcTextSize(text);
     LabelWindow(window_position, window_size);
 
     ImGui.TextColored(color, "%", text);

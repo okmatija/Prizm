@@ -1332,7 +1332,7 @@ render_selections :: () {
 
         font, color := get_label_font(entity, .VERTEX);
         ImGui.PushFont(font);
-        window_size := 2 * ImGui.CalcTextSize(text); // Factor of 2 is @Hack See :LabelWindowSize
+        window_size := ImGui.CalcTextSize(text);
         LabelWindow(window_position, window_size);
         ImGui.TextColored(vertex_theme.label_color, "%", text);
         ImGui.PopFont();
@@ -1523,8 +1523,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
 
         label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs;
 
-        // @Hack :LabelWindowSize The factor of 2 is a bit too much, and this should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing horrible flickering. We need to figure fix this factor of 2 in order to be able to frame the labels with a box about the right size
-        LabelWindow(window_position, 2*text_size);
+        LabelWindow(window_position, text_size);
 
         for overlapping_labels {
             font, color := get_label_font(entity, it.kind);

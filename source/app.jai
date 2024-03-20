@@ -319,6 +319,7 @@ User_Settings :: struct {
 
     closest_point_query_max_dist_px := 20;
     labelling_mode : Labelling_Mode = .RAY_CAST;
+    labelling_offset : Vector2 = .{0., 0.};
 
     // if labelling_mode == .RAY_CAST  this is the distance in pixels used when the labels are shown on nearby elements
     // if labelling_mode == .SPOTLIGHT this is the radius in pixels around the cursor where labels are visible 

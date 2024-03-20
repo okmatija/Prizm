@@ -91,9 +91,13 @@ LabelWindow :: (window_position : Vector2, window_size : Vector2) #expand {
 
     window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
 
+    // @Hack :LabelWindowSize The factor of 2 multiplying the window_size is a bit too much, but this
+    // should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing
+    // horrible flickering. We need to figure fix this factor of 2 in order to be able to frame the
+    // labels with a box about the right size
+    ImGui.SetNextWindowSize(2*window_size);
+    ImGui.SetNextWindowPos(window_position - .{0, window_size.y} + app.settings.labelling_offset); // Center the label by shifting up by window_size.y
     ImGui.SetNextWindowBgAlpha(0.);
-    ImGui.SetNextWindowPos(window_position);
-    ImGui.SetNextWindowSize(window_size);
     old_window_border_size := ImGui.GetStyle().WindowBorderSize;
     ImGui.GetStyle().WindowBorderSize = 0;
     `defer ImGui.GetStyle().WindowBorderSize = old_window_border_size;

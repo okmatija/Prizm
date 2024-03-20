@@ -1119,6 +1119,15 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
         combo_box("Ray Cast Label Location", *app.label_format.location, type_info(app.Label_Format.Location));
 
+        if app.label_format.location == .CLOSEST_POINT {
+            MAX_OFFSET :: 300.;
+            if ImGui.DragFloat2("Ray Cast Label Offset", *app.settings.labelling_offset.component, .1, format="%.0f") {
+                Clamp(*app.settings.labelling_offset.x, -MAX_OFFSET, MAX_OFFSET);
+                Clamp(*app.settings.labelling_offset.y, -MAX_OFFSET, MAX_OFFSET);
+            }
+            show_tooltip("Offset to apply to the cursor position\nwhen rendering ray cast labels");
+        }
+
         {
             // @Cleanupp Replace with DragInt
             radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
