@@ -118,6 +118,32 @@ Special_Key_Code :: enum u32 #specified {
     F12     :: 22; // unused
 }
 
+to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
+    if key_code >= 32 return xx key_code;
+
+    special_key_code : Special_Key_Code = xx key_code;
+    if #complete special_key_code == {
+        case Special_Key_Code.EMPTY;  return SDLK_UNKNOWN;
+        case Special_Key_Code.ESCAPE; return SDLK_ESCAPE;
+        case Special_Key_Code.ENTER;  return SDLK_RETURN;
+        case Special_Key_Code.TAB;    return SDLK_TAB;
+        case Special_Key_Code.DELETE; return SDLK_DELETE;
+        case Special_Key_Code.F1;     return SDLK_F1;
+        case Special_Key_Code.F2;     return SDLK_F2;
+        case Special_Key_Code.F3;     return SDLK_F3;
+        case Special_Key_Code.F4;     return SDLK_F4;
+        case Special_Key_Code.F5;     return SDLK_F5;
+        case Special_Key_Code.F6;     return SDLK_F6;
+        case Special_Key_Code.F7;     return SDLK_F7;
+        case Special_Key_Code.F8;     return SDLK_F8;
+        case Special_Key_Code.F9;     return SDLK_F9;
+        case Special_Key_Code.F10;    return SDLK_F10;
+        case Special_Key_Code.F11;    return SDLK_F11;
+        case Special_Key_Code.F12;    return SDLK_F12;
+    }
+    return SDLK_UNKNOWN;
+}
+
 // @Cleanup add a version of this function which also works with mouse buttons, or share the code for adding the modifier
 to_string :: (key_code : u32, using modifier_flags : Modifier_Flags = .{}, pad_unmodified := true) -> string {
     push_allocator(temp);

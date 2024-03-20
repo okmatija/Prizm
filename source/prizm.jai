@@ -150,14 +150,14 @@ main :: () {
         g_this_frame_state = g_next_frame_state; // This should be read-only for this frame
         g_next_frame_state = ImGui_Frame_State.{};
 
-        handle_events();
-
         changed, needs_wait, wait_seconds := process_changes(*app.file_watcher);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
+
+        handle_events();
 
         ImGui.PushFont(app.font_set.normal);
 
@@ -303,7 +303,24 @@ handle_events :: () {
                     SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
                 }
 
+            case SDL_MOUSEWHEEL;
+
+                using app.demo_mode;
+                if enabled {
+                    scrolling_up = false;
+                    scrolling_down = false;
+                    if (event.wheel.y > 0) { // Scrolled up
+                        scrolling_up = true;
+                    } else if (event.wheel.y < 0) { // Scrolled down
+                        scrolling_down = true;
+                    }
+                }
+
             case SDL_KEYDOWN;
+
+                if app.demo_mode.enabled {
+                    array_add_if_unique(*app.demo_mode.keys_down, event.key.keysym.sym);
+                }
 
                 for app.keymap_keydown.mappings {
                     maybe_run_binding(event.key.keysym.sym, it, app.keymap_keydown);
@@ -320,6 +337,10 @@ handle_events :: () {
                 }
 
             case SDL_KEYUP;
+
+                if app.demo_mode.enabled {
+                    array_ordered_remove_by_value(*app.demo_mode.keys_down, event.key.keysym.sym);
+                }
 
                 for app.keymap.mappings {
                     maybe_run_binding(event.key.keysym.sym, it, app.keymap);
@@ -355,31 +376,6 @@ handle_events :: () {
     }
 }
 
-to_sdl_keycode :: (key_code : u32) -> SDL_Keycode {
-    if key_code >= 32 return xx key_code;
-
-    special_key_code : Special_Key_Code = xx key_code;
-    if #complete special_key_code == {
-        case Special_Key_Code.EMPTY;  return SDLK_UNKNOWN;
-        case Special_Key_Code.ESCAPE; return SDLK_ESCAPE;
-        case Special_Key_Code.ENTER;  return SDLK_RETURN;
-        case Special_Key_Code.TAB;    return SDLK_TAB;
-        case Special_Key_Code.DELETE; return SDLK_DELETE;
-        case Special_Key_Code.F1;     return SDLK_F1;
-        case Special_Key_Code.F2;     return SDLK_F2;
-        case Special_Key_Code.F3;     return SDLK_F3;
-        case Special_Key_Code.F4;     return SDLK_F4;
-        case Special_Key_Code.F5;     return SDLK_F5;
-        case Special_Key_Code.F6;     return SDLK_F6;
-        case Special_Key_Code.F7;     return SDLK_F7;
-        case Special_Key_Code.F8;     return SDLK_F8;
-        case Special_Key_Code.F9;     return SDLK_F9;
-        case Special_Key_Code.F10;    return SDLK_F10;
-        case Special_Key_Code.F11;    return SDLK_F11;
-        case Special_Key_Code.F12;    return SDLK_F12;
-    }
-    return SDLK_UNKNOWN;
-}
 
 // Note: path can have * wildcards in the filename part only
 //
