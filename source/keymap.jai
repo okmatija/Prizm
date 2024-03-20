@@ -356,7 +356,7 @@ show_camera_key_bindings :: () {
 
     ShowBinding("      MMB", "Pan the camera");
     ShowBinding("      RMB", "Rotate the camera");
-    //ShowBinding("Alt   RMB", "Rotate about selected axis in the camera control pane"); // @Fixmee
+    ShowBinding("Shift RMB", "Rotate about selected axis in the camera control pane");
     ShowBinding("Ctrl  RMB", "Place camera look position (rotation center)");
     ShowBinding("      Scroll", "Zoom into the position under the cursor");
     ShowBinding("Alt   Scroll", "Zoom into the position under the cursor slowly");

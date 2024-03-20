@@ -1788,19 +1788,22 @@ show_camera_controls :: () {
             right_label, left_label, amount = " < ", " > ", 1.;
         }
 
+        RotationAxisTooltipBindings :: (sign : string) #expand {
+            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
+            defer ImGui.PopStyleVar();
+            bindings := temp_array(Binding_With_Description);
+            array_add(*bindings, make_Binding_With_Description(to_string("Shift RMB"),                      "Rotate around alternative rotation axis")); // :CameraAlternativeRotationAxis
+            array_add(*bindings, make_Binding_With_Description(to_string(#char "[", .{alt_pressed=true}),   tprint("Rotate  %01 deg around alternative rotation axis", sign)));
+            array_add(*bindings, make_Binding_With_Description(to_string(#char "[", .{}),                   tprint("Rotate  %05 deg around alternative rotation axis", sign)));
+            array_add(*bindings, make_Binding_With_Description(to_string(#char "[", .{shift_pressed=true}), tprint("Rotate %015 deg around alternative rotation axis", sign)));
+            show_tooltip_binding(..bindings);
+        }
+
         if ImGui.Button(right_label.data) {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, amount);
         }
-        {
-            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
-            defer ImGui.PopStyleVar();
-            ccw_bindings := temp_array(Binding_With_Description);
-            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{alt_pressed=true}),   "Rotate  -1 deg about selected rotation axis"));
-            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{}),                   "Rotate  -5 deg about selected rotation axis"));
-            array_add(*ccw_bindings, make_Binding_With_Description(to_string(#char "[", .{shift_pressed=true}), "Rotate -15 deg about selected rotation axis"));
-            show_tooltip_binding(..ccw_bindings);
-        }
+        RotationAxisTooltipBindings("+");
 
         ImGui.TableNextColumn();
         if ImGui.Button("XYZ") {
@@ -1813,26 +1816,18 @@ show_camera_controls :: () {
             axis := camera_rotation_axis();
             rotate_look_direction(axis, -amount);
         }
-        {
-            ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, old_padding);
-            defer ImGui.PopStyleVar();
-            cw_bindings := temp_array(Binding_With_Description);
-            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{alt_pressed=true}),   "Rotate  1 deg about selected rotation axis"));
-            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{}),                   "Rotate  5 deg about selected rotation axis"));
-            array_add(*cw_bindings, make_Binding_With_Description(to_string(#char "]", .{shift_pressed=true}), "Rotate 15 deg about selected rotation axis"));
-            show_tooltip_binding(..cw_bindings);
-        }
+        RotationAxisTooltipBindings("-");
 
         // ImGui.TableNextColumn();
         ImGui.SameLine();
-        combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        show_tooltip_binding("Camera Rotation Axis", "Alt RMB");
+        combo_box("##Alternative Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
+        show_tooltip_binding("Rotate around alternative rotation axis", "Shift RMB", "Select alternative camera rotation axis"); // :CameraAlternativeRotationAxis
     }
 
     // @FIXME Having this combo box here screws up the UI when you close the Settings tree :(
     // ImGui.SetNextItemWidth(-FLOAT32_MIN);
     // combo_box("", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-    // show_tooltip("Alt RMB Camera Rotation Axis");
+    // show_tooltip("Shift RMB Camera Rotation Axis"); // :CameraAlternativeRotationAxis
 
     // compiler_report("Move this menu next to the other buttons and update the changelog")
 
@@ -1853,7 +1848,7 @@ show_camera_controls :: () {
         // ImGui.DragFloat3("Up   ", *app.camera.up_direction.component);
 
         combo_box("##Alt Axis", *app.camera.rotation_axis, type_info(type_of(app.camera.rotation_axis)));
-        show_tooltip_binding("Camera Rotation Axis", "Alt RMB");
+        show_tooltip_binding("Camera Rotation Axis", "Shift RMB"); // :CameraAlternativeRotationAxis
 
         // Not really needed if you can explicitly set the orbit position
         // if app.camera.look_position != Vector3.{0, 0, 0} {
