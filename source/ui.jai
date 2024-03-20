@@ -953,11 +953,11 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         }
     }
 
-    // Entity index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
+    // Item index used to refer to geometry in console or annotate the text following ther cursor when adding to the user selection
     ImGui.TableNextColumn();
     {
         ImGui.Text("#%", entity_index);
-        show_tooltip("Entity index for console commands");
+        show_tooltip("Item index for console commands");
     }
 
     // Entity name
@@ -1323,7 +1323,7 @@ show_item_selection_ui :: () {
 
                 ImGui.SameLine();
                 ImGui.Text("#%", it_index);
-                show_tooltip("Entity index for console commands");
+                show_tooltip("Item index for console commands");
 
                 ImGui.SameLine();
                 text := entity_description(entity, with_creation_time=true);

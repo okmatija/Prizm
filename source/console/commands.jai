@@ -13,6 +13,8 @@
 //
 // Maybe we should do that for commands which have proven to be useful for a long time, for example
 
+// @Cleanup Use a macro to test the item_index arguments and create an item variable
+
 // @Think Check if @RegisterCommand procedures are using this function, and not valid_geometry_index
 check_geometry_index :: (index : int) -> bool #must {
     if index < 0 || index >= app.entities.count {
@@ -233,68 +235,68 @@ sort_by_size :: (ascending : int = 1) {
     else           quick_sort(app.entities, compare_descending);
 } @RegisterCommand
 
-// Deletes/removes the item with the given `id`
-item_delete :: (id : int) {
+// Deletes/removes the item with the given `item_index`
+item_delete :: (item_index : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    item := app.entities[id];
+    item := app.entities[item_index];
     vertex_count := item.mesh.positions.count;
 
-    remove_entity_by_index(id);
+    remove_entity_by_index(item_index);
 
-    log("# Deleted item #% which had % vertices", id, vertex_count);
+    log("# Deleted item #% which had % vertices", item_index, vertex_count);
 } @RegisterCommand
 
-// Clears the points (obj p-directives) from the item item with the given `id`
-item_clear_points :: (id : int) {
-    if !check_geometry_index(id) {
+// Clears the points (obj p-directives) from the item item with the given `item_index`
+item_clear_points :: (item_index : int) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    item := app.entities[id];
+    item := app.entities[item_index];
     count := item.mesh.points.count;
     array_reset(*item.mesh.points);
 
-    log("# Cleared % point% from item #%", count, plural_suffix(count != 0), id);
+    log("# Cleared % point% from item #%", count, plural_suffix(count != 0), item_index);
 } @RegisterCommand
 
-// Clears the segments (obj l-directives) from the item with the given `id`
-item_clear_segments :: (id : int) {
-    if !check_geometry_index(id) {
+// Clears the segments (obj l-directives) from the item with the given `item_index`
+item_clear_segments :: (item_index : int) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    item := app.entities[id];
+    item := app.entities[item_index];
     count := item.mesh.segments.count;
     array_reset(*item.mesh.segments);
 
-    log("# Cleared % segment% from item #%", count, plural_suffix(count != 0), id);
+    log("# Cleared % segment% from item #%", count, plural_suffix(count != 0), item_index);
 } @RegisterCommand
 
-// Clears the triangles (obj f-directives) from the item with the given `id`
-item_clear_triangles :: (id : int) {
-    if !check_geometry_index(id) {
+// Clears the triangles (obj f-directives) from the item with the given `item_index`
+item_clear_triangles :: (item_index : int) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    item := app.entities[id];
+    item := app.entities[item_index];
     count := item.mesh.triangles.count;
     array_reset(*item.mesh.triangles);
 
-    log("# Cleared % triangle% from item #%", count, plural_suffix(count != 0), id);
+    log("# Cleared % triangle% from item #%", count, plural_suffix(count != 0), item_index);
 } @RegisterCommand
 
-// Flip normals in the mesh item with the given `id`
+// Flip normals in the mesh item with the given `item_index`
 // Reverses the winding of triangles and multiplies any triangle/segment/point normals by -1
-item_flip_normals :: (id : int) {
-    if !check_geometry_index(id) {
+item_flip_normals :: (item_index : int) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    entity := app.entities[id];
+    entity := app.entities[item_index];
 
     // flip triangle normals
     triangle_normals : *Simple_Mesh_Triangle_Normals = find_triangle_normals_attribute(*entity.mesh);
@@ -332,11 +334,11 @@ item_flip_normals :: (id : int) {
 } @RegisterCommand
 
 
-// Set the color of the highest-dimensional element (triangle > segment > point) in the given item's mesh
-set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+// Set the color of the highest-dimensional element (triangle > segment > point) in item with the given `item_index`
+set_primary_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     color, visible := get_entity_primary_color(entity);
     color.* = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
@@ -344,18 +346,18 @@ set_primary_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
 
 
 
-// visible is a boolean
-set_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.is_visible = xx visible;
 } @RegisterCommand
 
 
-// visible is a boolean
-set_annotations_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_annotations_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
 
     using entity.display_info;
     vertex_label_theme.annotation_label_theme.visible = xx visible;
@@ -365,9 +367,9 @@ set_annotations_visible :: (id : int, visible : int) {
 
 } @RegisterCommand
 
-set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_annotations_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
 
     if !check_color(r, g, b, a)  return;
     color := Vector4.{r / 255., g / 255., b / 255., a / 255.};
@@ -380,9 +382,9 @@ set_annotations_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
 
 } @RegisterCommand
 
-set_annotations_scale :: (id : int, size_px : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_annotations_scale :: (item_index : int, size_px : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
 
     using entity.display_info;
     vertex_label_theme.annotation_label_theme.label_scale = get_best_font_size(size_px);
@@ -395,249 +397,253 @@ set_annotations_scale :: (id : int, size_px : int) {
 
 
 
-// visible is a boolean
-set_vertex_index_labels_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_vertex_index_labels_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.vertex_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-// visible is a boolean
-set_vertex_position_labels_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_vertex_position_labels_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.vertex_label_theme.show_position = xx visible;
 } @RegisterCommand
 
-set_vertex_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_vertex_label_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.vertex_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_vertex_label_scale :: (id : int, size_px : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_vertex_label_scale :: (item_index : int, size_px : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.vertex_label_theme.label_scale = get_best_font_size(size_px);
 } @RegisterCommand
 
-set_vertex_annotations_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_vertex_annotations_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.vertex_label_theme.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
 
 
-// visible is a boolean
-set_point_index_labels_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_point_index_labels_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.point_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-set_point_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_point_label_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.point_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_point_label_scale :: (id : int, size_px : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_point_label_scale :: (item_index : int, size_px : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.point_label_theme.label_scale = get_best_font_size(size_px);
 } @RegisterCommand
 
-set_point_annotations_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_point_annotations_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.point_label_theme.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
 
 
 
-// visible is a boolean
-set_segment_index_labels_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_segment_index_labels_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.segment_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-set_segment_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_segment_label_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.segment_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_segment_label_scale :: (id : int, size_px : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_segment_label_scale :: (item_index : int, size_px : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.segment_label_theme.label_scale = get_best_font_size(size_px);;
 } @RegisterCommand
 
-set_segment_annotations_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_segment_annotations_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.segment_label_theme.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
 
 
-// visible is a boolean
-set_triangle_index_labels_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_triangle_index_labels_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.triangle_label_theme.show_index = xx visible;
 } @RegisterCommand
 
-set_triangle_label_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_triangle_label_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.triangle_label_theme.label_color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_triangle_label_scale :: (id : int, size_px : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_triangle_label_scale :: (item_index : int, size_px : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.triangle_label_theme.label_scale = get_best_font_size(size_px);
 } @RegisterCommand
 
-set_triangle_annotations_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_triangle_annotations_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.triangle_label_theme.annotation_label_theme.visible = xx visible;
 } @RegisterCommand
 
 
+
 // visible is a boolean
-set_vertices_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_vertices_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.vertex_style.visible = xx visible;
 } @RegisterCommand
 
-set_vertices_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_vertices_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.vertex_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_vertices_size :: (id : int, size : int = 4) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_vertices_size :: (item_index : int, size : int = 4) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.vertex_style.size = xx size;
 } @RegisterCommand
 
 
 
 // You probably want to use the set_vertices_visible function
-// visible is a boolean
-set_points_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_points_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.point_style.visible = xx visible;
 } @RegisterCommand
 
 // You probably want to use the set_vertices_color function
-set_points_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_points_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.point_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 // You probably want to use the set_vertices_size function
-set_points_size :: (id : int, size : int = 4) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_points_size :: (item_index : int, size : int = 4) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.point_style.size = xx size;
 } @RegisterCommand
 
 
 
-// visible is a boolean
-set_segments_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_segments_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.segment_style.visible = xx visible;
 } @RegisterCommand
 
-set_segments_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_segments_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.segment_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_segments_width :: (id : int, width : float = 1.) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_segments_witem_indexth :: (item_index : int, width : float = 1.) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.segment_style.width = width;
 } @RegisterCommand
 
 
 
-// visible is a boolean
-set_triangles_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_triangles_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.triangle_style.visible = xx visible;
 } @RegisterCommand
 
-set_triangles_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_triangles_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.triangle_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
 
 
-// visible is a boolean
-set_edges_visible :: (id : int, visible : int) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+// `visible` is a boolean
+set_edges_visible :: (item_index : int, visible : int) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.triangle_style.edge_style.visible = xx visible;
 } @RegisterCommand
 
-set_edges_color :: (id : int, r : int, g : int, b : int, a : int = 255) {
-    if !check_geometry_index(id) return;
+set_edges_color :: (item_index : int, r : int, g : int, b : int, a : int = 255) {
+    if !check_geometry_index(item_index) return;
     if !check_color(r, g, b, a)  return;
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.display_info.triangle_style.edge_style.color = Vector4.{r / 255., g / 255., b / 255., a / 255.};
 } @RegisterCommand
 
-set_edges_width :: (id : int, width : float = 1.) {
-    if !check_geometry_index(id) return;
-    entity := app.entities[id];
+set_edges_width :: (item_index : int, width : float = 1.) {
+    if !check_geometry_index(item_index) return;
+    entity := app.entities[item_index];
     entity.display_info.triangle_style.edge_style.width = width;
 } @RegisterCommand
 
 
 // @TODO It would be handy to support varargs/arrays for the target_ids for the following functions
 
-// Copy the clipping ranges of item `source_id` to item `target_id`
-item_copy_clipping_ranges :: (source_id : int, target_id : int) {
-    if !check_geometry_index(source_id) || !check_geometry_index(target_id) || source_id == target_id {
+// Copy the clipping ranges of item `source_item_index` to item `target_item_index`
+item_copy_clipping_ranges :: (source_item_index : int, target_item_index : int) {
+    if !check_geometry_index(source_item_index) || !check_geometry_index(target_item_index) || source_item_index == target_item_index {
         return;
     }
 
-    app.entities[target_id].display_info.clip_ranges = app.entities[source_id].display_info.clip_ranges;
+    app.entities[target_item_index].display_info.clip_ranges = app.entities[source_item_index].display_info.clip_ranges;
 } @RegisterCommand
 
-// Copy the clipping sphere of item `source_id` to item `target_id`
-item_copy_clipping_sphere :: (source_id : int, target_id : int) {
-    if !check_geometry_index(source_id) || !check_geometry_index(target_id) || source_id == target_id {
+// Copy the clipping sphere of item `source_item_index` to item `target_item_index`
+item_copy_clipping_sphere :: (source_item_index : int, target_item_index : int) {
+    if !check_geometry_index(source_item_index) || !check_geometry_index(target_item_index) || source_item_index == target_item_index {
         return;
     }
 
-    app.entities[target_id].display_info.clip_sphere = app.entities[source_id].display_info.clip_sphere;
+    app.entities[target_item_index].display_info.clip_sphere = app.entities[source_item_index].display_info.clip_sphere;
 } @RegisterCommand
 
 // Sets the edge/wireframe color to the face/surface color for all items
@@ -651,20 +657,20 @@ set_edge_color_to_face_color :: () {
 // Update the camera to focus on the given segment. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the segment centroid.
 //
-// `id`             The index of the item containing the desired segment
+// `item_indxe`     The index of the item containing the desired segment
 // `segment_index`  The segment that should be focussed
 // `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
 //                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the segment
 //                  If  > 0 then the items clipping sphere is set with a radius of the given value
 //
 // If a clipping sphere is set then segment index text is also enabled
-item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.) {
+item_focus_segment :: (item_index : int, segment_index : int, clip_radius : float = -1.) {
 
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    entity := app.entities[id];
+    entity := app.entities[item_index];
 
     sphere : Sphere;
 
@@ -702,20 +708,20 @@ item_focus_segment :: (id : int, segment_index : int, clip_radius : float = -1.)
 // Update the camera to focus on the given triangle. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the triangle centroid.
 //
-// `id`             The index of the item containing the desired triangle
+// `item_index`     The index of the item containing the desired triangle
 // `triangle_index` The triangle that should be focussed
 // `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
 //                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the triangle
 //                  If  > 0 then the items clipping sphere is set with a radius of the given value
 //
 // If a clipping sphere is set then triangle index text is also enabled
-item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1.) {
+item_focus_triangle :: (item_index : int, triangle_index : int, clip_radius : float = -1.) {
 
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    entity := app.entities[id];
+    entity := app.entities[item_index];
 
     if entity.mesh.triangles.count == 0 {
         log("# Mesh contains no triangles.");
@@ -754,20 +760,20 @@ item_focus_triangle :: (id : int, triangle_index : int, clip_radius : float = -1
 // Update the camera to focus on the given vertex. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the vertex.
 //
-// `id`           The index of the item containing the desired vertex
+// `item_index`   The index of the item containing the desired vertex
 // `vertex_index` The vertex that should be focussed
 // `clip_radius`  If  < 0 then the items clipping sphere is unchanged (default)
 //                If == 0 then the items clipping sphere is set to 1
 //                If  > 0 then the items clipping sphere is set with a radius of the given value
 //
 // If a clipping sphere is set then vertex index text is also enabled
-item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
+item_focus_vertex :: (item_index : int, vertex_index : int, clip_radius : float = -1.) {
 
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    entity := app.entities[id];
+    entity := app.entities[item_index];
 
     sphere : Sphere;
 
@@ -796,28 +802,29 @@ item_focus_vertex :: (id : int, vertex_index : int, clip_radius : float = -1.) {
 
 } @RegisterCommand
 
-// // Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `id`
-// item_make_centroid_point_cloud :: (id : int) {
-//     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-//     if !check_geometry_index(id) {
-//         return;
-//     }
-
-//     if app.entities[id].type != .MESH {
-//         log_error("Expected MESH type item, got %.", app.entities[id].type);
-//         return;
-//     }
-
-// } @RegisterCommand
-
-// Adds an item containing a soup of segments indicating the normals
-item_make_normals_segment_soup :: (id : int) {
+/*
+// Adds an item containing a soup of edges belonging to only one triangle in the mesh item with the given `item_index`
+item_make_centroid_point_cloud :: (item_index : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    entity : *Entity = app.entities[id];
+    if app.entities[item_index].type != .MESH {
+        log_error("Expected MESH type item, got %.", app.entities[item_index].type);
+        return;
+    }
+} @RegisterCommand
+*/
+
+// Adds an item containing a soup of segments indicating the normals
+item_make_normals_segment_soup :: (item_index : int) {
+    // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
+    if !check_geometry_index(item_index) {
+        return;
+    }
+
+    entity : *Entity = app.entities[item_index];
     mesh : Simple_Mesh = entity.mesh;
     vn : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(*entity.mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
     if vn == null {
@@ -854,12 +861,12 @@ item_make_normals_segment_soup :: (id : int) {
 } @RegisterCommand
 
 
-// Finds triangle edges which are not shared by two triangles in the item with the given `id`
+// Finds triangle edges which are not shared by two triangles in the item with the given `item_index`
 // If `new_item` is 0 the edges are added to the target item segments container
-// If `new_item` is 1 adds an item containing a segment soup with the given `id`
-item_find_open_edges :: (id : int, new_item : int = 0) {
+// If `new_item` is 1 adds an item containing a segment soup with the given `item_index`
+item_find_open_edges :: (item_index : int, new_item : int = 1) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
@@ -880,7 +887,7 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
     edge_to_origin : Table(Tuple2(u32), s64, edge_hash, edge_comp);
     defer deinit(*edge_to_origin);
 
-    entity : *Entity = app.entities[id];
+    entity : *Entity = app.entities[item_index];
     mesh : *Simple_Mesh = *entity.mesh;
     if mesh.triangles.count == 0 {
         log("# Mesh contains no triangles.");
@@ -958,12 +965,12 @@ item_find_open_edges :: (id : int, new_item : int = 0) {
 
 // Finds any positions (obj v-directives) which are not referenced by any element (eg p-, l- or f-directives) and explicitly add them as point elements.
 // This is useful when inspecting position/element labels because for efficiency the ray-cast queries involved only visit elements
-item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
-    if !check_geometry_index(id) {
+item_find_unreferenced_positions :: (item_index : int, new_item : int = 0) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    using entity : *Entity = app.entities[id];
+    using entity : *Entity = app.entities[item_index];
 
     // Init with all possible position indices
     unreferenced_positions : [..]u32;
@@ -1012,13 +1019,13 @@ item_find_unreferenced_positions :: (id : int, new_item : int = 0) {
 
 } @RegisterCommand
 
-item_find_zero_area_triangles :: (id : int) {
+item_find_zero_area_triangles :: (item_index : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    target : *Entity = app.entities[id];
+    target : *Entity = app.entities[item_index];
 
     if target.mesh.triangles.count == 0 {
         log("# Mesh contains no triangles.");
@@ -1061,15 +1068,15 @@ item_find_zero_area_triangles :: (id : int) {
 
 } @RegisterCommand
 
-// Modify the position data of the item with the given `id` so new positions lie on spheres with
-// the given `radius` centered on the original positions.  If the item is two dimensional then the
-// new positions will lie on a circle in the embedding plane containing the geometry
+// Modify the position data of the item with the given `item_index` so new positions lie on spheres
+// with the given `radius` centered on the original positions.  If the item is two dimensional then
+// the new positions will lie on a circle in the embedding plane containing the geometry
 //
 // Note: Mesh vertex normals are _not_ updated, but with flat shading the faces will be colored in
 // a way which is consistent with the perturbation
-item_perturb_positions :: (id : int, radius : float = .001) {
+item_perturb_positions :: (item_index : int, radius : float = .001) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
@@ -1097,7 +1104,7 @@ item_perturb_positions :: (id : int, radius : float = .001) {
     // @FIXME: This is broken becuase the mesh points are not synced with the polyline (and polygon?) points,
     // the implementation should perturb the mesh and then recompute the shapes.
 
-    entity := app.entities[id];
+    entity := app.entities[item_index];
     entity.render_info.is_dirty = true;
     for * point : entity.mesh.positions {
         Perturb3(point);
@@ -1116,12 +1123,12 @@ prizm_log_error :: (message : string) {
     log_error(message);
 } @RegisterCommand
 
-item_add_triangle_attribute :: (id : int, attribute_name : string, value_type : Type) {
-    if !check_geometry_index(id) {
+item_add_triangle_attribute :: (item_index : int, attribute_name : string, value_type : Type) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    item : *Entity = app.entities[id];
+    item : *Entity = app.entities[item_index];
 
     // @cleanup generate this code
     if value_type == {
