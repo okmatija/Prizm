@@ -82,46 +82,62 @@ show_menu_bar_ui :: () {
 
         ImGui.Separator();
 
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
         if ImGui.MenuItem("Quit", "Alt F4") {
             app.closing_application = true;
         }
+        ImGui.PopStyleColor();
     }
 
     if ImGui.BeginMenu("Edit") {
         defer ImGui.EndMenu();
 
-        if ImGui.MenuItem("Toggle Current Item Selection", "Alt   A") {
+        // @Note Adding an extra two spaces before the shortcuts here because otherwise things were very cramped!
+
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
+        if ImGui.MenuItem("Toggle Current Item Selection", "  Alt   A") {
             toggle_current_selection();
         }
+        ImGui.PopStyleColor();
 
-        if ImGui.MenuItem("Select/Deselect All Items", "Ctrl  A") {
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
+        if ImGui.MenuItem("Select/Deselect All Items", "  Ctrl  A") {
             select_or_deselect_all();
         }
+        ImGui.PopStyleColor();
 
-        if ImGui.MenuItem("Select/Deselect Visible Items", "Shift A") {
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
+        if ImGui.MenuItem("Select/Deselect Visible Items", "  Shift A") {
             select_or_deselect_visible();
         }
+        ImGui.PopStyleColor();
         show_tooltip("Also deselects items which are not visible");
 
-        if ImGui.MenuItem("Delete Selected Items", "      Del") {
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
+        if ImGui.MenuItem("Delete Selected Items", "        Del") {
             remove_entities_if_selected();
         }
+        ImGui.PopStyleColor();
     }
 
     if ImGui.BeginMenu("View") {
         defer ImGui.EndMenu();
 
         // TODO Have more granular show ui checkboxes
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
         if ImGui.MenuItem("Show All UI", "Ctrl `", app.show_ui) {
             app.show_ui = !app.show_ui;
         }
+        ImGui.PopStyleColor();
 
+        ImGui.PushStyleColor(xx ImGui.Col.TextDisabled, app.theme.keymap_color);
         if ImGui.MenuItem("Show Console UI", "     `", app.console.show_ui) {
             app.console.show_ui = !app.console.show_ui;
             if app.console.show_ui {
                 app.show_ui = true;
             }
         }
+        ImGui.PopStyleColor();
 
         if ImGui.MenuItem("Show Camera UI", null, app.camera.show_ui) {
             app.camera.show_ui = !app.camera.show_ui;
@@ -134,6 +150,11 @@ show_menu_bar_ui :: () {
             app.triad.visible = !app.triad.visible;
         }
 
+        if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode.enabled) {
+            app.demo_mode.enabled = !app.demo_mode.enabled;
+        }
+        show_tooltip("Show keyboard/mouse presses in the viewport\nIntended to be useful for screen share/demos");
+
         ImGui.Text("Ribbon Button UI");
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
@@ -143,11 +164,6 @@ show_menu_bar_ui :: () {
             app.Ribbon_Button_Mode.HIDE,
             app.Ribbon_Button_Mode.SHOW,
             app.Ribbon_Button_Mode.AUTO));
-
-        if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode.enabled) {
-            app.demo_mode.enabled = !app.demo_mode.enabled;
-        }
-        show_tooltip("Show keyboard/mouse presses in the viewport\nIntended to be useful for screen share/demos");
 
         ImGui.Separator();
 
@@ -374,7 +390,7 @@ show_left_window :: () {
     defer ImGui.PopStyleVar();
 
     ImGui.SetNextWindowPos(ImGui.GetMainViewport().WorkPos + WINDOW_BORDER_UI_OFFSET);
-    ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar);
+    ImGui.Begin("Main Panel", flags = ImGui.WindowFlags.AlwaysAutoResize | .NoTitleBar); // | .NoBringToFrontOnFocus);
     defer ImGui.End();
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
@@ -404,7 +420,7 @@ show_right_window :: () {
     // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.camera_ui_border_color, app.theme.camera_ui_border_size);
 
     ImGui.SetNextWindowPos(window_pos, .Always, window_pivot);
-    ImGui.Begin("Camera shortcuts", flags = NoTitleBar | AlwaysAutoResize | NoMove /*| NoNav*/);
+    ImGui.Begin("Camera shortcuts", flags = ImGui.WindowFlags.NoTitleBar | .AlwaysAutoResize | .NoMove);// | .NoBringToFrontOnFocus /*| .NoNav*/);
     defer ImGui.End();
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
@@ -1026,7 +1042,7 @@ show_create_tool_ui :: () {
         ImGui.TableNextColumn();
         if ImGui.Button("Cube    ") { add_preset_cube(); }
         ImGui.SameLine();
-        ImGui.Text("A basic cube. Hold Alt to fix position");
+        ImGui.Text("A basic cube");
 
         ImGui.TableNextColumn();
         if ImGui.Button("Widget  ") { add_preset_widget(); }
