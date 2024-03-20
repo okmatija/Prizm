@@ -40,6 +40,7 @@ do_demo_mode :: () {
     ImGui.SetNextWindowPos(.{(app.current_window_width - W) / 2., MARGIN});
 
     // @Incomplete When we size the window with the text better we could give the window a background/border
+    ImGui.SetNextWindowBgAlpha(0.);
     // ImGui.SetNextWindowBgAlpha(.25);
     // ImGui.PushStyleColor(xx ImGui.Col.WindowBg, BLACK);
     // defer ImGui.PopStyleColor();
@@ -135,15 +136,15 @@ to_string :: (using code : SDL_Keycode) -> string {
     case .SDLK_PERCENT; return "%";
     case .SDLK_DOLLAR; return "$";
     case .SDLK_AMPERSAND; return "&";
-    case .SDLK_QUOTE; return "'";
+    case .SDLK_QUOTE; return "' (Quote)";
     case .SDLK_LEFTPAREN; return "(";
     case .SDLK_RIGHTPAREN; return ")";
     case .SDLK_ASTERISK; return "*";
     case .SDLK_PLUS; return "+";
-    case .SDLK_COMMA; return ",";
-    case .SDLK_MINUS; return "-";
-    case .SDLK_PERIOD; return ".";
-    case .SDLK_SLASH; return "/";
+    case .SDLK_COMMA; return ", (Comma)";
+    case .SDLK_MINUS; return "- (Minus)";
+    case .SDLK_PERIOD; return ". (Period)";
+    case .SDLK_SLASH; return "/ (Slash)";
     case .SDLK_0; return "0";
     case .SDLK_1; return "1";
     case .SDLK_2; return "2";
@@ -155,21 +156,21 @@ to_string :: (using code : SDL_Keycode) -> string {
     case .SDLK_8; return "8";
     case .SDLK_9; return "9";
     case .SDLK_COLON; return ":";
-    case .SDLK_SEMICOLON; return ";";
+    case .SDLK_SEMICOLON; return "; (Semicolon)";
     case .SDLK_LESS; return "<";
-    case .SDLK_EQUALS; return "=";
+    case .SDLK_EQUALS; return "= (Equals)";
     case .SDLK_GREATER; return ">";
     case .SDLK_QUESTION; return "?";
     case .SDLK_AT; return "@";
     /*
        Skip uppercase letters
     */
-    case .SDLK_LEFTBRACKET; return "[";
-    case .SDLK_BACKSLASH; return "\\";
-    case .SDLK_RIGHTBRACKET; return "]";
+    case .SDLK_LEFTBRACKET; return "[ (LBracket)";
+    case .SDLK_BACKSLASH; return "\\ (Backslash)";
+    case .SDLK_RIGHTBRACKET; return "] (RBracket)";
     case .SDLK_CARET; return "^";
     case .SDLK_UNDERSCORE; return "_";
-    case .SDLK_BACKQUOTE; return "`";
+    case .SDLK_BACKQUOTE; return "` (Backtick)";
     case .SDLK_a; return "A";
     case .SDLK_b; return "B";
     case .SDLK_c; return "C";
@@ -206,7 +207,7 @@ to_string :: (using code : SDL_Keycode) -> string {
     // still be perhaps a bit more expensive than I'd like.
     //
 
-    //case .SDLK_CAPSLOCK :: #run Hack.K(SDL_SCANCODE_CAPSLOCK);
+    case .SDLK_CAPSLOCK; return "CapsLock";
 
     case .SDLK_F1; return "F1";
     case .SDLK_F2; return "F2";
@@ -224,38 +225,46 @@ to_string :: (using code : SDL_Keycode) -> string {
     // case .SDLK_PRINTSCREEN :: #run Hack.K(SDL_SCANCODE_PRINTSCREEN);
     // case .SDLK_SCROLLLOCK :: #run Hack.K(SDL_SCANCODE_SCROLLLOCK);
     // case .SDLK_PAUSE :: #run Hack.K(SDL_SCANCODE_PAUSE);
-    // case .SDLK_INSERT :: #run Hack.K(SDL_SCANCODE_INSERT);
-    // case .SDLK_HOME :: #run Hack.K(SDL_SCANCODE_HOME);
-    // case .SDLK_PAGEUP :: #run Hack.K(SDL_SCANCODE_PAGEUP);
+    case .SDLK_INSERT; return "Insert";
+    case .SDLK_HOME; return "Home";
+    case .SDLK_PAGEUP; return "PageUp";
     case .SDLK_DELETE; return "Delete";
-    // case .SDLK_END :: #run Hack.K(SDL_SCANCODE_END);
-    // case .SDLK_PAGEDOWN :: #run Hack.K(SDL_SCANCODE_PAGEDOWN);
-    // case .SDLK_RIGHT :: #run Hack.K(SDL_SCANCODE_RIGHT);
-    // case .SDLK_LEFT :: #run Hack.K(SDL_SCANCODE_LEFT);
-    // case .SDLK_DOWN :: #run Hack.K(SDL_SCANCODE_DOWN);
-    // case .SDLK_UP :: #run Hack.K(SDL_SCANCODE_UP);
+    case .SDLK_END; return "End";
+    case .SDLK_PAGEDOWN; return "PageDown";
+    case .SDLK_RIGHT; return "Right";
+    case .SDLK_LEFT; return "Left";
+    case .SDLK_DOWN; return "Down";
+    case .SDLK_UP; return "Up";
 
     // case .SDLK_NUMLOCKCLEAR :: #run Hack.K(SDL_SCANCODE_NUMLOCKCLEAR);
     // case .SDLK_KP_DIVIDE :: #run Hack.K(SDL_SCANCODE_KP_DIVIDE);
     // case .SDLK_KP_MULTIPLY :: #run Hack.K(SDL_SCANCODE_KP_MULTIPLY);
-    // case .SDLK_KP_MINUS :: #run Hack.K(SDL_SCANCODE_KP_MINUS);
-    // case .SDLK_KP_PLUS :: #run Hack.K(SDL_SCANCODE_KP_PLUS);
-    // case .SDLK_KP_ENTER :: #run Hack.K(SDL_SCANCODE_KP_ENTER);
-    // case .SDLK_KP_1 :: #run Hack.K(SDL_SCANCODE_KP_1);
-    // case .SDLK_KP_2 :: #run Hack.K(SDL_SCANCODE_KP_2);
-    // case .SDLK_KP_3 :: #run Hack.K(SDL_SCANCODE_KP_3);
-    // case .SDLK_KP_4 :: #run Hack.K(SDL_SCANCODE_KP_4);
-    // case .SDLK_KP_5 :: #run Hack.K(SDL_SCANCODE_KP_5);
-    // case .SDLK_KP_6 :: #run Hack.K(SDL_SCANCODE_KP_6);
-    // case .SDLK_KP_7 :: #run Hack.K(SDL_SCANCODE_KP_7);
-    // case .SDLK_KP_8 :: #run Hack.K(SDL_SCANCODE_KP_8);
-    // case .SDLK_KP_9 :: #run Hack.K(SDL_SCANCODE_KP_9);
-    // case .SDLK_KP_0 :: #run Hack.K(SDL_SCANCODE_KP_0);
-    // case .SDLK_KP_PERIOD :: #run Hack.K(SDL_SCANCODE_KP_PERIOD);
+    case .SDLK_KP_MINUS; return "-";
+    case .SDLK_KP_PLUS; return "+";
+    case .SDLK_KP_ENTER; return "Return";
+    case .SDLK_KP_1; return "1";
+    case .SDLK_KP_2; return "2";
+    case .SDLK_KP_3; return "3";
+    case .SDLK_KP_4; return "4";
+    case .SDLK_KP_5; return "5";
+    case .SDLK_KP_6; return "6";
+    case .SDLK_KP_7; return "7";
+    case .SDLK_KP_8; return "8";
+    case .SDLK_KP_9; return "9";
+    case .SDLK_KP_0; return "0";
+    case .SDLK_KP_PERIOD; return ".";
+    case .SDLK_KP_EQUALS; return "=";
+    case .SDLK_KP_COMMA; return ",";
+    case .SDLK_KP_EQUALSAS400; return "=";
+    case .SDLK_KP_LEFTPAREN; return "(";
+    case .SDLK_KP_RIGHTPAREN; return ")";
+    case .SDLK_KP_LEFTBRACE; return "{";
+    case .SDLK_KP_RIGHTBRACE; return "}";
+    case .SDLK_KP_TAB; return "Tab";
+    case .SDLK_KP_BACKSPACE; return "Backspace";
 
     // case .SDLK_APPLICATION :: #run Hack.K(SDL_SCANCODE_APPLICATION);
     // case .SDLK_POWER :: #run Hack.K(SDL_SCANCODE_POWER);
-    // case .SDLK_KP_EQUALS :: #run Hack.K(SDL_SCANCODE_KP_EQUALS);
     // case .SDLK_F13 :: #run Hack.K(SDL_SCANCODE_F13);
     // case .SDLK_F14 :: #run Hack.K(SDL_SCANCODE_F14);
     // case .SDLK_F15 :: #run Hack.K(SDL_SCANCODE_F15);
@@ -282,8 +291,6 @@ to_string :: (using code : SDL_Keycode) -> string {
     // case .SDLK_MUTE :: #run Hack.K(SDL_SCANCODE_MUTE);
     // case .SDLK_VOLUMEUP :: #run Hack.K(SDL_SCANCODE_VOLUMEUP);
     // case .SDLK_VOLUMEDOWN :: #run Hack.K(SDL_SCANCODE_VOLUMEDOWN);
-    // case .SDLK_KP_COMMA :: #run Hack.K(SDL_SCANCODE_KP_COMMA);
-    // case .SDLK_KP_EQUALSAS400 :: #run Hack.K(SDL_SCANCODE_KP_EQUALSAS400);
 
     // case .SDLK_ALTERASE :: #run Hack.K(SDL_SCANCODE_ALTERASE);
     // case .SDLK_SYSREQ :: #run Hack.K(SDL_SCANCODE_SYSREQ);
@@ -304,12 +311,6 @@ to_string :: (using code : SDL_Keycode) -> string {
     // case .SDLK_DECIMALSEPARATOR :: #run Hack.K(SDL_SCANCODE_DECIMALSEPARATOR);
     // case .SDLK_CURRENCYUNIT :: #run Hack.K(SDL_SCANCODE_CURRENCYUNIT);
     // case .SDLK_CURRENCYSUBUNIT :: #run Hack.K(SDL_SCANCODE_CURRENCYSUBUNIT);
-    // case .SDLK_KP_LEFTPAREN :: #run Hack.K(SDL_SCANCODE_KP_LEFTPAREN);
-    // case .SDLK_KP_RIGHTPAREN :: #run Hack.K(SDL_SCANCODE_KP_RIGHTPAREN);
-    // case .SDLK_KP_LEFTBRACE :: #run Hack.K(SDL_SCANCODE_KP_LEFTBRACE);
-    // case .SDLK_KP_RIGHTBRACE :: #run Hack.K(SDL_SCANCODE_KP_RIGHTBRACE);
-    // case .SDLK_KP_TAB :: #run Hack.K(SDL_SCANCODE_KP_TAB);
-    // case .SDLK_KP_BACKSPACE :: #run Hack.K(SDL_SCANCODE_KP_BACKSPACE);
     // case .SDLK_KP_A :: #run Hack.K(SDL_SCANCODE_KP_A);
     // case .SDLK_KP_B :: #run Hack.K(SDL_SCANCODE_KP_B);
     // case .SDLK_KP_C :: #run Hack.K(SDL_SCANCODE_KP_C);
