@@ -27,6 +27,7 @@ PRIZM_VERSION_0_9_1 :: Version.{"0.9.1", "20 March 2024", #string DONE
 * Changed the keybind for rotating around the alternative camera axis from Alt LMB-drag to Shift LMB-drag. This works around a windows bug windows where the Alt key could not be used for both easy window resizing and rotating around alternative camera axis.
 * Changed default label positioning to be slightly offset from the cursor to reduce possible cursor/label overlap
 * Changed the default behaviour of the `item_find_open_edges` console command: it now adds the open edge segments to a new item where previously it added segments to the query item
+* Removed uninteresting files from the shapes/ folder, now it only contains files from actual debug sessions that are useful demos, test files that broke Prizm and tutorial files (Demo.obj). The removed files were random obj models, which was misleading because Prizm is not a modelling program.
 * Added a "File > Preferences > Labelling > Ray Cast Label Offet" setting to enable you to further tweak the label positioning
 * Added "Demo Mode", which can be enabled via "View > Enable Demo Mode".  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
 * Fixed inconsistent coloring of shortcut keys listed next in menu items
