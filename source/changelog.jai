@@ -34,6 +34,7 @@ PRIZM_VERSION_0_9_1 :: Version.{"0.9.1", "20 March 2024", #string DONE
 * Improved annotation and labelling text style defaults
 * [Windows] Changed F11 to toggle window maximized rather than window fullscreen since an SDL bug (?) caused the screen to go blank for a short period when entering/exiting a fullscreen window
 * [Windows] Fixed usage message not printing to the console if --help or an unrecognized argument starting with -- is passed.  The usage message is actually printed to the Prizm console, not the windows terminal.
+* Added buttons in "Help > About" to copy github and discord link the clickboard
 DONE};
 
 PRIZM_VERSION_0_9_0 :: Version.{"0.9.0", "19 March 2024", #string DONE

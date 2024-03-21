@@ -1896,18 +1896,27 @@ show_help_about_content :: () {
     // }
 
     {
-        ImGui.Text("Prizm is a tool for debugging geometry algorithms with obj files");
-        ImGui.Text("This is version %.  Project website:" , changelog[0].name);
-        ImGui.SameLine();
-        ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
-        defer ImGui.PopStyleColor();
-        ImGui.Text("github.com/okmatija/Prizm"); // TODO Click to copy to clipboard?
+        // @Warning label and url must be null terminated e.g., string literals
+        click_to_copy_url :: (label : string, url : string) {
+            ImGui.SameLine();
+            if ImGui.SmallButton(label.data) {
+                // SDL_OpenURL(url); // @TODO Update SDL
+                SDL_SetClipboardText(url.data);
+            }
+            show_tooltip_binding("Copy URL to clipboard", "LMB");
+        }
+
+        ImGui.Text("Prizm: A Computational Geometry Debugging Tool");
+
+        ImGui.Text("This is version %." , changelog[0].name);
+        click_to_copy_url("GitHub", "github.com/okmatija/Prizm");
+        click_to_copy_url("Discord", "discord.gg/zxKqvwmXNs");
     }
 
     ImGui.PushStyleVar(xx ImGui.StyleVar.IndentSpacing, 8);
     defer ImGui.PopStyleVar();
 
-    ImGui.NewLine();
+    // ImGui.NewLine();
     if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
 
