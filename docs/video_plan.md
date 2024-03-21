@@ -41,19 +41,31 @@ This will take ages to make, expect to record the video many many times before y
 ### Annotations and Labelling Demo
 
 * Enable Demo Mode
-* Load Cube.obj and set the edges
-* Set Normal rendering with RMB on the item color
-* Open Cube.obj in notepad and highlight the annotations
-* Toggle annotations as well as coordinates
-* "File > Preferences > Item List > Show Header Annotation Tooltips"
-* Show the header annotation on the filename
-* Show the Annotation tab
-* Switch back to Display tab
-* Delete some faces
-* Show the star by the item name
-* Press F5 to reload the file
-* Change the auto reload state
-* Delete/Restore faces some more times
+* Open Demo.obj in notepad
+* Load Demo.obj and minimize the directory folder
+* Use Details menu to enable triangle edges and increase point sizes
+* Use Annotation tab and change Vertex annotations to dark red and Segment to dark yellow
+* Collapse the Details section
+* Set the focussed opacity to .7
+* Pan Demo.obj so you can see notepad
+* Circle the header annotation
+*   "File > Preferences > Item List > Show Header Annotation Tooltips"
+*   Show the header annotation
+* Circle the segment annotations
+*   Show the segment annotations
+* Circle the point annotations
+*   Show the point annotations
+* Circle the triangle annotations and the ignore syntax
+*   Show the triangle annotations
+* Circle the command annotation
+*   Show the command annotation output
+* Close the console
+* Turn on index labels
+* Turn on position labels
+* Open the Details section
+* Focus segment 1
+* Focus segment 2
+* File > Preferences > Labelling > Float Format to SCIENTIFIC
 
 ### Console Commands and Clipping Demo
 
@@ -87,8 +99,9 @@ Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 * Hover over the Window Size tooltip
 * Hover over the Window Postion tooltip
 * Demo easy resizing and easy panning
+* Demo clicking on the logo to change its color
 
-### Prizm API Demo
+### Prizm API and Hot-Reloading Demo
 
 * Show a C++ marching squares program
 * Run Prizm.exe --AlwaysOnTop
