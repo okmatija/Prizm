@@ -601,7 +601,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
     //    if it.type == {
     //        case Simple_Mesh_Attribute(Matrix3, .TRIANGLE);
     //            attr := (cast(*Simple_Mesh_Attribute(Matrix3, .TRIANGLE))it).*;
-    //            printv(attr);
+    //            print_vars(attr);
     //    }
     //}
 

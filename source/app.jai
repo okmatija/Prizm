@@ -402,6 +402,7 @@ get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
 #import "Math";
 #import "Window_Type";
 #import "GL";
+#import "Print_Vars";
 #import "Deep_Copy";
 Debug :: #import "Debug";
 #import "Hash";

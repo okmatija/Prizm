@@ -560,7 +560,7 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
     sdl_wm_info : SDL_SysWMinfo;
     SDL_VERSION(*sdl_wm_info.version);
     SDL_GetWindowWMInfo(app.window, *sdl_wm_info);
-    // printv(sdl_wm_info);
+    // print_vars(sdl_wm_info);
     #if OS == .WINDOWS {
         #import "Windows";
         window_type := sdl_wm_info.info.win.window;
