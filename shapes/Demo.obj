@@ -1,0 +1,41 @@
+# This file demos the annotation features in Prizm.  Comments at the top
+# of files are combined into a 'Header Annotation', which can be viewed
+# as a tooltip on the filename in the Items list if you enable the option:
+# 'File > Preferences > Items List > Show Header Annotation Tooltips'
+# Header annotations are useful to document the contents of a file.
+
+v -10 -10 0
+v  10 -10 0
+v  10  10 0 # (or vertex)
+v  10  10 0
+v -10  10 0
+l 1 2 # You can annotate...
+l 2 3 # any obj element...
+l 4 5 # with string data...
+l 5 1 # to display in the viewport.
+
+v -20 -20 0 # Vertex 6
+v  20 -20 0 # Vertex 7
+v  20  20 0 # Vertex 8
+v -20  20 0 # Vertex 9
+p 6 7 8 9 # A shared point annotation
+
+## Use ## to add comments which are ignored by Prizm
+
+v 30 0 0
+v 40 0 0
+v 50 0 0
+v 30 20 0
+v 40 20 0
+v 50 20 0
+f 10 13 11 # Triangle 0
+f 11 13 14 ## Triangle 1 (Ignored!)
+f 11 14 12 # Triangle 2
+f 12 14 15 # Triangle 3
+
+## Use a #! to call console commands immediately after all geometry is
+## parsed. Here we just log an error (which automatically open the
+## console) but you could configuring render settings, load other files
+## or call a custom command to process loaded geometry/annotations.
+
+#! prizm_log_error "Printed via a command annotation in shapes/Demo.obj"
