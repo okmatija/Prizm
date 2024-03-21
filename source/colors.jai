@@ -77,6 +77,9 @@ CONSOLE_COMMENT_INTERACTIVE :: ImGui.ImVec4.{1., .78, .58, 1.};
 CONSOLE_WARNING_INTERACTIVE :: ImGui.ImVec4.{0., 178./255, 1., 1.};
 CONSOLE_ERROR_INTERACTIVE ::   ImGui.ImVec4.{1., .4, .4, 1.};
 
+INDEX_LABEL_COLOR :: ImGui.ImVec4.{.6, .6, 0, 1};
+
+
 color_u32_as_vector4 :: (color : ImGui.ImU32, alpha := 1.) -> ImGui.ImVec4 {
     result := ImGui.ColorConvertU32ToFloat4(color);
     result.w = alpha;

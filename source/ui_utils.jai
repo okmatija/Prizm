@@ -27,6 +27,7 @@ Font_Set :: struct {
     fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
 }
 
+// @Incomplete Currently only 4 different font sizes are supported and this function picks the best match.  Future work will load a font with the desired size.
 get_best_font_size :: (desired_size_px : int) -> Font_Size {
     if desired_size_px <= cast(int)Font_Size.SMALL {
         return .SMALL;

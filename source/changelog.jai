@@ -31,6 +31,7 @@ PRIZM_VERSION_0_9_1 :: Version.{"0.9.1", "20 March 2024", #string DONE
 * Added a "File > Preferences > Labelling > Ray Cast Label Offet" setting to enable you to further tweak the label positioning
 * Added "Demo Mode", which can be enabled via "View > Enable Demo Mode".  Demo Mode will show mouse/key presses in the viewport and is intended to help with screen shares/demos
 * Fixed inconsistent coloring of shortcut keys listed next in menu items
+* Improved annotation and labelling text style defaults
 * [Windows] Changed F11 to toggle window maximized rather than window fullscreen since an SDL bug (?) caused the screen to go blank for a short period when entering/exiting a fullscreen window
 * [Windows] Fixed usage message not printing to the console if --help or an unrecognized argument starting with -- is passed.  The usage message is actually printed to the Prizm console, not the windows terminal.
 DONE};

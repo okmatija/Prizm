@@ -7,7 +7,7 @@ Labelling_Mode :: enum {
 
 Annotation_Label_Theme :: struct {
     visible := false;
-    label_scale := Font_Size.NORMAL;
+    label_scale := Font_Size.LARGE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
@@ -17,7 +17,7 @@ Vertex_Label_Theme :: struct {
     show_index := false;
     show_position := false;
 
-    label_scale := Font_Size.NORMAL;
+    label_scale := Font_Size.LARGE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
     annotation_label_theme : Annotation_Label_Theme;
@@ -28,15 +28,15 @@ Vertex_Label_Theme :: struct {
 // For mesh topology/geometry labels
 Element_Label_Theme :: struct {
     show_index := false;
-    label_scale := Font_Size.NORMAL;
-    label_color := Vector4.{1., 1., 0, 1};
+    label_scale := Font_Size.LARGE;
+    label_color := INDEX_LABEL_COLOR;
 
     annotation_label_theme : Annotation_Label_Theme;
 }
 
 Attribute_Theme :: struct {
     visible := false;
-    label_scale := Font_Size.NORMAL;
+    label_scale := Font_Size.LARGE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
@@ -203,9 +203,6 @@ Display_Info :: struct {
 
     // These should be stored outside the vertex/point/segment/triangle_label_theme structs
     // attribute_theme : [..]Attribute_Theme;
-
-    point_label_theme.label_color = .{1., 1., 0, 1};
-    segment_label_theme.label_color = .{.6, .6, 0, 1};
 
     //
     // Vertex/Element members
