@@ -110,6 +110,8 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 
 debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : *ImGui.ImFont = null) {
 
+    if !ImGui.IsAnyMouseDown() return;
+
     if font {
         ImGui.PushFont(font);
     }
@@ -117,7 +119,28 @@ debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : 
     // window_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
     window_position := io().MousePos;
     window_size := ImGui.CalcTextSize(text);
-    LabelWindow(window_position, window_size);
+
+    LabelWindow2 :: (window_position : Vector2, window_size : Vector2) #expand {
+        label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs|.NoMouseInputs|.NoBackground;
+
+        window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+
+        // @Hack :LabelWindowSize The factor of 2 multiplying the window_size is a bit too much, but this
+        // should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing
+        // horrible flickering. We need to figure fix this factor of 2 in order to be able to frame the
+        // labels with a box about the right size
+        ImGui.SetNextWindowSize(.{65, 50});
+        ImGui.SetNextWindowPos(window_position - .{-3, window_size.y} + app.settings.labelling_offset); // Center the label by shifting up by window_size.y
+        ImGui.SetNextWindowBgAlpha(0.);
+        old_window_border_size := ImGui.GetStyle().WindowBorderSize;
+        // ImGui.GetStyle().WindowBorderSize = 0;
+        // `defer ImGui.GetStyle().WindowBorderSize = old_window_border_size;
+
+        ImGui.Begin(imgui_label("Labels", xx window_position_index), flags=label_window_flags);
+        `defer ImGui.End();
+    }
+
+    LabelWindow2(window_position, window_size);
 
     ImGui.TextColored(color, "%", text);
 

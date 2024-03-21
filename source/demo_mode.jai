@@ -5,7 +5,7 @@
 Demo_Mode :: struct {
     enabled : bool;
 
-    keys_down : [..]SDL_Keycode; // nocommit rename to demo_mode related thing
+    keys_down : [..]SDL_Keycode;
     scrolling_up : bool;
     scrolling_down : bool;
 

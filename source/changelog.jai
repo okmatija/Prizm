@@ -20,6 +20,12 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
     * TODO Set the icon on linux
     * TODOOOOO Fix long change logs being truncated
+    * Is there a bug with reloading vertex data????
+    * TODO Fix a bug where escaped quotes in string arguments are not supported
+    * TODO Support booleans in command arguments
+    * TODO Fix scrolling in the item list, somehow this broke and you need to scroll via the scrollbar
+    * TODO Fix the focus button for point elements
+    * TODO Try ,link_always on windows? Do we need to compile SDL as a static library..?
 DONE};
 
 PRIZM_VERSION_0_9_1 :: Version.{"0.9.1", "20 March 2024", #string DONE
