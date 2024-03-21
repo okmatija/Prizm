@@ -72,7 +72,8 @@ This will take ages to make, expect to record the video many many times before y
 Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 
 * Enable Demo Mode
-* Load failed_boolean_b.obj
+* Load BooleanB.obj
+* Set color to a light grey
 * Open the console
 * Run "item_find_open_edges"
 * Hover the edge item to show it in the viewport
@@ -86,18 +87,25 @@ Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 * Run "item_focus_triangle 0 187"
 * Turn on indices and show Triangle 187
 
-### Window Manipulation Demo
+### Window Manipulation and Hot-Reloading Demo
 
+* Run Prizm.exe --help
+* Close Prizm.exe
+* Run Prizm.exe --AlwaysOnTop
 * Enable Demo Mode
-* Load cube.obj
 * Open "View > Window Settings"
 * Reduce focussed window opacity
 * Restore focussed window opacity
 * Reduce unfocussed window opacity
-* Switching to the explorer to demo it
-* Restore unfocussed window opacity
-* Hover over the Window Size tooltip
-* Hover over the Window Postion tooltip
+* Switching to vscode to demo it
+* Run code shapes/Widget.obj
+* Remove faces from Widget.obj
+* Show the change in Prizm
+* Press F5 to refresh
+* Revert the change
+* Press F5 to refresh
+* Toggle auto reloading
+* Make multiple changes to the obj and show them appearing
 * Demo easy resizing and easy panning
 * Demo clicking on the logo to change its color
 
