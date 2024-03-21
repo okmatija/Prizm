@@ -14,6 +14,8 @@ This will take ages to make, expect to record the video many many times before y
 
 ### Basic Features Demo
 
+This video covers: loading files, camera controls, changing settings on single items, changing settings on multiple selected items, inspecting many files in various ways
+
 * Enable Demo Mode
 * Click part_07, the purple edge section
 * Click the line button x1
@@ -38,7 +40,9 @@ This will take ages to make, expect to record the video many many times before y
 * Ctrl sweep drag
 * Shift sweep drag
 
-### Annotations and Labelling Demo
+### Labelling and Annotations Demo
+
+This video covers: annotations (string data) associated with obj files/elements/vertices, how annotations can be visualized/stylized in the viewport, how console commands can be executed when a file is loaded, how label format can be tweaked e.g., to inspect precise coordinate data.
 
 * Enable Demo Mode
 * Open Demo.obj in notepad
@@ -69,6 +73,8 @@ This will take ages to make, expect to record the video many many times before y
 
 ### Console Commands and Clipping Demo
 
+This video inspects a file logged by buggy mesh boolean code. It covers the useful "sphere clipping" feature, console commands for finding open boundaries, perturbing vertices and locating triangles by index.
+
 Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 
 * Enable Demo Mode
@@ -89,9 +95,12 @@ Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 
 ### Window Manipulation and Hot-Reloading Demo
 
+This video covers: quickly moving/resizing the Prizm window without pixel perfect cursor positioning on the window border/menu bar, adjusting window opacity and changing the Prizm logo color to help you identify datasets loaded in different instances of Prizm.
+
 * Run Prizm.exe --help
 * Close Prizm.exe
-* Run Prizm.exe --AlwaysOnTop
+* Run Prizm.exe --AlwaysOnTop shapes/Widget.obj
+* Pan the object slightly to the right
 * Enable Demo Mode
 * Open "View > Window Settings"
 * Reduce focussed window opacity
@@ -110,6 +119,8 @@ Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 * Demo clicking on the logo to change its color
 
 ### Prizm API and Hot-Reloading Demo
+
+@Incomplete
 
 * Show a C++ marching squares program
 * Run Prizm.exe --AlwaysOnTop
