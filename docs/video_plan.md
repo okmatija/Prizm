@@ -20,8 +20,10 @@ This will take ages to make, expect to record the video many many times before y
 * Press F to toggle the focus
 * Change edges color via "Details > Triangles"
 * Change triangle color via "Details > Triangles"
+* Change triangle color via color box
+* Restore triangle color via MMB
 * Select all meshes
-* Click the line button x3
+* Click the line button a few times
 * Change the color of everything via the color box
 * Restore the color of everything via MMB on the color box
 * Hover mouse over the item list to show flashing
@@ -36,7 +38,7 @@ This will take ages to make, expect to record the video many many times before y
 * Ctrl sweep drag
 * Shift sweep drag
 
-### Annotations and Auto-Reload Demo
+### Annotations and Labelling Demo
 
 * Enable Demo Mode
 * Load Cube.obj and set the edges
@@ -44,15 +46,18 @@ This will take ages to make, expect to record the video many many times before y
 * Open Cube.obj in notepad and highlight the annotations
 * Toggle annotations as well as coordinates
 * "File > Preferences > Item List > Show Header Annotation Tooltips"
-* Show the annotation table then back to Display tab
+* Show the header annotation on the filename
+* Show the Annotation tab
+* Switch back to Display tab
 * Delete some faces
 * Show the star by the item name
 * Press F5 to reload the file
 * Change the auto reload state
 * Delete/Restore faces some more times
-* "File > Preferences > Item List > Show Header Annotation Tooltips"
 
 ### Console Commands and Clipping Demo
+
+Uses a a file (curtously Jimmy Andrews) from a real debug sessions
 
 * Enable Demo Mode
 * Load failed_boolean_b.obj
@@ -69,7 +74,7 @@ This will take ages to make, expect to record the video many many times before y
 * Run "item_focus_triangle 0 187"
 * Turn on indices and show Triangle 187
 
-### Prizm Window Tips Demo
+### Window Manipulation Demo
 
 * Enable Demo Mode
 * Load cube.obj
@@ -82,3 +87,12 @@ This will take ages to make, expect to record the video many many times before y
 * Hover over the Window Size tooltip
 * Hover over the Window Postion tooltip
 * Demo easy resizing and easy panning
+
+### Prizm API Demo
+
+* Show a C++ marching squares program
+* Run Prizm.exe --AlwaysOnTop
+* Copy the Prizm API via the button
+* Add debug logging to the program to write files to a Debug/ folder
+* Load the empty folder in Prizm
+* Step through the program and note how the contour updates
