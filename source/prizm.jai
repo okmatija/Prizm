@@ -2,37 +2,18 @@
 
 main :: () {
 
-
-    // // #if DEBUG {
-    //     UA :: #import "Unmapping_Allocator";
-    //     context.allocator = UA.get_unmapping_allocator();
-    // // }
-
-    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
-
-    SDL_Init(SDL_INIT_VIDEO);
-
-    app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
-                                  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                  app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
-                                  sdl_window_flags);
-
-    // Check that the window was successfully created
-    if app.window == null {
-        // In the case that the window could not be made...
-        print("Could not create window: %\n", to_string(SDL_GetError()));
-        return;
-    }
-
     // Direct all logging into the console
     // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in first.jai so that the Windows program console is shown
     context.logger = console_logger;
     context.logger_data = *app.console.log;
 
+    // Gets the version info, used by print_usage_and_maybe_exit
     init_changelog();
 
-    {
+    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
 
+    // Must come before SDL_CreateWindow since it changes sdl_window_flags
+    {
         args := get_command_line_arguments();
         defer array_free(args);
         for 1..args.count-1 {
@@ -60,6 +41,19 @@ main :: () {
         }
     }
 
+    SDL_Init(SDL_INIT_VIDEO);
+
+    app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
+                                  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                  app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
+                                  sdl_window_flags);
+
+    // Check that the window was successfully created
+    if app.window == null {
+        // In the case that the window could not be made...
+        print("Could not create window: %\n", to_string(SDL_GetError()));
+        return;
+    }
 
 
     // Load console history from file
