@@ -5,7 +5,7 @@ Prizm is a tool for debugging computational geometry algorithms using a simple w
 1. Write debug files using the [obj format](https://paulbourke.net/dataformats/obj/)
 2. Inspect the files to find bugs
 
-See the [wiki](https://github.com/okmatija/Prizm/wiki) for video tutorials and a feature list.
+See the [wiki](https://github.com/okmatija/Prizm/wiki) for video tutorials. There is also a [Discord](https://discord.gg/zxKqvwmXNs) server for discussions/support.
 
 <p align="center">
   <img src="docs/Prizm_0.8.0.png" width="640" title="Prizm 0.8.0 Screenshot" alt="Prizm 0.8.0 Screenshot">
@@ -21,6 +21,6 @@ There are many tools which can be used to implement this two-step debugging work
 
 * **Stand-alone**.  Some tools can directly embedded in your C++ program, and programmers familiar with graphics APIs can of course write their own visualization code for debugging directly in the original program.  This can be very helpful because you can inspect data as you step through your program.  Prizm is intentionally not a library and cannot be directly embedded in other programs, it is intended to be useful in any situtation where you might be developing geometry code, regardless of framework or language etc.  We have attempted to mitigate the downsides of having a stand-alone tool by implementing features which aim to support the same convenience\*\*
 
-\* _As of March 2024 Jai is in closed beta which means for most people Prizm will only be useful in binary form.  When the compiler is publically released people familiar with C++ should find Jai very easy to pick up.  Implementing hot code reloading is a high priority feature and should make Prizm's scripting workflow quite similar to the runtime scripting features available in other tools_
+\* _Implementing hot code reloading is a high priority feature and should make Prizm's scripting workflow quite similar to the runtime scripting features available in other tools.  Also, as of March 2024, Jai is in closed beta which means that for most people Prizm will only be useful in binary form.  When the compiler is publically released people familiar with C++ should find Jai very easy to pick up._
 
-\*\* _For example hot-reloading files/folders and supporting "always on top" transparent windows, see the [wiki](https://github.com/okmatija/Prizm/wiki) for more details.  Implementing a feature where your program can exchange data with Prizm via a shared memory channel/socket is a high priority feature_
+\*\* _For example hot-reloading files/folders and supporting "always on top" transparent windows, see the [wiki](https://github.com/okmatija/Prizm/wiki) for more details.  Implementing a feature where your program can exchange data with Prizm via a shared memory channel/socket is a high priority feature._
