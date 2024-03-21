@@ -8,53 +8,11 @@ main :: () {
     //     context.allocator = UA.get_unmapping_allocator();
     // // }
 
-    init_changelog(); // Do this first to get the version
-
-    print_usage_and_exit :: () {
-        print("\n");
-        print("Prizm % allows the following (case insensitive) program options:\n\n", changelog[0].name);
-        print("--Help           Print this message and exit.\n");
-        print("--AlwaysOnTop    Keeps the Prizm window on top.\n");
-        print("--Red            Use the red   icon in the title bar.\n");
-        print("--Green          Use the green icon in the title bar.\n");
-        print("--Blue           Use the blue  icon in the title bar (This is the default).\n");
-        print("--Black          Use the black icon in the title bar.\n");
-        exit(0);
-    }
-
     sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
-
-    {
-        args := get_command_line_arguments();
-        defer array_free(args);
-        for 1..args.count-1 {
-            arg : string = to_lower_copy_new(args[it]);
-
-            if arg.count >= 2 && arg[0] == #char "-" && arg[1] == #char "-" {
-                // @Volatile Sync with :PRIZM_ICON_COLORS
-                if arg == "--help" {
-                    print_usage_and_exit();
-                } else if arg == "--alwaysontop" {
-                    sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-                } else if arg == "--blue" {
-                    prizm_icon_color_index = 0;
-                } else if arg == "--green" {
-                    prizm_icon_color_index = 1;
-                } else if arg == "--red" {
-                    prizm_icon_color_index = 2;
-                } else if arg == "--black" {
-                    prizm_icon_color_index = 3;
-                } else {
-                    print("Unrecognized program argument '%' at position %\n", args[it], it);
-                    print_usage_and_exit();
-                }
-            }
-        }
-    }
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    app.window = SDL_CreateWindow(tprint("% % %", OUTPUT_EXE_NAME, changelog[0].name, ifx changelog[0].date == "WIP" then "WIP" else "").data,
+    app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
                                   sdl_window_flags);
@@ -70,6 +28,39 @@ main :: () {
     // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in first.jai so that the Windows program console is shown
     context.logger = console_logger;
     context.logger_data = *app.console.log;
+
+    init_changelog();
+
+    {
+
+        args := get_command_line_arguments();
+        defer array_free(args);
+        for 1..args.count-1 {
+            arg : string = to_lower_copy_new(args[it]);
+
+            if arg.count >= 2 && arg[0] == #char "-" && arg[1] == #char "-" {
+                // @Volatile Sync with :PRIZM_ICON_COLORS
+                if arg == "--help" {
+                    print_usage_and_maybe_exit();
+                } else if arg == "--alwaysontop" {
+                    sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+                } else if arg == "--blue" {
+                    prizm_icon_color_index = 0;
+                } else if arg == "--green" {
+                    prizm_icon_color_index = 1;
+                } else if arg == "--red" {
+                    prizm_icon_color_index = 2;
+                } else if arg == "--black" {
+                    prizm_icon_color_index = 3;
+                } else {
+                    error := tprint("Unrecognized program argument '%' at position %\n", args[it], it);
+                    print_usage_and_maybe_exit(error);
+                }
+            }
+        }
+    }
+
+
 
     // Load console history from file
     console_load_history();
@@ -224,6 +215,31 @@ main :: () {
     SDL_Quit();
 }
 
+print_usage_and_maybe_exit :: (error := "") {
+if OS == .WINDOWS { // See :DisableRuntimeConsoleCleanup
+    app.console.show_ui = true;
+    if error log_error("%", error);
+    else     log("\n"); // Needed to fix a weird alignment issue in the terminal..??
+    log("Prizm % allows the following (case insensitive) program options:\n\n", changelog[0].name);
+    log("--Help           Print this message and exit.\n");
+    log("--AlwaysOnTop    Keeps the Prizm window on top.\n");
+    log("--Red            Use the red   icon in the title bar.\n");
+    log("--Green          Use the green icon in the title bar.\n");
+    log("--Blue           Use the blue  icon in the title bar (This is the default).\n");
+    log("--Black          Use the black icon in the title bar.\n");
+    // exit(0); // Don't exit, the user can only read the logs in the program
+} else {
+    print("\n"); // Don't bother printing the error here
+    print("Prizm % allows the following (case insensitive) program options:\n\n", changelog[0].name);
+    print("--Help           Print this message and exit.\n");
+    print("--AlwaysOnTop    Keeps the Prizm window on top.\n");
+    print("--Red            Use the red   icon in the title bar.\n");
+    print("--Green          Use the green icon in the title bar.\n");
+    print("--Blue           Use the blue  icon in the title bar (This is the default).\n");
+    print("--Black          Use the black icon in the title bar.\n");
+    exit(0);
+}
+}
 
 // @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {

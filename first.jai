@@ -63,10 +63,14 @@ build :: () {
         build_options := get_build_options(w);
         set_optimization(*build_options, .OPTIMIZED);
         build_options.lazy_foreign_function_lookups = true; // Why do we set this?
-        // This disables the runtime console but also hides printing to the console!
-        #if OS == .WINDOWS {
-        build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"]; // See :DisableRuntimeConsoleCleanup, setting it this way seems better anyway
-        }
+#if OS == .WINDOWS {
+        // @FIXME This disables the runtime console but also hides printing to the 
+        // console, so we can't show usage message if the user --help argument!
+        // As a workaround we just show this message in the console but really we
+        // should fix this, the :DisableRuntimeConsoleCleanup used to work but its
+        // currently broken :(
+        build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"];
+}
         build_options.output_executable_name = OUTPUT_EXE_NAME;
         table_add(*preset_build_options, "release", build_options);
     }
