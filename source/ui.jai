@@ -1040,9 +1040,9 @@ show_create_tool_ui :: () {
         BoxSection();
 
         ImGui.TableNextColumn();
-        if ImGui.Button("Cube    ") { add_preset_cube(); }
+        if ImGui.Button("Demo    ") { add_preset_demo(); }
         ImGui.SameLine();
-        ImGui.Text("A basic cube");
+        ImGui.Text("A demo of annotation features");
 
         ImGui.TableNextColumn();
         if ImGui.Button("Widget  ") { add_preset_widget(); }

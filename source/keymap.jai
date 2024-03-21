@@ -335,10 +335,10 @@ init_keymap :: () {
 
     add_key(*app.keymap, remove_entities_if_selected, "Remove selected items", xx Special_Key_Code.DELETE);
     // @FIXME Make these presets work with the alt key like the button
-    add_key(*app.keymap, add_preset_cube, "Add Preset Cube", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, add_preset_widget, "Add Preset Widget", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, add_preset_boolean_a, "Add Preset BooleanA", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
-    add_key(*app.keymap, add_preset_boolean_b, "Add Preset BooleanB", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_demo, "Add shapes/Demo.obj", xx Special_Key_Code.F1); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_widget, "Add shapes/Widget.obj", xx Special_Key_Code.F2); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_boolean_a, "Add shapes/BooleanA.obj", xx Special_Key_Code.F3); // @Cleanup Hidden modifier alt makes this fixed
+    add_key(*app.keymap, add_preset_boolean_b, "Add shapes/BooleanB.obj", xx Special_Key_Code.F4); // @Cleanup Hidden modifier alt makes this fixed
 
     // @Volatile Sync with :RotateLookDirectionUI
     add_key(*app.keymap, rotate_look_direction_1_cw,   "Rotate  1  deg about selected rotation axis", xx #char "]", .{alt_pressed=true});
@@ -635,22 +635,22 @@ add_preset :: (preset_proc : #type ()->*Entity) {
     fit_scene_on_screen();
 }
 
-add_preset_cube :: () {
-    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Cube", FILENAME="shapes/cube.obj", RANDOMIZE=()=>(!io().KeyAlt));
+add_preset_demo :: () {
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Demo", FILENAME="shapes/Demo.obj", RANDOMIZE=()=>(!io().KeyAlt));
     add_preset(preset_proc);
 }
 
 add_preset_widget :: () {
-    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Widget", FILENAME="shapes/widget.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset Widget", FILENAME="shapes/Widget.obj", RANDOMIZE=()=>(!io().KeyAlt));
     add_preset(preset_proc);
 }
 
 add_preset_boolean_a :: () {
-    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanA", FILENAME="shapes/failed_boolean_a.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanA", FILENAME="shapes/BooleanA.obj", RANDOMIZE=()=>(!io().KeyAlt));
     add_preset(preset_proc);
 }
 
 add_preset_boolean_b :: () {
-    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanB", FILENAME="shapes/failed_boolean_b.obj", RANDOMIZE=()=>(!io().KeyAlt));
+    preset_proc :: #bake_arguments preset_shape_proc(NAME="Preset BooleanB", FILENAME="shapes/BooleanB.obj", RANDOMIZE=()=>(!io().KeyAlt));
     add_preset(preset_proc);
 }
