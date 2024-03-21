@@ -28,10 +28,10 @@ v 50 0 0
 v 30 20 0
 v 40 20 0
 v 50 20 0
-f 10 13 11 # Triangle 0
-f 11 13 14 ## Triangle 1 (Ignored!)
-f 11 14 12 # Triangle 2
-f 12 14 15 # Triangle 3
+f 10 13 11 # First triangle
+f 11 13 14 ## Second triangle (Ignored!)
+f 11 14 12 # Third triangle
+f 12 14 15 # Fourth triangle
 
 ## Use a #! to call console commands immediately after all geometry is
 ## parsed. Here we just log an error (which automatically open the
