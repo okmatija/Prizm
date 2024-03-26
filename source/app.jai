@@ -443,7 +443,6 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "selection_mode.jai";
 #load "clipping_sphere_mode.jai";
 #load "numeric.jai";
-#load "intervals.jai";
 #load "io_obj.jai";
 #load "io_utils.jai";
 #load "render.jai";
@@ -474,6 +473,10 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "kernel/distance.jai"; // @Cleanup
 #load "kernel/intersect.jai"; // @Cleanup
 #load "kernel/closest.jai"; // @Cleanup
+#load "kernel/intervals.jai"; // @Cleanup
+#load "kernel/utility.jai";
+#load "kernel/types.jai";
+#load "kernel/test.jai";
 #load "kernel/GTE_Mathematics_Vector.jai";
 #load "kernel/GTE_Mathematics_Vector3.jai";
 #load "kernel/GTE_Mathematics_Segment.jai";
@@ -483,9 +486,6 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "kernel/GTE_Mathematics_DistRay3Triangle3.jai";
 #load "kernel/GTE_Mathematics_DistPointTriangle.jai";
 #load "kernel/GTE_Mathematics_IntrSphere3Sphere3.jai";
-#load "kernel/utility.jai";
-#load "kernel/types.jai";
-#load "kernel/test.jai";
 
 #import "Compiler";
 #run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
