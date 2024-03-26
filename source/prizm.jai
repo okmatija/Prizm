@@ -137,21 +137,25 @@ main :: () {
 
         changed, needs_wait, wait_seconds := process_changes(*app.file_watcher);
 
+        handle_events();
+
+        update_camera();
+
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
-
-        handle_events();
-
         ImGui.PushFont(app.font_set.normal);
-
-        show_menu_bar_ui();
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
 
+        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
+        show_menu_bar_ui();
         if app.show_ui {
             show_left_window();
             show_right_window();
@@ -162,13 +166,8 @@ main :: () {
 
             // inspect("Debug", app.entities[0], true);
             // inspect("Debug", *app.camera, true);
+            // inspect("Debug", *app.triad, true);
         }
-
-        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y); // @TODO Is DisplaySize updated with window resizing? Use current_window_height/width here?
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-        update_camera(1);
 
         // These functions all do a ray cast on all visible entities, but usually its only one function per frame, we could make this clear by having them return booleans saying if they executed and putting them in an if-else-if chain
         // Also, these functions determine what is rendered so its important they are called before the rendering functions
@@ -176,19 +175,15 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-
         // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
         // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
         render_background();
         render_selections();
         render_entities();
         render_axes_triad();
-
-        // @Fixme This is broken on laptop..!
-        do_demo_mode(); // @Cleanup Why do we need this here---some opengl weirdness is going on!
+        render_demo_mode();
 
         ImGui.PopFont();
-
         ImGui.Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
 

@@ -148,6 +148,9 @@ show_menu_bar_ui :: () {
 
         if ImGui.MenuItem("Show World Axes", null, app.triad.visible) {
             app.triad.visible = !app.triad.visible;
+            if app.triad.visible {
+                app.show_ui = true;
+            }
         }
 
         if ImGui.MenuItem("Enable Demo Mode", null, app.demo_mode.enabled) {

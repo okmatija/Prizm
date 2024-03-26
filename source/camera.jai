@@ -117,7 +117,7 @@ init_camera :: () {
     set_look_direction(direction=.{-1, -1, -1}, up=up);
 }
 
-update_camera :: (delta_time : float) {
+update_camera :: () {
     camera := *app.camera;
 
     if io().WantCaptureMouse return;

@@ -14,7 +14,7 @@ Demo_Mode :: struct {
     scrolling_down_countdown := SCROLLING_TIMER;
 }
 
-do_demo_mode :: () {
+render_demo_mode :: () {
     using app.demo_mode;
 
     if !enabled {
