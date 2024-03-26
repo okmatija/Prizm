@@ -790,7 +790,7 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_
 }
 
 // @Volatile!!! This function MUST be inlined, we do that right now with expand, but we SHOULD be able to use inline but right now that doesn't work @CompilerBug (see the comment about this in the Any how_to) also do ti
-get_point_text_format_float :: (v : float) -> FormatFloat #expand {
+GetPointTextFormatFloat :: (v : float) -> FormatFloat #expand {
     f := app.label_format.format_float;
     f.value = v;
     return f;
@@ -798,7 +798,7 @@ get_point_text_format_float :: (v : float) -> FormatFloat #expand {
 
 get_point_text :: (point : Vector2, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
     result : string;
-    f :: get_point_text_format_float;
+    f :: GetPointTextFormatFloat;
     if  theme.show_index &&  theme.show_position result = tprint("% (%, %)", label_index_offset + point_index, f(point.x), f(point.y));
     if !theme.show_index &&  theme.show_position result = tprint("(%, %)", f(point.x), f(point.y));
     if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
@@ -807,7 +807,7 @@ get_point_text :: (point : Vector2, point_index : int, theme : Vertex_Label_Them
 
 get_point_text :: (point : Vector3, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
     result : string;
-    f :: get_point_text_format_float;
+    f :: GetPointTextFormatFloat;
     if  theme.show_index &&  theme.show_position result = tprint("% (%, %, %)", label_index_offset + point_index, f(point.x), f(point.y), f(point.z));
     if !theme.show_index &&  theme.show_position result = tprint("(%, %, %)", f(point.x), f(point.y), f(point.z));
     if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
