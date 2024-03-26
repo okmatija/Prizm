@@ -1447,13 +1447,21 @@ show_cpp_api_ui :: () {
             SDL_SetClipboardText(temp_c_string(include));
         }
 
-        show_tooltip(tprint("%\n%", #string DONE
+        if (ImGui.IsItemHovered(.DelayNormal)) {
+            ImGui.BeginTooltip();
+            // ImGui.PushTextWrapPos(450);
+            ImGui.TextUnformatted(#string DONE
 This button copies the Prizm C++ API #include line(s) to your clipboard.
 You can paste it into your program and use it to write .obj files.
 Having a debug API separate from your project source like this should
 mean your CI system will catch forgotten/leftover debug code.
 The copied string will be:
-DONE, include)); 
+
+DONE);
+            ImGui.TextColored(app.theme.keymap_color, include);
+            // ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
+        }
     }
 }
 
