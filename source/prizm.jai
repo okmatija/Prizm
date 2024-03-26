@@ -157,11 +157,11 @@ main :: () {
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         show_menu_bar_ui();
         if app.show_ui {
-            show_left_window();
-            show_right_window();
-            show_imgui_demo_window();
+            show_left_window_ui();
+            show_right_window_ui();
+            show_imgui_demo_window_ui();
             show_ribbon_buttons_ui();
-            console_draw();
+            show_console_ui();
             show_pending_directories_ui();
 
             // inspect("Debug", app.entities[0], true);

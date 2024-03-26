@@ -384,7 +384,7 @@ show_menu_bar_ui :: () {
 }
 
 // @Refactor This function is too long (especially the top level for loop). Break it up.
-show_left_window :: () {
+show_left_window_ui :: () {
 
     // Set window border color to match the selection/RMB target item color
     // original_border_color, original_border_size := ScopedWindowBorderTheme(app.theme.item_list_border_color, app.theme.item_list_border_size);
@@ -404,7 +404,7 @@ show_left_window :: () {
     show_details_ui();
 }
 
-show_right_window :: () {
+show_right_window_ui :: () {
     if !app.camera.show_ui {
         return;
     }
@@ -651,7 +651,7 @@ show_pending_directories_ui :: () {
 }
 
 
-show_imgui_demo_window :: () {
+show_imgui_demo_window_ui :: () {
     if app.settings.show_imgui_demo_window {
         ImGui.ShowDemoWindow(*app.settings.show_imgui_demo_window);
     }

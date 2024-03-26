@@ -170,7 +170,7 @@ console_execute_command :: (_command : string) -> success : bool {
     return true;
 }
 
-console_draw :: () {
+show_console_ui :: () {
     if !app.console.show_ui {
         return;
     }
