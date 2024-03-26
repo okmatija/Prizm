@@ -2189,7 +2189,7 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     ImGui.PopItemWidth();
 }
 
-show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Label_Theme) {
+show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotation_Theme) {
     ImGui.Text(name);
 
     ImGui.SameLine();

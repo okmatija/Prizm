@@ -157,7 +157,7 @@ Vertex_Label_Theme_Update :: struct {
     show_index : bool;
     label_scale : bool;
     label_color : Vector4_Update;
-    annotation_label_theme : Annotation_Label_Theme_Update;
+    annotation_label_theme : Annotation_Theme_Update;
 }
 
 get_update :: (old : Vertex_Label_Theme, new : Vertex_Label_Theme) -> Vertex_Label_Theme_Update {
@@ -188,7 +188,7 @@ Element_Label_Theme_Update :: struct {
     show_index : bool;
     label_scale : bool;
     label_color : Vector4_Update;
-    annotation_label_theme : Annotation_Label_Theme_Update;
+    annotation_label_theme : Annotation_Theme_Update;
 }
 
 get_update :: (old : Element_Label_Theme, new : Element_Label_Theme) -> Element_Label_Theme_Update {
@@ -212,17 +212,17 @@ apply_update :: (update : Element_Label_Theme_Update, source : Element_Label_The
 
 
 //
-// Annotation_Label_Theme
+// Annotation_Theme
 //
 
-Annotation_Label_Theme_Update :: struct {
+Annotation_Theme_Update :: struct {
     visible : bool;
     label_scale : bool;
     label_color : Vector4_Update;
 }
 
-get_update :: (old : Annotation_Label_Theme, new : Annotation_Label_Theme) -> Annotation_Label_Theme_Update {
-    result : Annotation_Label_Theme_Update;
+get_update :: (old : Annotation_Theme, new : Annotation_Theme) -> Annotation_Theme_Update {
+    result : Annotation_Theme_Update;
 
     result.visible = get_update(old.visible, new.visible);
     result.label_scale = get_update(old.label_scale, new.label_scale);
@@ -231,7 +231,7 @@ get_update :: (old : Annotation_Label_Theme, new : Annotation_Label_Theme) -> An
     return result;
 }
 
-apply_update :: (update : Annotation_Label_Theme_Update, source : Annotation_Label_Theme, target : *Annotation_Label_Theme) {
+apply_update :: (update : Annotation_Theme_Update, source : Annotation_Theme, target : *Annotation_Theme) {
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.label_scale, source.label_scale, *target.label_scale);
     apply_update(update.label_color, source.label_color, *target.label_color);
@@ -445,7 +445,7 @@ Display_Info_Update :: struct {
     point_label_theme : Element_Label_Theme_Update;
     segment_label_theme : Element_Label_Theme_Update;
     triangle_label_theme : Element_Label_Theme_Update;
-    annotation_label_theme : Annotation_Label_Theme_Update;
+    annotation_label_theme : Annotation_Theme_Update;
 
     vertex_style : Vertex_Style_Update;
     point_style : Point_Style_Update;

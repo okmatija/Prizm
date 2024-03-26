@@ -57,7 +57,7 @@ Vertex_Label_Theme :: struct {
     label_scale := Font_Size.LARGE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 
-    annotation_label_theme : Annotation_Label_Theme;
+    annotation_label_theme : Annotation_Theme;
 
     // world_space : bool = false; // @Incomplete
 }
@@ -68,7 +68,7 @@ Element_Label_Theme :: struct {
     label_scale := Font_Size.LARGE;
     label_color := INDEX_LABEL_COLOR;
 
-    annotation_label_theme : Annotation_Label_Theme;
+    annotation_label_theme : Annotation_Theme;
 }
 
 Attribute_Theme :: struct {
@@ -78,7 +78,7 @@ Attribute_Theme :: struct {
 }
 
 // nocommit rename Annotation_Theme
-Annotation_Label_Theme :: struct {
+Annotation_Theme :: struct {
     visible := false;
     label_scale := Font_Size.LARGE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds

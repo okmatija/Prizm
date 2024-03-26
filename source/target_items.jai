@@ -400,7 +400,7 @@ query_progress_element_labels :: (info : Display_Info) -> Fraction {
 
 // This currently only toggles visibility but it could cycle through styles?
 cycle_annotation_labels :: (display_info : *Display_Info) -> Fraction {
-    theme : *Annotation_Label_Theme = *display_info.vertex_label_theme.annotation_label_theme;
+    theme : *Annotation_Theme = *display_info.vertex_label_theme.annotation_label_theme;
 
     result : Fraction;
     result.denom = 1;
