@@ -180,6 +180,7 @@ main :: () {
         render_background();
         render_selections();
         render_entities();
+        render_text();
         render_axes_triad();
         render_demo_mode();
 
