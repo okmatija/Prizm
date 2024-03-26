@@ -77,18 +77,10 @@ Attribute_Theme :: struct {
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
-// nocommit rename Annotation_Theme
 Annotation_Theme :: struct {
     visible := false;
     label_scale := Font_Size.LARGE;
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-}
-
-// nocommit Move this into Triangle_Style (rename that to Triangle_Theme)
-Display_Mode :: enum #specified {
-    NORMALS ::     0;
-    SOLID_COLOR :: 1; // nocommit remove this, its totally useless
-    BLINN_PHONG :: 2;
 }
 
 Backface_Mode :: enum #specified {
@@ -100,10 +92,9 @@ Backface_Mode :: enum #specified {
     SCREENTONE_2 :: 5; // TODOOO Replace this with an outline mode where we discard all the fragments which aren't near the triangle edge
 }
 
-cycle_display_mode :: (mode : *Display_Mode) {
+cycle_display_mode :: (mode : *Triangle_Style.Display_Mode) {
     if #complete mode.* == {
         case .NORMALS;     mode.* = .BLINN_PHONG;
-        case .SOLID_COLOR; mode.* = .NORMALS;
         case .BLINN_PHONG; mode.* = .NORMALS;
     }
 }
@@ -188,6 +179,11 @@ Segment_Style :: struct {
 }
 
 Triangle_Style :: struct {
+    Display_Mode :: enum #specified {
+        NORMALS ::     0;
+        BLINN_PHONG :: 1;
+    }
+
     visible := false;
     color := Vector4.{1., 1., 1., 1.};
     display_mode := Display_Mode.BLINN_PHONG;

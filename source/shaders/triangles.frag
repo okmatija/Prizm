@@ -19,8 +19,7 @@ struct Clip_Sphere {
 };
 
 const int Display_Mode_NORMALS = 0;
-const int Display_Mode_SOLID_COLOR = 1;
-const int Display_Mode_BLINN_PHONG = 2;
+const int Display_Mode_BLINN_PHONG = 1;
 const int Backface_Mode_NONE = 0;
 const int Backface_Mode_CULL = 1;
 const int Backface_Mode_FIXED = 2;
@@ -199,15 +198,6 @@ void main() {
 
         } break;
 
-        case Display_Mode_SOLID_COLOR: {
-
-            fill_color = mix(color, vec4(1.f), wave * .5f + .5f);
-            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
-                fill_color = backface_color;
-            }
-
-        } break;
-
         case Display_Mode_BLINN_PHONG: {
 
             // @Volatile @CopyPasta from NORMALS
@@ -232,18 +222,18 @@ void main() {
     }
 
     if (!gl_FrontFacing) {
+        float darken_factor = (display_mode == 0 ? .5 : .6);
+
         switch (backface_mode) {
 
             // Darken frontface color
             case Backface_Mode_DARKEN: {
-                float darken_factor = (display_mode == 0 ? .5 : .6);
                 fill_color.xyz = darken(fill_color.xyz, darken_factor);
                 break;
             }
 
             // Darken frontface color and screentone dark
             case Backface_Mode_SCREENTONE_1: {
-                float darken_factor = (display_mode == 0 ? .5 : .6);
                 fill_color.xyz = darken(fill_color.xyz, darken_factor);
                 if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
                     fill_color.xyz = darken(fill_color.xyz, darken_factor);
@@ -251,14 +241,11 @@ void main() {
                 break;
             }
 
-            // Darken frontface color and screentone dark and light
+            // Darken frontface color and screentone light
             case Backface_Mode_SCREENTONE_2: {
-                float darken_factor = (display_mode == 0 ? .5 : .6);
                 fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                if (int(gl_FragCoord.x) % 6 == 0 && int(gl_FragCoord.y) % 6 == 0) {
+                if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
                     fill_color.xyz = darken(fill_color.xyz, 1/darken_factor);
-                } else if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                    fill_color.xyz = darken(fill_color.xyz, darken_factor);
                 }
                 break;
             }
