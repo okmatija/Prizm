@@ -55,7 +55,6 @@ build_gui :: (
 
 
     enable_console_command : [..]bool;
-    sweep_state : Checkbox_Sweep_Mode_State;
     defer array_reset(*enable_console_command);
     if chosen_console_commands {
         quick_sort(chosen_console_commands.*, (a, b) => compare_strings(a.name, b.name));
@@ -91,8 +90,7 @@ build_gui :: (
 
             if chosen_console_commands {
                 for command, command_index : chosen_console_commands.* {
-                    // ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
-                    checkbox_press_or_sweep_to_toggle(*enable_console_command[command_index], imgui_label(command.name, *command), *sweep_state);
+                    ImGui.Checkbox(imgui_label(command.name, *command), *enable_console_command[command_index]);
                 }
             }
 
@@ -134,11 +132,11 @@ build_gui :: (
                 Combo_Box(null_pointer_check);
                 Combo_Box(dead_code_elimination);
 
-                // @CompilerBug Using any InputText widgets causes compilation to crash in realloc, but the same code works at runtime
-                InputText("output_executable_name", *output_executable_name, .EnterReturnsTrue); show_tooltip("Unpathed, does not include extension such as \".exe\"");
-                InputText("output_path", *output_path, .EnterReturnsTrue);
-                InputText("intermediate_path", *intermediate_path, .EnterReturnsTrue); show_tooltip("The place for temporary files, such as .added_strings_*, intermediate object files, etc.");
-                InputText("entry_point_name", *entry_point_name, .EnterReturnsTrue);
+                // // @CompilerBug Using any InputText widgets causes compilation to crash in realloc, but the same code works at runtime
+                // InputText("output_executable_name", *output_executable_name, .EnterReturnsTrue); show_tooltip("Unpathed, does not include extension such as \".exe\"");
+                // InputText("output_path", *output_path, .EnterReturnsTrue);
+                // InputText("intermediate_path", *intermediate_path, .EnterReturnsTrue); show_tooltip("The place for temporary files, such as .added_strings_*, intermediate object files, etc.");
+                // InputText("entry_point_name", *entry_point_name, .EnterReturnsTrue);
 
                 Input_Int(temporary_storage_size);
                 //info_flags : enum_flags;
@@ -231,10 +229,11 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     imgui_context = ImGui.CreateContext();
 }
 
+
+// @Volatile! Do not share code with runtime Prizm app, since that code often uses the App global which does not exist in this build gui
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
 #load "inspector.jai";
-#load "ui_utils.jai";
 
 ImGui :: #import "ImGui";
 #import "SDL";
@@ -242,3 +241,31 @@ ImGui :: #import "ImGui";
 
 
 fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
+
+imgui_label :: (label : string, ptr : *void = null) -> *u8 {
+    return temp_c_string(tprint("%##%", label, ptr));
+}
+
+// Combo box to select display mode enum value
+// @Cleanup Deduce the info_enum from the data
+combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum, flags : ImGui.ComboFlags = .None) -> bool {
+    changed := false;
+    value := get_enum_value(data, info_enum);
+    value_name := "";
+    for info_enum.names {
+        if value == info_enum.values[it_index]  value_name = it;
+    }
+    if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name), flags) {
+        for info_enum.names {
+            is_selected := value == info_enum.values[it_index];
+            if ImGui.Selectable(temp_c_string(it), is_selected) {
+                set_enum_value(data, info_enum, info_enum.values[it_index]);
+                changed = true;
+            }
+            if is_selected ImGui.SetItemDefaultFocus();
+        }
+
+        ImGui.EndCombo();
+    }
+    return changed;
+}

@@ -48,14 +48,6 @@ check_color :: (r : int, g : int, b : int, a : int) -> bool #must {
     return true;
 }
 
-// Like check_geometry_index but with no logging
-valid_geometry_index :: (index : int) -> bool #must {
-    if index < 0 || index >= app.entities.count {
-        return false;
-    }
-    return true;
-}
-
 // Close the application
 quit :: () {
     app.closing_application = true;
@@ -80,14 +72,14 @@ debug_toggle_fps :: () {
     app.show_fps = !app.show_fps;
 } @RegisterCommand
 
-// Clear annotations and then fake ones to the item with the given id
-debug_fake_annotations :: (id : int) {
+// Clear annotations and then fake ones to the item with the given `item_index`
+debug_fake_annotations :: (item_index : int) {
     // @Refactor move this to boiler plate e.g., by adding special syntax for ints which are geometry indices
-    if !check_geometry_index(id) {
+    if !check_geometry_index(item_index) {
         return;
     }
 
-    item := app.entities[id];
+    item := app.entities[item_index];
     array_reset_keeping_memory(*item.vertex_annotations);
     array_reset_keeping_memory(*item.line_annotations);
     array_reset_keeping_memory(*item.face_annotations);

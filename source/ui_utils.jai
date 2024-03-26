@@ -3,6 +3,14 @@ Labelling_Mode :: enum {
     SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
 }
 
+// Like check_geometry_index but with no logging
+valid_geometry_index :: (index : int) -> bool #must {
+    if index < 0 || index >= app.entities.count {
+        return false;
+    }
+    return true;
+}
+
 
 //
 // ImGui Widgets
