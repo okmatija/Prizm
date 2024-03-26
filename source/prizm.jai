@@ -85,7 +85,6 @@ main :: () {
     init_camera();
     init_commands();
     init_keymap();
-    init_known_issues();
     init_icons();
 
     // Setup file watcher

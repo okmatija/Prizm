@@ -2,9 +2,6 @@
 // @Incomplete return errors when we have 123542abdc ie number with letters in it
 // @Incomplete support binary 0b10101001
 
-// ISSUE_001 :: "The lexer does not support files containing 'inf'"; @KnownIssue
-// ISSUE_002 :: "The lexer does not gracefully handle files containing 'nan'"; @KnownIssue
-
 Token :: struct {
 
     // @Idea If this was an enum flags we could test for multiple token types using fewer characters and would help with printing error messages when we expect more than one token type

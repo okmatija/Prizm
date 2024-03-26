@@ -147,12 +147,6 @@ App :: struct {
     }
     api : API;
 
-    Known_Issue :: struct {
-        name :        string;
-        description : string;
-    }
-    known_issues : [..]Known_Issue;
-
     demo_mode : Demo_Mode; // See demo_mode.jai
 
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)

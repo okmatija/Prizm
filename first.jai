@@ -197,24 +197,6 @@ build :: () {
                             }
                         }
 
-                        // @KnownIssue note which can be attached to top-level constant string declarations which describe known issues in the code
-                        for tc: typechecked.declarations {
-                            decl := tc.expression;
-                            if decl.expression && decl.expression.kind == .LITERAL && has_note(decl, "KnownIssue") {
-                                literal := cast(*Code_Literal)decl.expression;
-                                if (decl.flags & .IS_CONSTANT) && literal.value_type == .STRING {
-                                    array_add(*registered_known_issues, decl);
-                                    // print("%", message.fully_pathed_filename);
-                                    // print("Found issue '%' (%)\n", literal._string, decl.name);
-                                } else {
-                                    filename : string = decl.location.enclosing_load.fully_pathed_filename;
-                                    line_no : s64 = decl.location.l0;
-                                    char_no : s64 = decl.location.c0; 
-                                    compiler_report(filename, line_no, char_no, "@KnownIssue note only allowed on constant string declarations");
-                                }
-                            }
-                        }
-
                     case .PHASE;
                         phase := cast(*Message_Phase) message;
                         if phase.phase == .TYPECHECKED_ALL_WE_CAN {
@@ -223,7 +205,6 @@ build :: () {
                                     build_gui(preset_build_options, chosen_console_commands=*registered_console_commands);
                                 }
                                 generate_code_to_register_console_commands(message.workspace);
-                                generate_code_to_register_known_issues(message.workspace);
                                 generated_code = true;
                             }
                         }
@@ -248,26 +229,6 @@ preset_build_options : Table(string, Build_Options);
 // - Rename to AddLine and make it automatically add a newline
 Print :: (format_string : string, args : ..Any) #expand {
     print_to_builder(*`builder, format_string, ..args);
-}
-
-registered_known_issues : [..]*Code_Declaration;
-
-generate_code_to_register_known_issues :: (w : Workspace) {
-    builder: String_Builder;
-    defer free_buffers(*builder);
-    Print("init_known_issues :: () {\n");
-    for decl : registered_known_issues {
-        if decl.expression && decl.expression.kind == .LITERAL {
-            literal := cast(*Code_Literal)decl.expression;
-            if decl.flags == .IS_CONSTANT && literal.value_type == .STRING {
-                Print("    array_add(*app.known_issues, .{\"%\", \"%\"});\n", decl.name, literal._string);
-            }
-        }
-    }
-    Print("    quick_sort(app.known_issues, (a,b)=>compare_strings(a.name, b.name));\n");
-    Print("}\n");
-
-    add_build_string(builder_to_string(*builder), w);
 }
 
 generated_code := false;

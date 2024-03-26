@@ -1,5 +1,3 @@
-// Fixed! ISSUE_004 :: "The text rendering implementation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
-
 // @Cleanup replace this with: postion_loc = glGetAttribLocation()
 ATTRIB_POSITION  :: 0;
 ATTRIB_NORMAL    :: 1;

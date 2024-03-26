@@ -657,10 +657,6 @@ show_imgui_demo_window_ui :: () {
     }
 }
 
-ISSUE_008 :: "Sphere clipping does not work if the Selection item is not visible"; @KnownIssue
-ISSUE_009 :: "Sphere clipping does not work on Point Cloud items"; @KnownIssue
-
-
 
 //
 // ImGui data needed between frames. @Think There must be a better way to do this...
@@ -2135,17 +2131,6 @@ show_changelog :: () {
             blank_space();
         }
     }
-
-    // FIXME This is broken
-    //if ImGui.TreeNodeEx("Known Issues", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed) {
-    //    defer ImGui.TreePop();
-    //    if ImGui.BeginTable("", 2, flags=table_flags | .ScrollX) {
-    //        defer ImGui.EndTable();
-    //        for app.known_issues {
-    //            ShowBinding(it.name, it.description);
-    //        }
-    //    }
-    //}
 }
 
 
