@@ -24,7 +24,6 @@ Simple_Mesh :: struct {
     points : [..]u32; // Filled in by parsing p-directives, or with the item_find_unreferenced_positions
     segments : [..]Tuple2(u32); // l's OR construct if we contruct special edge data
     triangles : [..]Tuple3(u32); // f's with 3 indices
-    //tetrahedra : [..]Tuple4(u32); // f's with 4 indices?
 
     // Mesh normals and tangents are stored as overlays attributes
     // Attributes are added via the item_add_attribute_XXX commands, which can/should be used in command obj comments

@@ -1,73 +1,10 @@
 // Fixed! ISSUE_004 :: "The text rendering implementation currently sucks and is very slow (hence disabled) for large numbers of glyphs. To render text on large meshes use a clipping volume to reduce the number of visible elements and the text should show up."; @KnownIssue;
 
-Labelling_Mode :: enum {
-    RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
-    SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
-}
-
-Annotation_Label_Theme :: struct {
-    visible := false;
-    label_scale := Font_Size.LARGE;
-    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-}
-
-// @Think Perhaps this should be in the Element_Label_Theme too so you can visualize only the vertices associated with the elements, maybe Simple_Mesh should store vertices referenced by each element type separately?
-Vertex_Label_Theme :: struct {
-    // @Cleanup replace with a combo box
-    show_index := false;
-    show_position := false;
-
-    label_scale := Font_Size.LARGE;
-    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-
-    annotation_label_theme : Annotation_Label_Theme;
-
-    // world_space : bool = false; // @Incomplete
-}
-
-// For mesh topology/geometry labels
-Element_Label_Theme :: struct {
-    show_index := false;
-    label_scale := Font_Size.LARGE;
-    label_color := INDEX_LABEL_COLOR;
-
-    annotation_label_theme : Annotation_Label_Theme;
-}
-
-Attribute_Theme :: struct {
-    visible := false;
-    label_scale := Font_Size.LARGE;
-    label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
-}
-
-Display_Mode :: enum #specified {
-    NORMALS ::     0;
-    SOLID_COLOR :: 1;
-    BLINN_PHONG :: 2;
-}
-
-Backface_Mode :: enum #specified {
-    NONE :: 0;
-    CULL :: 1;
-    FIXED :: 2;
-    DARKEN :: 3;
-    SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
-    SCREENTONE_2 :: 5; // TODOOO Replace this with an outline mode where we discard all the fragments which aren't near the triangle edge
-}
-
-cycle_display_mode :: (mode : *Display_Mode) {
-    if #complete mode.* == {
-        case .NORMALS;     mode.* = .BLINN_PHONG;
-        case .SOLID_COLOR; mode.* = .NORMALS;
-        case .BLINN_PHONG; mode.* = .NORMALS;
-    }
-}
-
-Clip_Mode :: enum #specified {
-    HIDDEN ::  0;
-    BLACKEN :: 1;
-    DARKEN ::  2;
-}
+// nocommit @Cleanup replace this with: postion_loc = glGetAttribLocation()
+ATTRIB_POSITION  :: 0;
+ATTRIB_NORMAL    :: 1;
+// ATTRIB_TEXCOORDS :: 2;
+// ATTRIB_COLOR     :: 3;
 
 // Things that needs updating when the geometry changes
 Render_Info :: struct {
@@ -101,187 +38,6 @@ Render_Info :: struct {
     bounding_aabb : AxisBox3;
 }
 
-// @Volatile Keep synced with shaders
-Clip_Range :: struct {
-    normal : Vector3; // @Cleanup Is this unit???
-    is_active : bool;
-    min : float = 0hFF800000; // -inf
-    max : float = 0h7F800000; // +inf
-}
-
-// Note: all arguments must be in the same space e.g., world/model coordinates
-is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
-    for clip : clip_ranges if clip.is_active {
-        plane := make_hyperplane3(clip.normal, Vector3.{0, 0, 0});
-        dist := signed_distance_point3_plane3(point, plane);
-        if (dist <= clip.min || dist >= clip.max) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// @Volatile Keep synced with shaders
-Clip_Sphere :: struct {
-    using #as sphere : Sphere;
-    radius = 0h7F800000; // +inf
-    is_active : bool = false;
-}
-
-// Note: all arguments must be in the same space e.g., world/model coordinates
-is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
-    if clip_sphere.is_active {
-        if !contains(clip_sphere, point) {
-            return true;
-        }
-    }
-    return false;
-}
-
-Normal_Style :: struct {
-    visible := false;
-    color := Vector4.{0., 0., .8, 1.};
-    scale : float = 1.; // Multiplies the obj normal. If normalized is true then this value is the length
-    normalized : bool = true; // If true the obj normal is normalized before scale is applied
-}
-
-// Could also be used for tetrahedra edges when/if those are supported
-Edge_Style :: struct {
-    visible := false;
-    color : Vector4 = BLACK;
-    width : float = 1.;
-}
-
-Vertex_Style :: struct {
-    visible : bool;
-    color : Vector4 = BLACK;
-    size : s32 = 4; // @Cleanup Use float when we generate quads from coordinates
-}
-
-Point_Style :: struct {
-    using vertex_style : Vertex_Style;
-    vertex_style.color = Vector4.{.5, .5, .5, 1.};
-
-    normal_style : Normal_Style;
-}
-
-Segment_Style :: struct {
-    visible := false;
-    color : Vector4 = BLACK;
-    width : float = 1.;
-
-    normal_style : Normal_Style;
-}
-
-Triangle_Style :: struct {
-    visible := false;
-    color := Vector4.{1., 1., 1., 1.};
-    display_mode := Display_Mode.BLINN_PHONG;
-    backface_mode := Backface_Mode.FIXED;
-    flat_shading := true;
-
-    edge_style : Edge_Style;
-    normal_style : Normal_Style;
-}
-
-
-// Things that should be preserved when the geometry changes
-Display_Info :: struct {
-
-    // Set overall visibility without clobbering the individual settings. Considers both geometry and labels
-    is_visible := true;
-
-    //
-    // Labeling members
-    //
-
-    show_labels := true; // @Think Use this to sets overall text labels visibility without clobbering more granular settings?
-    vertex_label_theme : Vertex_Label_Theme;
-    point_label_theme : Element_Label_Theme;
-    segment_label_theme : Element_Label_Theme;
-    triangle_label_theme : Element_Label_Theme;
-
-    // These should be stored outside the vertex/point/segment/triangle_label_theme structs
-    // attribute_theme : [..]Attribute_Theme;
-
-    //
-    // Vertex/Element members
-    //
-
-    vertex_style : Vertex_Style;
-    point_style : Point_Style;
-    segment_style : Segment_Style;
-    triangle_style : Triangle_Style;
-
-    //
-    // Clipping
-    //
-
-    // These are all in world space
-    clip_mode := Clip_Mode.HIDDEN;
-    clip_ranges : [3]Clip_Range;
-    clip_sphere : Clip_Sphere;
-
-    clip_ranges[0] = .{normal=.{1,0,0}};
-    clip_ranges[1] = .{normal=.{0,1,0}};
-    clip_ranges[2] = .{normal=.{0,0,1}};
-
-    //
-    // Transient data
-    //
-
-    flash_wave_dt : float = 0.;
-    aabb_visible := false;
-    clip_sphere_prev : Clip_Sphere;
-}
-
-// Clipping and camera position are not checked here
-
-any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    // We do NOT check entity.display_info.vertex_style.visible here, this option is usually off and we still want to see vertex labels
-    return entity.display_info.is_visible && entity.display_info.show_labels /*&& entity.display_info.vertex_style.visible*/ && entity.mesh.positions.count && (
-        (geometry_labels   && (entity.display_info.vertex_label_theme.show_index || entity.display_info.vertex_label_theme.show_position)) ||
-        (annotation_labels && entity.display_info.vertex_label_theme.annotation_label_theme.visible && entity.vertex_annotations.count)
-    );
-}
-
-any_point_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    // Also checking mesh.positions.count
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.point_style.visible && entity.mesh.positions.count && entity.mesh.points.count && (
-        (geometry_labels   && entity.display_info.point_label_theme.show_index) ||
-        (annotation_labels && entity.display_info.point_label_theme.annotation_label_theme.visible && entity.point_annotations.count)
-    );
-}
-
-any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    // Also checking mesh.positions.count
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.segment_style.visible && entity.mesh.positions.count && entity.mesh.segments.count && (
-        (geometry_labels   && entity.display_info.segment_label_theme.show_index) ||
-        (annotation_labels && entity.display_info.segment_label_theme.annotation_label_theme.visible && entity.line_annotations.count)
-    );
-}
-
-any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
-    // @Think Maybe we should check triangle_style.edge_style.visible here?
-    // Also checking mesh.positions.count
-    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangle_style.visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
-        (geometry_labels   && entity.display_info.triangle_label_theme.show_index) ||
-        (annotation_labels && entity.display_info.triangle_label_theme.annotation_label_theme.visible && entity.face_annotations.count)
-    );
-}
-
-
-is_clipped :: (display_info : Display_Info, point_world : Point3, test_sphere := true, test_ranges := true) -> bool {
-    if test_sphere && is_clipped(display_info.clip_sphere, point_world) {
-        return true;
-    }
-
-    if test_ranges && is_clipped(display_info.clip_ranges, point_world) {
-        return true;
-    }
-
-    return false;
-}
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if mesh.positions.count == 0 {
@@ -787,78 +543,6 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_
     glBlendEquation(GL_FUNC_ADD);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
-}
-
-// @Volatile!!! This function MUST be inlined, we do that right now with expand, but we SHOULD be able to use inline but right now that doesn't work @CompilerBug (see the comment about this in the Any how_to) also do ti
-GetPointTextFormatFloat :: (v : float) -> FormatFloat #expand {
-    f := app.label_format.format_float;
-    f.value = v;
-    return f;
-}
-
-get_point_text :: (point : Vector2, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
-    result : string;
-    f :: GetPointTextFormatFloat;
-    if  theme.show_index &&  theme.show_position result = tprint("% (%, %)", label_index_offset + point_index, f(point.x), f(point.y));
-    if !theme.show_index &&  theme.show_position result = tprint("(%, %)", f(point.x), f(point.y));
-    if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
-    return result;
-}
-
-get_point_text :: (point : Vector3, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
-    result : string;
-    f :: GetPointTextFormatFloat;
-    if  theme.show_index &&  theme.show_position result = tprint("% (%, %, %)", label_index_offset + point_index, f(point.x), f(point.y), f(point.z));
-    if !theme.show_index &&  theme.show_position result = tprint("(%, %, %)", f(point.x), f(point.y), f(point.z));
-    if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
-    return result;
-}
-
-get_point_text :: (index : int, theme : Element_Label_Theme, label_index_offset : int = 0) -> string {
-    result : string;
-    if  theme.show_index result = tprint("%", label_index_offset + index);
-    return result;
-}
-
-// _space is model or world but it could be whatever else
-to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -> Tuple2i {
-    result : Tuple2i = ---;
-
-    // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
-    transformed : Vector3 = transform_point(projection_from_space, point_space);
-    result.x = xx (app.current_window_width *  (transformed.x + 1) / 2);
-    result.y = xx (app.current_window_height * (transformed.y + 1) / 2);
-
-    return result;
-}
-
-on_screen_in_disk :: (text_position_px : Tuple2i, visible_radius_px : int) -> bool {
-    if io().MousePos == ImGui.ImVec2.{-FLOAT32_MAX,-FLOAT32_MAX} {
-        return false;
-    }
-
-    if text_position_px.x < 0 ||
-       text_position_px.y < 0 ||
-       text_position_px.x > xx app.current_window_width ||
-       text_position_px.y > xx app.current_window_height {
-        return false;
-    }
-
-    mouse_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
-    text_position :=  Vector2.{xx text_position_px.x, xx text_position_px.y};
-    if distance(mouse_position, text_position) > xx visible_radius_px {
-        return false;
-    }
-
-    return true;
-}
-
-entity_in_clip_radius_mode :: (entity_index : int) -> bool {
-    return mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index >= 0 &&
-    (
-        ( app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.entities[entity_index].is_selected) ||
-        (!app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.clipping_sphere_mode_entity_index == entity_index)
-    );
 }
 
 render_entities :: () {
@@ -1421,6 +1105,70 @@ OGL: message = Program/shader state performance warning: Fragment shader in prog
 }
 
 
+#scope_file
+
+// @Volatile!!! This function MUST be inlined, we do that right now with expand, but we SHOULD be able to use inline but right now that doesn't work @CompilerBug (see the comment about this in the Any how_to) also do ti
+GetPointTextFormatFloat :: (v : float) -> FormatFloat #expand {
+    f := app.label_format.format_float;
+    f.value = v;
+    return f;
+}
+
+get_point_text :: (point : Vector2, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
+    result : string;
+    f :: GetPointTextFormatFloat;
+    if  theme.show_index &&  theme.show_position result = tprint("% (%, %)", label_index_offset + point_index, f(point.x), f(point.y));
+    if !theme.show_index &&  theme.show_position result = tprint("(%, %)", f(point.x), f(point.y));
+    if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
+    return result;
+}
+
+get_point_text :: (point : Vector3, point_index : int, theme : Vertex_Label_Theme, label_index_offset : int = 0) -> string {
+    result : string;
+    f :: GetPointTextFormatFloat;
+    if  theme.show_index &&  theme.show_position result = tprint("% (%, %, %)", label_index_offset + point_index, f(point.x), f(point.y), f(point.z));
+    if !theme.show_index &&  theme.show_position result = tprint("(%, %, %)", f(point.x), f(point.y), f(point.z));
+    if  theme.show_index && !theme.show_position result = tprint("%", label_index_offset + point_index);
+    return result;
+}
+
+get_point_text :: (index : int, theme : Element_Label_Theme, label_index_offset : int = 0) -> string {
+    result : string;
+    if  theme.show_index result = tprint("%", label_index_offset + index);
+    return result;
+}
+
+on_screen_in_disk :: (text_position_px : Tuple2i, visible_radius_px : int) -> bool {
+    if io().MousePos == ImGui.ImVec2.{-FLOAT32_MAX,-FLOAT32_MAX} {
+        return false;
+    }
+
+    if text_position_px.x < 0 ||
+       text_position_px.y < 0 ||
+       text_position_px.x > xx app.current_window_width ||
+       text_position_px.y > xx app.current_window_height {
+        return false;
+    }
+
+    mouse_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    text_position :=  Vector2.{xx text_position_px.x, xx text_position_px.y};
+    if distance(mouse_position, text_position) > xx visible_radius_px {
+        return false;
+    }
+
+    return true;
+}
+
+entity_in_clip_radius_mode :: (entity_index : int) -> bool {
+    return mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index >= 0 &&
+    (
+        ( app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.entities[entity_index].is_selected) ||
+        (!app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.clipping_sphere_mode_entity_index == entity_index)
+    );
+}
+
+
+
 Label_Kind :: enum_flags u8 {
     // The following are mutually exclusive
     VERTEX;
@@ -1531,9 +1279,6 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
     }
 }
 
-
-#scope_file
-
 set_hover_flash_uniform :: (shader : GLuint, using display_info : Display_Info) {
     wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
     glUniform1f(glGetUniformLocation(shader, "wave"), wave);
@@ -1585,8 +1330,38 @@ set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info,
     }
 }
 
-// @Cleanup replace this with: postion_loc = glGetAttribLocation()
-ATTRIB_POSITION  :: 0;
-ATTRIB_NORMAL    :: 1;
-// ATTRIB_TEXCOORDS :: 2;
-// ATTRIB_COLOR     :: 3;
+
+// Clipping and camera position are not checked here
+
+any_vertex_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // We do NOT check entity.display_info.vertex_style.visible here, this option is usually off and we still want to see vertex labels
+    return entity.display_info.is_visible && entity.display_info.show_labels /*&& entity.display_info.vertex_style.visible*/ && entity.mesh.positions.count && (
+        (geometry_labels   && (entity.display_info.vertex_label_theme.show_index || entity.display_info.vertex_label_theme.show_position)) ||
+        (annotation_labels && entity.display_info.vertex_label_theme.annotation_label_theme.visible && entity.vertex_annotations.count)
+    );
+}
+
+any_point_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.point_style.visible && entity.mesh.positions.count && entity.mesh.points.count && (
+        (geometry_labels   && entity.display_info.point_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.point_label_theme.annotation_label_theme.visible && entity.point_annotations.count)
+    );
+}
+
+any_segment_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.segment_style.visible && entity.mesh.positions.count && entity.mesh.segments.count && (
+        (geometry_labels   && entity.display_info.segment_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.segment_label_theme.annotation_label_theme.visible && entity.line_annotations.count)
+    );
+}
+
+any_triangle_label_visible :: (entity : Entity, $geometry_labels := true, $annotation_labels := true) -> bool {
+    // @Think Maybe we should check triangle_style.edge_style.visible here?
+    // Also checking mesh.positions.count
+    return entity.display_info.is_visible && entity.display_info.show_labels && entity.display_info.triangle_style.visible && entity.mesh.positions.count && entity.mesh.triangles.count && (
+        (geometry_labels   && entity.display_info.triangle_label_theme.show_index) ||
+        (annotation_labels && entity.display_info.triangle_label_theme.annotation_label_theme.visible && entity.face_annotations.count)
+    );
+}

@@ -451,6 +451,7 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "carpet.jai";
 #load "camera.jai";
 #load "entities.jai";
+#load "display_info.jai";
 #load "ui.jai";
 #load "ui_utils.jai";
 #load "shapes.jai";

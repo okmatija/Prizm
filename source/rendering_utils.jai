@@ -1,3 +1,16 @@
+// _space is model or world but it could be whatever else
+to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -> Tuple2i {
+    result : Tuple2i = ---;
+
+    // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+    transformed : Vector3 = transform_point(projection_from_space, point_space);
+    result.x = xx (app.current_window_width *  (transformed.x + 1) / 2);
+    result.y = xx (app.current_window_height * (transformed.y + 1) / 2);
+
+    return result;
+}
+
+
 init_shaders :: () {
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);

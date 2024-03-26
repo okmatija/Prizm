@@ -1,8 +1,12 @@
+Labelling_Mode :: enum {
+    RAY_CAST;  // Labels are shown on the intersection/closest preferred point to the camera ray
+    SPOTLIGHT; // Labels are shown if query positions are within some (pixel) distance of the cursor
+}
+
 
 //
 // ImGui Widgets
 //
-
 
 io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
