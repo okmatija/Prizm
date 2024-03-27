@@ -81,7 +81,7 @@ main :: () {
     TRIAD_AXIS_LENGTH :: 1;
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
-    init_shaders();
+    init_render_backend();
     init_camera();
     init_commands();
     init_keymap();
@@ -149,10 +149,6 @@ main :: () {
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
 
-        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         show_menu_bar_ui();
         if app.show_ui {
@@ -174,11 +170,31 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
+        // 1st pass: Render to app.framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, app.render_info.framebuffer);
+        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
         // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
+        glBindTexture(GL_TEXTURE_2D, app.render_info.framebuffer_color);
+
         render_background();
         render_selections();
         render_entities();
+
+        // 2nd pass: Render framebuffer texture to screen
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Bind default framebuffer
+        glClearColor(1., 0., 0., 1.);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glUseProgram(app.ssao_program);
+        glBindVertexArray(app.ssao_vao);
+        glDisable(GL_DEPTH_TEST);
+        glBindTexture(GL_TEXTURE_2D, app.framebuffer_color);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         render_text();
         render_axes_triad();
         render_demo_mode();
@@ -198,6 +214,8 @@ main :: () {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui.DestroyContext();
+
+    // We could release gl handles here, but we delete context anyway
 
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(app.window);
@@ -277,6 +295,8 @@ handle_events :: () {
                 //print("window event: %\n", event.window.event);
 
                 if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
+
+                    // nocommit Resize framebuffers/textures here??
 
                     width_scale  := cast(float) event.window.data1 / app.current_window_width;
                     height_scale := cast(float) event.window.data2 / app.current_window_height;

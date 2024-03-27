@@ -56,13 +56,6 @@ App :: struct {
     current_window_height := INITIAL_WINDOW_HEIGHT;
     fullscreen := false;
 
-    aabb_program : GLuint;
-    triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
-    points_lines_program : GLuint;
-    triangles_normal_program : GLuint;
-    segments_normal_program : GLuint;
-    points_normal_program : GLuint;
-
     Background_Style :: enum #specified {
         SOLID_COLOR :: 0;
         CUSTOM_SHADER :: 1;
@@ -70,8 +63,8 @@ App :: struct {
 
     background_style := Background_Style.CUSTOM_SHADER;
     background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
-    background_program : GLuint;
-    background_vao : GLuint;
+
+    using render_info : App_Render_Info;
 
     show_ui := true;
     show_fps := false;
@@ -152,6 +145,24 @@ App :: struct {
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
     debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
+}
+
+App_Render_Info :: struct {
+    aabb_program : GLuint;
+    triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
+    points_lines_program : GLuint;
+    triangles_normal_program : GLuint;
+    segments_normal_program : GLuint;
+    points_normal_program : GLuint;
+
+    background_program : GLuint;
+    background_vao : GLuint;
+
+    ssao_program : GLuint;
+    ssao_vao : GLuint;
+    framebuffer : GLuint;
+    framebuffer_color : GLuint;
+    framebuffer_depth : GLuint;
 }
 
 Texture :: struct {
