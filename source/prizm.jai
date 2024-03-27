@@ -310,6 +310,8 @@ handle_events :: () {
 
                     app.current_window_width  = event.window.data1;
                     app.current_window_height = event.window.data2;
+
+                    resize_textures();
                 }
 
                 if event.window.event == SDL_WINDOWEVENT_MAXIMIZED {
