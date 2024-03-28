@@ -1487,7 +1487,7 @@ show_select_tool_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
 
-        entity.display_info.is_visible = true;
+        entity.display_info.is_visible = true; // nocommit :CleanupSelectTool Just set this is_visible state to do_tree?
 
         select_element :: (
             element_name : string,

@@ -147,7 +147,7 @@ main :: () {
         ImGui.PushFont(app.font_set.normal);
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
-        app.select_tool.entity.display_info.is_visible = false;
+        app.select_tool.entity.display_info.is_visible = false; // @Cleanup :CleanupSelectTool
 
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         show_menu_bar_ui();

@@ -443,6 +443,7 @@ MIN_EDGES_WIDTH_GL_LINE :: 1.;
 MIN_EDGES_WIDTH_GL_FILL :: 1.2;
 
 // Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
+// TODOO Maybe note the degenerate triangles when we parse the obj file and store them so we don't render all edges here... rendering all the edges with lines is ugly (it would be less ugly if we used quads strips to render lines).
 render_mesh_triangles_as_lines :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -504,10 +505,11 @@ render_mesh_triangles :: (
     glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
     glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
-
+    // nocommit Remove this
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
+    // nocommit Extract this
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -533,9 +535,11 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_
     glUniform1i(glGetUniformLocation(program, "clip_mode"), xx used_clip_mode);
     glUniform1f(glGetUniformLocation(program, "point_size"), xx point_style.size);
 
+    // nocommit Remove this
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
+    // nocommit Extract this
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -597,6 +601,7 @@ render_selections :: () {
 
     ScopeGlState();
 
+    // nocommit Remove this, can it even be triggered???
     if app.select_tool.entity.is_hovered {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
@@ -616,8 +621,8 @@ render_selections :: () {
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
     render_mesh_triangle_normals(mesh, *entity.render_info, entity.display_info);
 
-    projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
-
+    // projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
+    //
     // // We intentionally always all the text for selections since there usually aren't lots
     // // of overlapping ones and its annoying not to see everything. We also don't consider
     // // the clipping sphere (there is no way to set it right now, anyway) since this is also

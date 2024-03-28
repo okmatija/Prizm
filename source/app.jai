@@ -64,7 +64,7 @@ App :: struct {
     background_style := Background_Style.CUSTOM_SHADER;
     background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
 
-    using render_info : App_Render_Info;
+    using render_info : App_Render_Info; // nocommit Remove this using
 
     show_ui := true;
     show_fps := false;
@@ -148,6 +148,7 @@ App :: struct {
 }
 
 App_Render_Info :: struct {
+    // nocommit Rename _program to _shader
     aabb_program : GLuint;
     triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     points_lines_program : GLuint;
@@ -156,7 +157,7 @@ App_Render_Info :: struct {
     points_normal_program : GLuint;
 
     background_program : GLuint;
-    background_vao : GLuint;
+    background_vao : GLuint; // nocommit Consolidate with ssao_vao into quad_vao
 
     ssao_program : GLuint;
     ssao_vao : GLuint;
@@ -166,7 +167,7 @@ App_Render_Info :: struct {
 }
 
 Texture :: struct {
-    gl_handle : GLuint;
+    gl_handle : GLuint; // nocommit Rename to texture
     width : s32;
     height : s32;
 }
