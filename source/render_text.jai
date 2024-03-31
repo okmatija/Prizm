@@ -201,7 +201,6 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
 
     }
 
-    // @Cleanup The following block is duplicated in the labelling_mode functions
     draw_label_infos(entity, labels);
 }
 
@@ -492,6 +491,8 @@ Label_Info :: struct {
 }
 
 draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
+    push_allocator(temp);
+
     if !label_infos.count return;
 
     // @CompilerBug why is operator== not found??

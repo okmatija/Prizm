@@ -72,8 +72,10 @@ console_save_history :: () {
 
 console_load_history :: () {
     console_history_file, ok := read_entire_file("console_history.txt", zero_terminated=true, log_errors=false);
+    defer free(console_history_file);
     if ok {
-        file_lines := split(console_history_file, "\n");
+        file_lines : []string = split(console_history_file, "\n");
+        defer array_free(file_lines);
         for file_lines {
             if trim(it, " ") != "" {
                 console_add_history(it);
@@ -88,7 +90,7 @@ console_load_history :: () {
 console_history_clear :: () {
     for app.console.history free(it);
     array_reset(*app.console.history);
-    console_save_history();
+    console_save_history(); // Write an empty string
 } @RegisterCommand
 
 console_execute_command :: (_command : string) -> success : bool {
@@ -96,8 +98,10 @@ console_execute_command :: (_command : string) -> success : bool {
     defer console_save_history();
 
     p : Parser;
+    defer deinit(*p);
+
     p.data = _command;
-    p.tokens = get_tokens("console command", p.data);
+    p.tokens = get_tokens("console command", p.data,, temp); // Using temp ok here since command will be short
     p.current_token = 0;
 
     if p.tokens.count < 2 {
