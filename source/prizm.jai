@@ -4,8 +4,11 @@ main :: () {
 
     // Direct all logging into the console
     // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in first.jai so that the Windows program console is shown
+    // Note: Use the default logger with MEMORY_DEBUGGER since the debugger uses the log api to report errors and if you make a mistake where you alloc/free with different allocators causing the application to crash (there is an exit(1) called in _check_free in this case) you won't see messages printed to the console
+#if !USE_MEMORY_DEBUGGER {
     context.logger = console_logger;
     context.logger_data = *app.console.log;
+}
 
     // Gets the version info, used by print_usage_and_maybe_exit
     init_changelog();
@@ -202,6 +205,11 @@ main :: () {
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
+
+#if USE_MEMORY_DEBUGGER {
+    options : Leak_Report_Options;
+    report_memory_leaks(*options);
+}
 }
 
 print_usage_and_maybe_exit :: (error := "") {
