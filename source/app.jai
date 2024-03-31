@@ -198,7 +198,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
     if !result {
         array_add(*app.directories, folder);
 
-        path := parse_path(directory_path);
+        path := parse_path(directory_path,, temp);
         fully_exists, how_much_exists := how_much_of_path_exists_on_the_local_filesystem(path);
         if fully_exists {
             // Update the list of watched directories so that we can reload this entity

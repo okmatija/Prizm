@@ -717,10 +717,10 @@ set_clip_ranges_uniforms :: (shader : GLuint, using display_info : Display_Info)
     for 0..clip_ranges.count-1 {
         // @Cleanup We could use run directive here to get constant strings
         using clip_ranges[it];
-        glUniform3f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].min", it))), xx min);
-        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].max", it))), xx max);
-        glUniform1f(glGetUniformLocation(shader, to_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
+        glUniform3f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
+        glUniform1f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].min", it))), xx min);
+        glUniform1f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].max", it))), xx max);
+        glUniform1f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
     }
 }
 

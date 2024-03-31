@@ -1962,7 +1962,7 @@ SOFTWARE.
 DONE);
         }
 
-        if ImGui.TreeNodeEx(to_c_string(tprint("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch),, temp), .SpanAvailWidth) {
+        if ImGui.TreeNodeEx(temp_c_string(tprint("SDL %.%.%, zlib (libsdl.org)", sdl_version.major, sdl_version.minor, sdl_version.patch)), .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
             defer ImGui.PopStyleColor();
@@ -1987,7 +1987,7 @@ freely, subject to the following restrictions:
 DONE);
         }
 
-        if ImGui.TreeNodeEx(to_c_string(tprint("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion())),, temp), .SpanAvailWidth) {
+        if ImGui.TreeNodeEx(temp_c_string(tprint("ImGui %, MIT (github.com/ocornut/imgui)", to_string(ImGui.GetVersion()))), .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
             defer ImGui.PopStyleColor();
@@ -2076,7 +2076,7 @@ SOFTWARE.
 DONE);
         }
 
-        if ImGui.TreeNodeEx(to_c_string(tprint("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION),, temp), .SpanAvailWidth) {
+        if ImGui.TreeNodeEx(temp_c_string(tprint("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION)), .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
             defer ImGui.PopStyleColor();
@@ -2097,10 +2097,10 @@ show_changelog :: () {
         contents : string;
         defer free(contents);
         time := filetime_to_readable_date(current_time_consensus(), true);
-        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prizm application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time));
+        contents = join(contents, tprint("This Changelog was saved at % via a button in the Prizm application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time),, temp);
         for changelog {
             entry := tprint("# Version %, %\n%\n\n\n", it.name, it.date, it.description);
-            contents = join(contents, entry);
+            contents = join(contents, entry,, temp);
         }
         write_entire_file_to_cwd("CHANGELOG.md", contents);
     }

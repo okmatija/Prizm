@@ -38,7 +38,7 @@ Single_Key_Mapping :: struct {
 KEYBIND_TABLE_FLAGS :: ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
 
 ScopeKeyBindTable :: (table_id : string) -> ImGui.TableFlags #expand {
-    `ImGui.BeginTable(to_c_string(table_id), 2, flags=KEYBIND_TABLE_FLAGS);
+    `ImGui.BeginTable(temp_c_string(table_id), 2, flags=KEYBIND_TABLE_FLAGS);
     `defer ImGui.EndTable();
 }
 

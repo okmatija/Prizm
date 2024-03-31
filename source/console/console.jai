@@ -119,6 +119,8 @@ console_execute_command :: (_command : string) -> success : bool {
 
     command_name : string;
     command_args : [..]Any;
+    command_args.allocator = temp;
+
     procedure : ([]Any)->() = null;
     while !p.failed {
         tok := peek_token(*p);
@@ -262,8 +264,8 @@ show_console_ui :: () {
             }
 
             if ImGui.Button("Save to LOG.txt") {
+                push_allocator(temp);
                 contents : string;
-                defer free(contents); // @Leaks the intermediate allocations!?
                 time := filetime_to_readable_date(current_time_consensus(), true);
                 contents = join(contents, tprint("This console log was saved at % via a button in the Prizm application\n", time));
                 contents = join(contents, "Press '`' to open the console and find the button in the Options menu\n\n\n\n");

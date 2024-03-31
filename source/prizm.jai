@@ -17,7 +17,7 @@ main :: () {
         args := get_command_line_arguments();
         defer array_free(args);
         for 1..args.count-1 {
-            arg : string = to_lower_copy_new(args[it]);
+            arg : string = to_lower_copy_new(args[it],, temp);
 
             if arg.count >= 2 && arg[0] == #char "-" && arg[1] == #char "-" {
                 // @Volatile Sync with :PRIZM_ICON_COLORS
@@ -359,7 +359,7 @@ handle_events :: () {
 
                 // @Leak event.drop.file should be free'd using SDL_free
                 drop_file : string = to_string(event.drop.file);
-                dropped, success := canonically_formatted_path_string(drop_file);
+                dropped, success := canonically_formatted_path_string(drop_file,, temp);
                 if !success {
                     log_warning("Failed to read file path '%', maybe it doesn't exist?", drop_file);
                     continue;
@@ -410,7 +410,7 @@ handle_load_string :: (path : string, recursive := false) {
 
         directory_path := ifx path_directory_index >= 0 then slice(path, 0, path_directory_index) else ".";
 
-        abs_directory_path, abs_directory_path_valid := canonically_formatted_path_string(directory_path);
+        abs_directory_path, abs_directory_path_valid := canonically_formatted_path_string(directory_path,, temp);
         if !abs_directory_path_valid {
             log_error("Could not compute absolute path for '%', maybe this path does not exist?", directory_path);
             return;
@@ -425,7 +425,7 @@ handle_load_string :: (path : string, recursive := false) {
         defer array_free(files);
         for _file, file_index : files {
             file := _file;
-            file = canonically_formatted_path_string(file);
+            file = canonically_formatted_path_string(file,, temp);
             if wildcard_match(file, pattern) {
                 handle_filename(file, .IGNORE); // @TODO Perhaps this should be app.settings.duplicate_file_behaviour?
                 match_count += 1;
@@ -436,7 +436,7 @@ handle_load_string :: (path : string, recursive := false) {
 
     } else {
 
-        abs_path, abs_path_valid := canonically_formatted_path_string(path);
+        abs_path, abs_path_valid := canonically_formatted_path_string(path,, temp);
         if !abs_path_valid {
             log_error("Could not compute absolute path for '%', maybe this path does not exist?", path);
             return;

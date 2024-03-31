@@ -280,11 +280,11 @@ set_entity_primary_color :: (using entity : *Entity) {
 }
 
 // Assumes that fully_pathed_name is canonically formatted (see canonically_formatted_path_string)
-// Returns a string pointing into the argument
+// Returns a string in temporary storage
 entity_name :: (fully_pathed_name : string) -> string {
     name := fully_pathed_name;
 
-    path := parse_path(name);
+    path := parse_path(name,, temp);
     if path.words.count {
         name = path.words[path.words.count - 1];
     }
@@ -607,7 +607,7 @@ color_from_path :: (path : string) -> Vector4 {
     to_hash : string;
     if app.settings.color_from_path_behaviour == {
         case .FILENAME_ONLY;
-            parsed := parse_path(path);
+            parsed := parse_path(path,, temp);
             to_hash = parsed.words[parsed.words.count - 1];
         case .FULLY_PATHED_FILENAME;
             to_hash = path;
