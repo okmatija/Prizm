@@ -429,8 +429,7 @@ handle_load_string :: (path : string, recursive := false) {
 
         match_count := 0;
 
-        files := file_list(abs_directory_path, recursive=recursive, follow_symlinks=false);
-        defer array_free(files);
+        files := file_list(abs_directory_path, recursive=recursive, follow_symlinks=false,, temp);
         for _file, file_index : files {
             file := _file;
             file = canonically_formatted_path_string(file,, temp);

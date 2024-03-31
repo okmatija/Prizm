@@ -592,7 +592,7 @@ preset_shape_proc :: ($NAME : string, $FILENAME : string, $RANDOMIZE : ()->bool)
     CONTENTS, OK :: #run read_entire_file(FILENAME);
     #assert(OK); // If this fails then FILENAME is probably invalid
 
-    results : [..]*Entity = load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
+    results : []*Entity = load_one_file_from_memory(FILENAME, CONTENTS, NAME, app.settings.duplicate_file_behaviour);
     if !results.count {
         return null;
     }
