@@ -107,7 +107,7 @@ main :: () {
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
-    ImGui_Impl_CreateContext();
+    ImGui_Impl_CreateContext(set_default_allocators=false); // @Think @CompilerBug? Using set_default_allocators=true here causes a crash when running with Memory_Debugger.
     assert(imgui_context != null, "must call create context");
     ImGui.SetCurrentContext(imgui_context);
 
@@ -241,7 +241,7 @@ if OS == .WINDOWS { // See :DisableRuntimeConsoleCleanup
 // @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {
 
-    // @CompilerBug for .\Prizm.exe 'C:\Users\MatijaKecman\Desktop\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
+    // @CompilerBug for .\Prizm.exe 'C:\Dev\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
@@ -535,9 +535,9 @@ handle_directory :: (path : string) {
         pending.set_auto_reload_on_newly_loaded_files = true;
     }
     pending.path = copy_string(path);
+    this_allocation_is_not_a_leak(pending.path.data); // When we close the application we can just drop this memory
 
-    files := file_list(path, recursive=false, follow_symlinks=false);
-    defer array_free(files);
+    files := file_list(path, recursive=false, follow_symlinks=false,, temp);
     not_loadable_count := 0;
     for file : files {
         if supported_format(file) {

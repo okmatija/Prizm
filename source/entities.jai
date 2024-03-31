@@ -292,7 +292,7 @@ entity_name :: (fully_pathed_name : string) -> string {
     return name;
 }
 
-// Returns a string pointing into entity.fully_pathed_name
+// Returns a string in temporary storage, or a constant string literal "---"
 entity_name :: (entity : Entity) -> string {
     name := entity_name(get_entity_source(entity).path);
     if name.count return name;

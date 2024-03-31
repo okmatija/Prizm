@@ -2095,7 +2095,6 @@ DONE);
 show_changelog :: () {
     if ImGui.Button("Save to CHANGELOG.md") {
         contents : string;
-        defer free(contents);
         time := filetime_to_readable_date(current_time_consensus(), true);
         contents = join(contents, tprint("This Changelog was saved at % via a button in the Prizm application\nFor a nicer reading experience consider pasting this file into https://markdownlivepreview.com\n\n\n", time),, temp);
         for changelog {

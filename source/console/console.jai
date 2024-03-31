@@ -53,6 +53,7 @@ console_add_history :: (format_string: string, args: .. Any) {
     print_to_builder(*builder, format_string, ..args);
 
     text := builder_to_string(*builder);
+    this_allocation_is_not_a_leak(text.data); // When we close the application we can just drop this memory
 
     // Insert into history. First find match and delete it so it can be pushed to the back.
     for app.console.history {

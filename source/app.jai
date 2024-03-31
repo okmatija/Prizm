@@ -162,8 +162,8 @@ Texture :: struct {
 
 // @Incomplete Deduplicate file watcher directories on linux
 
-deinit :: (directory : app.Folder) {
-    free(directory.path);
+deinit :: (folder : app.Folder) {
+    free(folder.path);
 }
 
 deinit :: (pending : app.Pending_Directory) {
@@ -188,6 +188,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
 
     folder : app.Folder;
     folder.path = copy_string(directory_path);
+    this_allocation_is_not_a_leak(folder.path.data); // When we close the application we can just drop this memory
 
     for * app.directories {
         if it.path == folder.path {
