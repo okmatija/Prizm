@@ -62,19 +62,18 @@ deinit :: (using mesh : *Simple_Mesh) {
         if base_attr.type == {
             case Simple_Mesh_Triangle_Normals;
                 attr := cast(*Simple_Mesh_Triangle_Normals)base_attr;
-                array_reset(*attr.values);
+                deinit(attr);
             case Simple_Mesh_Segment_Normals;
                 attr := cast(*Simple_Mesh_Segment_Normals)base_attr;
-                array_reset(*attr.values);
+                deinit(attr);
             case Simple_Mesh_Point_Normals;
                 attr := cast(*Simple_Mesh_Point_Normals)base_attr;
-                array_reset(*attr.values);
+                deinit(attr);
             case;
                 log_warning("Unhandled attribute type '%' deinit function", base_attr.type);
         }
     }
-
-    mesh = null;
+    array_reset(*attributes);
 }
 
 // Intentionally not implemented: Keep it simple and just deinit the mesh!
@@ -465,11 +464,10 @@ add_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_
 }
 
 remove_mesh_attribute :: (mesh : *Simple_Mesh, attribute_name : string, $attribute_type : Type)  {
-    remove_index := -1;
     for mesh.attributes {
         if it.type == attribute_type && it.name == attribute_name {
             attr := cast(*attribute_type)it;
-            array_reset(*attr.values);
+            deinit(attr);
             remove it;
             break;
         }
@@ -778,4 +776,11 @@ compact_mesh :: (mesh : *Simple_Mesh) {
     // Update the number of vertices
     mesh.positions.count = cursor;
 
+}
+
+#scope_file
+
+deinit :: (attr : *$T/Simple_Mesh_Attribute) {
+    array_reset(*attr.values);
+    free(attr);
 }
