@@ -4,8 +4,11 @@ main :: () {
 
     // Direct all logging into the console
     // Note: For debugging you may want to comment these lines and use the default logger, you'll also need to comment the disable_runtime_console() line in first.jai so that the Windows program console is shown
+    // Note: Use the default logger with MEMORY_DEBUGGER since the debugger uses the log api to report errors and if you make a mistake where you alloc/free with different allocators causing the application to crash (there is an exit(1) called in _check_free in this case) you won't see messages printed to the console
+#if !USE_MEMORY_DEBUGGER {
     context.logger = console_logger;
     context.logger_data = *app.console.log;
+}
 
     // Gets the version info, used by print_usage_and_maybe_exit
     init_changelog();
@@ -17,7 +20,7 @@ main :: () {
         args := get_command_line_arguments();
         defer array_free(args);
         for 1..args.count-1 {
-            arg : string = to_lower_copy_new(args[it]);
+            arg : string = to_lower_copy_new(args[it],, temp);
 
             if arg.count >= 2 && arg[0] == #char "-" && arg[1] == #char "-" {
                 // @Volatile Sync with :PRIZM_ICON_COLORS
@@ -104,7 +107,7 @@ main :: () {
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
-    ImGui_Impl_CreateContext();
+    ImGui_Impl_CreateContext(set_default_allocators=false); // @Think @CompilerBug? Using set_default_allocators=true here causes a crash when running with Memory_Debugger.
     assert(imgui_context != null, "must call create context");
     ImGui.SetCurrentContext(imgui_context);
 
@@ -220,6 +223,11 @@ main :: () {
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
+
+#if USE_MEMORY_DEBUGGER {
+    options : Leak_Report_Options;
+    report_memory_leaks(*options);
+}
 }
 
 print_usage_and_maybe_exit :: (error := "") {
@@ -251,7 +259,7 @@ if OS == .WINDOWS { // See :DisableRuntimeConsoleCleanup
 // @Incomplete @FIXME Load files first so that if a directory and a file in that directory are both passed, the directory will correctly mention the file is loaded
 load_from_command_line :: () {
 
-    // @CompilerBug for .\Prizm.exe 'C:\Users\MatijaKecman\Desktop\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
+    // @CompilerBug for .\Prizm.exe 'C:\Dev\TestShapes - Copy\' we get a result with a trailing ", maybe its the shell, maybe its this function..??
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
@@ -381,7 +389,7 @@ handle_events :: () {
 
                 // @Leak event.drop.file should be free'd using SDL_free
                 drop_file : string = to_string(event.drop.file);
-                dropped, success := canonically_formatted_path_string(drop_file);
+                dropped, success := canonically_formatted_path_string(drop_file,, temp);
                 if !success {
                     log_warning("Failed to read file path '%', maybe it doesn't exist?", drop_file);
                     continue;
@@ -432,7 +440,7 @@ handle_load_string :: (path : string, recursive := false) {
 
         directory_path := ifx path_directory_index >= 0 then slice(path, 0, path_directory_index) else ".";
 
-        abs_directory_path, abs_directory_path_valid := canonically_formatted_path_string(directory_path);
+        abs_directory_path, abs_directory_path_valid := canonically_formatted_path_string(directory_path,, temp);
         if !abs_directory_path_valid {
             log_error("Could not compute absolute path for '%', maybe this path does not exist?", directory_path);
             return;
@@ -443,11 +451,10 @@ handle_load_string :: (path : string, recursive := false) {
 
         match_count := 0;
 
-        files := file_list(abs_directory_path, recursive=recursive, follow_symlinks=false);
-        defer array_free(files);
+        files := file_list(abs_directory_path, recursive=recursive, follow_symlinks=false,, temp);
         for _file, file_index : files {
             file := _file;
-            file = canonically_formatted_path_string(file);
+            file = canonically_formatted_path_string(file,, temp);
             if wildcard_match(file, pattern) {
                 handle_filename(file, .IGNORE); // @TODO Perhaps this should be app.settings.duplicate_file_behaviour?
                 match_count += 1;
@@ -458,7 +465,7 @@ handle_load_string :: (path : string, recursive := false) {
 
     } else {
 
-        abs_path, abs_path_valid := canonically_formatted_path_string(path);
+        abs_path, abs_path_valid := canonically_formatted_path_string(path,, temp);
         if !abs_path_valid {
             log_error("Could not compute absolute path for '%', maybe this path does not exist?", path);
             return;
@@ -550,9 +557,9 @@ handle_directory :: (path : string) {
         pending.set_auto_reload_on_newly_loaded_files = true;
     }
     pending.path = copy_string(path);
+    this_allocation_is_not_a_leak(pending.path.data); // When we close the application we can just drop this memory
 
-    files := file_list(path, recursive=false, follow_symlinks=false);
-    defer array_free(files);
+    files := file_list(path, recursive=false, follow_symlinks=false,, temp);
     not_loadable_count := 0;
     for file : files {
         if supported_format(file) {

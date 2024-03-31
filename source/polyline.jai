@@ -19,7 +19,6 @@ clear :: (shape : *$T/Polyline) {
 deinit :: (shape : *$T/Polyline) {
     if !shape return;
     array_reset(*shape.points);
-    shape = null;
 }
 
 is_empty :: (polyline : $T/Polyline) -> bool #must {
@@ -57,7 +56,6 @@ deinit :: (shape : *$T/Polyline_Soup) {
     if !shape return;
     for * shape.polylines deinit(it);
     array_reset(*shape.polylines);
-    shape = null; // @Cleanup is this necessary?? Is it even correct!? with stack/heap variables
 }
 
 append_copy :: (dest : *$T/Polyline_Soup, to_copy : T) {

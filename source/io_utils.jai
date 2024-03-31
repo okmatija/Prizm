@@ -84,7 +84,10 @@ Obj_Vertex_References :: struct {
     normal  : [..]Obj_Index;
 }
 
+// The result is allocated in temporary storage
 parse_vertex_references :: (p : *Parser) -> Obj_Vertex_References {
+    push_allocator(temp);
+
     refs : Obj_Vertex_References;
 
     current_line := peek_token(p).line_number;
@@ -115,7 +118,10 @@ parse_vertex_references :: (p : *Parser) -> Obj_Vertex_References {
     return refs;
 }
 
+// The result is allocated in temporary storage
 parse_polyline :: (p : *Parser) -> [..]Obj_Index {
+    push_allocator(temp);
+
     result : [..]Obj_Index;
 
     current_line := peek_token(p).line_number;

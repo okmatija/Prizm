@@ -280,11 +280,11 @@ set_entity_primary_color :: (using entity : *Entity) {
 }
 
 // Assumes that fully_pathed_name is canonically formatted (see canonically_formatted_path_string)
-// Returns a string pointing into the argument
+// Returns a string in temporary storage
 entity_name :: (fully_pathed_name : string) -> string {
     name := fully_pathed_name;
 
-    path := parse_path(name);
+    path := parse_path(name,, temp);
     if path.words.count {
         name = path.words[path.words.count - 1];
     }
@@ -292,7 +292,7 @@ entity_name :: (fully_pathed_name : string) -> string {
     return name;
 }
 
-// Returns a string pointing into entity.fully_pathed_name
+// Returns a string in temporary storage, or a constant string literal "---"
 entity_name :: (entity : Entity) -> string {
     name := entity_name(get_entity_source(entity).path);
     if name.count return name;
@@ -607,7 +607,7 @@ color_from_path :: (path : string) -> Vector4 {
     to_hash : string;
     if app.settings.color_from_path_behaviour == {
         case .FILENAME_ONLY;
-            parsed := parse_path(path);
+            parsed := parse_path(path,, temp);
             to_hash = parsed.words[parsed.words.count - 1];
         case .FULLY_PATHED_FILENAME;
             to_hash = path;
@@ -1022,8 +1022,8 @@ num_selected_entities :: () -> int {
     return count;
 }
 
-load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> [..]*Entity {
-    results : [..]*Entity;
+load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Behaviour) -> []*Entity {
+    results : []*Entity;
 
     check, check_ok := is_directory(filename);
     if check || !check_ok {
@@ -1055,8 +1055,8 @@ load_one_file :: (filename : string, matching_name_behaviour : Duplicate_File_Be
 }
 
 // @Cleanup rename to load_from_memory, and rename the filename argument..? or add another name parameter (or just set that after HMMMM)
-load_one_file_from_memory :: (filename : string, contents : string, name : string, matching_name_behaviour : Duplicate_File_Behaviour) -> [..]*Entity {
-    results : [..]*Entity;
+load_one_file_from_memory :: (filename : string, contents : string, name : string, matching_name_behaviour : Duplicate_File_Behaviour) -> []*Entity {
+    results : []*Entity;
 
     if !contents {
         log_warning("Skipped file: '%' (empty or missing)\n", filename);
@@ -1323,8 +1323,8 @@ Entity_Source_Selection :: struct {
 
 #scope_file
 
-load_one_file_from_memory :: (filename : string, contents : string, name : string) -> [..]*Entity {
-    results : [..]*Entity;
+load_one_file_from_memory :: (filename : string, contents : string, name : string) -> []*Entity {
+    results : []*Entity;
 
     // @Refactor Improve the log messaging during file loading e.g., with indents after this message
     log("Loading file '%'...", filename);

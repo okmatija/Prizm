@@ -13,20 +13,21 @@ Don't remove leading spaces from BLOCK type annotations, so that formatting is b
 // @Cleanup Read shape from an obj and then turn that into a mesh?!
 // @Incomplete Parameter to enable objs with segments to not get converted to polylines?
 
-// @Incomplete use the temp allocator for all intermediate allocation? see the memory management how_to
-load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
+// The returned array is in temporary storage, the array elements are allocated with context.allocator
+load_obj :: (filename : string, data : string, name : string) -> []*Entity {
     results : [..]*Entity;
+    results.allocator = temp;
     if !data {
         log(" File was empty");
         return results;
     }
 
     parser : Parser; // TODO Give the filename here too, so it can be used to report errors
+    defer deinit(*parser);
+
     parser.data = data;
     parser.tokens = get_tokens(filename, parser.data, obj_style_comments=true);
     parser.current_token = 0;
-
-    defer deinit(*parser);
 
     //for tok : parser.tokens {
     //    if tok.type == {
@@ -483,8 +484,7 @@ load_obj :: (filename : string, data : string, name : string) -> [..]*Entity {
                 annotation : Annotation;
                 annotation.kind = .BLOCK;
                 annotation.id = current_line;
-                value : string = join(..block, "\n");
-                defer free(value);
+                value : string = join(..block, "\n",, temp);
                 if set_annotation_value(*annotation, value) {
                     array_add(*block_annotations, annotation);
                 }

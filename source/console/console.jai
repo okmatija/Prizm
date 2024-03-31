@@ -53,6 +53,7 @@ console_add_history :: (format_string: string, args: .. Any) {
     print_to_builder(*builder, format_string, ..args);
 
     text := builder_to_string(*builder);
+    this_allocation_is_not_a_leak(text.data); // When we close the application we can just drop this memory
 
     // Insert into history. First find match and delete it so it can be pushed to the back.
     for app.console.history {
@@ -72,8 +73,10 @@ console_save_history :: () {
 
 console_load_history :: () {
     console_history_file, ok := read_entire_file("console_history.txt", zero_terminated=true, log_errors=false);
+    defer free(console_history_file);
     if ok {
-        file_lines := split(console_history_file, "\n");
+        file_lines : []string = split(console_history_file, "\n");
+        defer array_free(file_lines);
         for file_lines {
             if trim(it, " ") != "" {
                 console_add_history(it);
@@ -88,7 +91,7 @@ console_load_history :: () {
 console_history_clear :: () {
     for app.console.history free(it);
     array_reset(*app.console.history);
-    console_save_history();
+    console_save_history(); // Write an empty string
 } @RegisterCommand
 
 console_execute_command :: (_command : string) -> success : bool {
@@ -96,8 +99,10 @@ console_execute_command :: (_command : string) -> success : bool {
     defer console_save_history();
 
     p : Parser;
+    defer deinit(*p);
+
     p.data = _command;
-    p.tokens = get_tokens("console command", p.data);
+    p.tokens = get_tokens("console command", p.data,, temp); // Using temp ok here since command will be short
     p.current_token = 0;
 
     if p.tokens.count < 2 {
@@ -119,6 +124,8 @@ console_execute_command :: (_command : string) -> success : bool {
 
     command_name : string;
     command_args : [..]Any;
+    command_args.allocator = temp;
+
     procedure : ([]Any)->() = null;
     while !p.failed {
         tok := peek_token(*p);
@@ -262,8 +269,8 @@ show_console_ui :: () {
             }
 
             if ImGui.Button("Save to LOG.txt") {
+                push_allocator(temp);
                 contents : string;
-                defer free(contents); // @Leaks the intermediate allocations!?
                 time := filetime_to_readable_date(current_time_consensus(), true);
                 contents = join(contents, tprint("This console log was saved at % via a button in the Prizm application\n", time));
                 contents = join(contents, "Press '`' to open the console and find the button in the Options menu\n\n\n\n");

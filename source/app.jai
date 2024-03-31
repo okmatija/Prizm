@@ -174,8 +174,8 @@ Texture :: struct {
 
 // @Incomplete Deduplicate file watcher directories on linux
 
-deinit :: (directory : app.Folder) {
-    free(directory.path);
+deinit :: (folder : app.Folder) {
+    free(folder.path);
 }
 
 deinit :: (pending : app.Pending_Directory) {
@@ -200,6 +200,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
 
     folder : app.Folder;
     folder.path = copy_string(directory_path);
+    this_allocation_is_not_a_leak(folder.path.data); // When we close the application we can just drop this memory
 
     for * app.directories {
         if it.path == folder.path {
@@ -210,11 +211,11 @@ add_directory :: (directory_path : string) -> *app.Folder {
     if !result {
         array_add(*app.directories, folder);
 
-        path := parse_path(directory_path);
+        path := parse_path(directory_path,, temp);
         fully_exists, how_much_exists := how_much_of_path_exists_on_the_local_filesystem(path);
         if fully_exists {
             // Update the list of watched directories so that we can reload this entity
-            add_directories(*app.file_watcher, folder.path);
+            add_directories(*app.file_watcher, folder.path); // @Leak
         }
 
         result = *app.directories[app.directories.count - 1];
@@ -395,9 +396,7 @@ get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
     return app.font_set.normal;
 }
 
-
-#import "Basic";
-// #import "Basic"()(MEMORY_DEBUGGER=true);
+#import "Basic"()(MEMORY_DEBUGGER=USE_MEMORY_DEBUGGER);
 #import "File";
 #import "File_Watcher";
 #import "File_Utilities";

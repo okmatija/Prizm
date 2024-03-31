@@ -910,6 +910,7 @@ item_find_open_edges :: (item_index : int, new_item : int = 1) {
 
     // Collect the segment soup @Incomplete weld/stitch polyline segments together
     polyline_soup : Polyline_Soup3;
+    defer deinit(*polyline_soup);
     for origin, edge : edge_to_origin {
         segment := array_add(*polyline_soup.polylines);
         // Copy model space coordinates because the transform is encoded separately
