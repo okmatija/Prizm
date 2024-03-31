@@ -203,7 +203,7 @@ add_directory :: (directory_path : string) -> *app.Folder {
         fully_exists, how_much_exists := how_much_of_path_exists_on_the_local_filesystem(path);
         if fully_exists {
             // Update the list of watched directories so that we can reload this entity
-            add_directories(*app.file_watcher, folder.path);
+            add_directories(*app.file_watcher, folder.path); // @Leak
         }
 
         result = *app.directories[app.directories.count - 1];
