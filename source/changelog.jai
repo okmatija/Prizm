@@ -30,10 +30,10 @@ DONE};
 
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 
-* Removed the solid color option for triangle rendering, it was not useful
+* Removed the useless solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 DONE};
 
-PRIZM_VERSION_0_9_2 :: Version.{"0.9.2", "WIP", #string DONE
+PRIZM_VERSION_0_9_2 :: Version.{"0.9.2", "31 March 2024", #string DONE
 
 * Fixed some memory leaks
 DONE};
