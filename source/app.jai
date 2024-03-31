@@ -383,9 +383,7 @@ get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
     return app.font_set.normal;
 }
 
-
-#import "Basic";
-// #import "Basic"()(MEMORY_DEBUGGER=true);
+#import "Basic"()(MEMORY_DEBUGGER=USE_MEMORY_DEBUGGER);
 #import "File";
 #import "File_Watcher";
 #import "File_Utilities";

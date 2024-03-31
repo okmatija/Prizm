@@ -6,6 +6,7 @@ HELP_STRING :: #string DONE
 
 Build Options:
   help       print this help message
+  verydebug  build debug mode with the memory debugger enabled
   debug      build debug mode (default)
   release    build release mode
   shipping   build release mode, set application icon and bundle zip file
@@ -112,8 +113,16 @@ build :: () {
 
         for plugins if it.add_source it.add_source(it);
 
-        add_build_string(tprint("OUTPUT_EXE_NAME :: \"%\";", build_options.output_executable_name), w);
         add_build_file("source/prizm.jai", w);
+
+        build_constants := tprint(#string DONE
+OUTPUT_EXE_NAME :: "%";
+USE_MEMORY_DEBUGGER :: %;
+DONE,
+                build_options.output_executable_name,
+                ifx HasArgument("verydebug") then "true"  else "false",
+        );
+        add_build_string(build_constants, w);
 
         while true {
             message : *Message = compiler_wait_for_message();
@@ -280,9 +289,8 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                 documentation = join(documentation, it, separator="\n");
             }
 
-            // @Leak
-            usage = escape(usage);
-            documentation = escape(documentation);
+            usage = escape(usage); // @Leak
+            documentation = escape(documentation); // @Leak
         }
 
         Print("    {\n");
