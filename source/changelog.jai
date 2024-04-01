@@ -1,3 +1,101 @@
+/*
+
+Goal: Implement SSAO in a way which is compatible with depth peeling
+
+
+
+Current state is Forward renderer:
+for items {
+    render_item(item);
+        render_triangles(item);
+        render_triangle_edges(item);
+        render_triangle_normals(item);
+        render_segments(item);
+        render_segment_normals(item);
+        render_points(item);
+        render_point_normals(item);
+}
+
+
+
+Target state is deferred renderer with SSAO:
+
+
+
+for items {
+    render_geometry_pass(item, *gbuffer);
+}
+render_ssao_pass(gbuffer, *ssao);
+render_ssao_blur_pass(ssao, *ssao_blurred);
+render_lighting_pass(gbuffer, ssao_blurred);
+
+
+
+Target state is deferred renderer with SSAO and Depth Peeling:
+
+
+
+for items if opaque {
+    render_pass_item(item, *gbuffer_opaque);
+}
+// Compute AO for the opaque geometry, we would like to modulate that with the transparent geometry
+render_pass_screen(gbuffer_opaque, *ssao);
+render_pass_screen(ssao, *ssao_blurred);
+render_pass_screen(ssao_blurred);
+
+for peel_pass {
+    for items if transparent {
+        render_pass_item(item, gbuffer_opaque, *gbuffer);
+    }
+    // Maybe just skip ssao for transparent geometry initially
+    // render_ssao_pass(gbuffer, *ssao);
+    // render_ssao_blur_pass(ssao, *ssao_blurred);
+    // render_lighting_pass(gbuffer, ssao_blurred);
+}
+render_final_pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
 // This is not in App since we use it in the build program as well (we just need the version name there actually)
 changelog : [..]Version;
 
@@ -22,15 +120,34 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODOOOOO Fix long change logs being truncated
     * Is there a bug with reloading vertex data????
     * TODO Fix a bug where escaped quotes in string arguments are not supported
+    * TODO Don't add command annotations to the console history
     * TODO Support booleans in command arguments
     * TODO Fix scrolling in the item list, somehow this broke and you need to scroll via the scrollbar
     * TODO Fix the focus button for point elements
     * TODO Try ,link_always on windows? Do we need to compile SDL as a static library..?
+    * TODO Change defaults so all geometry is visible? This will help with using Prizm as a modeling tool application, if you start with vertices and keep saving the obj and then add a triangle, right now you need to manually toggle the triangle rendering via the details panel
+    * TODO Support texture coordinates
+    * TODO Commands to inset rendering? or maybe move triangles along faces, do this for selections so there is no z-fighting? But ONLY for rendering...
+    * TODO Implement a system to write custom shaders for triangle rendering and backface rendering
+    * TODO Rename Blinn-Plong to just Lit and expose Normal/BaseColor(Albedo)/Lit rendering modes to cycle though
+    * TODO Cleanup where the binaries/libaries are stored, to unclutter the top-level directory. Look at Unreal/Focus
+------------------------------
+    * Show only the portion of folder names which distinguishes the folder, otherwise it gets very long
+    * MacOS support
+    * mp4 videos on the wiki
+    * Fix spotlight labels being visible when they are occuluded
+    * Pin labels while rotating/panning the camera
 DONE};
 
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 
-* Removed the useless solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
+* Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
+* TODO Per entity text label mode, so you can easily turn on labels all the time
+* TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
+* TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)
+* TODO Use complementary colors for backfacing triangles
+* TODO Change hotkeys for loading shapes from F1-F4 to just 1-4. Later we can make F1 help and F2 rename items?
+* TODO Make the menus that popup in the Details view movable, especially the clipping one, its annoying not to be visible. Or maybe remove the option to toggle between the menu/tree and make menu turn into tree if clicked, and tree turn into menu if closed
 DONE};
 
 PRIZM_VERSION_0_9_2 :: Version.{"0.9.2", "31 March 2024", #string DONE

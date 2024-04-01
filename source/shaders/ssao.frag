@@ -1,61 +1,62 @@
 #version 330 core
-out vec4 frag_color;
+
+out float frag_color;
 
 in vec2 tex_coords;
 
-uniform sampler2D screen_texture;
+uniform sampler2D tex_position;
+uniform sampler2D tex_normal;
+uniform sampler2D tex_noise;
 
-void main() {
+uniform vec3 samples[64]; // @Volatile samples <> kernel_size
+
+uniform float window_width;
+uniform float window_height;
+
+// TODO make these uniforms
+int kernel_size = 64; // @Volatile samples <> kernel_size
+float radius = 0.5;
+float bias = 0.025;
+
+uniform mat4 projection;
+
+void main()
+{
+    // Tile noise texture over screen based on screen dimensions divided by noise size
+    vec2 noise_scale = vec2(window_width/4.0, window_height/4.0); 
+
+    // get input for SSAO algorithm
+    vec3 frag_position = texture(tex_position, tex_coords).xyz;
+    vec3 normal = normalize(texture(tex_normal, tex_coords).rgb);
+    vec3 noise_offset = normalize(texture(tex_noise, tex_coords * noise_scale).xyz);
+
+    // create TBN change-of-basis matrix: from tangent-space to view-space
+    vec3 tangent = normalize(noise_offset - normal * dot(noise_offset, normal));
+    vec3 bi_tangent = cross(normal, tangent);
+    mat3 TBN = mat3(tangent, bi_tangent, normal);
     
-    frag_color = texture(screen_texture, tex_coords);
-    
-    // Color inversion
-    /*
-    frag_color = vec4(vec3(1.0 - texture(screen_texture, tex_coords)), 1.0);
-    */
-
-    // Grey scale
-    /*
-    frag_color = texture(screen_texture, tex_coords);
-    float average = 0.2126 * frag_color.r + 0.7152 * frag_color.g + 0.0722 * frag_color.b;
-    frag_color = vec4(average, average, average, 1.0);
-    */
-
-    // Confirm texture coordinates
-    /*
-    frag_color = vec4(tex_coords.x, tex_coords.y, 0, 1);
-    */
-
-    // Blur
-    /*
-    const float offset = 1. / 300.;
-    vec2 offsets[9] = vec2[](
-        vec2(-offset,  offset), // top-left
-        vec2( 0.0f,    offset), // top-center
-        vec2( offset,  offset), // top-right
-        vec2(-offset,  0.0f),   // center-left
-        vec2( 0.0f,    0.0f),   // center-center
-        vec2( offset,  0.0f),   // center-right
-        vec2(-offset, -offset), // bottom-left
-        vec2( 0.0f,   -offset), // bottom-center
-        vec2( offset, -offset)  // bottom-right    
-    );
-
-    float kernel[9] = float[](
-        -1, -1, -1,
-        -1,  9, -1,
-        -1, -1, -1
-    );
-
-    vec3 sampleTex[9];
-    for(int i = 0; i < 9; i++)
+    // iterate over the sample kernel and calculate occlusion factor
+    float occlusion = 0.0;
+    for(int i = 0; i < kernel_size; ++i)
     {
-        sampleTex[i] = vec3(texture(screen_texture, tex_coords.st + offsets[i]));
+        // Get sample position
+        vec3 sample_position = TBN * samples[i]; // from tangent to view-space
+        sample_position = frag_position + samplePos * radius; 
+        
+        // Project sample position (to sample texture) (to get position on screen/texture)
+        vec4 offset = vec4(sample_position, 1.0);
+        offset = projection * offset; // From view to clip-space
+        offset.xyz /= offset.w; // Perspective divide
+        offset.xyz = offset.xyz * 0.5 + 0.5; // Transform to range [0, 1]
+        
+        // Get sample depth
+        float sample_depth = texture(tex_position, offset.xy).z; // get depth value of kernel sample
+        
+        // Range check and accumulate
+        float range_check = smoothstep(0.0, 1.0, radius / abs(frag_position.z - sample_depth));
+        occlusion += (sample_depth >= sample_position.z + bias ? 1.0 : 0.0) * range_check;           
     }
-    vec3 col = vec3(0.0);
-    for(int i = 0; i < 9; i++)
-        col += sampleTex[i] * kernel[i];
+    occlusion = 1.0 - (occlusion / kernel_size);
     
-    frag_color = vec4(col, 1.0);
-    */
+    frag_color = occlusion;
 }

@@ -551,35 +551,6 @@ render_entities :: () {
 
     ScopeGlState();
 
-    render_entity_geometry :: (entity : *Entity, entity_index : int) {
-        ri := *entity.render_info;
-        di :=  entity.display_info;
-
-        clip_radius_mode := entity_in_clip_radius_mode(entity_index);
-        clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
-
-        render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
-        render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_mesh_triangle_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
-        render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
-        render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_mesh_point_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
-        render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-
-        if di.aabb_visible {
-            render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
-        }
-    }
-
-    not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
-    not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
-    not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
-
-    VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
-    VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
-    VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
-
     for :VisibleOpaque      app.entities render_entity_geometry(it, it_index);
     for :VisibleTransparent app.entities render_entity_geometry(it, it_index);
 
@@ -742,6 +713,35 @@ set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info,
         glUniform3f(glGetUniformLocation(shader, "clip_sphere_prev.center"), center.x, center.y, center.z);
         glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.radius"), xx radius);
         glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.is_active"), xx is_active);
+    }
+}
+
+not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
+not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
+not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
+
+VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
+VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
+VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
+
+render_entity_geometry :: (entity : *Entity, entity_index : int) {
+    ri := *entity.render_info;
+    di :=  entity.display_info;
+
+    clip_radius_mode := entity_in_clip_radius_mode(entity_index);
+    clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
+
+    render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
+    render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+    render_mesh_triangle_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+    render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+    render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+    render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+    render_mesh_point_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+    render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+
+    if di.aabb_visible {
+        render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
     }
 }
 

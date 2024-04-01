@@ -14,7 +14,36 @@ to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -
 resize_textures :: () {
     w, h : u32 = cast(u32)app.current_window_width, cast(u32)app.current_window_height;
 
-    glBindTexture(GL_TEXTURE_2D, app.render_info.framebuffer_color);
+    {
+        // position color buffer
+        glBindTexture(GL_TEXTURE_2D, gbuffer_position_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // normal color buffer
+        glBindTexture(GL_TEXTURE_2D, gbuffer_normal_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gbuffer_normal_texture, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // color and opacity (@Incomplete) color buffer
+        glGenTextures(1, *gbuffer_albedo_texture);
+        glBindTexture(GL_TEXTURE_2D, gbuffer_albedo_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    /*
+    {
+    glBindTexture(GL_TEXTURE_2D, app.ssao_color_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -24,25 +53,70 @@ resize_textures :: () {
 
     // nocommit See this depth peeling implementation here:
     // https://github.com/tsherif/webgl2examples/blob/da1153a15ebc09bb13498e5f732ef2036507740c/oit-dual-depth-peeling.html#L400-L408
-    glBindTexture(GL_TEXTURE_2D, app.render_info.framebuffer_depth);
+    glBindTexture(GL_TEXTURE_2D, app.ssao_blur_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    */
 }
 
 init_render_backend :: () {
 
     //
-    // Init framebuffer
+    // Init GBuffer framebuffer
     //
 
+    {
+        glGenFramebuffers(1, *gbuffer_framebuffer);
+        glGenTextures(1, *gbuffer_position_texture);
+        glGenTextures(1, *gbuffer_normal_texture);
+        glGenTextures(1, *gbuffer_albedo_texture);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, gbuffer_framebuffer);
+
+        // position color buffer
+        glBindTexture(GL_TEXTURE_2D, gbuffer_position_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer_position_texture, 0);
+
+        // normal color buffer
+        glBindTexture(GL_TEXTURE_2D, gbuffer_normal_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gbuffer_normal_texture, 0);
+
+        // color buffer Note: opacity is handled in a separate forward renderer (@Incomplete)
+        glGenTextures(1, *gbuffer_albedo_texture);
+        glBindTexture(GL_TEXTURE_2D, gbuffer_albedo_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_albedo_texture, 0);
+
+        // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+        attachments : [3]GLEnum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2];
+        glDrawBuffers(3, attachments.data);
+    }
+
+    //
+    // Init SSAO framebuffer
+    //
+
+    /*
     {
         glGenFramebuffers(1, *app.render_info.framebuffer);
         glGenTextures(1, *app.render_info.framebuffer_color);
         glGenTextures(1, *app.render_info.framebuffer_depth);
+        glGenTextures(1, *app.render_info.ssao_noise);
 
         resize_textures();
 
@@ -53,7 +127,37 @@ init_render_backend :: () {
         //GL_DEPTH_ATTACHMENT // TODO
         assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
+
+        // Generate SSAO sample kernel
+        ssao_kernel : [64]Vector3 = ---;
+        for * ssao_kernel {
+            it.x = random_get_zero_to_one() * 2. - 1.;
+            it.y = random_get_zero_to_one() * 2. - 1.;
+            it.z = random_get_zero_to_one(); // Hemisphere nocommit We should also try a spherical kernel
+            normalize(it);
+            it.* *= random_get_zero_to_one();
+
+            // scale samples so they are more aligned to the center of the kernel
+            scale : float = cast(float)it_index / ssao_kernel.count;
+            scale = lerp(.1, 1., scale * scale);
+            it.* *= scale;
+        }
+
+        // Generate SSAO noise texture used to rotate the kernel around the z-axis i.e., in the surface tangent space
+        ssao_noise_values : [16]Vector3 = ---;
+        for * ssao_noise_values {
+            it.x = random_get_zero_to_one() * 2. - 1.;
+            it.y = random_get_zero_to_one() * 2. - 1.;
+            it.z = 0.;
+        }
+        glBindTexture(GL_TEXTURE_2D, app.render_info.ssao_noise);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT, ssao_noise_values.data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
+    */
 
     //
     // Init shaders
@@ -100,7 +204,13 @@ init_render_backend :: () {
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/ssao.vert"); #assert(VERT_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao_blur.frag"); #assert(FRAG_OK);
+        app.ssao_blur_program = get_shader_program(VERT, FRAG);
+    }
+
+    {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao.frag"); #assert(FRAG_OK);
         app.ssao_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.ssao_vao);

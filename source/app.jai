@@ -159,11 +159,22 @@ App_Render_Info :: struct {
     background_program : GLuint;
     background_vao : GLuint; // nocommit Consolidate with ssao_vao into quad_vao
 
+    // GBuffer ("Geometry Buffer") for deferred rendering of opaque items
+    gbuffer_framebuffer : GLuint;
+    gbuffer_position_texture : GLuint;
+    gbuffer_normal_texture : GLuint;
+    gbuffer_albedo_texture : GLuint;
+
+    /*
     ssao_program : GLuint;
+    ssao_blur_program : GLuint;
     ssao_vao : GLuint;
-    framebuffer : GLuint;
-    framebuffer_color : GLuint;
-    framebuffer_depth : GLuint;
+
+    ssao_framebuffer : GLuint;
+    ssao_color_texture : GLuint;
+    ssao_blur_texture : GLuint;
+    ssao_noise_texture : GLuint;
+    */
 }
 
 Texture :: struct {

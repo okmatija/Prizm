@@ -173,7 +173,7 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-        // 1st pass: Render to app.framebuffer
+        // Geometry Pass: (positions, normals, albedo, depth?)
         glBindFramebuffer(GL_FRAMEBUFFER, app.render_info.framebuffer);
         assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
         glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
@@ -183,11 +183,15 @@ main :: () {
         // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
         glBindTexture(GL_TEXTURE_2D, app.render_info.framebuffer_color);
 
-        render_background();
-        render_selections();
+        //render_background();
+        //render_selections();
         render_entities();
 
-        // 2nd pass: Render framebuffer texture to screen
+        // SSAO Pass
+
+        // SSAO Blurring Pass
+
+        // Lighting Pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // Bind default framebuffer
         glClearColor(1., 0., 0., 1.);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -195,8 +199,8 @@ main :: () {
         glBindVertexArray(app.ssao_vao);
         glDisable(GL_DEPTH_TEST);
         glBindTexture(GL_TEXTURE_2D, app.framebuffer_color);
-
         glDrawArrays(GL_TRIANGLES, 0, 6);
+
 
         render_text();
         render_axes_triad();
@@ -303,8 +307,6 @@ handle_events :: () {
                 //print("window event: %\n", event.window.event);
 
                 if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
-
-                    // nocommit Resize framebuffers/textures here??
 
                     width_scale  := cast(float) event.window.data1 / app.current_window_width;
                     height_scale := cast(float) event.window.data2 / app.current_window_height;
