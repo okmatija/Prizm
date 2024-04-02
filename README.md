@@ -2,7 +2,7 @@
 
 Prizm is a tool for debugging computational geometry algorithms using a simple workflow:
 
-1. Write debug files using the [obj format](https://paulbourke.net/dataformats/obj/)
+1. Write debug files using the [OBJ format](https://paulbourke.net/dataformats/obj/)
 2. Inspect the files to find bugs
 
 See the [wiki](https://github.com/okmatija/Prizm/wiki) for video tutorials. There is also a [Discord](https://discord.gg/zxKqvwmXNs) server.
