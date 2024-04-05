@@ -118,6 +118,7 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
     * TODO Set the icon on linux
     * TODOOOOO Fix long change logs being truncated
+    * TODOOOOO Handle high DPI properly (Roey/TomF reported), the text looks blurry there
     * Is there a bug with reloading vertex data????
     * TODO Fix a bug where escaped quotes in string arguments are not supported
     * TODO Don't add command annotations to the console history
@@ -131,6 +132,8 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Implement a system to write custom shaders for triangle rendering and backface rendering
     * TODO Rename Blinn-Plong to just Lit and expose Normal/BaseColor(Albedo)/Lit rendering modes to cycle though
     * TODO Cleanup where the binaries/libaries are stored, to unclutter the top-level directory. Look at Unreal/Focus
+    * TODO There is a bug where rotation feels bad when the application has a large aspect ratio e.g., very short and fat???
+    * TODO Cleanup shader code
 ------------------------------
     * Show only the portion of folder names which distinguishes the folder, otherwise it gets very long
     * MacOS support
@@ -142,6 +145,8 @@ DONE};
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
+* Updated the wiki to include a description of the supported obj features 
+* TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
 * TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)

@@ -1,3 +1,5 @@
+// @Incomplete Add tests to ensure floats parse properly
+
 Parser :: struct {
     tokens: [..] Token; // owned @Cleanup, use a pool? or mark temporary storage
     current_token: s64;
@@ -33,6 +35,7 @@ error :: (p: *Parser, token : Token, format: string, args: .. Any, flags := Log_
     p.failed = true;
 } @PrintLike
 
+// @Cleanup Should pass p by value here
 warning :: (p: *Parser, token : Token, format: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) {
     using token.location;
     new_format := tprint("Parse warning at '%:%:%'. %", fully_pathed_filename, line_number, character_number, format);
