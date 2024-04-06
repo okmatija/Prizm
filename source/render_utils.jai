@@ -2,17 +2,17 @@
 to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -> Tuple2i {
     result : Tuple2i = ---;
 
-    // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+    // [-1, 1]x[-1,1] -> [0, window_size.width]x[0, window_size.height]
     transformed : Vector3 = transform_point(projection_from_space, point_space);
-    result.x = xx (app.current_window_width *  (transformed.x + 1) / 2);
-    result.y = xx (app.current_window_height * (transformed.y + 1) / 2);
+    result.x = xx (app.window_size.width *  (transformed.x + 1) / 2);
+    result.y = xx (app.window_size.height * (transformed.y + 1) / 2);
 
     return result;
 }
 
 
 resize_textures :: () {
-    w, h : u32 = cast(u32)app.current_window_width, cast(u32)app.current_window_height;
+    w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
 
     {
         // position color buffer
@@ -401,14 +401,14 @@ debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : 
         ImGui.PushFont(font);
     }
 
-    // window_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    // window_position := Vector2.{io().MousePos.x, app.window_size.height - io().MousePos.y};
     window_position := io().MousePos;
     window_size := ImGui.CalcTextSize(text);
 
     LabelWindow2 :: (window_position : Vector2, window_size : Vector2) #expand {
         label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs|.NoMouseInputs|.NoBackground;
 
-        window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+        window_position_index := cast(int)(window_position.x + app.window_size.width * window_position.y);
 
         // @Hack :LabelWindowSize The factor of 2 multiplying the window_size is a bit too much, but this
         // should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing

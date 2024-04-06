@@ -193,9 +193,9 @@ show_console_ui :: () {
 
     // Draw input window
     {
-        console_top_y := app.current_window_height * .6;
-        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx app.current_window_height}, pivot=window_pivot);
-        ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always);
+        console_top_y := app.window_size.height * .6;
+        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, cast(float)app.window_size.height}, pivot=window_pivot);
+        ImGui.SetNextWindowSize(ImGui.ImVec2.{cast(float)app.window_size.width, -1}, .Always);
 
         window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
         ImGui.Begin("console_input", flags=window_flags); // TODO if !Begin should close
@@ -299,9 +299,9 @@ show_console_ui :: () {
         }
 
         // The + 20 is just a bit extra that we need, + 1 because... well, something is fishy
-        console_height := min(ImGui.GetFontSize() * (app.console.log.count + 1) + 20, app.current_window_height * .4);
-        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx (app.current_window_height - input_window_height)}, pivot=window_pivot);
-        ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, xx console_height}, .Always);
+        console_height := min(ImGui.GetFontSize() * (app.console.log.count + 1) + 20, app.window_size.height * .4);
+        ImGui.SetNextWindowPos(ImGui.ImVec2.{0, xx (app.window_size.height - input_window_height)}, pivot=window_pivot);
+        ImGui.SetNextWindowSize(ImGui.ImVec2.{cast(float)app.window_size.width, xx console_height}, .Always);
 
         ImGui.Begin("console_output", flags=window_flags); // TODO if !Begin should close
         scrolling_region_flags := ImGui.WindowFlags.HorizontalScrollbar;

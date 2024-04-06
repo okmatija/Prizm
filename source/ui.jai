@@ -184,7 +184,7 @@ show_menu_bar_ui :: () {
                 tooltip();
 
                 ImGui.SameLine();
-                size : [2]s32 = .[app.current_window_width, app.current_window_height];
+                size : [2]s32 = .[app.window_size.width, app.window_size.height];
                 ImGui.PushItemWidth(item_width);
                 if ImGui.DragInt2("##WindowSize", *size) {
                     SDL_SetWindowSize(app.window, size[0], size[1]);
@@ -193,10 +193,10 @@ show_menu_bar_ui :: () {
                 ImGui.PopItemWidth();
 
                 ImGui.SameLine();
-                disable_window_resize_reset := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+                disable_window_resize_reset := (app.window_size.width == app.INITIAL_WINDOW_SIZE.width && app.window_size.height == app.INITIAL_WINDOW_SIZE.height);
                 if disable_window_resize_reset ImGui.BeginDisabled();
                 if ImGui.Button("Reset##WindowSize") {
-                    SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+                    SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_SIZE.width, app.INITIAL_WINDOW_SIZE.height);
                 }
                 tooltip();
                 if disable_window_resize_reset ImGui.EndDisabled();
@@ -443,7 +443,7 @@ show_ribbon_buttons_ui :: () {
     buttons_space := (button_count - 1) * ImGui.GetStyle().ItemSpacing.x;  
     buttons_width := button_count * button_width + buttons_space + 2 * ImGui.GetStyle().WindowPadding.x;
 
-    next_window_pos := ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height};
+    next_window_pos := ImGui.ImVec2.{(app.window_size.width - buttons_width)/2, cast(float)app.window_size.height};
 
     if app.ribbon_button_mode == .AUTO {
         pad :: 40;
@@ -455,7 +455,7 @@ show_ribbon_buttons_ui :: () {
     }
 
     ImGui.SetNextWindowPos(next_window_pos, pivot=window_pivot);
-    // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window, we DONT do this.
+    // ImGui.SetNextWindowSize(ImGui.ImVec2.{cast(float)app.window_size.width, -1}, .Always); // Full width of OS window, we DONT do this.
     ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
     window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
@@ -493,10 +493,10 @@ show_pending_directories_ui :: () {
         return;
     }
 
-    ImGui.SetNextWindowPos(ImGui.ImVec2.{app.current_window_width / 2., app.current_window_height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    ImGui.SetNextWindowPos(ImGui.ImVec2.{app.window_size.width / 2., app.window_size.height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always);
-    // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75},
-    //                                    ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75});
+    // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.window_size.width * .6, app.window_size.height * .75},
+    //                                    ImGui.ImVec2.{app.window_size.width * .6, app.window_size.height * .75});
     window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
@@ -1101,7 +1101,7 @@ show_preferences :: () {
         }
 
         {
-            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_max_px : float = max(cast(float)app.window_size.width, cast(float)app.window_size.height);
             radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
             ImGui.DragFloat("CP Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
             show_tooltip(tprint(#string DONE
@@ -1144,7 +1144,7 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
         {
             // @Cleanupp Replace with DragInt
-            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_max_px : float = max(cast(float)app.window_size.width, cast(float)app.window_size.height);
             radius_px := cast(float) app.settings.labelling_radius_px;
             ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
             show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));

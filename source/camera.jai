@@ -1,7 +1,7 @@
 Camera :: struct {
     // Data to transfrom from world to view coordinates
-    eye_position :  Vector3; // world
-    look_position : Vector3;
+    eye_position :  Vector3; @Uniform // world
+    look_position : Vector3; @Uniform
     up_direction :  Vector3;
 
     rotation_axis := Camera_Rotation_Axis.ROLL; // :UserConfig use configurable default
@@ -461,8 +461,8 @@ io_mouse_middle_down :: () -> bool { return io().MouseDown[2]; }
 to_ndc :: (position_px : Vector2) -> Vector2
 {
     using position_ndc : Vector2 = ---;
-    x = 2 * (clamp(position_px.x, 0., xx app.current_window_width) / xx app.current_window_width) - 1;
-    y = 2 * (clamp(position_px.y, 0., xx app.current_window_height) / cast(float)app.current_window_height) - 1;
+    x = 2 * (clamp(position_px.x, 0., cast(float) app.window_size.width) /  cast(float)app.window_size.width) - 1;
+    y = 2 * (clamp(position_px.y, 0., cast(float) app.window_size.height) / cast(float)app.window_size.height) - 1;
     y *= -1; // (-1,-1) => bottom-left of screen, (+1,+1) => top-right of screen
 
     assert(x >= -1 && x <= 1, "Expected NDC x coordinates to be in range [-1,+1], got %", x);
@@ -491,9 +491,9 @@ make_camera_ray :: () -> Ray3 {
 
 arcball_vector :: (mouse_position_px : Vector2) -> Vector3
 {
-    arcball_center_px := Vector2.{app.current_window_width / 2., app.current_window_height / 2.};
-    // arcball_radius_px := min(app.current_window_height, app.current_window_width) / 2.; // allows room on left/right for rotation look direction
-    arcball_radius_px := 5 * length(Vector2.{xx app.current_window_height, xx app.current_window_width} / 2.); // only room to rotate on sphere
+    arcball_center_px := Vector2.{app.window_size.width / 2., app.window_size.height / 2.};
+    // arcball_radius_px := min(app.window_size.height, app.window_size.width) / 2.; // allows room on left/right for rotation look direction
+    arcball_radius_px := 5 * length(arcball_center_px); // only room to rotate on sphere
 
     using result := Vector3.{xy=(mouse_position_px - arcball_center_px) / arcball_radius_px};
 

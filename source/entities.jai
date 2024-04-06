@@ -788,8 +788,8 @@ outside_screen_dist :: inline (point_world : Vector3, projection_from_world : Ma
 
     point_px : Vector2 = ---;
     point_px_i : Tuple2i = to_screen_position(point_world, projection_from_world);
-    point_px.x = xx point_px_i.x;
-    point_px.y = cast(float) app.current_window_height - xx point_px_i.y;
+    point_px.x = cast(float)point_px_i.x;
+    point_px.y = cast(float)app.window_size.height - cast(float)point_px_i.y;
 
     return distance(mouse_px, point_px) > xx max_distance_px;
 }
@@ -797,7 +797,7 @@ outside_screen_dist :: inline (point_world : Vector3, projection_from_world : Ma
 // Return the model space query radius for a given bounding box and query radius in pixels
 get_model_space_query_radius :: (bbox : AxisBox3, query_radius_px : int) -> float {
     // @Incomplete Support perspective projection
-    distance_1 : float = ((app.camera.right - app.camera.left) / app.current_window_width) * query_radius_px;
+    distance_1 : float = ((app.camera.right - app.camera.left) / app.window_size.width) * query_radius_px;
     distance_2 : float = length(diagonal(bbox)) / 20.;
     return min(distance_1, distance_2);
 }

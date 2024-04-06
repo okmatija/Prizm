@@ -505,8 +505,9 @@ render_mesh_triangles :: (
     glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
     glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
     glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
-    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
     glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
+
+    glUniform2f(glGetUniformLocation(program, "window_size"), cast(float)app.window_size.width, cast(float)app.window_size.height);
 
     // nocommit Remove this
     last_polygon_mode: [2]GLuint;
@@ -609,7 +610,7 @@ render_selections :: () {
     //
     //     // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
     //     to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
-    //         return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+    //         return .{cast(float) position_screen.x, cast(float)app.window_size.height - cast(float) position_screen.y};
     //     }
     //
     //     window_position : ImGui.ImVec2 = to_imgui_position(to_screen_position(it, projection_from_model));
@@ -639,7 +640,7 @@ render_background :: () {
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
             glUseProgram(app.background_program);
-            x, y, z : float = xx app.current_window_width, xx app.current_window_height, 1.;
+            x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
             glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);

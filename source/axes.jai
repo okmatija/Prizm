@@ -37,7 +37,7 @@ render_axes_triad :: () {
     old_camera := app.camera;
     defer app.camera = old_camera;
 
-    w, h : float = xx app.current_window_width, xx app.current_window_height;
+    w, h : float = cast(float)app.window_size.width, cast(float)app.window_size.height;
     s := 80.;
     a := current_window_aspect_ratio_width_over_height();
 
