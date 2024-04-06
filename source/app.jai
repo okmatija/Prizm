@@ -152,7 +152,7 @@ App_Render_Info :: struct {
     aabb_program : GLuint;
     triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     points_lines_program : GLuint;
-    triangles_normal_program : GLuint;
+    triangles_normal_shader : Shader_Triangle_Normals;
     segments_normal_program : GLuint;
     points_normal_program : GLuint;
 
@@ -462,6 +462,7 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "io_obj.jai";
 #load "io_utils.jai";
 #load "render.jai";
+#load "render_shaders.jai";
 #load "render_utils.jai";
 #load "render_text.jai";
 #load "carpet.jai";

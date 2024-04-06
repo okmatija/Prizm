@@ -2521,7 +2521,7 @@ show_normal_style_ui :: (normal_style : *Normal_Style, padding : string = "") {
     ImGui.Checkbox(imgui_label("##normals_visible", normal_style), *normal_style.visible);
     show_tooltip("Normal Visibility");
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##normal_style_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##normals_scale", normal_style), *normal_style.scale, .05);

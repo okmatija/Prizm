@@ -144,7 +144,7 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 }
 
 Normal_Style :: struct {
-    visible := false;
+    visible := false; @Not_A_Uniform
     color := Vector4.{0., 0., .8, 1.};
     scale : float = 1.; // Multiplies the obj normal. If normalized is true then this value is the length
     normalized : bool = true; // If true the obj normal is normalized before scale is applied

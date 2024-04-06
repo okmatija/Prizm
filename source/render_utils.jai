@@ -180,7 +180,7 @@ init_render_backend :: () {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.triangles_normal_program = get_shader_program(VERT, FRAG, GEOM);
+        init_shader(*app.triangles_normal_shader, VERT, FRAG, GEOM);
     }
 
     {
@@ -224,6 +224,113 @@ init_render_backend :: () {
         glGenVertexArrays(1, *app.background_vao);
     }
 }
+
+// This function was added so that we could use Simp *when it was using the same context as the rest of the
+// application*, we don't do this anymore so it's not really needed but rather than moving it from the call
+// sites where it was needed I just commented the implementation. Anyway, the reason it was needed is because
+// of the way Simp.immediate_set_shader works (when called from Simp.set_shader_for_color, tracking the state
+// of the currently set shader separately to opengl) we can break it by getting opengl out of sync.  This
+// happens when we set the shader program in gl, without simp/ knowing about it, so it doesn't know it needs
+// to set the shader program again. Here, just to be safe/general, we set a bunch of other opengl state, too.
+ScopeGlState :: () #expand {
+    /*
+    // Backup GL state
+    last_active_texture : GLenum; glGetIntegerv(GL_ACTIVE_TEXTURE, xx *last_active_texture);
+    glActiveTexture(GL_TEXTURE0);
+    last_program : GLuint; glGetIntegerv(GL_CURRENT_PROGRAM, xx *last_program);
+    last_texture : GLuint; glGetIntegerv(GL_TEXTURE_BINDING_2D, xx *last_texture);
+    last_array_buffer : GLuint; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, xx *last_array_buffer);
+    last_vertex_array_object : GLuint; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, xx *last_vertex_array_object);
+    last_viewport : [4]GLint; glGetIntegerv(GL_VIEWPORT, last_viewport.data);
+    last_scissor_box : [4]GLint; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box.data);
+    last_blend_src_rgb : GLenum; glGetIntegerv(GL_BLEND_SRC_RGB, xx *last_blend_src_rgb);
+    last_blend_dst_rgb : GLenum; glGetIntegerv(GL_BLEND_DST_RGB, xx *last_blend_dst_rgb);
+    last_blend_src_alpha : GLenum; glGetIntegerv(GL_BLEND_SRC_ALPHA, xx *last_blend_src_alpha);
+    last_blend_dst_alpha : GLenum; glGetIntegerv(GL_BLEND_DST_ALPHA, xx *last_blend_dst_alpha);
+    last_blend_equation_rgb : GLenum; glGetIntegerv(GL_BLEND_EQUATION_RGB, xx *last_blend_equation_rgb);
+    last_blend_equation_alpha : GLenum; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, xx *last_blend_equation_alpha);
+    last_enable_blend := glIsEnabled(GL_BLEND);
+    last_enable_cull_face := glIsEnabled(GL_CULL_FACE);
+    last_enable_depth_test := glIsEnabled(GL_DEPTH_TEST);
+    last_enable_stencil_test := glIsEnabled(GL_STENCIL_TEST);
+    last_enable_scissor_test := glIsEnabled(GL_SCISSOR_TEST);
+
+    // @Incomplete Get and set relevant/all float variables too e.g., :
+    last_line_width : GLfloat; glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
+
+    `defer {
+        // Restore modified GL state
+        glUseProgram(last_program);
+        glBindTexture(GL_TEXTURE_2D, last_texture);
+        glActiveTexture(last_active_texture);
+        glBindVertexArray(last_vertex_array_object);
+        glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+        glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+        glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+        if (last_enable_blend)        glEnable(GL_BLEND);        else glDisable(GL_BLEND);
+        if (last_enable_cull_face)    glEnable(GL_CULL_FACE);    else glDisable(GL_CULL_FACE);
+        if (last_enable_depth_test)   glEnable(GL_DEPTH_TEST);   else glDisable(GL_DEPTH_TEST);
+        if (last_enable_stencil_test) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
+        if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
+        glViewport(last_viewport[0], last_viewport[1], xx last_viewport[2], xx last_viewport[3]);
+        glScissor(last_scissor_box[0], last_scissor_box[1], xx last_scissor_box[2], xx last_scissor_box[3]);
+    }
+    */
+}
+
+#scope_file
+
+init_shader :: (shader : *$T/Shader, $vertex_shader_text : string, $fragment_shader_text : string, $geometry_shader_text : string) {
+    shader.program = get_shader_program(vertex_shader_text, fragment_shader_text, geometry_shader_text);
+    cache_uniform_locations(shader.program, "", *shader.uniforms, type_info(type_of(shader.uniforms)));
+}
+
+// :CacheUniformLocationsWithCodeNotReflection
+// Perhaps its better for debugging/understandablity to rewrite this as code generation to make functions
+// call glGetUniformLocation.  Also, this trades compile-time for easier debugging and I guess allows the
+// option to manually overwrite functions
+cache_uniform_locations :: (program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
+
+    if info.type == .INTEGER { // Base case
+
+        info_integer := cast(*Type_Info_Integer)info;
+
+        assert(info_integer.runtime_size == size_of(GLuint));
+
+        loc : GLint = glGetUniformLocation(program, temp_c_string(name));
+        if loc <  0 then log_error("Unknown parameter: '%'", name);
+        if loc >= 0 then (cast(*GLuint)data).* = cast(GLuint)loc;
+
+        // Useful for debugging
+        //print_vars(loc, name, data);
+
+    } else if info.type == .STRUCT { // Recursive case
+
+        info_struct := cast(*Type_Info_Struct)info;
+
+        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
+        for member : info_struct.members {
+            join := ifx flatten then "_" else ".";
+            ext_name := ifx member.flags & .USING then "" else member.name;
+            new_name := ifx name then tprint("%1%2%3", name, join, ext_name) else ext_name;
+            cache_uniform_locations(program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
+        }
+
+    } else if info.type == .ARRAY { // Recursive case
+
+        info_array := cast(*Type_Info_Array)info;
+
+        array_count, array_data := get_array_count_and_data(data, info_array);
+        element_size := info_array.element_type.runtime_size;
+
+        for 0..array_count-1 {
+            new_name := tprint("%[%]", name, it);
+            cache_uniform_locations(program, new_name, array_data + it * element_size, info_array.element_type);
+        }
+
+    }
+}
+
 
 get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_geometry : string = "") -> GLuint {
 
@@ -285,58 +392,6 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
     return program;
 }
 
-// This function was added so that we could use Simp *when it was using the same context as the rest of the
-// application*, we don't do this anymore so it's not really needed but rather than moving it from the call
-// sites where it was needed I just commented the implementation. Anyway, the reason it was needed is because
-// of the way Simp.immediate_set_shader works (when called from Simp.set_shader_for_color, tracking the state
-// of the currently set shader separately to opengl) we can break it by getting opengl out of sync.  This
-// happens when we set the shader program in gl, without simp/ knowing about it, so it doesn't know it needs
-// to set the shader program again. Here, just to be safe/general, we set a bunch of other opengl state, too.
-ScopeGlState :: () #expand {
-    /*
-    // Backup GL state
-    last_active_texture : GLenum; glGetIntegerv(GL_ACTIVE_TEXTURE, xx *last_active_texture);
-    glActiveTexture(GL_TEXTURE0);
-    last_program : GLuint; glGetIntegerv(GL_CURRENT_PROGRAM, xx *last_program);
-    last_texture : GLuint; glGetIntegerv(GL_TEXTURE_BINDING_2D, xx *last_texture);
-    last_array_buffer : GLuint; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, xx *last_array_buffer);
-    last_vertex_array_object : GLuint; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, xx *last_vertex_array_object);
-    last_viewport : [4]GLint; glGetIntegerv(GL_VIEWPORT, last_viewport.data);
-    last_scissor_box : [4]GLint; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box.data);
-    last_blend_src_rgb : GLenum; glGetIntegerv(GL_BLEND_SRC_RGB, xx *last_blend_src_rgb);
-    last_blend_dst_rgb : GLenum; glGetIntegerv(GL_BLEND_DST_RGB, xx *last_blend_dst_rgb);
-    last_blend_src_alpha : GLenum; glGetIntegerv(GL_BLEND_SRC_ALPHA, xx *last_blend_src_alpha);
-    last_blend_dst_alpha : GLenum; glGetIntegerv(GL_BLEND_DST_ALPHA, xx *last_blend_dst_alpha);
-    last_blend_equation_rgb : GLenum; glGetIntegerv(GL_BLEND_EQUATION_RGB, xx *last_blend_equation_rgb);
-    last_blend_equation_alpha : GLenum; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, xx *last_blend_equation_alpha);
-    last_enable_blend := glIsEnabled(GL_BLEND);
-    last_enable_cull_face := glIsEnabled(GL_CULL_FACE);
-    last_enable_depth_test := glIsEnabled(GL_DEPTH_TEST);
-    last_enable_stencil_test := glIsEnabled(GL_STENCIL_TEST);
-    last_enable_scissor_test := glIsEnabled(GL_SCISSOR_TEST);
-
-    // @Incomplete Get and set relevant/all float variables too e.g., :
-    last_line_width : GLfloat; glGetFloatv(GL_LINE_WIDTH, xx *last_line_width);
-
-    `defer {
-        // Restore modified GL state
-        glUseProgram(last_program);
-        glBindTexture(GL_TEXTURE_2D, last_texture);
-        glActiveTexture(last_active_texture);
-        glBindVertexArray(last_vertex_array_object);
-        glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
-        glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
-        glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
-        if (last_enable_blend)        glEnable(GL_BLEND);        else glDisable(GL_BLEND);
-        if (last_enable_cull_face)    glEnable(GL_CULL_FACE);    else glDisable(GL_CULL_FACE);
-        if (last_enable_depth_test)   glEnable(GL_DEPTH_TEST);   else glDisable(GL_DEPTH_TEST);
-        if (last_enable_stencil_test) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
-        if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
-        glViewport(last_viewport[0], last_viewport[1], xx last_viewport[2], xx last_viewport[3]);
-        glScissor(last_scissor_box[0], last_scissor_box[1], xx last_scissor_box[2], xx last_scissor_box[3]);
-    }
-    */
-}
 
 debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : *ImGui.ImFont = null) {
 

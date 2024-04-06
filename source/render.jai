@@ -249,6 +249,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 }
 
 // @Cleanup consolidate this
+// @Incomplete handle wave?
 render_mesh_triangle_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -259,16 +260,16 @@ render_mesh_triangle_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    p := app.triangles_normal_program;
-    glUseProgram(p);
+    {
+        using app.triangles_normal_shader;
 
-    // @Incomplete handle wave?
-    set_model_view_projection_uniforms(p, mesh.world_from_model);
-    set_clip_ranges_uniforms(p, display_info);
-    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(p, "normals_color"), triangle_style.normal_style.color.x, triangle_style.normal_style.color.y, triangle_style.normal_style.color.z, triangle_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_scale"), triangle_style.normal_style.scale);
-    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)triangle_style.normal_style.normalized);
+        glUseProgram(program);
+        assert(glIsProgram(program) == GL_TRUE);
+        set_uniforms_Render_Transforms(uniforms.render_transforms, make_render_transforms(mesh.world_from_model));
+        set_uniforms_Normal_Style(uniforms.normal_style, triangle_style.normal_style);
+        set_uniforms_Clip_Sphere(uniforms.clip_sphere, display_info.clip_sphere);
+        for 0..2 set_uniforms_Clip_Range(uniforms.clip_range[it], display_info.clip_ranges[it]);
+    }
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -300,9 +301,9 @@ render_mesh_segment_normals :: (
     set_model_view_projection_uniforms(p, mesh.world_from_model);
     set_clip_ranges_uniforms(p, display_info);
     set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(p, "normals_color"), segment_style.normal_style.color.x, segment_style.normal_style.color.y, segment_style.normal_style.color.z, segment_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_scale"), segment_style.normal_style.scale);
-    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)segment_style.normal_style.normalized);
+    glUniform4f(glGetUniformLocation(p, "normal_style_color"), segment_style.normal_style.color.x, segment_style.normal_style.color.y, segment_style.normal_style.color.z, segment_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_style_scale"), segment_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_style_normalized"), cast(GLuint)segment_style.normal_style.normalized);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -331,9 +332,9 @@ render_mesh_point_normals :: (
     set_model_view_projection_uniforms(p, mesh.world_from_model);
     set_clip_ranges_uniforms(p, display_info);
     set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(p, "normals_color"), point_style.normal_style.color.x, point_style.normal_style.color.y, point_style.normal_style.color.z, point_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_scale"), point_style.normal_style.scale);
-    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)point_style.normal_style.normalized);
+    glUniform4f(glGetUniformLocation(p, "normal_style_color"), point_style.normal_style.color.x, point_style.normal_style.color.y, point_style.normal_style.color.z, point_style.normal_style.color.w);
+    glUniform1f(glGetUniformLocation(p, "normal_style_scale"), point_style.normal_style.scale);
+    glUniform1ui(glGetUniformLocation(p, "normal_style_normalized"), cast(GLuint)point_style.normal_style.normalized);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
