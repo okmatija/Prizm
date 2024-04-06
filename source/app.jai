@@ -47,14 +47,8 @@ App :: struct {
         loadable_files : [..]Pending_File;
     }
 
-
-    INITIAL_WINDOW_WIDTH  : s32 : 1440;
-    INITIAL_WINDOW_HEIGHT : s32 : 900;
-
-    // @Cleanup Rename these to have _px suffix
-    current_window_width := INITIAL_WINDOW_WIDTH;
-    current_window_height := INITIAL_WINDOW_HEIGHT;
-    fullscreen := false;
+    INITIAL_WINDOW_SIZE :: Window_Size.{1440, 900, false};
+    window_size : Window_Size = INITIAL_WINDOW_SIZE;;
 
     Background_Style :: enum #specified {
         SOLID_COLOR :: 0;
@@ -147,10 +141,17 @@ App :: struct {
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
 }
 
+Window_Size :: struct {
+    width : s32; @Uniform // In Pixels
+    height : s32; @Uniform // In Pixels
+    fullscreen := false;
+}
+
 App_Render_Info :: struct {
     // nocommit Rename _program to _shader
     aabb_program : GLuint;
-    triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
+    triangles_program : GLuint;
+    //shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     points_lines_program : GLuint;
     shader_point_normal_vectors : Shader_Point_Normal_Vectors;
     shader_segment_normal_vectors : Shader_Segment_Normal_Vectors;
@@ -160,11 +161,20 @@ App_Render_Info :: struct {
     background_program : GLuint;
     background_vao : GLuint; // nocommit Consolidate with ssao_vao into quad_vao
 
+    quad_vao : GLuint;
+
+    blit_program : GLuint; // Used to blit framebuffer textures nocommit Is this the portable way to do it?
+
     // GBuffer ("Geometry Buffer") for deferred rendering of opaque items
+    gbuffer_geometry_pass_program : GLuint;
     gbuffer_framebuffer : GLuint;
     gbuffer_position_texture : GLuint;
     gbuffer_normal_texture : GLuint;
     gbuffer_albedo_texture : GLuint;
+    gbuffer_depth_buffer : GLuint;
+    gbuffer_depth_texture : GLuint; // :DepthTexture Replace render buffer with texture??
+
+    triangles_deferred_program : GLuint;
 
     /*
     ssao_program : GLuint;
@@ -295,7 +305,7 @@ remove_directory_if_unwatched :: (directory : string) {
 
 
 current_window_aspect_ratio_width_over_height :: () -> float {
-    return cast(float) app.current_window_width / cast(float) app.current_window_height;
+    return cast(float) app.window_size.width / cast(float) app.window_size.height;
 }
 
 EntitiesIterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
@@ -375,8 +385,8 @@ clamp_user_settings :: ()
     // clamp(*camera_zoom_dragging_ratio, .3, .99);
     clamp(*camera_zoom_scrolling_ratio, .3, .99);
     clamp(*camera_zoom_min_screen_filling_length_mm, 0., app.camera.scene_bounding_sphere.radius / 2);
-    clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
-    clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+    clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.window_size.height);
+    clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.window_size.height);
     clamp(*closest_point_query_max_dist_px, 0, 100);
 }
 

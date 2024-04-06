@@ -2,22 +2,22 @@
 to_screen_position :: (point_space : Vector3, projection_from_space : Matrix4) -> Tuple2i {
     result : Tuple2i = ---;
 
-    // [-1, 1]x[-1,1] -> [0, current_window_width]x[0, current_window_height]
+    // [-1, 1]x[-1,1] -> [0, window_size.width]x[0, window_size.height]
     transformed : Vector3 = transform_point(projection_from_space, point_space);
-    result.x = xx (app.current_window_width *  (transformed.x + 1) / 2);
-    result.y = xx (app.current_window_height * (transformed.y + 1) / 2);
+    result.x = xx (app.window_size.width *  (transformed.x + 1) / 2);
+    result.y = xx (app.window_size.height * (transformed.y + 1) / 2);
 
     return result;
 }
 
 
 resize_textures :: () {
-    w, h : u32 = cast(u32)app.current_window_width, cast(u32)app.current_window_height;
+    w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
 
     {
         // position color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -25,20 +25,14 @@ resize_textures :: () {
         glBindTexture(GL_TEXTURE_2D, 0);
 
         // normal color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gbuffer_normal_texture, 0);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        // color and opacity (@Incomplete) color buffer
-        glGenTextures(1, *gbuffer_albedo_texture);
-        glBindTexture(GL_TEXTURE_2D, gbuffer_albedo_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        // nocommit Add depth buffer/texture here!
     }
 
     /*
@@ -70,41 +64,60 @@ init_render_backend :: () {
     // Init GBuffer framebuffer
     //
 
+    w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
+
     {
-        glGenFramebuffers(1, *gbuffer_framebuffer);
-        glGenTextures(1, *gbuffer_position_texture);
-        glGenTextures(1, *gbuffer_normal_texture);
-        glGenTextures(1, *gbuffer_albedo_texture);
+        glGenFramebuffers(1, *app.gbuffer_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, gbuffer_framebuffer);
-
-        // position color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        // Position color buffer (The z component contains the depth information)
+        glGenTextures(1, *app.gbuffer_position_texture);
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer_position_texture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app.gbuffer_position_texture, 0);
 
-        // normal color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        // Normal color buffer
+        glGenTextures(1, *app.gbuffer_normal_texture);
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gbuffer_normal_texture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
 
-        // color buffer Note: opacity is handled in a separate forward renderer (@Incomplete)
-        glGenTextures(1, *gbuffer_albedo_texture);
-        glBindTexture(GL_TEXTURE_2D, gbuffer_albedo_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        //// Color buffer Note: opacity is handled in a separate forward renderer (@Incomplete) // We have a constant albedo color for now
+        //glGenTextures(1, *app.gbuffer_albedo_texture);
+        //glBindTexture(GL_TEXTURE_2D, app.gbuffer_albedo_texture);
+        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app.gbuffer_albedo_texture, 0);
+
+        // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+        attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
+        glDrawBuffers(2, attachments.data);
+
+        // Depth buffer texture :DepthTexture We don't actually need this since we have the position buffer
+        glGenTextures(1, *app.gbuffer_depth_texture); //:DepthTexture
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_depth_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_albedo_texture, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app.gbuffer_depth_texture, 0);
 
-        // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
-        attachments : [3]GLEnum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2];
-        glDrawBuffers(3, attachments.data);
+        //// Create and attach depth render buffer. This is required, without it ther eis no depth testing
+        //glGenRenderbuffers(1, *app.gbuffer_depth_buffer);
+        //glBindRenderbuffer(GL_RENDERBUFFER, app.gbuffer_depth_buffer);
+        //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
+        //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, app.gbuffer_depth_buffer);
+
+        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
     }
 
     //
@@ -163,6 +176,20 @@ init_render_backend :: () {
     // Init shaders
     //
 
+    // @Cleanup We read the same file multiple times which sucks.
+
+    { // nocommit
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/gbuffer.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/gbuffer.frag"); #assert(FRAG_OK);
+        app.gbuffer_geometry_pass_program = get_shader_program(VERT, FRAG); // nocommit Rename to gbuffer_program
+    }
+
+    { // nocommit
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles_deferred.frag"); #assert(FRAG_OK);
+        app.triangles_deferred_program = get_shader_program(VERT, FRAG);
+    }
+
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
@@ -174,6 +201,7 @@ init_render_backend :: () {
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
         app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
+        // init_shader(*app.shader_triangles, VERT, FRAG, GEOM);
     }
 
     {
@@ -203,13 +231,21 @@ init_render_backend :: () {
         app.aabb_program = get_shader_program(VERT, FRAG);
     }
 
+    glGenVertexArrays(1, *app.quad_vao);
+
     {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/blit.frag"); #assert(FRAG_OK);
+        app.blit_program = get_shader_program(VERT, FRAG);
+    }
+
+    #if false { // nocommit
         VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao_blur.frag"); #assert(FRAG_OK);
         app.ssao_blur_program = get_shader_program(VERT, FRAG);
     }
 
-    {
+    #if false { // nocommit
         VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao.frag"); #assert(FRAG_OK);
         app.ssao_program = get_shader_program(VERT, FRAG);
@@ -281,15 +317,16 @@ ScopeGlState :: () #expand {
 #scope_file
 
 init_shader :: (shader : *$T/Shader, $vertex_shader_text : string, $fragment_shader_text : string, $geometry_shader_text : string) {
+    shader_name := type_info(T).name;
     shader.program = get_shader_program(vertex_shader_text, fragment_shader_text, geometry_shader_text);
-    cache_uniform_locations(shader.program, "", *shader.uniforms, type_info(type_of(shader.uniforms)));
+    cache_uniform_locations(shader_name, shader.program, "", *shader.uniforms, type_info(type_of(shader.uniforms)));
 }
 
 // :CacheUniformLocationsWithCodeNotReflection
 // Perhaps its better for debugging/understandablity to rewrite this as code generation to make functions
 // call glGetUniformLocation.  Also, this trades compile-time for easier debugging and I guess allows the
 // option to manually overwrite functions
-cache_uniform_locations :: (program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
+cache_uniform_locations :: (shader_name : string, program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
 
     if info.type == .INTEGER { // Base case
 
@@ -298,7 +335,7 @@ cache_uniform_locations :: (program : GLuint, name : string, data : *void, info 
         assert(info_integer.runtime_size == size_of(GLuint));
 
         loc : GLint = glGetUniformLocation(program, temp_c_string(name));
-        if loc <  0 then log_error("Unknown parameter: '%'", name);
+        if loc <  0 then log_error("Unknown parameter: '%' in shader '%'", name, shader_name);
         if loc >= 0 then (cast(*GLuint)data).* = cast(GLuint)loc;
 
         // Useful for debugging
@@ -313,7 +350,7 @@ cache_uniform_locations :: (program : GLuint, name : string, data : *void, info 
             join := ifx flatten then "_" else ".";
             ext_name := ifx member.flags & .USING then "" else member.name;
             new_name := ifx name then tprint("%1%2%3", name, join, ext_name) else ext_name;
-            cache_uniform_locations(program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
+            cache_uniform_locations(shader_name, program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
         }
 
     } else if info.type == .ARRAY { // Recursive case
@@ -325,7 +362,7 @@ cache_uniform_locations :: (program : GLuint, name : string, data : *void, info 
 
         for 0..array_count-1 {
             new_name := tprint("%[%]", name, it);
-            cache_uniform_locations(program, new_name, array_data + it * element_size, info_array.element_type);
+            cache_uniform_locations(shader_name, program, new_name, array_data + it * element_size, info_array.element_type);
         }
 
     }
@@ -401,14 +438,14 @@ debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : 
         ImGui.PushFont(font);
     }
 
-    // window_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    // window_position := Vector2.{io().MousePos.x, app.window_size.height - io().MousePos.y};
     window_position := io().MousePos;
     window_size := ImGui.CalcTextSize(text);
 
     LabelWindow2 :: (window_position : Vector2, window_size : Vector2) #expand {
         label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs|.NoMouseInputs|.NoBackground;
 
-        window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+        window_position_index := cast(int)(window_position.x + app.window_size.width * window_position.y);
 
         // @Hack :LabelWindowSize The factor of 2 multiplying the window_size is a bit too much, but this
         // should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing

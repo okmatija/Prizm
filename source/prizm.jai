@@ -48,7 +48,7 @@ main :: () {
 
     app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                  app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
+                                  app.INITIAL_WINDOW_SIZE.width, app.INITIAL_WINDOW_SIZE.height,
                                   sdl_window_flags);
 
     // Check that the window was successfully created
@@ -173,24 +173,19 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-        // Geometry Pass: (positions, normals, albedo, depth?)
-        glBindFramebuffer(GL_FRAMEBUFFER, app.render_info.framebuffer);
-        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-        // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
-        // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
-        glBindTexture(GL_TEXTURE_2D, app.render_info.framebuffer_color);
-
-        //render_background();
-        //render_selections();
-        render_entities();
+#if true {
+        render_background();
+        render_selections();
+        render_entities(); // forward rendering
+} else {
+        render_entities_gbuffer();
+}
 
         // SSAO Pass
 
         // SSAO Blurring Pass
 
+        /*
         // Lighting Pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // Bind default framebuffer
         glClearColor(1., 0., 0., 1.);
@@ -200,6 +195,7 @@ main :: () {
         glDisable(GL_DEPTH_TEST);
         glBindTexture(GL_TEXTURE_2D, app.framebuffer_color);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        */
 
 
         render_text();
@@ -308,8 +304,8 @@ handle_events :: () {
 
                 if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
 
-                    width_scale  := cast(float) event.window.data1 / app.current_window_width;
-                    height_scale := cast(float) event.window.data2 / app.current_window_height;
+                    width_scale  := cast(float) event.window.data1 / app.window_size.width;
+                    height_scale := cast(float) event.window.data2 / app.window_size.height;
 
                     camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
                     camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
@@ -318,8 +314,8 @@ handle_events :: () {
                     app.camera.top    -= camera_delta_tb;
                     app.camera.bottom += camera_delta_tb;
 
-                    app.current_window_width  = event.window.data1;
-                    app.current_window_height = event.window.data2;
+                    app.window_size.width  = event.window.data1;
+                    app.window_size.height = event.window.data2;
 
                     resize_textures();
                 }
@@ -604,8 +600,8 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
         // @Volatile :EasyResizeModeKeybind
         easy_resize_mode := io().KeyAlt;
 
-        w := cast(float)app.current_window_width;
-        h := cast(float)app.current_window_height;
+        w := cast(float)app.window_size.width;
+        h := cast(float)app.window_size.height;
         x := cast(float)point.x;
         y := cast(float)point.y;
 

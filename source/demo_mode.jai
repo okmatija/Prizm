@@ -36,8 +36,8 @@ render_demo_mode :: () {
     longest : string = tprint("---Shift Scroll---");
 
     ImGui.SetNextWindowSize(.{W, H});
-    // ImGui.SetNextWindowPos(.{MARGIN, app.current_window_height - H - MARGIN});
-    ImGui.SetNextWindowPos(.{(app.current_window_width - W) / 2., MARGIN});
+    // ImGui.SetNextWindowPos(.{MARGIN, app.window_size.height - H - MARGIN});
+    ImGui.SetNextWindowPos(.{(app.window_size.width - W) / 2., MARGIN});
 
     // @Incomplete When we size the window with the text better we could give the window a background/border
     ImGui.SetNextWindowBgAlpha(0.);

@@ -500,13 +500,16 @@ render_mesh_triangles :: (
     glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
     glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+
+    // nocommit All in Triangle_Style, and only used in triangles.frag (so it can be in a struct)
     glUniform1i(glGetUniformLocation(program, "display_mode"), xx triangle_style.display_mode);
     glUniform1i(glGetUniformLocation(program, "backface_mode"), xx triangle_style.backface_mode);
     glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
     glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
     glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
-    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
     glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
+
+    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.window_size.width, xx app.window_size.height);
 
     // nocommit Remove this
     last_polygon_mode: [2]GLuint;
@@ -567,6 +570,123 @@ render_entities :: () {
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
 
+set_gbuffer_program :: () {
+
+}
+
+render_entities_gbuffer :: () {
+
+    //debug_print_active_uniforms(app.gbuffer_geometry_pass_program);
+
+    // assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+    glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
+
+    // Geometry Pass: (positions, normals, albedo, depth?)
+    glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
+    glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+
+    glCullFace(GL_BACK);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    // // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
+    // // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
+    // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
+
+    for :VisibleOpaque app.entities {
+        ri := *it.render_info;
+        di :=  it.display_info;
+
+        if !it.mesh.triangles.count continue;
+        if !di.triangle_style.visible continue;
+
+        maybe_update_render_info(ri, *it.mesh);
+
+        glUseProgram(app.gbuffer_geometry_pass_program);
+        set_model_view_projection_uniforms(app.gbuffer_geometry_pass_program, it.mesh.world_from_model);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(ri.triangles_vao);
+        glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+    }
+
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+    //// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+    //// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+    //// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+    //w, h := app.window_size.width, app.window_size.height;
+    //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glUseProgram(app.background_program);
+    // x, y, z : float = xx app.window_size.width, xx app.window_size.height, 1.;
+    // glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
+    // glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
+    // glBindVertexArray(app.quad_vao);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // print_errors();
+  
+    // // Debug gbuffer
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    // glClearColor(0., 0., 0., 1.); 
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // assert(glIsProgram(app.blit_program) == GL_TRUE);
+    // glUseProgram(app.blit_program);  
+    // glBindVertexArray(app.quad_vao);
+    // glDisable(GL_DEPTH_TEST);
+    // // glActiveTexture(GL_TEXTURE0);
+    // // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    // // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);  
+
+    // Lighting pass
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    glClearColor(0., 0., 0., 1.); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(app.triangles_deferred_program);
+    // glDisable(GL_DEPTH_TEST);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_position"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_normal"), 1);
+
+    for :VisibleOpaque app.entities {
+        ri := *it.render_info;
+        di :=  it.display_info;
+
+        if !it.mesh.triangles.count continue;
+        if !di.triangle_style.visible continue;
+        maybe_update_render_info(ri, *it.mesh);
+
+        look_direction := current_look_direction();
+
+        program := app.triangles_deferred_program;
+        set_model_view_projection_uniforms(program, it.mesh.world_from_model);
+        glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+        glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+        glUniform4f(glGetUniformLocation(program, "color"), di.triangle_style.color.x, di.triangle_style.color.y, di.triangle_style.color.z, di.triangle_style.color.w);
+
+        glBindVertexArray(app.quad_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);  
+    }
+
+}
+
+
 
 render_selections :: () {
     if !app.select_tool.entity.display_info.is_visible {
@@ -609,7 +729,7 @@ render_selections :: () {
     //
     //     // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
     //     to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
-    //         return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+    //         return .{cast(float) position_screen.x, cast(float)app.window_size.height - cast(float) position_screen.y};
     //     }
     //
     //     window_position : ImGui.ImVec2 = to_imgui_position(to_screen_position(it, projection_from_model));
@@ -639,7 +759,7 @@ render_background :: () {
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
             glUseProgram(app.background_program);
-            x, y, z : float = xx app.current_window_width, xx app.current_window_height, 1.;
+            x, y, z : float = xx app.window_size.width, xx app.window_size.height, 1.;
             glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);

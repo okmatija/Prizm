@@ -1,7 +1,7 @@
 #version 330 core
 
 struct Camera {
-    vec3 eye_position;
+    vec3 eye_position; // @Cleanup Unused
     vec3 look_direction;
 };
 
@@ -20,6 +20,7 @@ struct Clip_Sphere {
 
 const int Display_Mode_NORMALS = 0;
 const int Display_Mode_BLINN_PHONG = 1;
+
 const int Backface_Mode_NONE = 0;
 const int Backface_Mode_CULL = 1;
 const int Backface_Mode_FIXED = 2;
@@ -126,7 +127,6 @@ void main() {
 
     if (!gl_FrontFacing) {
         if (backface_mode == Backface_Mode_CULL) {
-            // Cull backfaces early out
             discard;
         }
     }

@@ -1,20 +1,9 @@
 // http://paulbourke.net/dataformats/obj/
 
-/* @Incomplete
-
-Tests covering:
-- Floats should parse properly
-- Files with junk on the end of a vertex/face definition should load and ignore relevant elements (the corrupted vertex/attached faces)
-- ...
-Don't remove leading spaces from BLOCK type annotations, so that formatting is better perserved in those comments
-
-*/
-
-// @Cleanup Read shape from an obj and then turn that into a mesh?!
-// @Incomplete Parameter to enable objs with segments to not get converted to polylines?
 
 // The returned array is in temporary storage, the array elements are allocated with context.allocator
 load_obj :: (filename : string, data : string, name : string) -> []*Entity {
+
     results : [..]*Entity;
     results.allocator = temp;
     if !data {
@@ -162,6 +151,9 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
         } else if eat_possible_identifier(*parser, "vt") {
 
+#if true {
+            IncompleteSupportMessage();
+} else {
             uv, finite := ensure_finite(parse_vector2(*parser));
             if !finite {
                 // @Incomplete
@@ -175,6 +167,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                 log_warning("Skipping comment annotation at %:%. Comments on 'vt' directives are @Incomplete", filename, current_line);
                 eat_token(*parser);
             }
+}
 
         } else if eat_possible_identifier(*parser, "p") {
 
@@ -442,17 +435,25 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                 }
             }
 
-        } else if eat_possible_identifier(*parser, "g") ||
-                  eat_possible_identifier(*parser, "mtllib") ||
-                  eat_possible_identifier(*parser, "usemtl") {
+        } else if eat_possible_identifier(*parser, "g") {
 
-            warning(*parser, peek_token(*parser), "%: Unsupported '%' token, support is @Incomplete. Attempting to continue...\n", filename, to_string(peek_token(*parser)));
+            IncompleteSupportMessage();
 
-            tok := peek_token(*parser);
-            while tok.type != Token.Type.EOF && tok.line_number == current_line {
-                eat_token(*parser);
-                tok = peek_token(*parser);
-            }
+        } else if eat_possible_identifier(*parser, "o") {
+
+            IncompleteSupportMessage();
+
+        } else if eat_possible_identifier(*parser, "usemap") {
+
+            IncompleteSupportMessage();
+
+        } else if eat_possible_identifier(*parser, "usemtl") {
+
+            IncompleteSupportMessage();
+
+        } else if eat_possible_identifier(*parser, "mtllib") {
+
+            IncompleteSupportMessage();
 
         } else if peek_token(*parser).type == .COMMENT {
 
@@ -481,6 +482,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
             }
 
             if block.count {
+                // @TODO Don't remove leading spaces from BLOCK type annotations, so that formatting is better perserved in those comments
                 annotation : Annotation;
                 annotation.kind = .BLOCK;
                 annotation.id = current_line;
@@ -604,8 +606,8 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
     return results;
 }
 
-save_obj :: (filename : string, mesh : Simple_Mesh) -> bool
-{
+save_obj :: (filename : string, mesh : Simple_Mesh) -> bool {
+
     objfile, success :=  file_open(filename, for_writing=true, keep_existing_content=false);
     if !success {
         return false;
@@ -616,3 +618,17 @@ save_obj :: (filename : string, mesh : Simple_Mesh) -> bool
     file_close(*objfile);
     return false;
 }
+
+#scope_file
+
+IncompleteSupportMessage :: () #expand {
+
+    tok := peek_token(*`parser); // nocommit I think this is incorrect, we ate the token when we entered the if containing calls to this macro...!
+    warning(*`parser, tok, "%: Incomplete support for '%' token. Attempting to continue...\n", `filename, to_string(tok));
+
+    while tok.type != Token.Type.EOF && tok.line_number == `current_line {
+        eat_token(*`parser);
+        tok = peek_token(`parser);
+    }
+}
+

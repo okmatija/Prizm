@@ -1191,7 +1191,8 @@ apply_focus :: (clip_radius : float, sphere : Sphere, entity : *Entity) {
     if clip_radius >= 0 {
         fit_sphere_on_screen(sphere);
 
-        entity.display_info.clip_sphere.sphere = sphere;
+        entity.display_info.clip_sphere.center = sphere.center;
+        entity.display_info.clip_sphere.radius = sphere.radius;
         entity.display_info.clip_sphere.is_active = true;
     } else {
         target : Sphere = ---;
