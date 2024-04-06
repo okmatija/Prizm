@@ -152,8 +152,9 @@ App_Render_Info :: struct {
     aabb_program : GLuint;
     triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     points_lines_program : GLuint;
-    triangles_normal_shader : Shader_Triangle_Normals;
-    segments_normal_program : GLuint;
+    shader_point_normal_vectors : Shader_Point_Normal_Vectors;
+    shader_segment_normal_vectors : Shader_Segment_Normal_Vectors;
+    shader_triangle_normal_vectors : Shader_Triangle_Normal_Vectors;
     points_normal_program : GLuint;
 
     background_program : GLuint;

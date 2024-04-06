@@ -8,9 +8,33 @@ Shader :: struct {
     type : Type;
 }
 
-Shader_Triangle_Normals :: struct {
+Shader_Point_Normal_Vectors :: struct {
     using #as base : Shader;
-    type = Shader_Triangle_Normals;
+    type = Shader_Point_Normal_Vectors;
+
+    uniforms : struct {
+        using render_transforms : Render_Transforms_Uniforms;
+        normal_style : Normal_Style_Uniforms; @UseNameAsPrefix
+        clip_sphere : Clip_Sphere_Uniforms;
+        clip_range : [3]Clip_Range_Uniforms;
+    };
+}
+
+Shader_Segment_Normal_Vectors :: struct {
+    using #as base : Shader;
+    type = Shader_Segment_Normal_Vectors;
+
+    uniforms : struct {
+        using render_transforms : Render_Transforms_Uniforms;
+        normal_style : Normal_Style_Uniforms; @UseNameAsPrefix
+        clip_sphere : Clip_Sphere_Uniforms;
+        clip_range : [3]Clip_Range_Uniforms;
+    };
+}
+
+Shader_Triangle_Normal_Vectors :: struct {
+    using #as base : Shader;
+    type = Shader_Triangle_Normal_Vectors;
 
     uniforms : struct {
         using render_transforms : Render_Transforms_Uniforms;

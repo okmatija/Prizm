@@ -180,21 +180,21 @@ init_render_backend :: () {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        init_shader(*app.triangles_normal_shader, VERT, FRAG, GEOM);
+        init_shader(*app.shader_triangle_normal_vectors, VERT, FRAG, GEOM);
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.segments_normal_program = get_shader_program(VERT, FRAG, GEOM);
+        init_shader(*app.shader_segment_normal_vectors, VERT, FRAG, GEOM);
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        app.points_normal_program = get_shader_program(VERT, FRAG, GEOM);
+        init_shader(*app.shader_point_normal_vectors, VERT, FRAG, GEOM);
     }
 
     {
