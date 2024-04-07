@@ -329,7 +329,8 @@ entity_raw_world_bounding_sphere :: (using entity : *Entity) -> Sphere {
 // Result could be an empty sphere. Does not check visibility
 entity_raw_world_clipping_sphere :: (using entity : Entity) -> Sphere {
     if display_info.clip_sphere.is_active {
-        return display_info.clip_sphere.sphere; // Already in world space. Should not be empty (radius may be infinite though)
+        using display_info.clip_sphere;
+        return .{center, radius}; // Already in world space. Should not be empty (radius may be infinite though)
     }
     return .{}; // Empty sphere
 }

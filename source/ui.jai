@@ -1177,8 +1177,10 @@ DONE);
         //ImGui.PushItemWidth(item_width);
         //defer ImGui.PopItemWidth();
 
+        // @Volatile, update the github wiki if you move this "Invalid Point" option!
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+
         ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged); // @Volatile Sync with :ReloadItemsKey
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
         ImGui.Checkbox("Item Details Section Uses Menus", *app.settings.item_details_uses_menu);
@@ -2800,7 +2802,9 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
                 if ImGui.Button(imgui_label("Reset    ##sphere", *clip_sphere)) || uninitialized {
                     if !is_empty(aabb) {
-                        clip_sphere.sphere = bounding_sphere(aabb);
+                        sphere := bounding_sphere(aabb);
+                        clip_sphere.center = sphere.center;
+                        clip_sphere.radius = sphere.radius;
                     } else {
                         clip_sphere.center = .{0, 0, 0};
                         clip_sphere.radius = POSITIVE_INF;
