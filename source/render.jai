@@ -591,6 +591,7 @@ render_entities_gbuffer :: () {
 
     // assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
+    //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
 
     // Geometry Pass: (positions, normals, albedo, depth?)
     glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);

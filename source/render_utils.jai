@@ -201,6 +201,7 @@ init_render_backend :: () {
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
         app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
+        // init_shader(*app.shader_triangles, VERT, FRAG, GEOM);
     }
 
     {
@@ -392,41 +393,53 @@ ScopeGlState :: () #expand {
 
 #scope_file
 
-
-
 /*
-uniforms :: struct {
-    a : A;
+init_shader :: (shader : *$T/Shader, $vertex_shader_text : string, $fragment_shader_text : string, $geometry_shader_text : string) {
+    shader.program = get_shader_program(vertex_shader_text, fragment_shader_text, geometry_shader_text);
+    cache_uniform_locations(shader.program, "", *shader.uniforms, type_info(type_of(shader.uniforms)));
 }
-/*
-"","a"
-    "a.i",""
 
-    a.i
-    a.b.j
-    a.b.k
-    a.b.d_l
-    a.b.d_m
-    a.b.e[0].u
-    a.b.e[1].u
-*/
+// :CacheUniformLocationsWithCodeNotReflection
+// Perhaps its better for debugging/understandablity to rewrite this as code generation to make functions
+// call glGetUniformLocation.  Also, this trades compile-time for easier debugging and I guess allows the
+// option to manually overwrite functions
+cache_uniform_locations :: (program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
 
-A_Uniforms :: struct {
-    i : int;
-    b : struct {
-        j : int;
-        using c : struct {
-            D_Uniforms :: struct {
-                l : int;
-                m : int;
-            }
-            E_Uniforms :: struct {
-                u : int;
-            }
+    if info.type == .INTEGER { // Base case
 
-            k : int;
-            d : D_Uniforms; @UseNameAsPrefix // This note can only be on a struct
-            e : [2]E_Uniforms;
+        info_integer := cast(*Type_Info_Integer)info;
+
+        assert(info_integer.runtime_size == size_of(GLuint));
+
+        loc : GLint = glGetUniformLocation(program, temp_c_string(name));
+        if loc <  0 then log_error("Unknown parameter: '%'", name);
+        if loc >= 0 then (cast(*GLuint)data).* = cast(GLuint)loc;
+
+        // Useful for debugging
+        //print_vars(loc, name, data);
+
+    } else if info.type == .STRUCT { // Recursive case
+
+        info_struct := cast(*Type_Info_Struct)info;
+
+        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
+        for member : info_struct.members {
+            join := ifx flatten then "_" else ".";
+            ext_name := ifx member.flags & .USING then "" else member.name;
+            new_name := ifx name then tprint("%1%2%3", name, join, ext_name) else ext_name;
+            cache_uniform_locations(program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
+        }
+
+    } else if info.type == .ARRAY { // Recursive case
+
+        info_array := cast(*Type_Info_Array)info;
+
+        array_count, array_data := get_array_count_and_data(data, info_array);
+        element_size := info_array.element_type.runtime_size;
+
+        for 0..array_count-1 {
+            new_name := tprint("%[%]", name, it);
+            cache_uniform_locations(program, new_name, array_data + it * element_size, info_array.element_type);
         }
     }
 }
