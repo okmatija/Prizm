@@ -12,6 +12,7 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
 * New Feature: Attributes TODO Add a feature flag for enabling this
 
     * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
+    * TODO Implement some checks on the version numbers e.g., no duplicate numbers, no non-monotonic dates
     * TODO Added a new preset shape prism_obj_format_reference.obj which functions as a demo of how the semantic obj comments in Prism will work. This shape is also available via the Preset button.
     * Multiple attributes are supported, and each will have its own tab in the item context menu
     * TODO Added a preset example to demonstrate the new annotation functionality
@@ -31,6 +32,14 @@ DONE};
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 
 * Removed the useless solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
+DONE};
+
+PRIZM_VERSION_0_9_3 :: Version.{"0.9.3", "17 April 2024", #string DONE
+
+* Clicking with LMB on a "Details" section heading now toggles between the following:
+    1. Displaying section options in a popup menu. This is useful if you want the options is visible only while you're editing them
+    2. Displaying section options inline with the "Details" section. This is useful if you want the options always visible
+* Removed the now unused "File > Preferences > Item List > Item Details Section Uses Menus" which is superceeded by the above feature
 DONE};
 
 PRIZM_VERSION_0_9_2 :: Version.{"0.9.2", "31 March 2024", #string DONE
@@ -657,6 +666,7 @@ DONE
 init_changelog :: () {
     //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
     //array_add(*changelog, PRIZM_VERSION_0_10_0);
+    array_add(*changelog, PRIZM_VERSION_0_9_3);
     array_add(*changelog, PRIZM_VERSION_0_9_2);
     array_add(*changelog, PRIZM_VERSION_0_9_1);
     array_add(*changelog, PRIZM_VERSION_0_9_0);

@@ -73,8 +73,8 @@ imgui_label2 :: (label : string, ptr : *void = null) -> string {
     return tprint("%##%", label, ptr);
 }
 
-begin_box_section :: () {
-    table_flags := ImGui.TableFlags.BordersOuter;
+begin_box_section :: (extra_flags := ImGui.TableFlags.None) {
+    table_flags := ImGui.TableFlags.BordersOuter | extra_flags;
         // .NoHostExtendX; // Can be useful
     ImGui.BeginTable("", 1, flags=table_flags);
 }

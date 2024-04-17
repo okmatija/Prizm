@@ -1181,7 +1181,6 @@ DONE);
         show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
         ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged); // @Volatile Sync with :ReloadItemsKey
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
-        ImGui.Checkbox("Item Details Section Uses Menus", *app.settings.item_details_uses_menu);
     }
 
     if ImGui.BeginMenu("Advanced") {
@@ -1227,18 +1226,87 @@ show_details_ui :: () {
     }
 }
 
-begin_item_details_section :: (label : *u8) -> bool {
-    if app.settings.item_details_uses_menu {
-        return ImGui.BeginMenu(label);
-    }
-    return ImGui.TreeNodeEx(label, ImGui.TreeNodeFlags.SpanAvailWidth);
+
+Details_Section_Info :: struct {
+    Mode :: enum { NONE; MENU; TREE; }
+    begin_mode : Mode = .MENU;
+    end_mode : Mode = .MENU;
 }
 
-end_item_details_section :: () {
-    if app.settings.item_details_uses_menu {
-        ImGui.EndMenu();
-    } else {
+item_details_section_info : Table(*u8, Details_Section_Info);
+
+ConfigureItemDetailsSection :: () #expand {
+    if #complete `section_mode == {
+    case .NONE;
+        // Do nothing
+    case .MENU;
+        // @TODO This does not work, we probably need to call this function before BeginMenu
+        //ImGui.PushStyleColor(xx ImGui.Col.PopupBg, ImGui.GetStyle().Colors[ImGui.Col.WindowBg]);
+    case .TREE;
+        begin_box_section();
+    }
+
+    `defer if #complete `section_mode == {
+    case .NONE;
+        // Do nothing
+    case .MENU;
+        //ImGui.PopStyleColor();
+    case .TREE;
+        end_box_section();
+    }
+}
+
+begin_item_details_section :: (label : *u8) -> bool, Details_Section_Info.Mode {
+    info, newly_added := find_or_add(*item_details_section_info, label);
+
+    if #complete info.begin_mode == {
+    case .NONE;
+
+        // Only expect NONE in for end_mode (when there is no ImGui ending function to call)
+        assert(false);
+
+    case .TREE;
+
+        ImGui.SetNextItemOpen(true);
+        do_tree := ImGui.TreeNodeEx(label, ImGui.TreeNodeFlags.SpanAvailWidth);
+
+        info.end_mode = .TREE; // This frame close the tree
+        if ImGui.IsItemClicked(.Left) {
+            info.begin_mode = .MENU; // Next frame show a menu
+        }
+
+        return do_tree, .TREE;
+
+    case .MENU;
+        do_menu := ImGui.BeginMenu(label);
+
+        info.end_mode = .MENU; // This frame close the menu
+        if ImGui.IsItemClicked(.Left) {
+            info.begin_mode = .TREE; // Next frame show a tree
+        }
+
+        if do_menu {
+        }
+
+        return do_menu, .MENU;
+    }
+
+    assert(false); // Unreachable
+    return false, .NONE;
+}
+
+end_item_details_section :: (label : *u8) {
+    info, newly_added := find_or_add(*item_details_section_info, label);
+
+    if #complete info.end_mode == {
+    case .NONE;
+        // No ending function to call
+
+    case .TREE;
         ImGui.TreePop();
+
+    case .MENU;
+        ImGui.EndMenu();
     }
 }
 
@@ -1302,10 +1370,10 @@ show_details_pane_ui_for_item_selection :: () {
 
 show_item_selection_ui :: () {
 
-    if begin_item_details_section("Selection") {
-        defer end_item_details_section();
-        if !app.settings.item_details_uses_menu begin_box_section();
-        defer if !app.settings.item_details_uses_menu end_box_section();
+    do_section, section_mode := begin_item_details_section("Selection");
+    if do_section {
+        defer end_item_details_section("Selection");
+        ConfigureItemDetailsSection();
 
         for :Selected entity : app.entities {
 
@@ -2221,10 +2289,12 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
 }
 
 display_information :: (entity : *Entity) {
-    if  begin_item_details_section("Information") {
-        defer end_item_details_section();
+
+    do_section, section_mode := begin_item_details_section("Information");
+    if do_section {
+        defer end_item_details_section("Information");
         table_flags : ImGui.TableFlags;
-        if !app.settings.item_details_uses_menu table_flags |= .BordersOuter;
+        if section_mode == .TREE table_flags |= .BordersOuter;
 
         ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
         defer ImGui.EndTable();
@@ -2262,10 +2332,10 @@ display_information :: (entity : *Entity) {
 }
 
 display_transform :: (entity : *Entity) {
-    if  begin_item_details_section("Transform") {
-        defer end_item_details_section();
-        if !app.settings.item_details_uses_menu begin_box_section();
-        defer if !app.settings.item_details_uses_menu end_box_section();
+    do_section, section_mode := begin_item_details_section("Transform");
+    if do_section {
+        defer end_item_details_section("Transform");
+        ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
 
@@ -2537,16 +2607,16 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.triangles.count == 0 {
         ImGui.BeginDisabled();
         if  begin_item_details_section("Triangles (none)") {
-            defer end_item_details_section();
+            defer end_item_details_section("Triangles (none)");
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if  begin_item_details_section("Triangles") {
-        defer end_item_details_section();
-        if !app.settings.item_details_uses_menu begin_box_section();
-        defer if !app.settings.item_details_uses_menu end_box_section();
+    do_section, section_mode := begin_item_details_section("Triangles");
+    if do_section {
+        defer end_item_details_section("Triangles");
+        ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2613,16 +2683,16 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.segments.count == 0 {
         ImGui.BeginDisabled();
         if  begin_item_details_section("Segments (none)") {
-            defer end_item_details_section();
+            defer end_item_details_section("Segments (none)");
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if  begin_item_details_section("Segments") {
-        defer end_item_details_section();
-        if !app.settings.item_details_uses_menu begin_box_section();
-        defer if !app.settings.item_details_uses_menu end_box_section();
+    do_section, section_mode := begin_item_details_section("Segments");
+    if do_section {
+        defer end_item_details_section("Segments");
+        ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2656,16 +2726,16 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.points.count == 0 {
         ImGui.BeginDisabled();
         if  begin_item_details_section("Points (none)") {
-            defer end_item_details_section();
+            defer end_item_details_section("Points (none)");
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if  begin_item_details_section("Points") {
-        defer end_item_details_section();
-        if !app.settings.item_details_uses_menu begin_box_section();
-        defer if !app.settings.item_details_uses_menu end_box_section();
+    do_section, section_mode := begin_item_details_section("Points");
+    if do_section {
+        defer end_item_details_section("Points");
+        ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2700,16 +2770,16 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.positions.count == 0 {
         ImGui.BeginDisabled();
         if begin_item_details_section("Vertices (none)") {
-            defer end_item_details_section();
+            defer end_item_details_section("Vertices (none)");
         }
         ImGui.EndDisabled();
         return;
     }
 
-    if  begin_item_details_section("Vertices") {
-        defer end_item_details_section();
-        if !app.settings.item_details_uses_menu begin_box_section();
-        defer if !app.settings.item_details_uses_menu end_box_section();
+    do_section, section_mode := begin_item_details_section("Vertices");
+    if do_section {
+        defer end_item_details_section("Vertices");
+        ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2751,10 +2821,12 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
 
 show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
 
-    if begin_item_details_section("Clipping") {
-        defer end_item_details_section();
+    do_section, section_mode := begin_item_details_section("Clipping");
+    if do_section {
+        defer end_item_details_section("Clipping");
+
         table_flags : ImGui.TableFlags;
-        if !app.settings.item_details_uses_menu {
+        if section_mode == .TREE {
             table_flags |= .BordersOuter; // | .RowBg; // .SizingFixedFit
         }
 

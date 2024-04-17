@@ -294,8 +294,6 @@ Selected :: #bake_arguments EntitiesIterator(entity_filter=#code !it.is_selected
 
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
-    item_details_uses_menu := true;
-
     item_list_max_size_before_scroll_px := 300.;
     annotation_list_max_size_before_scroll_px := 400.;
 
