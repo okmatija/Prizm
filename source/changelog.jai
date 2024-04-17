@@ -54,46 +54,6 @@ for peel_pass {
 }
 render_final_pass
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 */
 
 // This is not in App since we use it in the build program as well (we just need the version name there actually)
@@ -125,6 +85,7 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Support booleans in command arguments
     * TODO Fix scrolling in the item list, somehow this broke and you need to scroll via the scrollbar
     * TODO Fix the focus button for point elements
+    * TODO Fix the near/far planes not accounting for normal vectors
     * TODO Try ,link_always on windows? Do we need to compile SDL as a static library..?
     * TODO Change defaults so all geometry is visible? This will help with using Prizm as a modeling tool application, if you start with vertices and keep saving the obj and then add a triangle, right now you need to manually toggle the triangle rendering via the details panel
     * TODO Support texture coordinates
@@ -134,6 +95,20 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Cleanup where the binaries/libaries are stored, to unclutter the top-level directory. Look at Unreal/Focus
     * TODO There is a bug where rotation feels bad when the application has a large aspect ratio e.g., very short and fat???
     * TODO Cleanup shader code
+
+// We use reflection to determine uniform locations in the shader. Each derived shader type
+// will use the members of the Uniforms struct member (if there is no such member the shader
+// has no uniforms)
+//
+// The Uniforms struct may contain:
+//
+//     * GLuint members
+//     * Structs (which may be using'd) with GLuint members
+//     * Arrays of Structs with GLuint members
+//
+// The member name must match what is used in the shader
+
+
 ------------------------------
     * Show only the portion of folder names which distinguishes the folder, otherwise it gets very long
     * MacOS support
@@ -146,6 +121,7 @@ PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 
+* Refactored rendering to support SSAO and Depth Peeling
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error

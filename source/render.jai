@@ -46,7 +46,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
         defer info.is_dirty = false;
 
-        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
+        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types her
         // point_type : Type = get_type(type_info(mesh.points).element_type);
 
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
@@ -265,6 +265,17 @@ render_mesh_triangle_normals :: (
 
         glUseProgram(program);
         assert(glIsProgram(program) == GL_TRUE);
+
+        set_uniform(uniforms["world_from_model"], mesh.world_from_model);
+        set_uniform(uniforms["view_from_world"], mesh.view_from_world);
+        set_uniform(uniforms["clip_from_view"], mesh.clip_from_view);
+
+        //---> Call this and check type too glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
+
+        set_uniforms(uniforms, make_render_transforms(mesh.world_from_model), .NoPrefix);
+        set_uniforms(uniforms, triangle_style.normal_style, .UsePrefix);
+        set_uniforms(uniforms, display_info.clip_sphere);
+
         set_uniforms_Render_Transforms(uniforms.render_transforms, make_render_transforms(mesh.world_from_model));
         set_uniforms_Normal_Style(uniforms.normal_style, triangle_style.normal_style);
         set_uniforms_Clip_Sphere(uniforms.clip_sphere, display_info.clip_sphere);
@@ -358,7 +369,7 @@ render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     max := aabb_model.max_point;
 
     set_model_view_projection_uniforms(app.aabb_program, world_from_model);
-    glUniform4f(glGetUniformLocation(app.aabb_program, "color"), r, g, b, a);
+    gluniform4f(glgetuniformlocation(app.aabb_program, "color"), r, g, b, a);
     glUniform3f(glGetUniformLocation(app.aabb_program, "min"), min.x, min.y, min.z);
     glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
 
@@ -500,6 +511,8 @@ render_mesh_triangles :: (
     glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
     glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+
+    // nocommit All in Triangle_Style, and only used in triangles.frag (so it can be in a struct)
     glUniform1i(glGetUniformLocation(program, "display_mode"), xx triangle_style.display_mode);
     glUniform1i(glGetUniformLocation(program, "backface_mode"), xx triangle_style.backface_mode);
     glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
@@ -567,6 +580,122 @@ render_entities :: () {
 
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
+
+set_gbuffer_program :: () {
+
+}
+
+render_entities_gbuffer :: () {
+
+    //debug_print_active_uniforms(app.gbuffer_geometry_pass_program);
+
+    // assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+
+    // Geometry Pass: (positions, normals, albedo, depth?)
+    glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
+    glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+
+    glCullFace(GL_BACK);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    // // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
+    // // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
+    // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
+
+    for :VisibleOpaque app.entities {
+        ri := *it.render_info;
+        di :=  it.display_info;
+
+        if !it.mesh.triangles.count continue;
+        if !di.triangle_style.visible continue;
+
+        maybe_update_render_info(ri, *it.mesh);
+
+        glUseProgram(app.gbuffer_geometry_pass_program);
+        set_model_view_projection_uniforms(app.gbuffer_geometry_pass_program, it.mesh.world_from_model);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(ri.triangles_vao);
+        glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+    }
+
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+    //// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+    //// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+    //// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+    //w, h := app.window_size.width, app.window_size.height;
+    //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glUseProgram(app.background_program);
+    // x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
+    // glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
+    // glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
+    // glBindVertexArray(app.quad_vao);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // print_errors();
+  
+    // // Debug gbuffer
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    // glClearColor(0., 0., 0., 1.); 
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // assert(glIsProgram(app.blit_program) == GL_TRUE);
+    // glUseProgram(app.blit_program);  
+    // glBindVertexArray(app.quad_vao);
+    // glDisable(GL_DEPTH_TEST);
+    // // glActiveTexture(GL_TEXTURE0);
+    // // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    // // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);  
+
+    // Lighting pass
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    glClearColor(0., 0., 0., 1.); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(app.triangles_deferred_program);
+    // glDisable(GL_DEPTH_TEST);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_position"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_normal"), 1);
+
+    for :VisibleOpaque app.entities {
+        ri := *it.render_info;
+        di :=  it.display_info;
+
+        if !it.mesh.triangles.count continue;
+        if !di.triangle_style.visible continue;
+        maybe_update_render_info(ri, *it.mesh);
+
+        look_direction := current_look_direction();
+
+        program := app.triangles_deferred_program;
+        set_model_view_projection_uniforms(program, it.mesh.world_from_model);
+        glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+        glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+        glUniform4f(glGetUniformLocation(program, "color"), di.triangle_style.color.x, di.triangle_style.color.y, di.triangle_style.color.z, di.triangle_style.color.w);
+
+        glBindVertexArray(app.quad_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);  
+    }
+
+}
+
 
 
 render_selections :: () {

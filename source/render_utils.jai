@@ -16,8 +16,8 @@ resize_textures :: () {
 
     {
         // position color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -25,20 +25,14 @@ resize_textures :: () {
         glBindTexture(GL_TEXTURE_2D, 0);
 
         // normal color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gbuffer_normal_texture, 0);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        // color and opacity (@Incomplete) color buffer
-        glGenTextures(1, *gbuffer_albedo_texture);
-        glBindTexture(GL_TEXTURE_2D, gbuffer_albedo_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        // nocommit Add depth buffer/texture here!
     }
 
     /*
@@ -70,41 +64,60 @@ init_render_backend :: () {
     // Init GBuffer framebuffer
     //
 
+    w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
+
     {
-        glGenFramebuffers(1, *gbuffer_framebuffer);
-        glGenTextures(1, *gbuffer_position_texture);
-        glGenTextures(1, *gbuffer_normal_texture);
-        glGenTextures(1, *gbuffer_albedo_texture);
+        glGenFramebuffers(1, *app.gbuffer_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, gbuffer_framebuffer);
-
-        // position color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        // Position color buffer (The z component contains the depth information)
+        glGenTextures(1, *app.gbuffer_position_texture);
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer_position_texture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app.gbuffer_position_texture, 0);
 
-        // normal color buffer
-        glBindTexture(GL_TEXTURE_2D, gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, NULL); // nocommit 32F?
+        // Normal color buffer
+        glGenTextures(1, *app.gbuffer_normal_texture);
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gbuffer_normal_texture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
 
-        // color buffer Note: opacity is handled in a separate forward renderer (@Incomplete)
-        glGenTextures(1, *gbuffer_albedo_texture);
-        glBindTexture(GL_TEXTURE_2D, gbuffer_albedo_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        //// Color buffer Note: opacity is handled in a separate forward renderer (@Incomplete) // We have a constant albedo color for now
+        //glGenTextures(1, *app.gbuffer_albedo_texture);
+        //glBindTexture(GL_TEXTURE_2D, app.gbuffer_albedo_texture);
+        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app.gbuffer_albedo_texture, 0);
+
+        // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+        attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
+        glDrawBuffers(2, attachments.data);
+
+        // Depth buffer texture :DepthTexture We don't actually need this since we have the position buffer
+        glGenTextures(1, *app.gbuffer_depth_texture); //:DepthTexture
+        glBindTexture(GL_TEXTURE_2D, app.gbuffer_depth_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_albedo_texture, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app.gbuffer_depth_texture, 0);
 
-        // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
-        attachments : [3]GLEnum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2];
-        glDrawBuffers(3, attachments.data);
+        //// Create and attach depth render buffer. This is required, without it ther eis no depth testing
+        //glGenRenderbuffers(1, *app.gbuffer_depth_buffer);
+        //glBindRenderbuffer(GL_RENDERBUFFER, app.gbuffer_depth_buffer);
+        //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
+        //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, app.gbuffer_depth_buffer);
+
+        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
     }
 
     //
@@ -163,6 +176,20 @@ init_render_backend :: () {
     // Init shaders
     //
 
+    // @Cleanup We read the same file multiple times which sucks.
+
+    { // nocommit
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/gbuffer.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/gbuffer.frag"); #assert(FRAG_OK);
+        app.gbuffer_geometry_pass_program = get_shader_program(VERT, FRAG); // nocommit Rename to gbuffer_program
+    }
+
+    { // nocommit
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles_deferred.frag"); #assert(FRAG_OK);
+        app.triangles_deferred_program = get_shader_program(VERT, FRAG);
+    }
+
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
@@ -180,21 +207,98 @@ init_render_backend :: () {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        init_shader(*app.shader_triangle_normal_vectors, VERT, FRAG, GEOM);
+        using app.shader_triangle_normal_vectors;
+        program = get_shader_program(VERT, FRAG, GEOM);
+
+
+#if false {
+        s := *app.shader_triangle_normal_vectors;
+
+        cache_uniform_location(s, "", Render_Transforms);
+        cache_uniform_location(s, "clip_sphere", Clip_Sphere);
+        cache_uniform_location(s, "clip_range[0]", Clip_Range);
+        cache_uniform_location(s, "clip_range[1]", Clip_Range);
+        cache_uniform_location(s, "clip_range[2]", Clip_Range);
+    
+        // This is the KISS way to do it, the overloads do fancier things
+        //cache_uniform_location(*s, .Float4, "normal_style_color");
+        //cache_uniform_location(*s, .Float1, "normal_style_scale");
+        //cache_uniform_location(*s, .Float1, "normal_style_normalized");
+        //cache_uniform_location(*s, .Float3, "clip_sphere.center");
+        //cache_uniform_location(*s, .Float1, "clip_sphere.radius");
+        //cache_uniform_location(*s, .Float1, "clip_sphere.is_active");
+        //for 0..2 {
+        //    uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
+        //    uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
+        //    uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
+        //    uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
+        //}
+} else {
+
+        uniforms.world_from_model =        glGetUniformLocation(program, "world_from_model");
+        uniforms.view_from_world =         glGetUniformLocation(program, "view_from_world");
+        uniforms.clip_from_view =          glGetUniformLocation(program, "clip_from_view");
+        uniforms.normal_style.color =      glGetUniformLocation(program, "normal_style_color");
+        uniforms.normal_style.scale =      glGetUniformLocation(program, "normal_style_scale");
+        uniforms.normal_style.normalized = glGetUniformLocation(program, "normal_style_normalized");
+        uniforms.clip_sphere.center =      glGetUniformLocation(program, "clip_sphere.center");
+        uniforms.clip_sphere.radius =      glGetUniformLocation(program, "clip_sphere.radius");
+        uniforms.clip_sphere.is_active =   glGetUniformLocation(program, "clip_sphere.is_active");
+        for 0..2 {
+            uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
+            uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
+            uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
+            uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
+        }
+}
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        init_shader(*app.shader_segment_normal_vectors, VERT, FRAG, GEOM);
+        using app.shader_segment_normal_vectors;
+        program = get_shader_program(VERT, FRAG, GEOM);
+
+        uniforms.world_from_model =        glGetUniformLocation(program, "world_from_model");
+        uniforms.view_from_world =         glGetUniformLocation(program, "view_from_world");
+        uniforms.clip_from_view =          glGetUniformLocation(program, "clip_from_view");
+        uniforms.normal_style.color =      glGetUniformLocation(program, "normal_style_color");
+        uniforms.normal_style.scale =      glGetUniformLocation(program, "normal_style_scale");
+        uniforms.normal_style.normalized = glGetUniformLocation(program, "normal_style_normalized");
+        uniforms.clip_sphere.center =      glGetUniformLocation(program, "clip_sphere.center");
+        uniforms.clip_sphere.radius =      glGetUniformLocation(program, "clip_sphere.radius");
+        uniforms.clip_sphere.is_active =   glGetUniformLocation(program, "clip_sphere.is_active");
+        for 0..2 {
+            uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
+            uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
+            uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
+            uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
+        }
     }
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
         GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        init_shader(*app.shader_point_normal_vectors, VERT, FRAG, GEOM);
+        using app.shader_point_normal_vectors;
+        program = get_shader_program(VERT, FRAG, GEOM);
+
+        uniforms.world_from_model =        glGetUniformLocation(program, "world_from_model");
+        uniforms.view_from_world =         glGetUniformLocation(program, "view_from_world");
+        uniforms.clip_from_view =          glGetUniformLocation(program, "clip_from_view");
+        uniforms.normal_style.color =      glGetUniformLocation(program, "normal_style_color");
+        uniforms.normal_style.scale =      glGetUniformLocation(program, "normal_style_scale");
+        uniforms.normal_style.normalized = glGetUniformLocation(program, "normal_style_normalized");
+        uniforms.clip_sphere.center =      glGetUniformLocation(program, "clip_sphere.center");
+        uniforms.clip_sphere.radius =      glGetUniformLocation(program, "clip_sphere.radius");
+        uniforms.clip_sphere.is_active =   glGetUniformLocation(program, "clip_sphere.is_active");
+        for 0..2 {
+            uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
+            uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
+            uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
+            uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
+        }
     }
 
     {
@@ -203,13 +307,21 @@ init_render_backend :: () {
         app.aabb_program = get_shader_program(VERT, FRAG);
     }
 
+    glGenVertexArrays(1, *app.quad_vao);
+
     {
+        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/blit.frag"); #assert(FRAG_OK);
+        app.blit_program = get_shader_program(VERT, FRAG);
+    }
+
+    #if false { // nocommit
         VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao_blur.frag"); #assert(FRAG_OK);
         app.ssao_blur_program = get_shader_program(VERT, FRAG);
     }
 
-    {
+    #if false { // nocommit
         VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao.frag"); #assert(FRAG_OK);
         app.ssao_program = get_shader_program(VERT, FRAG);
@@ -280,56 +392,47 @@ ScopeGlState :: () #expand {
 
 #scope_file
 
-init_shader :: (shader : *$T/Shader, $vertex_shader_text : string, $fragment_shader_text : string, $geometry_shader_text : string) {
-    shader.program = get_shader_program(vertex_shader_text, fragment_shader_text, geometry_shader_text);
-    cache_uniform_locations(shader.program, "", *shader.uniforms, type_info(type_of(shader.uniforms)));
+
+
+/*
+uniforms :: struct {
+    a : A;
 }
+/*
+"","a"
+    "a.i",""
 
-// :CacheUniformLocationsWithCodeNotReflection
-// Perhaps its better for debugging/understandablity to rewrite this as code generation to make functions
-// call glGetUniformLocation.  Also, this trades compile-time for easier debugging and I guess allows the
-// option to manually overwrite functions
-cache_uniform_locations :: (program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
+    a.i
+    a.b.j
+    a.b.k
+    a.b.d_l
+    a.b.d_m
+    a.b.e[0].u
+    a.b.e[1].u
+*/
 
-    if info.type == .INTEGER { // Base case
+A_Uniforms :: struct {
+    i : int;
+    b : struct {
+        j : int;
+        using c : struct {
+            D_Uniforms :: struct {
+                l : int;
+                m : int;
+            }
+            E_Uniforms :: struct {
+                u : int;
+            }
 
-        info_integer := cast(*Type_Info_Integer)info;
-
-        assert(info_integer.runtime_size == size_of(GLuint));
-
-        loc : GLint = glGetUniformLocation(program, temp_c_string(name));
-        if loc <  0 then log_error("Unknown parameter: '%'", name);
-        if loc >= 0 then (cast(*GLuint)data).* = cast(GLuint)loc;
-
-        // Useful for debugging
-        //print_vars(loc, name, data);
-
-    } else if info.type == .STRUCT { // Recursive case
-
-        info_struct := cast(*Type_Info_Struct)info;
-
-        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
-        for member : info_struct.members {
-            join := ifx flatten then "_" else ".";
-            ext_name := ifx member.flags & .USING then "" else member.name;
-            new_name := ifx name then tprint("%1%2%3", name, join, ext_name) else ext_name;
-            cache_uniform_locations(program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
+            k : int;
+            d : D_Uniforms; @UseNameAsPrefix // This note can only be on a struct
+            e : [2]E_Uniforms;
         }
-
-    } else if info.type == .ARRAY { // Recursive case
-
-        info_array := cast(*Type_Info_Array)info;
-
-        array_count, array_data := get_array_count_and_data(data, info_array);
-        element_size := info_array.element_type.runtime_size;
-
-        for 0..array_count-1 {
-            new_name := tprint("%[%]", name, it);
-            cache_uniform_locations(program, new_name, array_data + it * element_size, info_array.element_type);
-        }
-
     }
 }
+*/
+
+
 
 
 get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_geometry : string = "") -> GLuint {

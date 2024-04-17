@@ -160,11 +160,20 @@ App_Render_Info :: struct {
     background_program : GLuint;
     background_vao : GLuint; // nocommit Consolidate with ssao_vao into quad_vao
 
+    quad_vao : GLuint;
+
+    blit_program : GLuint; // Used to blit framebuffer textures nocommit Is this the portable way to do it?
+
     // GBuffer ("Geometry Buffer") for deferred rendering of opaque items
+    gbuffer_geometry_pass_program : GLuint;
     gbuffer_framebuffer : GLuint;
     gbuffer_position_texture : GLuint;
     gbuffer_normal_texture : GLuint;
     gbuffer_albedo_texture : GLuint;
+    gbuffer_depth_buffer : GLuint;
+    gbuffer_depth_texture : GLuint; // :DepthTexture Replace render buffer with texture??
+
+    triangles_deferred_program : GLuint;
 
     /*
     ssao_program : GLuint;

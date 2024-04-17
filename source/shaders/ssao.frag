@@ -8,13 +8,13 @@ uniform sampler2D tex_position;
 uniform sampler2D tex_normal;
 uniform sampler2D tex_noise;
 
-uniform vec3 samples[64]; // @Volatile samples <> kernel_size
+uniform vec3 samples[64]; // @Volatile samples.count == kernel_size
 
 uniform float window_width;
 uniform float window_height;
 
 // TODO make these uniforms
-int kernel_size = 64; // @Volatile samples <> kernel_size
+int kernel_size = 64; // @Volatile samples.count == kernel_size
 float radius = 0.5;
 float bias = 0.025;
 

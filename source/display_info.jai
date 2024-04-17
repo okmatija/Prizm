@@ -83,6 +83,7 @@ Annotation_Theme :: struct {
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
+// nocommit Move into Triangle_Style
 Backface_Mode :: enum #specified {
     NONE :: 0;
     CULL :: 1;
@@ -129,7 +130,7 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
     center : Vector3;          @Uniform
-    radius := 0h7F800000;      @Uniform // +inf
+    radius := 0h7F800000;      @Uniform // +inf nocommit Make this a constatn
     is_active : bool = false;  @Uniform
 }
 
