@@ -415,12 +415,12 @@ on_screen_in_disk :: (text_position_px : Tuple2i, visible_radius_px : int) -> bo
 
     if text_position_px.x < 0 ||
        text_position_px.y < 0 ||
-       text_position_px.x > xx app.current_window_width ||
-       text_position_px.y > xx app.current_window_height {
+       text_position_px.x > cast(int)app.window_size.width ||
+       text_position_px.y > cast(int)app.window_size.height {
         return false;
     }
 
-    mouse_position := Vector2.{io().MousePos.x, app.current_window_height - io().MousePos.y};
+    mouse_position := Vector2.{io().MousePos.x, app.window_size.height - io().MousePos.y};
     text_position :=  Vector2.{xx text_position_px.x, xx text_position_px.y};
     if distance(mouse_position, text_position) > xx visible_radius_px {
         return false;
@@ -513,11 +513,11 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
 
         // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
         to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
-            return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+            return .{cast(float) position_screen.x, cast(float)app.window_size.height - cast(float) position_screen.y};
         }
 
         window_position := to_imgui_position(position_px);
-        window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+        window_position_index := cast(int)(window_position.x + app.window_size.width * window_position.y);
 
         text_size : ImGui.ImVec2;
         for overlapping_labels {

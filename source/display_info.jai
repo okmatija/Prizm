@@ -83,6 +83,7 @@ Annotation_Theme :: struct {
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
+// nocommit Move into Triangle_Style
 Backface_Mode :: enum #specified {
     NONE :: 0;
     CULL :: 1;
@@ -108,10 +109,10 @@ Clip_Mode :: enum #specified {
 
 // @Volatile Keep synced with shaders
 Clip_Range :: struct {
-    normal : Vector3; // @Cleanup Is this unit???
-    is_active : bool;
-    min : float = 0hFF800000; // -inf
-    max : float = 0h7F800000; // +inf
+    normal : Vector3;          @Uniform // @Cleanup Is this unit???
+    is_active : bool;          @Uniform
+    min : float = 0hFF800000;  @Uniform // -inf
+    max : float = 0h7F800000;  @Uniform // +inf
 }
 
 // Note: all arguments must be in the same space e.g., world/model coordinates
@@ -128,15 +129,15 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
-    using #as sphere : Sphere;
-    radius = 0h7F800000; // +inf
-    is_active : bool = false;
+    center : Vector3;          @Uniform
+    radius := 0h7F800000;      @Uniform // +inf nocommit Make this a constatn
+    is_active : bool = false;  @Uniform
 }
 
 // Note: all arguments must be in the same space e.g., world/model coordinates
 is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     if clip_sphere.is_active {
-        if !contains(clip_sphere, point) {
+        if !contains(.{clip_sphere.center, clip_sphere.radius}, point) {
             return true;
         }
     }
@@ -145,16 +146,20 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 
 Normal_Style :: struct {
     visible := false;
-    color := Vector4.{0., 0., .8, 1.};
-    scale : float = 1.; // Multiplies the obj normal. If normalized is true then this value is the length
-    normalized : bool = true; // If true the obj normal is normalized before scale is applied
+    color := Vector4.{0., 0., .8, 1.};   @Uniform
+
+    // Multiplies the obj normal. If normalized is true then this value is the length
+    scale : float = 1.;                  @Uniform
+
+    // If true the obj normal is normalized before scale is applied
+    normalized : bool = true;            @Uniform
 }
 
 // Could also be used for tetrahedra edges when/if those are supported
 Edge_Style :: struct {
     visible := false;
-    color : Vector4 = BLACK;
-    width : float = 1.;
+    color : Vector4 = BLACK;   @Uniform
+    width : float = 1.;        @Uniform
 }
 
 Vertex_Style :: struct {
@@ -185,12 +190,13 @@ Triangle_Style :: struct {
     }
 
     visible := false;
-    color := Vector4.{1., 1., 1., 1.};
-    display_mode := Display_Mode.BLINN_PHONG;
-    backface_mode := Backface_Mode.FIXED;
-    flat_shading := true;
 
-    edge_style : Edge_Style;
+    color := Vector4.{1., 1., 1., 1.};        @Uniform
+    display_mode := Display_Mode.BLINN_PHONG; @Uniform
+    backface_mode := Backface_Mode.FIXED;     @Uniform
+    flat_shading := true;                     @Uniform
+    edge_style : Edge_Style;                  @Uniform
+
     normal_style : Normal_Style;
 }
 

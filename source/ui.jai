@@ -184,7 +184,7 @@ show_menu_bar_ui :: () {
                 tooltip();
 
                 ImGui.SameLine();
-                size : [2]s32 = .[app.current_window_width, app.current_window_height];
+                size : [2]s32 = .[app.window_size.width, app.window_size.height];
                 ImGui.PushItemWidth(item_width);
                 if ImGui.DragInt2("##WindowSize", *size) {
                     SDL_SetWindowSize(app.window, size[0], size[1]);
@@ -193,10 +193,10 @@ show_menu_bar_ui :: () {
                 ImGui.PopItemWidth();
 
                 ImGui.SameLine();
-                disable_window_resize_reset := (app.current_window_width == app.INITIAL_WINDOW_WIDTH && app.current_window_height == app.INITIAL_WINDOW_HEIGHT);
+                disable_window_resize_reset := (app.window_size.width == app.INITIAL_WINDOW_SIZE.width && app.window_size.height == app.INITIAL_WINDOW_SIZE.height);
                 if disable_window_resize_reset ImGui.BeginDisabled();
                 if ImGui.Button("Reset##WindowSize") {
-                    SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT);
+                    SDL_SetWindowSize(app.window, app.INITIAL_WINDOW_SIZE.width, app.INITIAL_WINDOW_SIZE.height);
                 }
                 tooltip();
                 if disable_window_resize_reset ImGui.EndDisabled();
@@ -443,7 +443,7 @@ show_ribbon_buttons_ui :: () {
     buttons_space := (button_count - 1) * ImGui.GetStyle().ItemSpacing.x;  
     buttons_width := button_count * button_width + buttons_space + 2 * ImGui.GetStyle().WindowPadding.x;
 
-    next_window_pos := ImGui.ImVec2.{(app.current_window_width - buttons_width)/2, xx app.current_window_height};
+    next_window_pos := ImGui.ImVec2.{(app.window_size.width - buttons_width)/2, cast(float)app.window_size.height};
 
     if app.ribbon_button_mode == .AUTO {
         pad :: 40;
@@ -455,7 +455,7 @@ show_ribbon_buttons_ui :: () {
     }
 
     ImGui.SetNextWindowPos(next_window_pos, pivot=window_pivot);
-    // ImGui.SetNextWindowSize(ImGui.ImVec2.{xx app.current_window_width, -1}, .Always); // Full width of OS window, we DONT do this.
+    // ImGui.SetNextWindowSize(ImGui.ImVec2.{cast(float)app.window_size.width, -1}, .Always); // Full width of OS window, we DONT do this.
     ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always); // Just wide enough to fit all the buttons---better since mouse can interact with viewport where there are no buttons
 
     window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoDecoration;
@@ -493,10 +493,10 @@ show_pending_directories_ui :: () {
         return;
     }
 
-    ImGui.SetNextWindowPos(ImGui.ImVec2.{app.current_window_width / 2., app.current_window_height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
+    ImGui.SetNextWindowPos(ImGui.ImVec2.{app.window_size.width / 2., app.window_size.height / 2.}, pivot=.{.5, .5}, cond=.ImGuiCond_Appearing);
     ImGui.SetNextWindowSize(ImGui.ImVec2.{-1, -1}, .Always);
-    // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75},
-    //                                    ImGui.ImVec2.{app.current_window_width * .6, app.current_window_height * .75});
+    // ImGui.SetNextWindowSizeConstraints(ImGui.ImVec2.{app.window_size.width * .6, app.window_size.height * .75},
+    //                                    ImGui.ImVec2.{app.window_size.width * .6, app.window_size.height * .75});
     window_flags := ImGui.WindowFlags.NoTitleBar | .NoCollapse;
 
     // @Incomplete Could have a policy to just load everything rather than ask?
@@ -1101,7 +1101,7 @@ show_preferences :: () {
         }
 
         {
-            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_max_px : float = max(cast(float)app.window_size.width, cast(float)app.window_size.height);
             radius_px := cast(float) app.settings.closest_point_query_max_dist_px;
             ImGui.DragFloat("CP Query Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
             show_tooltip(tprint(#string DONE
@@ -1144,7 +1144,7 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
 
         {
             // @Cleanupp Replace with DragInt
-            radius_max_px : float = max(cast(float)app.current_window_width, cast(float)app.current_window_height);
+            radius_max_px : float = max(cast(float)app.window_size.width, cast(float)app.window_size.height);
             radius_px := cast(float) app.settings.labelling_radius_px;
             ImGui.DragFloat("Spotlight Radius (px)", *radius_px, 1, 25, radius_max_px, format="%.0f");
             show_tooltip(tprint("Label visibility radius in pixels for % labelling mode", Labelling_Mode.SPOTLIGHT));
@@ -1177,8 +1177,10 @@ DONE);
         //ImGui.PushItemWidth(item_width);
         //defer ImGui.PopItemWidth();
 
+        // @Volatile, update the github wiki if you move this "Invalid Point" option!
         ImGui.DragFloat3(imgui_label("Invalid Point", *app.invalid_point), *app.invalid_point.component, .05, format="%.3f");
         show_tooltip("Used to handle invalid .obj files:\nInvalid `f` directive references (missing points) use this position\nInvalid point components (inf/nan) get the corresponding component value");
+
         ImGui.Checkbox(imgui_label(tprint("Disable reload via % when file unchanged", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false))), *app.settings.disable_reload_key_if_file_unchanged); // @Volatile Sync with :ReloadItemsKey
         ImGui.Checkbox("Show Header Annotation Tooltips", *app.settings.show_header_annotation_tooltips);
     }
@@ -1555,7 +1557,7 @@ show_select_tool_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
 
-        entity.display_info.is_visible = true;
+        entity.display_info.is_visible = true; // nocommit :CleanupSelectTool Just set this is_visible state to do_tree?
 
         select_element :: (
             element_name : string,
@@ -2591,7 +2593,7 @@ show_normal_style_ui :: (normal_style : *Normal_Style, padding : string = "") {
     ImGui.Checkbox(imgui_label("##normals_visible", normal_style), *normal_style.visible);
     show_tooltip("Normal Visibility");
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##normal_style_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##normals_scale", normal_style), *normal_style.scale, .05);
@@ -2872,7 +2874,9 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 uninitialized := (clip_sphere.radius == POSITIVE_INF);
                 if ImGui.Button(imgui_label("Reset    ##sphere", *clip_sphere)) || uninitialized {
                     if !is_empty(aabb) {
-                        clip_sphere.sphere = bounding_sphere(aabb);
+                        sphere := bounding_sphere(aabb);
+                        clip_sphere.center = sphere.center;
+                        clip_sphere.radius = sphere.radius;
                     } else {
                         clip_sphere.center = .{0, 0, 0};
                         clip_sphere.radius = POSITIVE_INF;

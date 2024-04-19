@@ -46,7 +46,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
     if info.is_dirty {
         defer info.is_dirty = false;
 
-        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types here
+        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types her
         // point_type : Type = get_type(type_info(mesh.points).element_type);
 
         // Note: We do _not_ apply the mesh.world_from_model transform here, that is
@@ -249,6 +249,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 }
 
 // @Cleanup consolidate this
+// @Incomplete handle wave?
 render_mesh_triangle_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -259,16 +260,27 @@ render_mesh_triangle_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    p := app.triangles_normal_program;
-    glUseProgram(p);
+    {
+        using app.shader_triangle_normal_vectors;
 
-    // @Incomplete handle wave?
-    set_model_view_projection_uniforms(p, mesh.world_from_model);
-    set_clip_ranges_uniforms(p, display_info);
-    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(p, "normals_color"), triangle_style.normal_style.color.x, triangle_style.normal_style.color.y, triangle_style.normal_style.color.z, triangle_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_scale"), triangle_style.normal_style.scale);
-    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)triangle_style.normal_style.normalized);
+        glUseProgram(program);
+        assert(glIsProgram(program) == GL_TRUE);
+
+        set_uniform(uniforms["world_from_model"], mesh.world_from_model);
+        set_uniform(uniforms["view_from_world"], mesh.view_from_world);
+        set_uniform(uniforms["clip_from_view"], mesh.clip_from_view);
+
+        //---> Call this and check type too glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
+
+        set_uniforms(uniforms, make_render_transforms(mesh.world_from_model), .NoPrefix);
+        set_uniforms(uniforms, triangle_style.normal_style, .UsePrefix);
+        set_uniforms(uniforms, display_info.clip_sphere);
+
+        set_uniforms_Render_Transforms(uniforms.render_transforms, make_render_transforms(mesh.world_from_model));
+        set_uniforms_Normal_Style(uniforms.normal_style, triangle_style.normal_style);
+        set_uniforms_Clip_Sphere(uniforms.clip_sphere, display_info.clip_sphere);
+        for 0..2 set_uniforms_Clip_Range(uniforms.clip_range[it], display_info.clip_ranges[it]);
+    }
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -280,6 +292,7 @@ render_mesh_triangle_normals :: (
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
+// @Incomplete handle wave?
 render_mesh_segment_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -293,16 +306,16 @@ render_mesh_segment_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    p := app.segments_normal_program;
-    glUseProgram(p);
+    {
+        using app.shader_segment_normal_vectors;
 
-    // @Incomplete handle wave?
-    set_model_view_projection_uniforms(p, mesh.world_from_model);
-    set_clip_ranges_uniforms(p, display_info);
-    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(p, "normals_color"), segment_style.normal_style.color.x, segment_style.normal_style.color.y, segment_style.normal_style.color.z, segment_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_scale"), segment_style.normal_style.scale);
-    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)segment_style.normal_style.normalized);
+        glUseProgram(program);
+        assert(glIsProgram(program) == GL_TRUE);
+        set_uniforms_Render_Transforms(uniforms.render_transforms, make_render_transforms(mesh.world_from_model));
+        set_uniforms_Normal_Style(uniforms.normal_style, segment_style.normal_style);
+        set_uniforms_Clip_Sphere(uniforms.clip_sphere, display_info.clip_sphere);
+        for 0..2 set_uniforms_Clip_Range(uniforms.clip_range[it], display_info.clip_ranges[it]);
+    }
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -314,6 +327,7 @@ render_mesh_segment_normals :: (
     glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
+// @Incomplete handle wave?
 render_mesh_point_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -324,16 +338,16 @@ render_mesh_point_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    p := app.points_normal_program;
-    glUseProgram(p);
+    {
+        using app.shader_point_normal_vectors;
 
-    // @Incomplete handle wave?
-    set_model_view_projection_uniforms(p, mesh.world_from_model);
-    set_clip_ranges_uniforms(p, display_info);
-    set_clip_sphere_uniforms(p, display_info, prev_sphere=false);
-    glUniform4f(glGetUniformLocation(p, "normals_color"), point_style.normal_style.color.x, point_style.normal_style.color.y, point_style.normal_style.color.z, point_style.normal_style.color.w);
-    glUniform1f(glGetUniformLocation(p, "normal_scale"), point_style.normal_style.scale);
-    glUniform1ui(glGetUniformLocation(p, "normal_normalized"), cast(GLuint)point_style.normal_style.normalized);
+        glUseProgram(program);
+        assert(glIsProgram(program) == GL_TRUE);
+        set_uniforms_Render_Transforms(uniforms.render_transforms, make_render_transforms(mesh.world_from_model));
+        set_uniforms_Normal_Style(uniforms.normal_style, point_style.normal_style);
+        set_uniforms_Clip_Sphere(uniforms.clip_sphere, display_info.clip_sphere);
+        for 0..2 set_uniforms_Clip_Range(uniforms.clip_range[it], display_info.clip_ranges[it]);
+    }
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -355,7 +369,7 @@ render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     max := aabb_model.max_point;
 
     set_model_view_projection_uniforms(app.aabb_program, world_from_model);
-    glUniform4f(glGetUniformLocation(app.aabb_program, "color"), r, g, b, a);
+    gluniform4f(glgetuniformlocation(app.aabb_program, "color"), r, g, b, a);
     glUniform3f(glGetUniformLocation(app.aabb_program, "min"), min.x, min.y, min.z);
     glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
 
@@ -443,6 +457,7 @@ MIN_EDGES_WIDTH_GL_LINE :: 1.;
 MIN_EDGES_WIDTH_GL_FILL :: 1.2;
 
 // Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
+// TODOO Maybe note the degenerate triangles when we parse the obj file and store them so we don't render all edges here... rendering all the edges with lines is ugly (it would be less ugly if we used quads strips to render lines).
 render_mesh_triangles_as_lines :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -496,18 +511,22 @@ render_mesh_triangles :: (
     glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
     glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
     glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+
+    // nocommit All in Triangle_Style, and only used in triangles.frag (so it can be in a struct)
     glUniform1i(glGetUniformLocation(program, "display_mode"), xx triangle_style.display_mode);
     glUniform1i(glGetUniformLocation(program, "backface_mode"), xx triangle_style.backface_mode);
     glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
     glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
     glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
-    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
     glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
+    glUniform2f(glGetUniformLocation(program, "window_size"), cast(float)app.window_size.width, cast(float)app.window_size.height);
 
+    // nocommit Remove this
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
+    // nocommit Extract this
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -533,9 +552,11 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_
     glUniform1i(glGetUniformLocation(program, "clip_mode"), xx used_clip_mode);
     glUniform1f(glGetUniformLocation(program, "point_size"), xx point_style.size);
 
+    // nocommit Remove this
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
+    // nocommit Extract this
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -546,35 +567,6 @@ render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_
 render_entities :: () {
 
     ScopeGlState();
-
-    render_entity_geometry :: (entity : *Entity, entity_index : int) {
-        ri := *entity.render_info;
-        di :=  entity.display_info;
-
-        clip_radius_mode := entity_in_clip_radius_mode(entity_index);
-        clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
-
-        render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
-        render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_mesh_triangle_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
-        render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
-        render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-        render_mesh_point_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
-        render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
-
-        if di.aabb_visible {
-            render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
-        }
-    }
-
-    not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
-    not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
-    not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
-
-    VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
-    VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
-    VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
 
     for :VisibleOpaque      app.entities render_entity_geometry(it, it_index);
     for :VisibleTransparent app.entities render_entity_geometry(it, it_index);
@@ -589,6 +581,123 @@ render_entities :: () {
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
 
+set_gbuffer_program :: () {
+
+}
+
+render_entities_gbuffer :: () {
+
+    //debug_print_active_uniforms(app.gbuffer_geometry_pass_program);
+
+    // assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+    //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
+
+    // Geometry Pass: (positions, normals, albedo, depth?)
+    glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
+    glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+
+    glCullFace(GL_BACK);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    // // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
+    // // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
+    // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
+
+    for :VisibleOpaque app.entities {
+        ri := *it.render_info;
+        di :=  it.display_info;
+
+        if !it.mesh.triangles.count continue;
+        if !di.triangle_style.visible continue;
+
+        maybe_update_render_info(ri, *it.mesh);
+
+        glUseProgram(app.gbuffer_geometry_pass_program);
+        set_model_view_projection_uniforms(app.gbuffer_geometry_pass_program, it.mesh.world_from_model);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(ri.triangles_vao);
+        glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+    }
+
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+    //// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+    //// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+    //// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+    //w, h := app.window_size.width, app.window_size.height;
+    //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glUseProgram(app.background_program);
+    // x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
+    // glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
+    // glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
+    // glBindVertexArray(app.quad_vao);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // print_errors();
+  
+    // // Debug gbuffer
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    // glClearColor(0., 0., 0., 1.); 
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // assert(glIsProgram(app.blit_program) == GL_TRUE);
+    // glUseProgram(app.blit_program);  
+    // glBindVertexArray(app.quad_vao);
+    // glDisable(GL_DEPTH_TEST);
+    // // glActiveTexture(GL_TEXTURE0);
+    // // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    // // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);  
+
+    // Lighting pass
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    glClearColor(0., 0., 0., 1.); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(app.triangles_deferred_program);
+    // glDisable(GL_DEPTH_TEST);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_position"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_normal"), 1);
+
+    for :VisibleOpaque app.entities {
+        ri := *it.render_info;
+        di :=  it.display_info;
+
+        if !it.mesh.triangles.count continue;
+        if !di.triangle_style.visible continue;
+        maybe_update_render_info(ri, *it.mesh);
+
+        look_direction := current_look_direction();
+
+        program := app.triangles_deferred_program;
+        set_model_view_projection_uniforms(program, it.mesh.world_from_model);
+        glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+        glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
+        glUniform4f(glGetUniformLocation(program, "color"), di.triangle_style.color.x, di.triangle_style.color.y, di.triangle_style.color.z, di.triangle_style.color.w);
+
+        glBindVertexArray(app.quad_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);  
+    }
+
+}
+
+
 
 render_selections :: () {
     if !app.select_tool.entity.display_info.is_visible {
@@ -597,6 +706,7 @@ render_selections :: () {
 
     ScopeGlState();
 
+    // nocommit Remove this, can it even be triggered???
     if app.select_tool.entity.is_hovered {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
@@ -616,8 +726,8 @@ render_selections :: () {
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
     render_mesh_triangle_normals(mesh, *entity.render_info, entity.display_info);
 
-    projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
-
+    // projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
+    //
     // // We intentionally always all the text for selections since there usually aren't lots
     // // of overlapping ones and its annoying not to see everything. We also don't consider
     // // the clipping sphere (there is no way to set it right now, anyway) since this is also
@@ -630,7 +740,7 @@ render_selections :: () {
     //
     //     // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
     //     to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
-    //         return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+    //         return .{cast(float) position_screen.x, cast(float)app.window_size.height - cast(float) position_screen.y};
     //     }
     //
     //     window_position : ImGui.ImVec2 = to_imgui_position(to_screen_position(it, projection_from_model));
@@ -660,7 +770,7 @@ render_background :: () {
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
             glUseProgram(app.background_program);
-            x, y, z : float = xx app.current_window_width, xx app.current_window_height, 1.;
+            x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
             glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);
@@ -737,6 +847,35 @@ set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info,
         glUniform3f(glGetUniformLocation(shader, "clip_sphere_prev.center"), center.x, center.y, center.z);
         glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.radius"), xx radius);
         glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.is_active"), xx is_active);
+    }
+}
+
+not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
+not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
+not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
+
+VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
+VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
+VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
+
+render_entity_geometry :: (entity : *Entity, entity_index : int) {
+    ri := *entity.render_info;
+    di :=  entity.display_info;
+
+    clip_radius_mode := entity_in_clip_radius_mode(entity_index);
+    clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
+
+    render_mesh_triangles(*entity.mesh, ri, di, clip_radius_mode, clip_radius_mode_show_wireframe);
+    render_mesh_triangles_as_lines(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+    render_mesh_triangle_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+    render_mesh_segments(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+    render_mesh_segment_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+    render_mesh_points(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+    render_mesh_point_normals(*entity.mesh, ri, di); // Probably we want to pass clip_radius_mode here too?
+    render_mesh_positions(*entity.mesh, ri, di, clip_radius_mode_show_wireframe);
+
+    if di.aabb_visible {
+        render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
     }
 }
 

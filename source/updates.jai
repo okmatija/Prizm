@@ -101,21 +101,24 @@ apply_update :: (update : Sphere_Update, source : Sphere, target : *Sphere) {
 //
 
 Clip_Sphere_Update :: struct {
-    sphere : Sphere_Update;
+    center : Vector3_Update;
+    radius : bool = false;
     is_active : bool = false;
 }
 
 get_update :: (old : Clip_Sphere, new : Clip_Sphere) -> Clip_Sphere_Update {
     result : Clip_Sphere_Update;
 
-    result.sphere = get_update(old.sphere, new.sphere);
+    result.center = get_update(old.center, new.center);
+    result.radius = get_update(old.radius, new.radius);
     result.is_active = get_update(old.is_active, new.is_active);
 
     return result;
 }
 
 apply_update :: (update : Clip_Sphere_Update, source : Clip_Sphere, target : *Clip_Sphere) {
-    apply_update(update.sphere, source.sphere, *target.sphere);
+    apply_update(update.center, source.center, *target.center);
+    apply_update(update.radius, source.radius, *target.radius);
     apply_update(update.is_active, source.is_active, *target.is_active);
 }
 
