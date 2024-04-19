@@ -179,27 +179,27 @@ init_render_backend :: () {
     // @Cleanup We read the same file multiple times which sucks.
 
     { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/gbuffer.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/gbuffer.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/gbuffer.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/gbuffer.frag"); #assert(FRAG_OK);
         app.gbuffer_geometry_pass_program = get_shader_program(VERT, FRAG); // nocommit Rename to gbuffer_program
     }
 
     { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles_deferred.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/triangles_deferred.frag"); #assert(FRAG_OK);
         app.triangles_deferred_program = get_shader_program(VERT, FRAG);
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/points_lines.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/points_lines.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/points_lines.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/points_lines.frag"); #assert(FRAG_OK);
         app.points_lines_program = get_shader_program(VERT, FRAG);
     }
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/triangles.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/triangles.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/triangles.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/render/triangles.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/triangles.frag"); #assert(FRAG_OK);
         app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
         // init_shader(*app.shader_triangles, VERT, FRAG, GEOM);
     }
@@ -209,36 +209,36 @@ init_render_backend :: () {
     init_shader(*app.shader_point_normal_vectors);
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/aabb.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/aabb.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/aabb.frag"); #assert(FRAG_OK);
         app.aabb_program = get_shader_program(VERT, FRAG);
     }
 
     glGenVertexArrays(1, *app.quad_vao);
 
     {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/blit.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/blit.frag"); #assert(FRAG_OK);
         app.blit_program = get_shader_program(VERT, FRAG);
     }
 
     #if false { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao_blur.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/ssao_blur.frag"); #assert(FRAG_OK);
         app.ssao_blur_program = get_shader_program(VERT, FRAG);
     }
 
     #if false { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/ssao.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/ssao.frag"); #assert(FRAG_OK);
         app.ssao_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.ssao_vao);
     }
 
     {
         // We may want to hot-load this file in future to allow the user to customize the background
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/background.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/background.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/background.vert"); #assert(VERT_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/background.frag"); #assert(FRAG_OK);
         app.background_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.background_vao);
     }

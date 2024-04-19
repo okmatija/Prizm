@@ -4,19 +4,22 @@ main :: () {
     // init_shader_uniform(*s, "clip_range[0]", Clip_Range);
     // init_shader_uniform(*s, "clip_range[1]", Clip_Range);
     // init_shader_uniform(*s, "clip_range[2]", Clip_Range);
+    // init_shader_uniforms(*s, "", Render_Transforms.{});
 
-    init_shader_uniforms(*s, "", Render_Transforms.{});
-
-    init_shader_uniform(*s, "world_from_model", .Matrix4, type_info(Matrix4));
+    set_shader_uniform_location(*s, "world_from_model", .Matrix4);
+    set_shader_uniform_location(*s, "color", .Float4);
 
 
     world_from_model : Matrix4;
-    set_shader_uniform(*s, "world_from_model", world_from_model);
+    set_shader_uniform_value(*s, "world_from_model", world_from_model.floats);
+
+    color : Vector4;
+    set_shader_uniform_value(*s, "color", color.component);
 
     // f : float
     // set_shader_uniform(*s, "world_from_model", f);
 
-    set_shader_uniform(*s, "world_from_model", 1.);
+    // set_shader_uniform(*s, "world_from_model", 1.);
 
 
     print_vars(s);
@@ -26,10 +29,6 @@ main :: () {
 
     defer print("done!\n");
 }
-
-
-// Shader_Uniform_Type_To_Kind_Map :: 
-// Shader_Uniform_Kind_To_Type_Map
 
 
 Shader :: struct {
@@ -64,13 +63,24 @@ Shader_Uniform :: struct {
     kind : Kind;
     name : *u8; // Can also be a nested name or array e.g., "my_struct.member_array[3].member_scalar";
     location : GLint = -1;
-
-    check_type : *Type_Info; // TODO Make this an optional member not present in release builds
 }
 
-// nocommit s/any/uniform_value/
-// nocommit print loc in all errors/asserts
-set_shader_uniform :: (shader : Shader, uniform_name : *u8, any : Any, loc := #caller_location) {
+set_shader_uniform_location :: (using shader : *Shader, name : *u8, kind : Shader_Uniform.Kind, loc := #caller_location) {
+    name_string := to_string(name);
+    for *uniform : uniforms {
+        if to_string(uniform.name) == name_string {
+            assert(false, "Already initted uniform '%' at index %. Called from %:%:%\n", name_string, it_index, loc.fully_pathed_filename, loc.line_number, loc.character_number);
+        }
+    }
+
+    // TODO We could sort this array by uniform name so that its faster to look things up in set_shader_uniform
+    uniform : *Shader_Uniform = array_add(*uniforms);
+    uniform.kind = kind;
+    uniform.name = name;
+    uniform.location = glGetUniformLocation(program, name);
+}
+
+set_shader_uniform_value :: (shader : Shader, uniform_name : *u8, uniform_value : Any, loc := #caller_location) {
 
     name_string := to_string(uniform_name);
 
@@ -83,19 +93,22 @@ set_shader_uniform :: (shader : Shader, uniform_name : *u8, any : Any, loc := #c
     }
     assert(location != -1);
 
-    if check_type {
-        assert(check_type == any.type); // @Cleanup With this assert we can remove all the rest
-    }
+    // @Incomplete print loc in all errors/asserts
+
+    any := *uniform_value; // A shorter alias for the argument
 
     AssertArray :: ($wanted_tag : Type_Info_Tag, $wanted_count : s64) #expand {
-        assert(any.type.type == .ARRAY, "Wanted array type, got '%'", any.type.type);
-        assert(wanted_tag == (cast(*Type_Info_Array)any.type).element_type.type, "Wanted array element type '%', got '%'", wanted_tag, (cast(*Type_Info_Array)any.type).element_type.type);
-        assert(wanted_count == (cast(*Type_Info_Array)any.type).array_count, "Wanted array count %, got %", wanted_count, );
+        assert(any.type.type == .ARRAY, "Uniform kind is '%' so wanted array type, got '%'", kind, any.type.type);
+        info_array := cast(*Type_Info_Array)any.type;
+        assert(4 == info_array.element_type.runtime_size);
+        assert(wanted_tag == info_array.element_type.type, "Uniform kind is '%' so wanted array element type '%', got '%'", kind, wanted_tag, (cast(*Type_Info_Array)any.type).element_type.type);
+        assert(wanted_count == info_array.array_count, "Uniform kind is '%' so wanted array count %, got %", kind, wanted_count);
     }
 
     if #complete kind == {
 
     case .Int1;
+        assert(any.type.runtime_size == 4);
         assert(any.type.type == .INTEGER || any.type.type == .BOOL);
         glUniform1i(location, (cast(*GLint)any.value_pointer).*);
 
@@ -117,6 +130,7 @@ set_shader_uniform :: (shader : Shader, uniform_name : *u8, any : Any, loc := #c
 
 
     case .UInt1;
+        assert(any.type.runtime_size == 4);
         assert(any.type.type == .INTEGER || any.type.type == .BOOL);
         glUniform1ui(location, (cast(*GLuint)any.value_pointer).*);
 
@@ -157,115 +171,22 @@ set_shader_uniform :: (shader : Shader, uniform_name : *u8, any : Any, loc := #c
         glUniform4f(location, float4[0], float4[1], float4[2], float4[3]);
 
 
+    // For Matricies we could just assert that the type_info matches MatrixN, but we chose not to do that to be consistent with Vectors
 
     case .Matrix2;
-        assert(any.type == type_info(Matrix2));
+        AssertArray(.FLOAT, 4);
         glUniformMatrix2fv(location, 1, true, *((cast(*Matrix2)any.value_pointer).*)._11);
 
     case .Matrix3;
-        assert(any.type == type_info(Matrix3));
+        AssertArray(.FLOAT, 9);
         glUniformMatrix3fv(location, 1, true, *((cast(*Matrix3)any.value_pointer).*)._11);
 
     case .Matrix4;
-        assert(any.type == type_info(Matrix4));
+        AssertArray(.FLOAT, 16);
         glUniformMatrix4fv(location, 1, true, *((cast(*Matrix4)any.value_pointer).*)._11);
     }
 }
 
-
-// :CacheUniformLocationsWithCodeNotReflection
-// Perhaps its better for debugging/understandablity to rewrite this as code generation to make functions
-// call glGetUniformLocation.  Also, this trades compile-time for easier debugging and I guess allows the
-// option to manually overwrite functions
-/*
-cache_uniform_locations :: (shader_name : string, program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
-
-    if info.type == .INTEGER { // Base case
-
-        info_integer := cast(*Type_Info_Integer)info;
-
-        assert(info_integer.runtime_size == size_of(GLuint));
-
-        loc : GLint = glGetUniformLocation(program, temp_c_string(name));
-        if loc <  0 then log_error("Unknown parameter: '%' in shader '%'", name, shader_name);
-        if loc >= 0 then (cast(*GLuint)data).* = cast(GLuint)loc;
-
-        // Useful for debugging
-        //print_vars(loc, name, data);
-
-    } else if info.type == .STRUCT { // Recursive case
-
-        info_struct := cast(*Type_Info_Struct)info;
-
-        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
-        for member : info_struct.members {
-            join := ifx flatten then "_" else ".";
-            ext_name := ifx member.flags & .USING then "" else member.name;
-            new_name := ifx name then tprint("%1%2%3", name, join, ext_name) else ext_name;
-            cache_uniform_locations(shader_name, program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
-        }
-
-    } else if info.type == .ARRAY { // Recursive case
-
-        info_array := cast(*Type_Info_Array)info;
-
-        array_count, array_data := get_array_count_and_data(data, info_array);
-        element_size := info_array.element_type.runtime_size;
-
-        for 0..array_count-1 {
-            new_name := tprint("%[%]", name, it);
-            cache_uniform_locations(shader_name, program, new_name, array_data + it * element_size, info_array.element_type);
-        }
-
-    }
-}
-*/
-
-
-// Deduce the shader uniforms from members with @Uniform notes in the passed any ()
-init_shader_uniforms :: (using shader : *Shader, name : string, any : Any, loc := #caller_location) {
-    print_vars(name);
-
-    if any.type.type == {
-    case .INTEGER;
-    case .FLOAT;
-    case .BOOL;
-    case .ENUM;
-    case .STRUCT;
-
-        info_struct := cast(*Type_Info_Struct)any.type;
-
-        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
-        for member : info_struct.members {
-            if array_find(member.notes, "Uniform") {
-                new_name := ifx name then tprint("%1%2%3", name, ".", member.name) else member.name;
-                new_any := Any.{type=member.type, value_pointer=any.value_pointer + member.offset_in_bytes};
-                // cache_uniform_locations(shader_name, program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
-                init_shader_uniforms(shader, new_name, new_any);
-            }
-        }
-
-    case .ARRAY;
-    case;
-        // If you passed Type at the top-level, you probably intended to pass a value, a default/empty struct will be fine, e.g., if you passed My_Struct, pass My_Struct.{} instead
-        assert(false, "Passed unsupported type '%' to init_shader_uniform. Called from %:%:%\n", any.type.type, loc.fully_pathed_filename, loc.line_number, loc.character_number);
-    }
-}
-
-init_shader_uniform :: (using shader : *Shader, name : *u8, kind : Shader_Uniform.Kind, check_type : *Type_Info = null, loc := #caller_location) {
-    name_string := to_string(name);
-    for *uniform : uniforms {
-        if to_string(uniform.name) == name_string {
-            assert(false, "Already initted uniform '%' at index %. Called from %:%:%\n", name_string, it_index, loc.fully_pathed_filename, loc.line_number, loc.character_number);
-        }
-    }
-
-    uniform : *Shader_Uniform = array_add(*uniforms);
-    uniform.kind = kind;
-    uniform.name = name;
-    uniform.location = glGetUniformLocation(program, name);
-    uniform.check_type = check_type;
-}
 
 
 
@@ -343,3 +264,87 @@ glGetUniformLocation :: (program : GLuint, name : *u8) -> GLint { gloc += 1; ret
 #import "Basic";
 #import "Math";
 #import "Print_Vars";
+
+
+
+
+// :CacheUniformLocationsWithCodeNotReflection
+// Perhaps its better for debugging/understandablity to rewrite this as code generation to make functions
+// call glGetUniformLocation.  Also, this trades compile-time for easier debugging and I guess allows the
+// option to manually overwrite functions
+/*
+cache_uniform_locations :: (shader_name : string, program : GLuint, name : string, data : *void, info : *Type_Info, flatten : bool = false) {
+
+    if info.type == .INTEGER { // Base case
+
+        info_integer := cast(*Type_Info_Integer)info;
+
+        assert(info_integer.runtime_size == size_of(GLuint));
+
+        loc : GLint = glGetUniformLocation(program, temp_c_string(name));
+        if loc <  0 then log_error("Unknown parameter: '%' in shader '%'", name, shader_name);
+        if loc >= 0 then (cast(*GLuint)data).* = cast(GLuint)loc;
+
+        // Useful for debugging
+        //print_vars(loc, name, data);
+
+    } else if info.type == .STRUCT { // Recursive case
+
+        info_struct := cast(*Type_Info_Struct)info;
+
+        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
+        for member : info_struct.members {
+            join := ifx flatten then "_" else ".";
+            ext_name := ifx member.flags & .USING then "" else member.name;
+            new_name := ifx name then tprint("%1%2%3", name, join, ext_name) else ext_name;
+            cache_uniform_locations(shader_name, program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
+        }
+
+    } else if info.type == .ARRAY { // Recursive case
+
+        info_array := cast(*Type_Info_Array)info;
+
+        array_count, array_data := get_array_count_and_data(data, info_array);
+        element_size := info_array.element_type.runtime_size;
+
+        for 0..array_count-1 {
+            new_name := tprint("%[%]", name, it);
+            cache_uniform_locations(shader_name, program, new_name, array_data + it * element_size, info_array.element_type);
+        }
+
+    }
+}
+*/
+
+
+
+
+// Deduce the shader uniforms from members with @Uniform notes in the passed any ()
+init_shader_uniforms :: (using shader : *Shader, name : string, any : Any, loc := #caller_location) {
+    print_vars(name);
+
+    if any.type.type == {
+    case .INTEGER;
+    case .FLOAT;
+    case .BOOL;
+    case .ENUM;
+    case .STRUCT;
+
+        info_struct := cast(*Type_Info_Struct)any.type;
+
+        // The UseNameAsPrefix note is useful when a application struct contains uniforms that are used different shader stages of the same program
+        for member : info_struct.members {
+            if array_find(member.notes, "Uniform") {
+                new_name := ifx name then tprint("%1%2%3", name, ".", member.name) else member.name;
+                new_any := Any.{type=member.type, value_pointer=any.value_pointer + member.offset_in_bytes};
+                // cache_uniform_locations(shader_name, program, new_name, data + member.offset_in_bytes, member.type, array_find(member.notes, "UseNameAsPrefix"));
+                init_shader_uniforms(shader, new_name, new_any);
+            }
+        }
+
+    case .ARRAY;
+    case;
+        // If you passed Type at the top-level, you probably intended to pass a value, a default/empty struct will be fine, e.g., if you passed My_Struct, pass My_Struct.{} instead
+        assert(false, "Passed unsupported type '%' to init_shader_uniform. Called from %:%:%\n", any.type.type, loc.fully_pathed_filename, loc.line_number, loc.character_number);
+    }
+}

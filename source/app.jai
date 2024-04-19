@@ -470,9 +470,6 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "numeric.jai";
 #load "io_obj.jai";
 #load "io_utils.jai";
-#load "render.jai";
-#load "render_utils.jai";
-#load "render_text.jai";
 #load "carpet.jai";
 #load "camera.jai";
 #load "entities.jai";
@@ -489,6 +486,10 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "colors.jai";
 #load "demo_mode.jai";
 #load "updates.jai";
+
+#load "render/render.jai";
+#load "render/render_utils.jai";
+#load "render/render_text.jai";
 
 #load "console/console.jai";
 #load "console/commands.jai";

@@ -266,9 +266,9 @@ Shader_Point_Normal_Vectors :: struct {
     using #as base : Shader;
 
     init_shader :: (shader : *Shader) {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/render/normals_points.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/normals.frag"); #assert(FRAG_OK);
         shader.program = get_shader_program(VERT, FRAG, GEOM);
 
         cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
@@ -314,9 +314,9 @@ Shader_Segment_Normal_Vectors :: struct {
     using #as base : Shader;
 
     init_shader :: (shader : *Shader) {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/render/normals_segments.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/normals.frag"); #assert(FRAG_OK);
         shader.program = get_shader_program(VERT, FRAG, GEOM);
 
         cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
@@ -362,9 +362,9 @@ Shader_Triangle_Normal_Vectors :: struct {
     using #as base : Shader;
 
     init_shader :: (shader : *Shader) {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
+        VERT, VERT_OK :: #run read_entire_file("source/render/normals.vert"); #assert(VERT_OK);
+        GEOM, GEOM_OK :: #run read_entire_file("source/render/normals_triangles.geom"); #assert(GEOM_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/normals.frag"); #assert(FRAG_OK);
         shader.program = get_shader_program(VERT, FRAG, GEOM);
 
         cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
