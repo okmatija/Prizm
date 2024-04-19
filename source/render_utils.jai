@@ -204,103 +204,9 @@ init_render_backend :: () {
         // init_shader(*app.shader_triangles, VERT, FRAG, GEOM);
     }
 
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        using app.shader_triangle_normal_vectors;
-        program = get_shader_program(VERT, FRAG, GEOM);
-
-
-#if false {
-        s := *app.shader_triangle_normal_vectors;
-
-        cache_uniform_location(s, "", Render_Transforms);
-        cache_uniform_location(s, "clip_sphere", Clip_Sphere);
-        cache_uniform_location(s, "clip_range[0]", Clip_Range);
-        cache_uniform_location(s, "clip_range[1]", Clip_Range);
-        cache_uniform_location(s, "clip_range[2]", Clip_Range);
-    
-        // This is the KISS way to do it, the overloads do fancier things
-        //cache_uniform_location(*s, .Float4, "normal_style_color");
-        //cache_uniform_location(*s, .Float1, "normal_style_scale");
-        //cache_uniform_location(*s, .Float1, "normal_style_normalized");
-        //cache_uniform_location(*s, .Float3, "clip_sphere.center");
-        //cache_uniform_location(*s, .Float1, "clip_sphere.radius");
-        //cache_uniform_location(*s, .Float1, "clip_sphere.is_active");
-        //for 0..2 {
-        //    uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
-        //    uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
-        //    uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
-        //    uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
-        //}
-} else {
-
-        uniforms.world_from_model =        glGetUniformLocation(program, "world_from_model");
-        uniforms.view_from_world =         glGetUniformLocation(program, "view_from_world");
-        uniforms.clip_from_view =          glGetUniformLocation(program, "clip_from_view");
-        uniforms.normal_style.color =      glGetUniformLocation(program, "normal_style_color");
-        uniforms.normal_style.scale =      glGetUniformLocation(program, "normal_style_scale");
-        uniforms.normal_style.normalized = glGetUniformLocation(program, "normal_style_normalized");
-        uniforms.clip_sphere.center =      glGetUniformLocation(program, "clip_sphere.center");
-        uniforms.clip_sphere.radius =      glGetUniformLocation(program, "clip_sphere.radius");
-        uniforms.clip_sphere.is_active =   glGetUniformLocation(program, "clip_sphere.is_active");
-        for 0..2 {
-            uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
-            uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
-            uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
-            uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
-        }
-}
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_segments.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        using app.shader_segment_normal_vectors;
-        program = get_shader_program(VERT, FRAG, GEOM);
-
-        uniforms.world_from_model =        glGetUniformLocation(program, "world_from_model");
-        uniforms.view_from_world =         glGetUniformLocation(program, "view_from_world");
-        uniforms.clip_from_view =          glGetUniformLocation(program, "clip_from_view");
-        uniforms.normal_style.color =      glGetUniformLocation(program, "normal_style_color");
-        uniforms.normal_style.scale =      glGetUniformLocation(program, "normal_style_scale");
-        uniforms.normal_style.normalized = glGetUniformLocation(program, "normal_style_normalized");
-        uniforms.clip_sphere.center =      glGetUniformLocation(program, "clip_sphere.center");
-        uniforms.clip_sphere.radius =      glGetUniformLocation(program, "clip_sphere.radius");
-        uniforms.clip_sphere.is_active =   glGetUniformLocation(program, "clip_sphere.is_active");
-        for 0..2 {
-            uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
-            uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
-            uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
-            uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
-        }
-    }
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/shaders/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/shaders/normals_points.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/shaders/normals.frag"); #assert(FRAG_OK);
-        using app.shader_point_normal_vectors;
-        program = get_shader_program(VERT, FRAG, GEOM);
-
-        uniforms.world_from_model =        glGetUniformLocation(program, "world_from_model");
-        uniforms.view_from_world =         glGetUniformLocation(program, "view_from_world");
-        uniforms.clip_from_view =          glGetUniformLocation(program, "clip_from_view");
-        uniforms.normal_style.color =      glGetUniformLocation(program, "normal_style_color");
-        uniforms.normal_style.scale =      glGetUniformLocation(program, "normal_style_scale");
-        uniforms.normal_style.normalized = glGetUniformLocation(program, "normal_style_normalized");
-        uniforms.clip_sphere.center =      glGetUniformLocation(program, "clip_sphere.center");
-        uniforms.clip_sphere.radius =      glGetUniformLocation(program, "clip_sphere.radius");
-        uniforms.clip_sphere.is_active =   glGetUniformLocation(program, "clip_sphere.is_active");
-        for 0..2 {
-            uniforms.clip_range[it].is_active = glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].is_active", it)));
-            uniforms.clip_range[it].normal =    glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].normal", it)));
-            uniforms.clip_range[it].max =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].max", it)));
-            uniforms.clip_range[it].min =       glGetUniformLocation(program, temp_c_string(tprint("clip_range[%].min", it)));
-        }
-    }
+    init_shader(*app.shader_triangle_normal_vectors);
+    init_shader(*app.shader_segment_normal_vectors);
+    init_shader(*app.shader_point_normal_vectors);
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/shaders/aabb.vert"); #assert(VERT_OK);
@@ -337,6 +243,9 @@ init_render_backend :: () {
         glGenVertexArrays(1, *app.background_vao);
     }
 }
+
+
+
 
 // This function was added so that we could use Simp *when it was using the same context as the rest of the
 // application*, we don't do this anymore so it's not really needed but rather than moving it from the call
@@ -391,7 +300,6 @@ ScopeGlState :: () #expand {
     */
 }
 
-#scope_file
 
 /*
 init_shader :: (shader : *$T/Shader, $vertex_shader_text : string, $fragment_shader_text : string, $geometry_shader_text : string) {
@@ -507,6 +415,8 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 
     return program;
 }
+
+#scope_file
 
 
 debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : *ImGui.ImFont = null) {

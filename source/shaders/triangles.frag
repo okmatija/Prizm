@@ -21,15 +21,15 @@ struct Clip_Sphere {
 struct Edge_Style {
     vec4 color;
     float width;
-}
+};
 
 struct Triangle_Style {
     vec4 color;
     int display_mode;
     int backface_mode;
-    bool flat_shading = true;
+    bool flat_shading;
     Edge_Style edge_style;
-}
+};
 
 const int Display_Mode_NORMALS = 0;
 const int Display_Mode_BLINN_PHONG = 1;
