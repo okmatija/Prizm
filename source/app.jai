@@ -47,14 +47,8 @@ App :: struct {
         loadable_files : [..]Pending_File;
     }
 
-
-    INITIAL_WINDOW_WIDTH  : s32 : 1440;
-    INITIAL_WINDOW_HEIGHT : s32 : 900;
-
-    // @Cleanup Rename these to have _px suffix
-    current_window_width := INITIAL_WINDOW_WIDTH;
-    current_window_height := INITIAL_WINDOW_HEIGHT;
-    fullscreen := false;
+    INITIAL_WINDOW_SIZE :: Window_Size.{1440, 900, false};
+    window_size : Window_Size = INITIAL_WINDOW_SIZE;;
 
     aabb_program : GLuint;
     triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
@@ -152,6 +146,12 @@ App :: struct {
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
     debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
+}
+
+Window_Size :: struct {
+    width : s32; @Uniform // In Pixels
+    height : s32; @Uniform // In Pixels
+    fullscreen := false;
 }
 
 Texture :: struct {
@@ -271,7 +271,7 @@ remove_directory_if_unwatched :: (directory : string) {
 
 
 current_window_aspect_ratio_width_over_height :: () -> float {
-    return cast(float) app.current_window_width / cast(float) app.current_window_height;
+    return cast(float) app.window_size.width / cast(float) app.window_size.height;
 }
 
 EntitiesIterator :: (entities : *[..]*Entity, body : Code, flags : For_Flags, $entity_filter : Code) #expand {
@@ -349,8 +349,8 @@ clamp_user_settings :: ()
     // clamp(*camera_zoom_dragging_ratio, .3, .99);
     clamp(*camera_zoom_scrolling_ratio, .3, .99);
     clamp(*camera_zoom_min_screen_filling_length_mm, 0., app.camera.scene_bounding_sphere.radius / 2);
-    clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
-    clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.current_window_height);
+    clamp(*item_list_max_size_before_scroll_px, 100., .75 * app.window_size.height);
+    clamp(*annotation_list_max_size_before_scroll_px, 100., .75 * app.window_size.height);
     clamp(*closest_point_query_max_dist_px, 0, 100);
 }
 

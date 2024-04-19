@@ -102,7 +102,7 @@ ScopeZeroCellPaddingY :: () #expand {
 LabelWindow :: (window_position : Vector2, window_size : Vector2) #expand {
     label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs;
 
-    window_position_index := cast(int)(window_position.x + app.current_window_width * window_position.y);
+    window_position_index := cast(int)(window_position.x + app.window_size.width * window_position.y);
 
     // @Hack :LabelWindowSize The factor of 2 multiplying the window_size is a bit too much, but this
     // should probably be SetNextWindowContentSize anyway but using that adds a frame delay causing
@@ -353,8 +353,8 @@ hold_lmb_and_hover_to_open_tree :: () -> bool {
 
         // Convert to screen coordinates
         warped_px : Vector2;
-        warped_px.x = cast(float)app.current_window_width *  (warped_ndc.x + 1) / 2;
-        warped_px.y = cast(float)app.current_window_height * (warped_ndc.y + 1) / 2;
+        warped_px.x = cast(float)app.window_size.width *  (warped_ndc.x + 1) / 2;
+        warped_px.y = cast(float)app.window_size.height * (warped_ndc.y + 1) / 2;
         SDL_WarpMouseInWindow(app.window, xx warped_px.x, xx warped_px.y);
 
         rmb_down_pos = make_Vector2(warped_px);

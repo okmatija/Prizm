@@ -10,6 +10,7 @@ inspect :: (name: *u8, t : *$T, new_window : bool = false) {
 
 #scope_file
 
+// @Cleanuppp Use an Any here, this is exactly what is passed via data and info
 inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
 
     if #complete info.type == {

@@ -128,15 +128,15 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
-    using #as sphere : Sphere;
-    radius = 0h7F800000; // +inf
-    is_active : bool = false;
+    center : Vector3;          @Uniform
+    radius := 0h7F800000;      @Uniform // +inf nocommit Make this a constatn
+    is_active : bool = false;  @Uniform
 }
 
 // Note: all arguments must be in the same space e.g., world/model coordinates
 is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     if clip_sphere.is_active {
-        if !contains(clip_sphere, point) {
+        if !contains(.{clip_sphere.center, clip_sphere.radius}, point) {
             return true;
         }
     }

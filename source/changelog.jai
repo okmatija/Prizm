@@ -21,17 +21,41 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
     * TODO Set the icon on linux
     * TODOOOOO Fix long change logs being truncated
+    * TODOOOOO Handle high DPI properly (Roey/TomF reported), the text looks blurry there
     * Is there a bug with reloading vertex data????
     * TODO Fix a bug where escaped quotes in string arguments are not supported
+    * TODO Don't add command annotations to the console history
     * TODO Support booleans in command arguments
     * TODO Fix scrolling in the item list, somehow this broke and you need to scroll via the scrollbar
     * TODO Fix the focus button for point elements
+    * TODO Fix the near/far planes not accounting for normal vectors
     * TODO Try ,link_always on windows? Do we need to compile SDL as a static library..?
+    * TODO Change defaults so all geometry is visible? This will help with using Prizm as a modeling tool application, if you start with vertices and keep saving the obj and then add a triangle, right now you need to manually toggle the triangle rendering via the details panel
+    * TODO Support texture coordinates
+    * TODO Commands to inset rendering? or maybe move triangles along faces, do this for selections so there is no z-fighting? But ONLY for rendering...
+    * TODO Implement a system to write custom shaders for triangle rendering and backface rendering
+    * TODO Rename Blinn-Plong to just Lit and expose Normal/BaseColor(Albedo)/Lit rendering modes to cycle though
+    * TODO Cleanup where the binaries/libaries are stored, to unclutter the top-level directory. Look at Unreal/Focus
+    * TODO There is a bug where rotation feels bad when the application has a large aspect ratio e.g., very short and fat???
+    * TODO Cleanup shader code
+    * Show only the portion of folder names which distinguishes the folder, otherwise it gets very long
+    * MacOS support
+    * mp4 videos on the wiki
+    * Fix spotlight labels being visible when they are occuluded
+    * Pin labels while rotating/panning the camera
 DONE};
 
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 
-* Removed the useless solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
+* Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
+* Updated the wiki to include a description of the supported obj features 
+* TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
+* TODO Per entity text label mode, so you can easily turn on labels all the time
+* TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
+* TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)
+* TODO Use complementary colors for backfacing triangles
+* TODO Change hotkeys for loading shapes from F1-F4 to just 1-4. Later we can make F1 help and F2 rename items?
+* TODO Make the menus that popup in the Details view movable, especially the clipping one, its annoying not to be visible. Or maybe remove the option to toggle between the menu/tree and make menu turn into tree if clicked, and tree turn into menu if closed
 DONE};
 
 PRIZM_VERSION_0_9_3 :: Version.{"0.9.3", "17 April 2024", #string DONE

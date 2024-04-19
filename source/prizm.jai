@@ -48,7 +48,7 @@ main :: () {
 
     app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                  app.INITIAL_WINDOW_WIDTH, app.INITIAL_WINDOW_HEIGHT,
+                                  app.INITIAL_WINDOW_SIZE.width, app.INITIAL_WINDOW_SIZE.height,
                                   sdl_window_flags);
 
     // Check that the window was successfully created
@@ -202,6 +202,8 @@ main :: () {
     ImGui_ImplSDL2_Shutdown();
     ImGui.DestroyContext();
 
+    // We could release gl handles here, but we delete context anyway
+
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
@@ -286,8 +288,8 @@ handle_events :: () {
 
                 if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
 
-                    width_scale  := cast(float) event.window.data1 / app.current_window_width;
-                    height_scale := cast(float) event.window.data2 / app.current_window_height;
+                    width_scale  := cast(float) event.window.data1 / app.window_size.width;
+                    height_scale := cast(float) event.window.data2 / app.window_size.height;
 
                     camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
                     camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
@@ -296,8 +298,8 @@ handle_events :: () {
                     app.camera.top    -= camera_delta_tb;
                     app.camera.bottom += camera_delta_tb;
 
-                    app.current_window_width  = event.window.data1;
-                    app.current_window_height = event.window.data2;
+                    app.window_size.width  = event.window.data1;
+                    app.window_size.height = event.window.data2;
                 }
 
                 if event.window.event == SDL_WINDOWEVENT_MAXIMIZED {
@@ -580,8 +582,8 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
         // @Volatile :EasyResizeModeKeybind
         easy_resize_mode := io().KeyAlt;
 
-        w := cast(float)app.current_window_width;
-        h := cast(float)app.current_window_height;
+        w := cast(float)app.window_size.width;
+        h := cast(float)app.window_size.height;
         x := cast(float)point.x;
         y := cast(float)point.y;
 

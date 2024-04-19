@@ -238,7 +238,7 @@ preset_build_options : Table(string, Build_Options);
 // - Rename to AddLine and make it automatically add a newline
 Print :: (format_string : string, args : ..Any) #expand {
     print_to_builder(*`builder, format_string, ..args);
-}
+} @PrintLike
 
 generated_code := false;
 registered_console_commands : [..]*Code_Procedure_Header;
@@ -326,7 +326,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
         if min_arg_count == max_arg_count {
             Print("        log_error(\"Expected exactly % argument%, got %%.\", args.count);\n", command.arguments.count, plural);
         } else {
-            Print("        log_error(\"Expected between % and % arguments, got %%.\", args.count);\n", min_arg_count, max_arg_count, command.arguments.count);
+            Print("        log_error(\"Expected between % and % arguments, got %%.\", args.count);\n", min_arg_count, max_arg_count);
         }
         Print("        return;\n");
         Print("    }\n\n");

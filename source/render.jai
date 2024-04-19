@@ -249,6 +249,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 }
 
 // @Cleanup consolidate this
+// @Incomplete handle wave?
 render_mesh_triangle_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -280,6 +281,7 @@ render_mesh_triangle_normals :: (
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
+// @Incomplete handle wave?
 render_mesh_segment_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -314,6 +316,7 @@ render_mesh_segment_normals :: (
     glDrawArrays(GL_LINES, 0, xx (2 * mesh.segments.count));
 }
 
+// @Incomplete handle wave?
 render_mesh_point_normals :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -443,6 +446,7 @@ MIN_EDGES_WIDTH_GL_LINE :: 1.;
 MIN_EDGES_WIDTH_GL_FILL :: 1.2;
 
 // Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
+// TODOO Maybe note the degenerate triangles when we parse the obj file and store them so we don't render all edges here... rendering all the edges with lines is ugly (it would be less ugly if we used quads strips to render lines).
 render_mesh_triangles_as_lines :: (
     mesh : *Simple_Mesh,
     using render_info : *Render_Info,
@@ -501,9 +505,9 @@ render_mesh_triangles :: (
     glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
     glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
     glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
-    glUniform2f(glGetUniformLocation(program, "window_size"), xx app.current_window_width, xx app.current_window_height);
     glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
 
+    glUniform2f(glGetUniformLocation(program, "window_size"), cast(float)app.window_size.width, cast(float)app.window_size.height);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -616,8 +620,8 @@ render_selections :: () {
     render_mesh_triangles(mesh, *entity.render_info, entity.display_info, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
     render_mesh_triangle_normals(mesh, *entity.render_info, entity.display_info);
 
-    projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
-
+    // projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
+    //
     // // We intentionally always all the text for selections since there usually aren't lots
     // // of overlapping ones and its annoying not to see everything. We also don't consider
     // // the clipping sphere (there is no way to set it right now, anyway) since this is also
@@ -630,7 +634,7 @@ render_selections :: () {
     //
     //     // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
     //     to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
-    //         return .{cast(float) position_screen.x, cast(float)app.current_window_height - cast(float) position_screen.y};
+    //         return .{cast(float) position_screen.x, cast(float)app.window_size.height - cast(float) position_screen.y};
     //     }
     //
     //     window_position : ImGui.ImVec2 = to_imgui_position(to_screen_position(it, projection_from_model));
@@ -660,7 +664,7 @@ render_background :: () {
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
             glUseProgram(app.background_program);
-            x, y, z : float = xx app.current_window_width, xx app.current_window_height, 1.;
+            x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
             glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
             glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
             glBindVertexArray(app.background_vao);
