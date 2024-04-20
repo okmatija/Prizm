@@ -49,58 +49,6 @@ Shader_Uniform :: struct {
     location : GLint = -1;
 }
 
-
-// This is an experiment to 
-/*
-#insert -> string {
-    Uniform_Desc :: struct {
-        name : string;
-        kind : Shader_Uniform.Kind;
-    }
-
-    // Render transform uniforms
-    {
-        Print :: (format_string : string, args : ..Any) #expand {
-            print_to_builder(*`builder, format_string, ..args);
-            print_to_builder(*`builder, "\n");
-            if ends_with(format_string, "{") indent += 1;
-            if ends_with(format_string, "}") indent -= 1;
-        } @PrintLike
-
-        builder : String_Builder;
-        indent := 0;
-
-        name := "_Render_Transform_Uniforms";
-        uniforms := Uniform_Desc.[
-            .{"world_from_model", .Matrix4},
-            .{"view_from_world", .Matrix4},
-            .{"clip_from_view", .Matrix4},
-        ];
-
-        Print("/*");
-
-        Print("_Render_Transform_Uniforms :: struct {"); // if you have {\n at end print indents next time
-        Print("cache :: (shader : *Shader) {");
-        for uniforms {
-            // Print the correct glUniformXXX function here
-            // Print("cache_shader_uniform_location(shader, \"%\", .%);", it.name, it.kind);
-        }
-        Print("}");
-        Print("\n");
-        Print("set :: (shader : *Shader) {");
-        for uniforms Print(2, "cache_shader_uniform_location(shader, \"%\", .%);", it.name, it.kind);
-        Print("}");
-        Print("}");
-
-        Print("*/");
-
-        return builder_to_string(*builder);
-    }
-
-    return "";
-}
-*/
-
 cache_shader_uniform_location :: (shader : *Shader, name_string : string, kind : Shader_Uniform.Kind, loc := #caller_location) {
     for *uniform : shader.uniforms {
         if uniform.name == name_string {
@@ -232,3 +180,55 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
         glUniformMatrix4fv(location, 1, true, *((cast(*Matrix4)any.value_pointer).*)._11);
     }
 }
+
+
+// This is an incomplete experiment to generate the code calling cache_shader_uniform_location and set_shader_uniform_value
+/*
+#insert -> string {
+    Uniform_Desc :: struct {
+        name : string;
+        kind : Shader_Uniform.Kind;
+    }
+
+    // Render transform uniforms
+    {
+        Print :: (format_string : string, args : ..Any) #expand {
+            print_to_builder(*`builder, format_string, ..args);
+            print_to_builder(*`builder, "\n");
+            if ends_with(format_string, "{") indent += 1;
+            if ends_with(format_string, "}") indent -= 1;
+        } @PrintLike
+
+        builder : String_Builder;
+        indent := 0;
+
+        name := "_Render_Transform_Uniforms";
+        uniforms := Uniform_Desc.[
+            .{"world_from_model", .Matrix4},
+            .{"view_from_world", .Matrix4},
+            .{"clip_from_view", .Matrix4},
+        ];
+
+        Print("/*");
+
+        Print("_Render_Transform_Uniforms :: struct {"); // if you have {\n at end print indents next time
+        Print("cache :: (shader : *Shader) {");
+        for uniforms {
+            // Print the correct glUniformXXX function here
+            // Print("cache_shader_uniform_location(shader, \"%\", .%);", it.name, it.kind);
+        }
+        Print("}");
+        Print("\n");
+        Print("set :: (shader : *Shader) {");
+        for uniforms Print(2, "cache_shader_uniform_location(shader, \"%\", .%);", it.name, it.kind);
+        Print("}");
+        Print("}");
+
+        Print("*/");
+
+        return builder_to_string(*builder);
+    }
+
+    return "";
+}
+*/

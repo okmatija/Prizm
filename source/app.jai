@@ -148,7 +148,6 @@ Window_Size :: struct {
 }
 
 App_Render_Info :: struct {
-    // nocommit Rename _program to _shader
     aabb_program : GLuint;
     shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     points_lines_program : GLuint;

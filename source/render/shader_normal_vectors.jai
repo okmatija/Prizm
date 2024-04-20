@@ -3,11 +3,11 @@ Shader_Point_Normal_Vectors :: struct {
 
     init_shader :: (shader : *Shader) {
         shader.program = get_shader_program(VERT, FRAG, POINTS_GEOM);
-        cache_shader_uniform_locations_normal_vectors(shader);
+        cache_uniform_locations(shader);
     }
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
-        use_shader_normal_vectors(shader, mesh, point_style.normal_style, clip_sphere, clip_ranges);
+        set_uniform_values(shader, mesh, point_style.normal_style, clip_sphere, clip_ranges);
     }
 }
 
@@ -16,11 +16,11 @@ Shader_Segment_Normal_Vectors :: struct {
 
     init_shader :: (shader : *Shader) {
         shader.program = get_shader_program(VERT, FRAG, SEGMENTS_GEOM);
-        cache_shader_uniform_locations_normal_vectors(shader);
+        cache_uniform_locations(shader);
     }
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
-        use_shader_normal_vectors(shader, mesh, segment_style.normal_style, clip_sphere, clip_ranges);
+        set_uniform_values(shader, mesh, segment_style.normal_style, clip_sphere, clip_ranges);
     }
 }
 
@@ -29,17 +29,17 @@ Shader_Triangle_Normal_Vectors :: struct {
 
     init_shader :: (shader : *Shader) {
         shader.program = get_shader_program(VERT, FRAG, TRIANGLES_GEOM);
-        cache_shader_uniform_locations_normal_vectors(shader);
+        cache_uniform_locations(shader);
     }
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
-        use_shader_normal_vectors(shader, mesh, triangle_style.normal_style, clip_sphere, clip_ranges);
+        set_uniform_values(shader, mesh, triangle_style.normal_style, clip_sphere, clip_ranges);
     }
 }
 
 #scope_file
 
-cache_shader_uniform_locations_normal_vectors :: (shader : *Shader) {
+cache_uniform_locations :: (shader : *Shader) {
 
     cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
     cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
@@ -61,7 +61,7 @@ cache_shader_uniform_locations_normal_vectors :: (shader : *Shader) {
     }
 }
 
-use_shader_normal_vectors :: (shader : Shader, using mesh : Simple_Mesh, normal_style : Normal_Style, clip_sphere : Clip_Sphere, clip_ranges : [3]Clip_Range) {
+set_uniform_values :: (shader : Shader, using mesh : Simple_Mesh, normal_style : Normal_Style, clip_sphere : Clip_Sphere, clip_ranges : [3]Clip_Range) {
 
     glUseProgram(shader.program);
     assert(glIsProgram(shader.program) == GL_TRUE);
