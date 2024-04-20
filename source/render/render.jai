@@ -264,10 +264,7 @@ render_mesh_triangle_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    shader := *app.shader_triangle_normal_vectors;
-    glUseProgram(shader.program);
-    assert(glIsProgram(shader.program) == GL_TRUE);
-    set_uniform_values(shader, mesh, display_info);
+    use_shader(*app.shader_triangle_normal_vectors, mesh, display_info);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -293,10 +290,7 @@ render_mesh_segment_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    shader := *app.shader_segment_normal_vectors;
-    glUseProgram(shader.program);
-    assert(glIsProgram(shader.program) == GL_TRUE);
-    set_uniform_values(shader, mesh, display_info);
+    use_shader(*app.shader_segment_normal_vectors, mesh, display_info);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -319,10 +313,7 @@ render_mesh_point_normals :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    shader := *app.shader_point_normal_vectors;
-    glUseProgram(shader.program);
-    assert(glIsProgram(shader.program) == GL_TRUE);
-    set_uniform_values(shader, mesh, display_info);
+    use_shader(*app.shader_point_normal_vectors, mesh, display_info);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -470,32 +461,10 @@ render_mesh_triangles :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    program := app.triangles_program;
-    glUseProgram(program);
+    use_shader(*app.shader_triangles, mesh, display_info);
 
-    set_model_view_projection_uniforms(program, mesh.world_from_model);
-    set_hover_flash_uniform(program, display_info);
-    set_clip_ranges_uniforms(program, display_info);
-    set_clip_sphere_uniforms(program, display_info);
-
-    look_direction := current_look_direction();
-    used_edges_width := max(triangle_style.edge_style.width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
-    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_FILL else used_edges_width;
-    used_edges_visible := ifx clip_radius_mode_show_wireframe then true else triangle_style.edge_style.visible;
-
-    glUniform1ui(glGetUniformLocation(program, "clip_radius_mode"), xx clip_radius_mode);
-    glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
-    glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
-
-    // nocommit All in Triangle_Style, and only used in triangles.frag (so it can be in a struct)
-    glUniform1i(glGetUniformLocation(program, "display_mode"), xx triangle_style.display_mode);
-    glUniform1i(glGetUniformLocation(program, "backface_mode"), xx triangle_style.backface_mode);
-    glUniform1ui(glGetUniformLocation(program, "flat_shading"), xx triangle_style.flat_shading);
-    glUniform4f(glGetUniformLocation(program, "color"), triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w);
-    glUniform4f(glGetUniformLocation(program, "edges_color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
-    glUniform1f(glGetUniformLocation(program, "edges_width"), ifx used_edges_visible then used_edges_width else 0);
-
-    glUniform2f(glGetUniformLocation(program, "window_size"), cast(float)app.window_size.width, cast(float)app.window_size.height);
+    // @Volatile :ClipRadiusModeEdgeWidth
+    app.shader_triangles.set_shader_clip_radius_uniforms(app.shader_triangles, triangle_style, clip_radius_mode, clip_radius_mode_show_wireframe);
 
     // nocommit Remove this
     last_polygon_mode: [2]GLuint;

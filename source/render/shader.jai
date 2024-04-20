@@ -1,3 +1,6 @@
+// @Speed We only need to update the uniforms which have changed, so think of a way to couple this code to the UI update code
+// @Cleanup We read some shader files more than once. We should just store these inline
+
 Shader :: struct {
     program : GLuint;
     type : Type;
@@ -10,70 +13,14 @@ init_shader :: (shader : *$T/Shader) {
     shader.init_shader(shader);
 }
 
-// Convenience function to dispatch to specialized function
-set_uniform_values :: (shader : *$T/Shader, mesh : Simple_Mesh, display_info : Display_Info) {
-    shader.set_uniform_values(shader, mesh, display_info);
+// Convenience function to set the shader program and set the uniforms
+use_shader :: (shader : *$T/Shader, mesh : Simple_Mesh, display_info : Display_Info) {
+    shader.use_shader(shader, mesh, display_info);
 }
-
-// @Cleanup @Speed nocommit We read some shader files more than once. We should just store these inline
-
-Shader_Point_Normal_Vectors :: struct {
-    using #as base : Shader;
-
-    init_shader :: (shader : *Shader) {
-        VERT, VERT_OK :: #run read_entire_file("source/render/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/render/normals_points.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/normals.frag"); #assert(FRAG_OK);
-        shader.program = get_shader_program(VERT, FRAG, GEOM);
-        cache_shader_uniform_locations_normal_vectors(shader);
-    }
-
-    set_uniform_values :: (shader : *Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
-        set_uniform_values_normal_vectors(shader, mesh, point_style.normal_style, clip_sphere, clip_ranges);
-    }
-}
-
-Shader_Segment_Normal_Vectors :: struct {
-    using #as base : Shader;
-
-    init_shader :: (shader : *Shader) {
-        VERT, VERT_OK :: #run read_entire_file("source/render/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/render/normals_segments.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/normals.frag"); #assert(FRAG_OK);
-        shader.program = get_shader_program(VERT, FRAG, GEOM);
-        cache_shader_uniform_locations_normal_vectors(shader);
-    }
-
-    set_uniform_values :: (shader : *Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
-        set_uniform_values_normal_vectors(shader, mesh, segment_style.normal_style, clip_sphere, clip_ranges);
-    }
-}
-
-Shader_Triangle_Normal_Vectors :: struct {
-    using #as base : Shader;
-
-    init_shader :: (shader : *Shader) {
-        VERT, VERT_OK :: #run read_entire_file("source/render/normals.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/render/normals_triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/normals.frag"); #assert(FRAG_OK);
-        shader.program = get_shader_program(VERT, FRAG, GEOM);
-        cache_shader_uniform_locations_normal_vectors(shader);
-    }
-
-    set_uniform_values :: (shader : *Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
-        set_uniform_values_normal_vectors(shader, mesh, triangle_style.normal_style, clip_sphere, clip_ranges);
-    }
-}
-
-
-
-
 
 Shader_Uniform :: struct {
 
     Kind :: enum {
-        Bool;
-
         Int1;
         Int2;
         Int3;
@@ -92,6 +39,9 @@ Shader_Uniform :: struct {
         Matrix2;
         Matrix3;
         Matrix4;
+
+        Enum;
+        Bool;
     }
 
     kind : Kind;
@@ -99,61 +49,70 @@ Shader_Uniform :: struct {
     location : GLint = -1;
 }
 
-#scope_file
 
-cache_shader_uniform_locations_normal_vectors :: (shader : *Shader) {
-    cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
-    cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
-    cache_shader_uniform_location(shader, "clip_from_view", .Matrix4);
-    cache_shader_uniform_location(shader, "normal_style_color", .Float4);
-    cache_shader_uniform_location(shader, "normal_style_scale", .Float1);
-    cache_shader_uniform_location(shader, "normal_style_normalized", .Bool);
-    cache_shader_uniform_location(shader, "clip_sphere.center", .Float3);
-    cache_shader_uniform_location(shader, "clip_sphere.radius", .Float1);
-    cache_shader_uniform_location(shader, "clip_sphere.is_active", .Bool);
-    for 0..2 {
-        cache_shader_uniform_location(shader, tprint("clip_range[%].is_active", it), .Bool);
-        cache_shader_uniform_location(shader, tprint("clip_range[%].normal", it), .Float3);
-        cache_shader_uniform_location(shader, tprint("clip_range[%].max", it), .Float1);
-        cache_shader_uniform_location(shader, tprint("clip_range[%].min", it), .Float1);
+// This is an experiment to 
+/*
+#insert -> string {
+    Uniform_Desc :: struct {
+        name : string;
+        kind : Shader_Uniform.Kind;
     }
-}
 
-set_uniform_values_normal_vectors :: (shader : *Shader, using mesh : Simple_Mesh, normal_style : Normal_Style, clip_sphere : Clip_Sphere, clip_ranges : [3]Clip_Range) {
-    view_from_world := make_look_at_matrix(app.camera);
-    clip_from_view := make_orthographic_projection_matrix(app.camera);
+    // Render transform uniforms
+    {
+        Print :: (format_string : string, args : ..Any) #expand {
+            print_to_builder(*`builder, format_string, ..args);
+            print_to_builder(*`builder, "\n");
+            if ends_with(format_string, "{") indent += 1;
+            if ends_with(format_string, "}") indent -= 1;
+        } @PrintLike
 
-    set_shader_uniform_value(shader, "world_from_model", world_from_model.floats);
-    set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
-    set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
-    set_shader_uniform_value(shader, "normal_style_color", normal_style.color.component);
-    set_shader_uniform_value(shader, "normal_style_scale", normal_style.scale);
-    set_shader_uniform_value(shader, "normal_style_normalized", normal_style.normalized);
-    set_shader_uniform_value(shader, "clip_sphere.center", clip_sphere.center.component);
-    set_shader_uniform_value(shader, "clip_sphere.radius", clip_sphere.radius);
-    set_shader_uniform_value(shader, "clip_sphere.is_active", clip_sphere.is_active);
-    for 0..2 {
-        set_shader_uniform_value(shader, tprint("clip_range[%].is_active", it), clip_ranges[it].is_active);
-        set_shader_uniform_value(shader, tprint("clip_range[%].normal", it), clip_ranges[it].normal.component);
-        set_shader_uniform_value(shader, tprint("clip_range[%].max", it), clip_ranges[it].max);
-        set_shader_uniform_value(shader, tprint("clip_range[%].min", it), clip_ranges[it].min);
+        builder : String_Builder;
+        indent := 0;
+
+        name := "_Render_Transform_Uniforms";
+        uniforms := Uniform_Desc.[
+            .{"world_from_model", .Matrix4},
+            .{"view_from_world", .Matrix4},
+            .{"clip_from_view", .Matrix4},
+        ];
+
+        Print("/*");
+
+        Print("_Render_Transform_Uniforms :: struct {"); // if you have {\n at end print indents next time
+        Print("cache :: (shader : *Shader) {");
+        for uniforms {
+            // Print the correct glUniformXXX function here
+            // Print("cache_shader_uniform_location(shader, \"%\", .%);", it.name, it.kind);
+        }
+        Print("}");
+        Print("\n");
+        Print("set :: (shader : *Shader) {");
+        for uniforms Print(2, "cache_shader_uniform_location(shader, \"%\", .%);", it.name, it.kind);
+        Print("}");
+        Print("}");
+
+        Print("*/");
+
+        return builder_to_string(*builder);
     }
+
+    return "";
 }
+*/
 
-
-
-cache_shader_uniform_location :: (using shader : *Shader, name_string : string, kind : Shader_Uniform.Kind, loc := #caller_location) {
-    for *uniform : uniforms {
+cache_shader_uniform_location :: (shader : *Shader, name_string : string, kind : Shader_Uniform.Kind, loc := #caller_location) {
+    for *uniform : shader.uniforms {
         if uniform.name == name_string {
             assert(false, "Already initted uniform '%' at index %. Called from %:%:%\n", name_string, it_index, loc.fully_pathed_filename, loc.line_number, loc.character_number);
         }
     }
 
     // TODO We could sort this array by uniform name so that its faster to look things up in set_shader_uniform
-    uniform : *Shader_Uniform = array_add(*uniforms);
+    uniform : *Shader_Uniform = array_add(*shader.uniforms);
     uniform.kind = kind;
     uniform.name = copy_string(name_string);
-    uniform.location = glGetUniformLocation(program, temp_c_string(name_string));
+    uniform.location = glGetUniformLocation(shader.program, temp_c_string(name_string));
 }
 
 set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_value : Any, loc := #caller_location) {
@@ -181,8 +140,14 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
 
     if #complete kind == {
 
+    case .Enum;
+        info_enum := cast(*Type_Info_Enum)any.type;
+        glUniform1i(location, (cast(*GLint)any.value_pointer).*);
+
+
+
     case .Bool;
-        assert(any.type.runtime_size == 1, "Error at '%:%:%' Wanted runtime size 4, got %", loc.fully_pathed_filename, loc.line_number, loc.character_number, any.type.runtime_size);
+        assert(any.type.runtime_size == 1, "Error at '%:%:%' Wanted runtime size 4, got %, for '%'", loc.fully_pathed_filename, loc.line_number, loc.character_number, any.type.runtime_size, uniform_name);
         assert(any.type.type == .BOOL);
         glUniform1i(location, (cast(*GLint)any.value_pointer).*);
 

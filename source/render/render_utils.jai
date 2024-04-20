@@ -196,14 +196,7 @@ init_render_backend :: () {
         app.points_lines_program = get_shader_program(VERT, FRAG);
     }
 
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/render/triangles.vert"); #assert(VERT_OK);
-        GEOM, GEOM_OK :: #run read_entire_file("source/render/triangles.geom"); #assert(GEOM_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/triangles.frag"); #assert(FRAG_OK);
-        app.triangles_program = get_shader_program(VERT, FRAG, GEOM);
-        // init_shader(*app.shader_triangles, VERT, FRAG, GEOM);
-    }
-
+    init_shader(*app.shader_triangles);
     init_shader(*app.shader_triangle_normal_vectors);
     init_shader(*app.shader_segment_normal_vectors);
     init_shader(*app.shader_point_normal_vectors);
