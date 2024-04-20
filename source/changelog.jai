@@ -123,6 +123,7 @@ PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 
 * Refactored rendering to support SSAO and Depth Peeling
+* Changed shapes/Demo.obj to log a regular message rather than an error, which is less annoying/noisy
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
