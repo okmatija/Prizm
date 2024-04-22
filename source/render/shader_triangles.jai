@@ -14,6 +14,10 @@ Shader_Triangles :: struct {
         cache_shader_uniform_location(shader, "clip_sphere.center", .Float3);
         cache_shader_uniform_location(shader, "clip_sphere.radius", .Float1);
         cache_shader_uniform_location(shader, "clip_sphere.is_active", .Bool);
+        cache_shader_uniform_location(shader, "clip_sphere_prev.center", .Float3);
+        cache_shader_uniform_location(shader, "clip_sphere_prev.radius", .Float1);
+        //cache_shader_uniform_location(shader, "clip_sphere_prev.is_active", .Bool); // Not used in the shader
+
         for 0..2 {
             cache_shader_uniform_location(shader, tprint("clip_range[%].is_active", it), .Bool);
             cache_shader_uniform_location(shader, tprint("clip_range[%].normal", it), .Float3);
@@ -21,12 +25,12 @@ Shader_Triangles :: struct {
             cache_shader_uniform_location(shader, tprint("clip_range[%].min", it), .Float1);
         }
 
-        cache_shader_uniform_location(shader, "clip_radius_mode", .Enum);
+        cache_shader_uniform_location(shader, "clip_radius_mode", .Bool);
 
         // Triangle_Style stuff, maybe we should make a struct in the shader for this..?
         cache_shader_uniform_location(shader, "display_mode", .Enum);
         cache_shader_uniform_location(shader, "backface_mode", .Enum);
-        cache_shader_uniform_location(shader, "flat_shading", .Enum);
+        cache_shader_uniform_location(shader, "flat_shading", .Bool);
         cache_shader_uniform_location(shader, "color", .Float4);
         cache_shader_uniform_location(shader, "edges_color", .Float4);
         cache_shader_uniform_location(shader, "edges_width", .Float1);
@@ -56,6 +60,9 @@ Shader_Triangles :: struct {
         set_shader_uniform_value(shader, "clip_sphere.center", clip_sphere.center.component);
         set_shader_uniform_value(shader, "clip_sphere.radius", clip_sphere.radius);
         set_shader_uniform_value(shader, "clip_sphere.is_active", clip_sphere.is_active);
+        set_shader_uniform_value(shader, "clip_sphere_prev.center", clip_sphere_prev.center.component);
+        set_shader_uniform_value(shader, "clip_sphere_prev.radius", clip_sphere_prev.radius);
+        // set_shader_uniform_value(shader, "clip_sphere_prev.is_active", clip_sphere_prev.is_active); // Not used in the shader
 
         for 0..2 {
             set_shader_uniform_value(shader, tprint("clip_range[%].is_active", it), clip_ranges[it].is_active);

@@ -61,6 +61,10 @@ cache_shader_uniform_location :: (shader : *Shader, name_string : string, kind :
     uniform.kind = kind;
     uniform.name = copy_string(name_string);
     uniform.location = glGetUniformLocation(shader.program, temp_c_string(name_string));
+
+    // :InvalidUniformLocationUnusedVariables This assert is annoying when developing shaders since it triggers
+    // whenever we comment usage code but leave declarations. Consider disabling it to work on shaders...
+    assert(uniform.location != -1, "Got -1 location for uniform '%', if you do not use this variable in the shader you should not call glGetUniformLocation (this applies recursively to struct members..!)");
 }
 
 set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_value : Any, loc := #caller_location) {
@@ -72,14 +76,15 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
             break;
         }
     }
-    assert(location != -1, "Error at '%:%:%' Location of '%' is -1", loc.fully_pathed_filename, loc.line_number, loc.character_number, uniform_name);
+    // Better to check this when the location is created, checking it here is not that helpful...
+    //assert(location != -1, "Error at '%:%:%' Location of '%' is -1", loc.fully_pathed_filename, loc.line_number, loc.character_number, uniform_name);
 
     // @Incomplete print loc in all errors/asserts
 
     any := *uniform_value; // A shorter alias for the argument
 
     AssertArray :: ($wanted_tag : Type_Info_Tag, $wanted_count : s64) #expand {
-        assert(any.type.type == .ARRAY, "Uniform kind is '%' so wanted array type, got '%'", kind, any.type.type);
+        assert(any.type.type == .ARRAY, "Uniform kind is '%' so wanted array type, got '%'. If you mean to pass vector/matrix data perhaps you forgot .component/.floats", kind, any.type.type);
         info_array := cast(*Type_Info_Array)any.type;
         assert(4 == info_array.element_type.runtime_size);
         assert(wanted_tag == info_array.element_type.type, "Uniform kind is '%' so wanted array element type '%', got '%'", kind, wanted_tag, (cast(*Type_Info_Array)any.type).element_type.type);
@@ -89,21 +94,22 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
     if #complete kind == {
 
     case .Enum;
+        assert(any.type.type == .ENUM);
         info_enum := cast(*Type_Info_Enum)any.type;
         glUniform1i(location, (cast(*GLint)any.value_pointer).*);
 
 
 
     case .Bool;
-        assert(any.type.runtime_size == 1, "Error at '%:%:%' Wanted runtime size 4, got %, for '%'", loc.fully_pathed_filename, loc.line_number, loc.character_number, any.type.runtime_size, uniform_name);
         assert(any.type.type == .BOOL);
-        glUniform1i(location, (cast(*GLint)any.value_pointer).*);
+        assert(any.type.runtime_size == 1, "Error at '%:%:%' Wanted runtime size 4, got %, for '%'", loc.fully_pathed_filename, loc.line_number, loc.character_number, any.type.runtime_size, uniform_name);
+        glUniform1i(location, cast(GLint)((cast(*bool)any.value_pointer).*));
 
 
 
     case .Int1;
-        assert(any.type.runtime_size == 4);
         assert(any.type.type == .INTEGER);
+        assert(any.type.runtime_size == 4);
         glUniform1i(location, (cast(*GLint)any.value_pointer).*);
 
     case .Int2;
@@ -124,8 +130,8 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
 
 
     case .UInt1;
-        assert(any.type.runtime_size == 4);
         assert(any.type.type == .INTEGER);
+        assert(any.type.runtime_size == 4);
         glUniform1ui(location, (cast(*GLuint)any.value_pointer).*);
 
     case .UInt2;

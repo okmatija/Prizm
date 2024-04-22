@@ -55,7 +55,7 @@ uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
 
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-uniform Clip_Sphere clip_sphere_prev;
+uniform Clip_Sphere clip_sphere_prev; // .is_active is not used!
 uniform bool clip_radius_mode = false;
 
 in vec3 vertex_normal_ws;
