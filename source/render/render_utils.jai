@@ -190,13 +190,9 @@ init_render_backend :: () {
         app.triangles_deferred_program = get_shader_program(VERT, FRAG);
     }
 
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/render/points_lines.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/points_lines.frag"); #assert(FRAG_OK);
-        app.points_lines_program = get_shader_program(VERT, FRAG);
-    }
-
     init_shader(*app.shader_triangles);
+    init_shader(*app.shader_lines);
+    init_shader(*app.shader_points);
     init_shader(*app.shader_triangle_normal_vectors);
     init_shader(*app.shader_segment_normal_vectors);
     init_shader(*app.shader_point_normal_vectors);
@@ -408,9 +404,6 @@ get_shader_program :: (shader_vertex : string, shader_fragment : string, shader_
 
     return program;
 }
-
-#scope_file
-
 
 debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : *ImGui.ImFont = null) {
 

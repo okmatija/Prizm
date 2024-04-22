@@ -352,14 +352,14 @@ render_mesh_positions :: (
     if !mesh.positions.count return;
     if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
 
-    maybe_update_render_info(render_info, mesh);
-    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
+    app.shader_points.use_shader(*app.shader_points, mesh, display_info, clip_radius_mode_show_wireframe, vertex_style);
 
-    size := ifx clip_radius_mode_show_wireframe then 2 else vertex_style.size;
-    glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx size);
-
-    color := ifx clip_radius_mode_show_wireframe then BLACK else vertex_style.color;
-    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), color.x, color.y, color.z, color.w);
+    last_polygon_mode: [2]GLuint;
+    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glEnable(GL_PROGRAM_POINT_SIZE); // This is needed so we can assign to gl_PointSize in the shader
 
     glBindVertexArray(render_info.positions_vao);
     glDrawArrays(GL_POINTS, 0, xx mesh.positions.count);
@@ -375,13 +375,15 @@ render_mesh_points :: (
     if !point_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(render_info, mesh);
-    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
 
-    used_points_size := ifx clip_radius_mode_show_wireframe then 2 else point_style.size;
-    glUniform1f(glGetUniformLocation(app.points_lines_program, "point_size"), xx used_points_size);
+    app.shader_points.use_shader(*app.shader_points, mesh, display_info, clip_radius_mode_show_wireframe, point_style.vertex_style);
 
-    used_points_color := ifx clip_radius_mode_show_wireframe then BLACK else point_style.color;
-    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), used_points_color.x, used_points_color.y, used_points_color.z, used_points_color.w);
+    last_polygon_mode: [2]GLuint;
+    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glEnable(GL_PROGRAM_POINT_SIZE); // This is needed so we can assign to gl_PointSize in the shader
 
     glBindVertexArray(render_info.points_vao);
     glDrawArrays(GL_POINTS, 0, xx mesh.points.count);
@@ -397,16 +399,14 @@ render_mesh_segments :: (
     if !segment_style.visible && !clip_radius_mode return;
 
     maybe_update_render_info(render_info, mesh);
-    render_simple_mesh_common(mesh, display_info, clip_radius_mode);
+
+    app.shader_lines.use_shader(*app.shader_lines, mesh, display_info, clip_radius_mode, segment_style.color);
 
     used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
         // See also glEnable(GL_LINE_SMOOTH);
         glLineWidth(xx used_segments_width);
     }
-
-    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), segment_style.color.x, segment_style.color.y, segment_style.color.z, segment_style.color.w);
-
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
 
     glBindVertexArray(render_info.segments_vao);
@@ -434,17 +434,14 @@ render_mesh_triangles_as_lines :: (
     if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(render_info, mesh);
-    render_simple_mesh_common(mesh, display_info, clip_radius_mode_show_wireframe);
+
+    app.shader_lines.use_shader(*app.shader_lines, mesh, display_info, clip_radius_mode_show_wireframe, triangle_style.edge_style.color);
 
     used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
-
-    // See also glEnable(GL_LINE_SMOOTH);
-    glLineWidth(xx used_edges_width);
-
-    glUniform4f(glGetUniformLocation(app.points_lines_program, "color"), triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w);
-
+    glLineWidth(xx used_edges_width); // See also glEnable(GL_LINE_SMOOTH);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     glBindVertexArray(render_info.triangles_edges_vao);
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
@@ -478,34 +475,6 @@ render_mesh_triangles :: (
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBindVertexArray(render_info.triangles_vao);
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
-}
-
-// @Cleanup Rename this function and the corresponding shaders and program variable names in App to something that indicates that the variables are used for segment/point rendering
-render_simple_mesh_common :: (mesh : *Simple_Mesh, using display_info : Display_Info, clip_radius_mode : bool) {
-
-    program := app.points_lines_program;
-    glUseProgram(program);
-
-    // @Cleanup Why is this different to e.g., normals
-    used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
-
-    set_model_view_projection_uniforms(program, mesh.world_from_model);
-    set_hover_flash_uniform(program, display_info);
-    set_clip_ranges_uniforms(program, display_info);
-    set_clip_sphere_uniforms(program, display_info, prev_sphere=false);
-    glUniform1i(glGetUniformLocation(program, "clip_mode"), xx used_clip_mode);
-    glUniform1f(glGetUniformLocation(program, "point_size"), xx point_style.size);
-
-    // nocommit Remove this
-    last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
-
-    // nocommit Extract this
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
-    glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
 render_entities :: () {
@@ -743,11 +712,6 @@ entity_in_clip_radius_mode :: (entity_index : int) -> bool {
 
 
 
-set_hover_flash_uniform :: (shader : GLuint, using display_info : Display_Info) {
-    wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
-    glUniform1f(glGetUniformLocation(shader, "wave"), wave);
-}
-
 set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
     {
         loc := glGetUniformLocation(program, "world_from_model");
@@ -764,33 +728,6 @@ set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matr
         loc := glGetUniformLocation(program, "clip_from_view");
         clip_from_view := make_orthographic_projection_matrix(app.camera);
         glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
-    }
-}
-
-set_clip_ranges_uniforms :: (shader : GLuint, using display_info : Display_Info) {
-    for 0..clip_ranges.count-1 {
-        // @Cleanup We could use run directive here to get constant strings
-        using clip_ranges[it];
-        glUniform3f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].normal", it))), normal.x, normal.y, normal.z);
-        glUniform1f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].min", it))), xx min);
-        glUniform1f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].max", it))), xx max);
-        glUniform1f(glGetUniformLocation(shader, temp_c_string(tprint("clip_range[%].is_active", it))), xx is_active);
-    }
-}
-
-set_clip_sphere_uniforms :: (shader : GLuint, using display_info : Display_Info, prev_sphere := true) {
-    {
-        using clip_sphere;
-        glUniform3f(glGetUniformLocation(shader, "clip_sphere.center"), center.x, center.y, center.z);
-        glUniform1f(glGetUniformLocation(shader, "clip_sphere.radius"), xx radius);
-        glUniform1f(glGetUniformLocation(shader, "clip_sphere.is_active"), xx is_active);
-    }
-
-    if prev_sphere {
-        using clip_sphere_prev;
-        glUniform3f(glGetUniformLocation(shader, "clip_sphere_prev.center"), center.x, center.y, center.z);
-        glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.radius"), xx radius);
-        glUniform1f(glGetUniformLocation(shader, "clip_sphere_prev.is_active"), xx is_active);
     }
 }
 
