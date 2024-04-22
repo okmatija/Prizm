@@ -142,8 +142,8 @@ App :: struct {
 }
 
 Window_Size :: struct {
-    width : s32; @Uniform // In Pixels
-    height : s32; @Uniform // In Pixels
+    width : s32; // In Pixels
+    height : s32; // In Pixels
     fullscreen := false;
 }
 

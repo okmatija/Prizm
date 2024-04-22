@@ -1,7 +1,7 @@
 Camera :: struct {
     // Data to transfrom from world to view coordinates
-    eye_position :  Vector3; @Uniform // world
-    look_position : Vector3; @Uniform
+    eye_position :  Vector3; // world
+    look_position : Vector3;
     up_direction :  Vector3;
 
     rotation_axis := Camera_Rotation_Axis.ROLL; // :UserConfig use configurable default
