@@ -7,6 +7,8 @@ Shader_Point_Normal_Vectors :: struct {
     }
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
+        glUseProgram(shader.program);
+        assert(glIsProgram(shader.program) == GL_TRUE);
         set_uniform_values(shader, mesh, point_style.normal_style, clip_sphere, clip_ranges);
     }
 }
@@ -20,6 +22,8 @@ Shader_Segment_Normal_Vectors :: struct {
     }
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
+        glUseProgram(shader.program);
+        assert(glIsProgram(shader.program) == GL_TRUE);
         set_uniform_values(shader, mesh, segment_style.normal_style, clip_sphere, clip_ranges);
     }
 }
@@ -33,6 +37,8 @@ Shader_Triangle_Normal_Vectors :: struct {
     }
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
+        glUseProgram(shader.program);
+        assert(glIsProgram(shader.program) == GL_TRUE);
         set_uniform_values(shader, mesh, triangle_style.normal_style, clip_sphere, clip_ranges);
     }
 }
@@ -62,9 +68,6 @@ cache_uniform_locations :: (shader : *Shader) {
 }
 
 set_uniform_values :: (shader : Shader, using mesh : Simple_Mesh, normal_style : Normal_Style, clip_sphere : Clip_Sphere, clip_ranges : [3]Clip_Range) {
-
-    glUseProgram(shader.program);
-    assert(glIsProgram(shader.program) == GL_TRUE);
 
     view_from_world := make_look_at_matrix(app.camera);
     clip_from_view := make_orthographic_projection_matrix(app.camera);
