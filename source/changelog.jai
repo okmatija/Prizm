@@ -126,6 +126,7 @@ PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 * Changed shapes/Demo.obj to log a regular message rather than an error, which is less annoying/noisy
 * Changed user-facing text mentioning "clipping spheres" to use terminology "clipping balls", this uses the same number of characters as "clipping slabs"
 * Renamed `item_copy_clipping_sphere` command to `item_copy_clipping_ball` to be consistent with the above change
+* Restored feature where the AABB of the selected items is visualized when the "Details > Clipping" UI is visible
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
 * TODOOOOOOOO Fix the bug where the framebuffer is not scaled with the window... Just make the window bigger to see the problem!
 * TODO Per entity text label mode, so you can easily turn on labels all the time

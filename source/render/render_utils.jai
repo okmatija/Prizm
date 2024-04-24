@@ -195,12 +195,7 @@ init_render_backend :: () {
     init_shader(*app.shader_triangle_normal_vectors);
     init_shader(*app.shader_segment_normal_vectors);
     init_shader(*app.shader_point_normal_vectors);
-
-    {
-        VERT, VERT_OK :: #run read_entire_file("source/render/aabb.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/aabb.frag"); #assert(FRAG_OK);
-        app.aabb_program = get_shader_program(VERT, FRAG);
-    }
+    init_shader(*app.shader_aabb);
 
     glGenVertexArrays(1, *app.quad_vao);
 

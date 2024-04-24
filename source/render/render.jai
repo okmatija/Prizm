@@ -326,21 +326,10 @@ render_mesh_point_normals :: (
 }
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
-    // TODOOOO There is a bug where aabb rendering can get stuck on in the menu version of item details 
-    /*
-    glUseProgram(app.aabb_program);
 
-    r, g, b, a : float = 0, 0, 1, 1;
-    min := aabb_model.min_point;
-    max := aabb_model.max_point;
-
-    set_model_view_projection_uniforms(app.aabb_program, world_from_model);
-    gluniform4f(glgetuniformlocation(app.aabb_program, "color"), r, g, b, a);
-    glUniform3f(glGetUniformLocation(app.aabb_program, "min"), min.x, min.y, min.z);
-    glUniform3f(glGetUniformLocation(app.aabb_program, "max"), max.x, max.y, max.z);
+    app.shader_aabb.use_shader(*app.shader_aabb, aabb_model, world_from_model);
 
     glDrawArrays(GL_LINES, 0, 24);
-    */
 }
 
 render_mesh_positions :: (

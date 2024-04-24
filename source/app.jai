@@ -148,7 +148,7 @@ Window_Size :: struct {
 }
 
 App_Render_Info :: struct {
-    aabb_program : GLuint;
+    shader_aabb : Shader_AABB;
     shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     shader_points_lines : Shader_Points_Lines;
     shader_point_normal_vectors : Shader_Point_Normal_Vectors;
@@ -485,6 +485,7 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "updates.jai";
 
 #load "render/shader.jai";
+#load "render/shader_aabb.jai";
 #load "render/shader_triangles.jai";
 #load "render/shader_points_lines.jai";
 #load "render/shader_normal_vectors.jai";
