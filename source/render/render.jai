@@ -352,7 +352,10 @@ render_mesh_positions :: (
     if !mesh.positions.count return;
     if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
 
-    app.shader_points.use_shader(*app.shader_points, mesh, display_info, clip_radius_mode_show_wireframe, vertex_style);
+    shader := *app.shader_points_lines;
+    shader.use_shader(shader, mesh, display_info, clip_radius_mode_show_wireframe, vertex_style.color);
+    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)vertex_style.size;
+    set_shader_uniform_value(shader, "point_size", used_point_size);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -376,7 +379,10 @@ render_mesh_points :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    app.shader_points.use_shader(*app.shader_points, mesh, display_info, clip_radius_mode_show_wireframe, point_style.vertex_style);
+    shader := *app.shader_points_lines;
+    shader.use_shader(shader, mesh, display_info, clip_radius_mode_show_wireframe, point_style.vertex_style.color);
+    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)point_style.vertex_style.size;
+    set_shader_uniform_value(shader, "point_size", used_point_size);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -400,7 +406,8 @@ render_mesh_segments :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    app.shader_lines.use_shader(*app.shader_lines, mesh, display_info, clip_radius_mode, segment_style.color);
+    shader := *app.shader_points_lines;
+    shader.use_shader(shader, mesh, display_info, clip_radius_mode, segment_style.color);
 
     used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
@@ -435,7 +442,8 @@ render_mesh_triangles_as_lines :: (
 
     maybe_update_render_info(render_info, mesh);
 
-    app.shader_lines.use_shader(*app.shader_lines, mesh, display_info, clip_radius_mode_show_wireframe, triangle_style.edge_style.color);
+    shader := *app.shader_points_lines;
+    shader.use_shader(shader, mesh, display_info, clip_radius_mode_show_wireframe, triangle_style.edge_style.color);
 
     used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;

@@ -191,8 +191,7 @@ init_render_backend :: () {
     }
 
     init_shader(*app.shader_triangles);
-    init_shader(*app.shader_lines);
-    init_shader(*app.shader_points);
+    init_shader(*app.shader_points_lines);
     init_shader(*app.shader_triangle_normal_vectors);
     init_shader(*app.shader_segment_normal_vectors);
     init_shader(*app.shader_point_normal_vectors);

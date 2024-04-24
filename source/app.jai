@@ -150,8 +150,7 @@ Window_Size :: struct {
 App_Render_Info :: struct {
     aabb_program : GLuint;
     shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
-    shader_points : Shader_Points;
-    shader_lines : Shader_Lines;
+    shader_points_lines : Shader_Points_Lines;
     shader_point_normal_vectors : Shader_Point_Normal_Vectors;
     shader_segment_normal_vectors : Shader_Segment_Normal_Vectors;
     shader_triangle_normal_vectors : Shader_Triangle_Normal_Vectors;
