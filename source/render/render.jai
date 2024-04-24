@@ -677,13 +677,14 @@ render_background :: () {
 
         case .CUSTOM_SHADER;
 
+            // FIXMEEE We can remove this is we put the quad on the far plan..!?
+            // FIXMEEE When I remove this the depth tests for other shaders gets screwed up... I should add that!
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
-            glUseProgram(app.background_program);
-            x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
-            glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
-            glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
-            glBindVertexArray(app.background_vao);
+
+            app.shader_background.use_shader(*app.shader_background);
+
+            glBindVertexArray(app.shader_background.vao);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             /* TODOOO This line triggers, will it go away if we use GL_TRIANGLES? But why??
 

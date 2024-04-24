@@ -149,14 +149,13 @@ Window_Size :: struct {
 
 App_Render_Info :: struct {
     shader_aabb : Shader_AABB;
+    shader_background : Shader_Background;
+
     shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
     shader_points_lines : Shader_Points_Lines;
     shader_point_normal_vectors : Shader_Point_Normal_Vectors;
     shader_segment_normal_vectors : Shader_Segment_Normal_Vectors;
     shader_triangle_normal_vectors : Shader_Triangle_Normal_Vectors;
-
-    background_program : GLuint;
-    background_vao : GLuint; // nocommit Consolidate with ssao_vao into quad_vao
 
     quad_vao : GLuint;
 
@@ -486,6 +485,7 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 
 #load "render/shader.jai";
 #load "render/shader_aabb.jai";
+#load "render/shader_background.jai";
 #load "render/shader_triangles.jai";
 #load "render/shader_points_lines.jai";
 #load "render/shader_normal_vectors.jai";

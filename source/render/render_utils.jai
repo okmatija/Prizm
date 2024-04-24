@@ -190,12 +190,14 @@ init_render_backend :: () {
         app.triangles_deferred_program = get_shader_program(VERT, FRAG);
     }
 
+    init_shader(*app.shader_aabb);
+    init_shader(*app.shader_background);
+
     init_shader(*app.shader_triangles);
     init_shader(*app.shader_points_lines);
     init_shader(*app.shader_triangle_normal_vectors);
     init_shader(*app.shader_segment_normal_vectors);
     init_shader(*app.shader_point_normal_vectors);
-    init_shader(*app.shader_aabb);
 
     glGenVertexArrays(1, *app.quad_vao);
 
@@ -216,14 +218,6 @@ init_render_backend :: () {
         FRAG, FRAG_OK :: #run read_entire_file("source/render/ssao.frag"); #assert(FRAG_OK);
         app.ssao_program = get_shader_program(VERT, FRAG);
         glGenVertexArrays(1, *app.ssao_vao);
-    }
-
-    {
-        // We may want to hot-load this file in future to allow the user to customize the background
-        VERT, VERT_OK :: #run read_entire_file("source/render/background.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/background.frag"); #assert(FRAG_OK);
-        app.background_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.background_vao);
     }
 }
 
