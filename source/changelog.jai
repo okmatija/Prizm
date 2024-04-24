@@ -124,7 +124,10 @@ PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 * Updated the wiki to include a description of the supported obj features 
 * Refactored rendering to support SSAO and Depth Peeling
 * Changed shapes/Demo.obj to log a regular message rather than an error, which is less annoying/noisy
+* Changed user-facing text mentioning "clipping spheres" to use terminology "clipping balls", this uses the same number of characters as "clipping slabs"
+* Renamed `item_copy_clipping_sphere` command to `item_copy_clipping_ball` to be consistent with the above change
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
+* TODOOOOOOOO Fix the bug where the framebuffer is not scaled with the window... Just make the window bigger to see the problem!
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
 * TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)

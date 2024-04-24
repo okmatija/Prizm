@@ -629,8 +629,8 @@ item_copy_clipping_ranges :: (source_item_index : int, target_item_index : int) 
     app.entities[target_item_index].display_info.clip_ranges = app.entities[source_item_index].display_info.clip_ranges;
 } @RegisterCommand
 
-// Copy the clipping sphere of item `source_item_index` to item `target_item_index`
-item_copy_clipping_sphere :: (source_item_index : int, target_item_index : int) {
+// Copy the clipping ball of item `source_item_index` to item `target_item_index`
+item_copy_clipping_ball :: (source_item_index : int, target_item_index : int) {
     if !check_geometry_index(source_item_index) || !check_geometry_index(target_item_index) || source_item_index == target_item_index {
         return;
     }
@@ -651,11 +651,11 @@ set_edge_color_to_face_color :: () {
 //
 // `item_indxe`     The index of the item containing the desired segment
 // `segment_index`  The segment that should be focussed
-// `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
-//                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the segment
-//                  If  > 0 then the items clipping sphere is set with a radius of the given value
+// `clip_radius`    If  < 0 then the items clipping ball is unchanged (default)
+//                  If == 0 then the items clipping ball is set with a radius equal to 2x the bounding radius of the segment
+//                  If  > 0 then the items clipping ball is set with a radius of the given value
 //
-// If a clipping sphere is set then segment index text is also enabled
+// If a clipping ball is set then segment index text is also enabled
 item_focus_segment :: (item_index : int, segment_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(item_index) {
@@ -702,11 +702,11 @@ item_focus_segment :: (item_index : int, segment_index : int, clip_radius : floa
 //
 // `item_index`     The index of the item containing the desired triangle
 // `triangle_index` The triangle that should be focussed
-// `clip_radius`    If  < 0 then the items clipping sphere is unchanged (default)
-//                  If == 0 then the items clipping sphere is set with a radius equal to 2x the bounding radius of the triangle
-//                  If  > 0 then the items clipping sphere is set with a radius of the given value
+// `clip_radius`    If  < 0 then the items clipping ball is unchanged (default)
+//                  If == 0 then the items clipping ball is set with a radius equal to 2x the bounding radius of the triangle
+//                  If  > 0 then the items clipping ball is set with a radius of the given value
 //
-// If a clipping sphere is set then triangle index text is also enabled
+// If a clipping ball is set then triangle index text is also enabled
 item_focus_triangle :: (item_index : int, triangle_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(item_index) {
@@ -754,11 +754,11 @@ item_focus_triangle :: (item_index : int, triangle_index : int, clip_radius : fl
 //
 // `item_index`   The index of the item containing the desired vertex
 // `vertex_index` The vertex that should be focussed
-// `clip_radius`  If  < 0 then the items clipping sphere is unchanged (default)
-//                If == 0 then the items clipping sphere is set to 1
-//                If  > 0 then the items clipping sphere is set with a radius of the given value
+// `clip_radius`  If  < 0 then the items clipping ball is unchanged (default)
+//                If == 0 then the items clipping ball is set to 1
+//                If  > 0 then the items clipping ball is set with a radius of the given value
 //
-// If a clipping sphere is set then vertex index text is also enabled
+// If a clipping ball is set then vertex index text is also enabled
 item_focus_vertex :: (item_index : int, vertex_index : int, clip_radius : float = -1.) {
 
     if !check_geometry_index(item_index) {

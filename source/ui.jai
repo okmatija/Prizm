@@ -1107,7 +1107,7 @@ show_preferences :: () {
             show_tooltip(tprint(#string DONE
 CP Query Radius in pixels, this affects:
 - Selection of items and elements
-- Clipping sphere center seeding
+- Clipping ball center seeding
 - Label visibility in % labelling mode
 DONE, Labelling_Mode.RAY_CAST));
             app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
@@ -2845,14 +2845,14 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 old_clip_sphere := clip_sphere;
                 
                 BINDING :: "Shift LMB";
-                DESCRIBE :: "Click-drag to set clipping sphere on selected items";
+                DESCRIBE :: "Click-drag to set clipping ball on selected items";
 
                 ImGui.TableSetColumnIndex(0);
-                ImGui.Text("Sphere");
+                ImGui.Text("Ball");
                 show_tooltip_binding(DESCRIBE, BINDING);
                 ImGui.SameLine();
                 ImGui.Checkbox(imgui_label("##clip_sphere", *clip_sphere), *clip_sphere.is_active);
-                show_tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
+                show_tooltip("Enable clipping using distance from a point.\nKeep the region inside the ball.");
 
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
@@ -2882,7 +2882,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                         clip_sphere.radius = POSITIVE_INF;
                     }
                 }
-                show_tooltip("Reset sphere to contain the universe");
+                show_tooltip("Reset ball to contain the universe");
 
                 get_update(old_clip_sphere, clip_sphere);
             }
@@ -2894,7 +2894,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     MIN_RANGE :: .1;
 
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.Text("Slab  ");
+                    ImGui.Text("Slab");
                     ImGui.SameLine();
                     ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
                     show_tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");

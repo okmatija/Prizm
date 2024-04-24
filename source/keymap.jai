@@ -410,7 +410,7 @@ show_viewport_key_bindings :: () {
     }
 
     ShowBinding("Ctrl  LMB", "Add nearest unclipped element to 'Selection' item");
-    ShowBinding("Shift LMB", "Click-drag to set clipping sphere");
+    ShowBinding("Shift LMB", "Click-drag to set clipping ball");
 }
 
 show_miscellaneous_key_bindings :: () {
