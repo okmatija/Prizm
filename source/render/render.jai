@@ -474,6 +474,9 @@ render_mesh_triangles :: (
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * mesh.triangles.count));
 }
 
+// @TODOOOO @Speedddd We should order operations to minimize OpenGL state changes ie we should
+// set shaders and then loop over all items, currently for each item we set a bunch of different
+// shaders
 render_entities :: () {
 
     ScopeGlState();
@@ -505,8 +508,10 @@ render_entities_gbuffer :: () {
 
     // Geometry Pass: (positions, normals, albedo, depth?)
     glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
+
     glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
     glActiveTexture(GL_TEXTURE1);
@@ -530,8 +535,7 @@ render_entities_gbuffer :: () {
 
         maybe_update_render_info(ri, *it.mesh);
 
-        glUseProgram(app.gbuffer_geometry_pass_program);
-        set_model_view_projection_uniforms(app.gbuffer_geometry_pass_program, it.mesh.world_from_model);
+        use_shader(*app.shader_geometry, it.mesh);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindVertexArray(ri.triangles_vao);
@@ -576,34 +580,46 @@ render_entities_gbuffer :: () {
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
     glClearColor(0., 0., 0., 1.); 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+#if 1 {
     glUseProgram(app.triangles_deferred_program);
     // glDisable(GL_DEPTH_TEST);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    // glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
     glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_position"), 0);
+
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    // glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle); // THIS DOES NOT WORK
     glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_normal"), 1);
 
-    for :VisibleOpaque app.entities {
-        ri := *it.render_info;
-        di :=  it.display_info;
+    program := app.triangles_deferred_program;
+    //debug_print_active_uniforms(program);
+    look_direction := current_look_direction();
+    glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
+    glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
 
-        if !it.mesh.triangles.count continue;
-        if !di.triangle_style.visible continue;
-        maybe_update_render_info(ri, *it.mesh);
+    glBindVertexArray(app.quad_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);  
+} else {
+    use_shader(*app.shader_lighting);
 
-        look_direction := current_look_direction();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
 
-        program := app.triangles_deferred_program;
-        set_model_view_projection_uniforms(program, it.mesh.world_from_model);
-        glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
-        glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
-        glUniform4f(glGetUniformLocation(program, "color"), di.triangle_style.color.x, di.triangle_style.color.y, di.triangle_style.color.z, di.triangle_style.color.w);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
 
-        glBindVertexArray(app.quad_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);  
-    }
+    // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+    attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
+    glDrawBuffers(2, attachments.data);
+
+    glBindVertexArray(app.quad_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);  
+}
+
 
 }
 

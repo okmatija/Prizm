@@ -96,6 +96,8 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Cleanup where the binaries/libaries are stored, to unclutter the top-level directory. Look at Unreal/Focus
     * TODO There is a bug where rotation feels bad when the application has a large aspect ratio e.g., very short and fat???
     * TODO Cleanup shader code
+    * TODO Make backtick cycle the terminal state from transparent to opaque and off. Esc always turns it off
+    * TODOOOOOO Console save button, actually just remove that and the options menu, and just  
 
 // We use reflection to determine uniform locations in the shader. Each derived shader type
 // will use the members of the Uniforms struct member (if there is no such member the shader
@@ -119,6 +121,13 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
+
+PLAN:
+    1. Support textures as uniforms, see how its done in KodaJai
+    2. Implement SSAO!
+    3. Merge with master
+    4. Fix important bugs and release!!
+    5. Then move on to implementing Depth Peeling!
 
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 

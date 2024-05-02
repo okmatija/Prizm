@@ -2146,6 +2146,8 @@ SOFTWARE.
 DONE);
         }
 
+        // nocommit Mention KodaJai here
+
         if ImGui.TreeNodeEx(temp_c_string(tprint("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION)), .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);
@@ -2953,53 +2955,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
             }
         }
     }
-}
-
-make_opengl_texture :: (texture_data : *u8, texture_width : s32, texture_height : s32) -> GLuint {
-    gl_handle : GLuint;
-
-    // Create an OpenGL texture identifier
-    glGenTextures(1, *gl_handle);
-    glBindTexture(GL_TEXTURE_2D, gl_handle);
-
-    // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
-
-    // Upload pixels into texture
-    //glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cast(u32)texture_width, cast(u32)texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
-
-    return gl_handle;
-}
-
-load_texture_from_file :: (filename : string) -> Texture, bool {
-    texture : Texture;
-
-    // Load from file
-    texture_data : *u8 = stbi_load(temp_c_string(filename), *texture.width, *texture.height, null, 4);
-    defer stbi_image_free(texture_data);
-
-    if texture_data == null {
-        return texture, false;
-    }
-
-    texture.gl_handle = make_opengl_texture(texture_data, texture.width, texture.height);
-
-    return texture, true;
-}
-
-load_texture_from_memory :: (buffer : []u8) -> Texture, bool {
-    texture : Texture;
-
-    channels : s32;
-    texture_data : *u8 = stbi_load_from_memory(buffer.data, cast(s32)buffer.count, *texture.width, *texture.height, *channels, 4);
-
-    texture.gl_handle = make_opengl_texture(texture_data, texture.width, texture.height);
-
-    return texture, true;
 }
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it

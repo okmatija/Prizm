@@ -15,9 +15,20 @@ resize_textures :: () {
     w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
 
     {
+        // position_texture : Texture = .{
+        //     width = w,
+        //     height = h,
+        //     format = Pixel_Format.RGBA16F,
+        //     wrap = Texture_Wrap.CLAMP_TO_EDGE,
+        //     filter = Texture_Filter.NEAREST
+        // };
+
+        // texture_init(app.gbuffer_position_texture, w, h);
+        // texture_init(app.gbuffer_normal_texture, w, h);
+
         // position color buffer
         glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -26,7 +37,7 @@ resize_textures :: () {
 
         // normal color buffer
         glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
@@ -58,7 +69,7 @@ resize_textures :: () {
     */
 }
 
-init_render_backend :: () {
+init_rendering :: () {
 
     //
     // Init GBuffer framebuffer
@@ -172,17 +183,16 @@ init_render_backend :: () {
     }
     */
 
+    geometry_pass_init(*app.geometry_pass);
+
     //
     // Init shaders
     //
 
     // @Cleanup We read the same file multiple times which sucks.
 
-    { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/render/gbuffer.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/gbuffer.frag"); #assert(FRAG_OK);
-        app.gbuffer_geometry_pass_program = get_shader_program(VERT, FRAG); // nocommit Rename to gbuffer_program
-    }
+    init_shader(*app.shader_geometry);
+    init_shader(*app.shader_lighting);
 
     { // nocommit
         VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);

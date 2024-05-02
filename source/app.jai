@@ -161,8 +161,12 @@ App_Render_Info :: struct {
 
     blit_program : GLuint; // Used to blit framebuffer textures nocommit Is this the portable way to do it?
 
+    geometry_pass : Geometry_Pass;
+
     // GBuffer ("Geometry Buffer") for deferred rendering of opaque items
-    gbuffer_geometry_pass_program : GLuint;
+    shader_geometry : Shader_Geometry;
+    shader_lighting : Shader_Lighting;
+
     gbuffer_framebuffer : GLuint;
     gbuffer_position_texture : GLuint;
     gbuffer_normal_texture : GLuint;
@@ -182,12 +186,6 @@ App_Render_Info :: struct {
     ssao_blur_texture : GLuint;
     ssao_noise_texture : GLuint;
     */
-}
-
-Texture :: struct {
-    gl_handle : GLuint; // nocommit Rename to texture
-    width : s32;
-    height : s32;
 }
 
 // @Incomplete Deduplicate file watcher directories on linux
@@ -489,9 +487,12 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "render/shader_triangles.jai";
 #load "render/shader_points_lines.jai";
 #load "render/shader_normal_vectors.jai";
+#load "render/shader_deferred.jai";
 #load "render/render.jai";
 #load "render/render_utils.jai";
 #load "render/render_text.jai";
+#load "render/render_pass.jai";
+#load "render/texture.jai";
 
 #load "console/console.jai";
 #load "console/commands.jai";

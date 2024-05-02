@@ -17,6 +17,12 @@ init_shader :: (shader : *$T/Shader) {
 use_shader :: (shader : *$T/Shader, mesh : Simple_Mesh, display_info : Display_Info) {
     shader.use_shader(shader, mesh, display_info);
 }
+use_shader :: (shader : *$T/Shader, mesh : Simple_Mesh) {
+    shader.use_shader(shader, mesh);
+}
+use_shader :: (shader : *$T/Shader) {
+    shader.use_shader(shader);
+}
 
 Shader_Uniform :: struct {
 
@@ -39,6 +45,8 @@ Shader_Uniform :: struct {
         Matrix2;
         Matrix3;
         Matrix4;
+
+        Texture;
 
         Enum;
         Bool;
@@ -65,6 +73,11 @@ cache_shader_uniform_location :: (shader : *Shader, name_string : string, kind :
     // :InvalidUniformLocationUnusedVariables This assert is annoying when developing shaders since it triggers
     // whenever we comment usage code but leave declarations. Consider disabling it to work on shaders...
     assert(uniform.location != -1, "Got -1 location for uniform '%', if you do not use this variable in the shader you should not call glGetUniformLocation (this applies recursively to struct members..!)");
+}
+
+Texture_Uniform :: struct {
+    texture : *Texture;
+    texture_unit : GLenum;
 }
 
 set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_value : Any, loc := #caller_location) {
@@ -184,6 +197,20 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
     case .Matrix4;
         AssertArray(.FLOAT, 16);
         glUniformMatrix4fv(location, 1, true, *((cast(*Matrix4)any.value_pointer).*)._11);
+
+
+
+
+    case .Texture;
+
+        tex := cast(*Texture_Uniform)any.value_pointer;
+        assert(tex.texture != null);
+        assert(tex.texture.gl_handle != 0);
+
+        glActiveTexture(tex.texture_unit);
+        glBindTexture(GL_TEXTURE_2D, tex.texture.gl_handle);
+        glUniform1ui(location, tex.texture_unit);
+
     }
 }
 
