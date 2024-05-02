@@ -9,6 +9,8 @@ Shader_Geometry :: struct {
         cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
         cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
         cache_shader_uniform_location(shader, "clip_from_view", .Matrix4);
+        cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
+        cache_shader_uniform_location(shader, "gbuffer_normal", .Texture);
 
     }
 
@@ -45,6 +47,8 @@ Shader_Lighting :: struct {
     }
 
     use_shader :: (shader : Shader) {
+
+        // nocommit I think the following is better in a use_pass function??
 
         glUseProgram(shader.program);
         assert(glIsProgram(shader.program) == GL_TRUE);

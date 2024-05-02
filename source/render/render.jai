@@ -507,15 +507,23 @@ render_entities_gbuffer :: () {
     //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
 
     // Geometry Pass: (positions, normals, albedo, depth?)
-    glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
+    // glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, app.geometry_pass.framebuffer.gl_handle);
 
     glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+
+    {
+    position_uniform := Texture_Uniform.{*app.geometry_pass.position, GL_TEXTURE0};
+    normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, GL_TEXTURE1};
+    set_shader_uniform_value(app.shader_geometry, "gbuffer_position", position_uniform);
+    set_shader_uniform_value(app.shader_geometry, "gbuffer_normal", normal_uniform);
+    }
 
     glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
@@ -581,7 +589,7 @@ render_entities_gbuffer :: () {
     glClearColor(0., 0., 0., 1.); 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-#if 1 {
+#if 0 {
     glUseProgram(app.triangles_deferred_program);
     // glDisable(GL_DEPTH_TEST);
 
