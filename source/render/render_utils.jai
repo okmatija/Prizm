@@ -15,33 +15,25 @@ resize_textures :: () {
     w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
 
     {
-        // position_texture : Texture = .{
-        //     width = w,
-        //     height = h,
-        //     format = Pixel_Format.RGBA16F,
-        //     wrap = Texture_Wrap.CLAMP_TO_EDGE,
-        //     filter = Texture_Filter.NEAREST
-        // };
-
         // texture_init(app.gbuffer_position_texture, w, h);
         // texture_init(app.gbuffer_normal_texture, w, h);
 
-        // position color buffer
-        glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        // // position color buffer
+        // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        // glBindTexture(GL_TEXTURE_2D, 0);
 
-        // normal color buffer
-        glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        // // normal color buffer
+        // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
+        // glBindTexture(GL_TEXTURE_2D, 0);
 
         // nocommit Add depth buffer/texture here!
     }
@@ -76,60 +68,6 @@ init_rendering :: () {
     //
 
     w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
-
-    {
-        glGenFramebuffers(1, *app.gbuffer_framebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
-
-        // Position color buffer (The z component contains the depth information)
-        glGenTextures(1, *app.gbuffer_position_texture);
-        glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app.gbuffer_position_texture, 0);
-
-        // Normal color buffer
-        glGenTextures(1, *app.gbuffer_normal_texture);
-        glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F?
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
-
-        //// Color buffer Note: opacity is handled in a separate forward renderer (@Incomplete) // We have a constant albedo color for now
-        //glGenTextures(1, *app.gbuffer_albedo_texture);
-        //glBindTexture(GL_TEXTURE_2D, app.gbuffer_albedo_texture);
-        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app.gbuffer_albedo_texture, 0);
-
-        // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
-        attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
-        glDrawBuffers(2, attachments.data);
-
-        // Depth buffer texture :DepthTexture We don't actually need this since we have the position buffer
-        glGenTextures(1, *app.gbuffer_depth_texture); //:DepthTexture
-        glBindTexture(GL_TEXTURE_2D, app.gbuffer_depth_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app.gbuffer_depth_texture, 0);
-
-        //// Create and attach depth render buffer. This is required, without it ther eis no depth testing
-        //glGenRenderbuffers(1, *app.gbuffer_depth_buffer);
-        //glBindRenderbuffer(GL_RENDERBUFFER, app.gbuffer_depth_buffer);
-        //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
-        //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, app.gbuffer_depth_buffer);
-
-        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
-    }
 
     //
     // Init SSAO framebuffer
@@ -183,7 +121,7 @@ init_rendering :: () {
     }
     */
 
-    geometry_pass_init(*app.geometry_pass);
+    init_geometry_pass();
 
     //
     // Init shaders
@@ -193,12 +131,6 @@ init_rendering :: () {
 
     init_shader(*app.shader_geometry);
     init_shader(*app.shader_lighting);
-
-    { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/triangles_deferred.frag"); #assert(FRAG_OK);
-        app.triangles_deferred_program = get_shader_program(VERT, FRAG);
-    }
 
     init_shader(*app.shader_aabb);
     init_shader(*app.shader_background);

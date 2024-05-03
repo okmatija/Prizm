@@ -9,6 +9,8 @@ Shader_Geometry :: struct {
         cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
         cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
         cache_shader_uniform_location(shader, "clip_from_view", .Matrix4);
+
+        // Values for these are set in use_geometry_pass
         cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
         cache_shader_uniform_location(shader, "gbuffer_normal", .Texture);
 
@@ -16,6 +18,7 @@ Shader_Geometry :: struct {
 
     use_shader :: (shader : Shader, using mesh : Simple_Mesh) {
 
+        // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms
         glUseProgram(shader.program);
         assert(glIsProgram(shader.program) == GL_TRUE);
 

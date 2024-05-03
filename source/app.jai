@@ -167,15 +167,6 @@ App_Render_Info :: struct {
     shader_geometry : Shader_Geometry;
     shader_lighting : Shader_Lighting;
 
-    gbuffer_framebuffer : GLuint;
-    gbuffer_position_texture : GLuint;
-    gbuffer_normal_texture : GLuint;
-    gbuffer_albedo_texture : GLuint;
-    gbuffer_depth_buffer : GLuint;
-    gbuffer_depth_texture : GLuint; // :DepthTexture Replace render buffer with texture??
-
-    triangles_deferred_program : GLuint;
-
     /*
     ssao_program : GLuint;
     ssao_blur_program : GLuint;

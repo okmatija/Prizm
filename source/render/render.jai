@@ -500,39 +500,10 @@ set_gbuffer_program :: () {
 
 render_entities_gbuffer :: () {
 
-    //debug_print_active_uniforms(app.gbuffer_geometry_pass_program);
-
-    // assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
     //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
 
-    // Geometry Pass: (positions, normals, albedo, depth?)
-    // glBindFramebuffer(GL_FRAMEBUFFER, app.gbuffer_framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, app.geometry_pass.framebuffer.gl_handle);
-
-    glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-
-    {
-    position_uniform := Texture_Uniform.{*app.geometry_pass.position, GL_TEXTURE0};
-    normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, GL_TEXTURE1};
-    set_shader_uniform_value(app.shader_geometry, "gbuffer_position", position_uniform);
-    set_shader_uniform_value(app.shader_geometry, "gbuffer_normal", normal_uniform);
-    }
-
-    glCullFace(GL_BACK);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-
-    // // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
-    // // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
-    // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
+    use_geometry_pass();
 
     for :VisibleOpaque app.entities {
         ri := *it.render_info;
@@ -559,59 +530,57 @@ render_entities_gbuffer :: () {
     //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // glUseProgram(app.background_program);
-    // x, y, z : float = cast(float)app.window_size.width, cast(float)app.window_size.height, 1.;
-    // glUniform3f(glGetUniformLocation(app.background_program, "iResolution"), x, y, z);
-    // glUniform1f(glGetUniformLocation(app.background_program, "iTime"), xx ImGui.GetTime());
-    // glBindVertexArray(app.quad_vao);
-    // glDrawArrays(GL_TRIANGLES, 0, 6);
+    // Debug gbuffer
+    {
+        GBuffer_Channel :: enum {
+            BASE_COLOR :: 0;
+            NORMAL :: 1;
+            POSITION :: 2;
+        }
 
-    // print_errors();
-  
-    // // Debug gbuffer
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-    // glClearColor(0., 0., 0., 1.); 
-    // glClear(GL_COLOR_BUFFER_BIT);
-    // assert(glIsProgram(app.blit_program) == GL_TRUE);
-    // glUseProgram(app.blit_program);  
-    // glBindVertexArray(app.quad_vao);
-    // glDisable(GL_DEPTH_TEST);
-    // // glActiveTexture(GL_TEXTURE0);
-    // // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-    // // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-    // glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
-    // glDrawArrays(GL_TRIANGLES, 0, 6);  
+        channel : GBuffer_Channel = .POSITION;
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+        glClearColor(0., 0., 0., 1.); 
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(app.blit_program);  
+        assert(glIsProgram(app.blit_program) == GL_TRUE);
+
+        glBindVertexArray(app.quad_vao);
+        glDisable(GL_DEPTH_TEST);
+
+        glUniform1i(glGetUniformLocation(app.blit_program, "channel"), xx channel);
+        if #complete channel == {
+        case .BASE_COLOR;
+
+        case .NORMAL;
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
+            glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
+            attachments : [1]GLenum = .[GL_COLOR_ATTACHMENT1];
+            glDrawBuffers(1, attachments.data);
+
+        case .POSITION;
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+            glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
+            attachments : [1]GLenum = .[GL_COLOR_ATTACHMENT0];
+            glDrawBuffers(1, attachments.data);
+
+        }
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);  
+    }
+
+#if false {
     // Lighting pass
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
     glClearColor(0., 0., 0., 1.); 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-#if 0 {
-    glUseProgram(app.triangles_deferred_program);
-    // glDisable(GL_DEPTH_TEST);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-    // glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_position"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-    // glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle); // THIS DOES NOT WORK
-    glUniform1i(glGetUniformLocation(app.triangles_deferred_program, "gbuffer_normal"), 1);
-
-    program := app.triangles_deferred_program;
-    //debug_print_active_uniforms(program);
-    look_direction := current_look_direction();
-    glUniform3f(glGetUniformLocation(program, "camera.eye_position"), app.camera.eye_position.x, app.camera.eye_position.y, app.camera.eye_position.z);
-    glUniform3f(glGetUniformLocation(program, "camera.look_direction"), look_direction.x, look_direction.y, look_direction.z);
-
-    glBindVertexArray(app.quad_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);  
-} else {
     use_shader(*app.shader_lighting);
 
     glActiveTexture(GL_TEXTURE0);
