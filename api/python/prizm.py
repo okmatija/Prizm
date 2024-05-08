@@ -20,8 +20,7 @@ from typing import Self, Any, Tuple
 class Vec2:
     """A 2D vector class which converts to a string suitable for writing to an OBJ file"""
 
-    __slots__=('x','y') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
-
+    __slots__=('x','y')
     x: float
     y: float
 
@@ -34,26 +33,12 @@ class Vec2:
         """Construct from objects with .x and .y attributes"""
         return cls(x=other.x, y=other.y)
 
-    @classmethod
-    def from_seq(cls, seq):
-        """Construct from sequences with exactly 2 elements"""
-        try:
-            return cls(x=seq[0], y=seq[1])
-        except TypeError as exc:
-            raise TypeError(f"Expected a sequence, got {seq}") from exc
-        except IndexError as exc:
-            raise ValueError(f"Expected a sequence with 2 elements, got {seq}") from exc
-        finally:
-            assert len(seq) == 2, f"Expected a sequence with 2 elements, got {len(seq)}"
-
 
 @dataclasses.dataclass
 class Vec3:
-    """A 3D vector class which can be constructed from various common
-    types and converts to a string suitable for writing to an OBJ file"""
+    """A 3D vector class which converts to a string suitable for writing to an OBJ file"""
 
-    __slots__=('x','y','z') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
-
+    __slots__=('x','y','z')
     x: float
     y: float
     z: float
@@ -67,26 +52,12 @@ class Vec3:
         """Construct from objects with .x, .y and .z attributes"""
         return cls(x=other.x, y=other.y, z=other.z)
 
-    @classmethod
-    def from_seq(cls, seq):
-        """Construct from sequences with exactly 3 elements"""
-        try:
-            return cls(x=seq[0], y=seq[1], z=seq[2])
-        except TypeError as exc:
-            raise TypeError(f"Expected a sequence, got {seq}") from exc
-        except IndexError as exc:
-            raise ValueError(f"Expected a sequence with 3 elements, got {seq}") from exc
-        finally:
-            assert len(seq) == 3, f"Expected a sequence with 3 elements, got {len(seq)}"
-
 
 @dataclasses.dataclass
 class Vec4:
-    """A 4D vector class which can be constructed from various common
-    types and converts to a string suitable for writing to an OBJ file"""
+    """A 4D vector class which converts to a string suitable for writing to an OBJ file"""
 
-    __slots__=('x','y','z','w') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
-
+    __slots__=('x','y','z','w')
     x: float
     y: float
     z: float
@@ -101,27 +72,12 @@ class Vec4:
         """Construct from objects with .x, .y, .z and .w attributes"""
         return cls(x=other.x, y=other.y, z=other.z, w=other.w)
 
-    @classmethod
-    def from_seq(cls, seq):
-        """Construct from sequences with exactly 4 elements"""
-        try:
-            return cls(x=seq[0], y=seq[1], z=seq[2], w=seq[3])
-        except TypeError as exc:
-            raise TypeError(f"Expected a sequence, got {seq}") from exc
-        except IndexError as exc:
-            raise ValueError(f"Expected a sequence with 4 elements, got {seq}") from exc
-        finally:
-            assert len(seq) == 4, f"Expected a sequence with 4 elements, got {len(seq)}"
-
 @dataclasses.dataclass
 class Color:
-    """A linear color type with integer rgba components in the range [0,255]
-    which can be constructed from various common types and converts to a
-    string suitable for writing to an OBJ as the color argument of a
-    command annotation"""
+    """A linear color type with integer rgba components in the range [0,255] which converts
+    to a string suitable for writing to an OBJ as the color argument of a command annotation"""
 
-    __slots__=('r','g','b','a') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
-
+    __slots__=('r','g','b','a')
     r: int
     g: int
     b: int
@@ -142,18 +98,6 @@ class Color:
     def from_rgba(cls, rgba):
         """Construct from objects with .r, .g, .b and .a attributes"""
         return cls(r=rgba.r, y=rgba.y)
-
-    @classmethod
-    def from_seq(cls, seq):
-        """Construct from sequences with exactly 4 elements"""
-        try:
-            return cls(r=seq[0], g=seq[1], b=seq[2], a=seq[3])
-        except TypeError as exc:
-            raise TypeError(f"Expected a sequence, got {seq}") from exc
-        except IndexError as exc:
-            raise ValueError(f"Expected a sequence with 4 elements, got {seq}") from exc
-        finally:
-            assert len(seq) == 4, f"Expected a sequence with 4 elements, got {len(seq)}"
 
     @classmethod
     def from_matplotlib(cls, color):
@@ -510,109 +454,107 @@ class Obj:
     # Triangle Elements.  Indices are 1-based, see :ObjIndexing
     #
 
-    # def triangle(self, vi: int = -3, vj: int = -2, vk: int = -1) -> Self:
-    #     """Add a triangle element referencing the 3 previous vertex positions (default).
-    #     The user can provide explicit indicies to reference vertices vi, vj and vk"""
-    #     self.f()
-    #     self.insert(self.v_index(vi))
-    #     self.insert(self.v_index(vj))
-    #     self.insert(self.v_index(vk))
-    #     return self
-
-    def triangle(self, vertex_ids: Tuple[int,int,int] = (-3,-2,-1)) -> Self:
-        """Add a triangle element referencing 3 previous vertex positions (default).
-        The user can provide explicit indicies to reference vertices (vi, vj, vk)"""
-        assert type(vertex_ids) == tuple and len(vertex_ids) == 3
+    def triangle(self,
+        vi: int = -3, vj: int = -2, vk: int = -1
+        ) -> Self:
+        """Add a triangle element referencing the 3 previous vertex positions (default).
+        The user can provide explicit indicies to reference vertices vi, vj and vk.
+        Tip: Use this function with unpacked sequences i.e., call triangle(*(1,2,3))"""
         self.f()
-        self.insert(self.v_index(vertex_ids[0]))
-        self.insert(self.v_index(vertex_ids[1]))
-        self.insert(self.v_index(vertex_ids[2]))
+        self.insert(self.v_index(vi))
+        self.insert(self.v_index(vj))
+        self.insert(self.v_index(vk))
         return self
 
 
     def triangle_vn(self,
-        vertex_ids: Tuple[int,int,int] = (-3,-2,-1), # vertex v-directive  references
-        normal_ids: Tuple[int,int,int] = (-3,-2,-1), # normal vn-directive references
+        vi: int = -3, vj: int = -2, vk: int = -1, # vertex v-directive  references
+        ni: int = -3, nj: int = -2, nk: int = -1, # vertex vn-directive references
         ) -> Self:
         """Add a triangle element referencing the 3 previous vertex positions and normals (default).
-        The user can provide explicit indicies to reference vertices vi, vj and vk; and normals ni, nj and nk"""
+        The user can provide explicit indicies to reference vertices (vi, vj, vk); and normals (ni, nj, nk)
+        Tip: Use this function with unpacked sequences i.e., call triangle_vn(*(1,2,3), *(1,2,3))"""
         self.f()
-        self.insert(self.v_index(vertex_ids[0])).add("//").add(self.vn_index(normal_ids[0]))
-        self.insert(self.v_index(vertex_ids[1])).add("//").add(self.vn_index(normal_ids[1]))
-        self.insert(self.v_index(vertex_ids[2])).add("//").add(self.vn_index(normal_ids[2]))
+        self.insert(self.v_index(vi)).add("//").add(self.vn_index(ni))
+        self.insert(self.v_index(vj)).add("//").add(self.vn_index(nj))
+        self.insert(self.v_index(vk)).add("//").add(self.vn_index(nk))
         return self
 
-    """
-        // Add a triangle element referencing the 3 previous vertex positions and texture vertices (default).
-        // The user can provide explicit indices to reference vertices vi, vj and vk; and texture vertices ti, tj and tk
-        Obj& triangle_vt(
-            int vi = -3, int vj = -2, int vk = -1, // vertex  v-directive  references
-            int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
-        ) {
-            f();
-            insert(v_index(vi)).add("/").add(vt_index(ti));
-            insert(v_index(vj)).add("/").add(vt_index(tj));
-            insert(v_index(vk)).add("/").add(vt_index(tk));
-            return *this;
-        }
+    def triangle_vt(self,
+        vi: int = -3, vj: int = -2, vk: int = -1, # vertex v-directive  references
+        ti: int = -3, tj: int = -2, tk: int = -1, # vertex vt-directive references
+        ) -> Self:
+        """Add a triangle element referencing the 3 previous vertex positions and texture vertices (default).
+        The user can provide explicit indices to reference vertices (vi, vj, vk); and texture vertices (ti, tj, tk)
+        Tip: Use this function with unpacked sequences i.e., call triangle_vt(*(1,2,3), *(1,2,3))"""
+        self.f()
+        self.insert(self.v_index(vi)).add("/").add(self.vt_index(ti))
+        self.insert(self.v_index(vj)).add("/").add(self.vt_index(tj))
+        self.insert(self.v_index(vk)).add("/").add(self.vt_index(tk))
+        return self
 
-        // Add a triangle element referencing the 3 previous vertex positions, vertex normals and texture vertices (default).
-        // The user can provide explicit indices reference vertices vi, vj and vk; normals ni, nj and nk; and texture vertices ti, tj and tk
-        Obj& triangle_vnt(
-            int vi = -3, int vj = -2, int vk = -1, // vertex  v-directive  references
-            int ni = -3, int nj = -2, int nk = -1, // normal  vn-directive references
-            int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
-        ) {
-            f();
-            insert(v_index(vi)).add("/").add(vt_index(ti)).add("/").add(vn_index(ni));
-            insert(v_index(vj)).add("/").add(vt_index(tj)).add("/").add(vn_index(nj));
-            insert(v_index(vk)).add("/").add(vt_index(tk)).add("/").add(vn_index(nk));
-            return *this;
-        }
+    def triangle_vnt(self,
+        vi: int = -3, vj: int = -2, vk: int = -1, # vertex v-directive  references
+        ni: int = -3, nj: int = -2, nk: int = -1, # vertex vn-directive references
+        ti: int = -3, tj: int = -2, tk: int = -1, # vertex vt-directive references
+        ) -> Self:
+        """Add a triangle element referencing the 3 previous vertex positions, vertex normals and texture vertices (default).
+        The user can provide explicit indices reference vertices (vi, vj, vk); normals (ni, nj, nk); and texture vertices (ti, tj, tk)
+        Tip: Use this function with unpacked sequences i.e., call triangle_vt(*(1,2,3), *(1,2,3), *(1,2,3))"""
+        self.f()
+        self.insert(self.v_index(vi)).add("/").add(self.vt_index(ti)).add("/").add(self.vn_index(ni))
+        self.insert(self.v_index(vj)).add("/").add(self.vt_index(tj)).add("/").add(self.vn_index(nj))
+        self.insert(self.v_index(vk)).add("/").add(self.vt_index(tk)).add("/").add(self.vn_index(nk))
+        return self
 
-        // Add 3 vertex positions and a triangle element referencing them
-        template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
-            return vertex2(va).vertex2(vb).vertex2(vc).triangle();
-        }
+    def triangle2(self, va: Vec2, vb: Vec2, vc: Vec2) -> Self:
+        """Add 3 vertex positions and a triangle element referencing them"""
+        return self.vertex2(va).vertex2(vb).vertex2(vc).triangle()
 
-        // Add 3 vertex positions and a triangle element referencing them
-        template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
-            return vertex3(va).vertex3(vb).vertex3(vc).triangle();
-        }
+    def triangle3(self, va: Vec3, vb: Vec3, vc: Vec3) -> Self:
+        """Add 3 vertex positions and a triangle element referencing them"""
+        return self.vertex3(va).vertex3(vb).vertex3(vc).triangle()
 
-        // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them
-        template <typename T> Obj& triangle3_vn(
-            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
-            Vec3<T> na, Vec3<T> nb, Vec3<T> nc
-        ) {
-            return vertex3(va).normal3(na).vertex3(vb).normal3(nb).vertex3(vc).normal3(nc).triangle_vn();
-        }
+    def triangle3_vn(self,
+        va: Vec3, vb: Vec3, vc: Vec3,
+        na: Vec3, nb: Vec3, nc: Vec3
+        ) -> Self:
+        """Add 3 vertex positions, 3 vertex normals and a triangle element referencing them"""
+        return self.vertex3(va).normal3(na).vertex3(vb).normal3(nb).vertex3(vc).normal3(nc).triangle_vn()
 
-        // Add 3 vertex positions, 3 uvs and a triangle element referencing them
-        template <typename T> Obj& triangle3_vt(
-            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
-            Vec2<T> ta, Vec2<T> tb, Vec2<T> tc
-        ) {
-            return vertex3(va).uv2(ta).vertex3(vb).uv2(tb).vertex3(vc).uv2(tc).triangle_vt();
-        }
+    def triangle3_vt(self,
+        va: Vec3, vb: Vec3, vc: Vec3,
+        ta: Vec2, tb: Vec2, tc: Vec2
+        ) -> Self:
+        """Add 3 vertex positions, 3 uvs and a triangle element referencing them"""
+        return self.vertex3(va).uv2(ta).vertex3(vb).uv2(tb).vertex3(vc).uv2(tc).triangle_vt()
 
-        // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
-        template <typename T> Obj& triangle3_vt(
-            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
-            Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
-        ) {
-            return vertex3(va).tangent3(ta).vertex3(vb).tangent3(tb).vertex3(vc).tangent3(tc).triangle_vt();
-        }
+    def triangle3_vnt(self,
+        va: Vec3, vb: Vec3, vc: Vec3,
+        na: Vec3, nb: Vec3, nc: Vec3,
+        ta: Vec3, tb: Vec3, tc: Vec3
+    ) -> Self:
+        """Add 3 vertex positions, 3 vertex normals, 3 texture vertices and a triangle element referencing them"""
+        return self.vertex3(va).normal3(na).tangent3(ta).vertex3(vb).normal3(nb).tangent3(tb).vertex3(vc).normal3(nc).tangent3(tc).triangle_vnt()
 
-        // Add 3 vertex positions, 3 vertex normals, 3 texture vertices and a triangle element referencing them
-        template <typename T> Obj& triangle3_vnt(
-            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
-            Vec3<T> na, Vec3<T> nb, Vec3<T> nc,
-            Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
-        ) {
-            return vertex3(va).normal3(na).tangent3(ta).vertex3(vb).normal3(nb).tangent3(tb).vertex3(vc).normal3(nc).tangent3(tc).triangle_vnt();
-        }
-    """
+
+    #
+    # Polylines. These are sequences of segment elements
+    #
+
+    #
+    # Polygons. These are sequences of triangle elements aka triangle fans
+    #
+
+    #
+    # Axis-aligned Boxes.
+    #
+
+    #
+    # Shapes.
+    #
+
+
 
     #
     # Obj file configuration functions
@@ -660,6 +602,43 @@ class Obj:
         return self
 
 
+    #
+    # Attributes.
+    #
+    # Attributes are special annotions which are intended to encode numerical data types/colors in annotation strings
+    # by prefixing them with an @ character.  In a future version of Prizm there will be function to parse the encoded
+    # data in order to display or process them specially. Multiple distinct data types placed on the same geometry
+    # element will be supported and the @ character will be used parse them.  Even before this is implemented you might
+    # still prefer to use attributes to annotations if you find having the @ prefix helps you read your annotations
+    # strings more clearly. See Prizm::documentation() for more details.
+    #
+
+
+
+    #
+    # Command Annotations.
+    #
+    # Command Annotations are special annotations which start with #! on a newline (this syntax is inspired by the
+    # "hashbang" character sequence used to introduce an interpreter directive on Unix) and allow you specify Prizm
+    # console commands, with arguments, which should be executed immediately after an the obj file has been loaded.
+    # Command annotations provide a convenient way to configure the item display settings and save you a few clicks.
+    # For example, if you know you want to look annotations you can call `set_annotation_label_visible(true)` to add
+    # a command annotation which will enable annotation visibility after the file is loaded (annotation labelling is
+    # off by default). Note: You can call these functions whenever you like, the command will be written to this->obj
+    # at the point you call them but Prizm will defer execution until the entire file has been parsed.
+    #
+    # (Advanced Note) If you look at the output OBJ file you will notice that command annotations which configure
+    # item state start with a 0, this is a Prizm item index.  The Prizm application has a global array of items
+    # (aka meshes) and the index into this list is often used as the first argument in console commands. When console
+    # commands are executed by the function which load OBJ files as command annotations a _local_ array of items is
+    # created, the item with local index 0 is the item with geometry given in the OBJ if a console command which has
+    # a side effect of generating a new item is executed as a command annotation then this item will have index >0 and
+    # you can pass that value (e.g., to the `item_command` function) to run a console command on one of these
+    # generated items which are not explicitly in the OBJ file.  Note: This complexity is intentionally avoided in
+    # the Prizm::Obj command annotation API, so the functions below are hardcoded to work with item 0 only, but you
+    # can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command" on the
+    # item with index 1.
+    #
 
 
     #
@@ -688,38 +667,6 @@ class Obj:
 # to reimplement the __str__ methods in the VecN types.
 _prizm_float_precision: int = 17
 
-"""
-# Map from input types to the corresponding conversion functions
-# You can use this function directly or use the auto_convert_types decorator to apply it implicitly
-# nocommit See documentation() for more details
-conversion_map = {
-    Vec2: Vec2.from_other,
-    Vec3: Vec3.from_other,
-    Vec4: Vec4.from_other,
-    Color: Color.from_other,
-}
-
-def auto_convert_types(type_map):
-
-    # We delay this import so we only depend on/wait for functools if you actually use this function
-    from functools import wraps
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            new_args = [
-                type_map.get(type(arg), lambda x: x)(arg) if type(arg) not in type_map.values() else arg
-                for arg in args
-            ]
-            new_kwargs = {
-                k: type_map.get(type(v), lambda x: x)(v) if type(v) not in type_map.values() else v
-                for k, v in kwargs.items()
-            }
-            return func(*new_args, **new_kwargs)
-        return wrapper
-    return decorator
-"""
-
 
 
 
@@ -739,12 +686,22 @@ def documentation():
     # Now we'll write 3 vertices and a triangle element in a very verbose way. Note that most functions in the
     # `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your debugging code
     # to be concise
-    # obj.vertex3(V3(0., 0., 1.)).annotation("Vertex A");
-    # obj.vertex3(V3(3., 0., 1.)).annotation("Vertex B");
-    # obj.vertex3(V3(3., 3., 1.)).annotation("Vertex C");
-    # obj.triangle().annotation("Triangle ABC");
+    obj.vertex3(Vec3(0., 0., 1.)).annotation("Vertex A");
+    obj.vertex3(Vec3(3., 0., 1.)).annotation("Vertex B");
+    obj.vertex3(Vec3(3., 3., 1.)).annotation("Vertex C");
+    obj.triangle().annotation("Triangle ABC");
 
-    obj.triangle(vertex_ids=(-3,-2,-1)).comment([1,2,3])
+
+
+
+
+
+
+
+
+
+
+    obj.triangle(vis=(-3,-2,-1)).comment([1,2,3])
 
     v = Vec3(0,0,0)
     v.x = 42
@@ -760,7 +717,6 @@ def documentation():
     obj.newline().vector3(ww)
 
     print(obj)
-
 
     # obj.write("test.obj")
     # obj.obj.close()
