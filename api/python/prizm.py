@@ -1,79 +1,134 @@
-"""A Python API for Prizm.
+"""A Python API to write OBJ files with Prizm-specific extensions.
 
-Usage example:
-
-    import sys
-    sys.path.append("/path/to/Prizm/api/python/")
-    import Prizm
-
-    import Prizm as pz # nocommit How to get this included wherever?
-    Prizm.documentation()
-
-nocommit Run pylint
+See the documentation() function for a demo of the API, although it should be self-explanatory.
 
 """
 
 import dataclasses
 import io
+from typing import Self, Any, Tuple
 
-from typing import Self, Any
+# Usage example:
 
-# Internal data used to control the precision with which float data is written to the OBJ file
-# This should be manipulated via the Obj.set_precision function. By default write with enough
-# precision to round-trip from float64 to decimal and back Note: Prizm currently stores mesh
-# data using float32, we will move to float64 so we can show coordinate labels at full precision
-_prizm_float_precision: int = 17
+#     import sys
+#     sys.path.append("/path/to/Prizm/api/python/")
+#     import Prizm
+
+# TODO Consider addressing the unidiomatic-typecheck pylint complaint, what we use now seems faster though..
 
 @dataclasses.dataclass
 class Vec2:
-    x: float = 0
-    y: float = 0
+    """A 2D vector class which converts to a string suitable for writing to an OBJ file"""
+
+    __slots__=('x','y') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
+
+    x: float
+    y: float
 
     def __str__(self) -> str:
+        """Return an OBJ string representation with the configured precision"""
         return f'{self.x:.{_prizm_float_precision}g} {self.y:.{_prizm_float_precision}g}'
 
     @classmethod
-    def from_other(cls, other):
+    def from_xy(cls, other):
+        """Construct from objects with .x and .y attributes"""
         return cls(x=other.x, y=other.y)
+
+    @classmethod
+    def from_seq(cls, seq):
+        """Construct from sequences with exactly 2 elements"""
+        try:
+            return cls(x=seq[0], y=seq[1])
+        except TypeError as exc:
+            raise TypeError(f"Expected a sequence, got {seq}") from exc
+        except IndexError as exc:
+            raise ValueError(f"Expected a sequence with 2 elements, got {seq}") from exc
+        finally:
+            assert len(seq) == 2, f"Expected a sequence with 2 elements, got {len(seq)}"
 
 
 @dataclasses.dataclass
 class Vec3:
-    x: float = 0
-    y: float = 0
-    z: float = 0
+    """A 3D vector class which can be constructed from various common
+    types and converts to a string suitable for writing to an OBJ file"""
+
+    __slots__=('x','y','z') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
+
+    x: float
+    y: float
+    z: float
 
     def __str__(self) -> str:
+        """Return an OBJ string representation with the configured precision"""
         return f'{self.x:.{_prizm_float_precision}g} {self.y:.{_prizm_float_precision}g} {self.z:.{_prizm_float_precision}g}'
 
     @classmethod
-    def from_other(cls, other):
+    def from_xyz(cls, other):
+        """Construct from objects with .x, .y and .z attributes"""
         return cls(x=other.x, y=other.y, z=other.z)
+
+    @classmethod
+    def from_seq(cls, seq):
+        """Construct from sequences with exactly 3 elements"""
+        try:
+            return cls(x=seq[0], y=seq[1], z=seq[2])
+        except TypeError as exc:
+            raise TypeError(f"Expected a sequence, got {seq}") from exc
+        except IndexError as exc:
+            raise ValueError(f"Expected a sequence with 3 elements, got {seq}") from exc
+        finally:
+            assert len(seq) == 3, f"Expected a sequence with 3 elements, got {len(seq)}"
 
 
 @dataclasses.dataclass
 class Vec4:
-    x: float = 0
-    y: float = 0
-    z: float = 0
-    w: float = 0
+    """A 4D vector class which can be constructed from various common
+    types and converts to a string suitable for writing to an OBJ file"""
+
+    __slots__=('x','y','z','w') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
+
+    x: float
+    y: float
+    z: float
+    w: float
 
     def __str__(self) -> str:
+        """Return an OBJ string representation with the configured precision"""
         return f'{self.x:.{_prizm_float_precision}g} {self.y:.{_prizm_float_precision}g} {self.z:.{_prizm_float_precision}g} {self.w:.{_prizm_float_precision}g}'
 
     @classmethod
-    def from_other(cls, other):
+    def from_xyzw(cls, other):
+        """Construct from objects with .x, .y, .z and .w attributes"""
         return cls(x=other.x, y=other.y, z=other.z, w=other.w)
+
+    @classmethod
+    def from_seq(cls, seq):
+        """Construct from sequences with exactly 4 elements"""
+        try:
+            return cls(x=seq[0], y=seq[1], z=seq[2], w=seq[3])
+        except TypeError as exc:
+            raise TypeError(f"Expected a sequence, got {seq}") from exc
+        except IndexError as exc:
+            raise ValueError(f"Expected a sequence with 4 elements, got {seq}") from exc
+        finally:
+            assert len(seq) == 4, f"Expected a sequence with 4 elements, got {len(seq)}"
 
 @dataclasses.dataclass
 class Color:
-    """A linear color type. rgba components should be integers in the range [0,255]"""
-    r: int = 0
-    g: int = 0
-    b: int = 0
-    a: int = 0
+    """A linear color type with integer rgba components in the range [0,255]
+    which can be constructed from various common types and converts to a
+    string suitable for writing to an OBJ as the color argument of a
+    command annotation"""
+
+    __slots__=('r','g','b','a') # TODO Consider using slots=True in decorator to allow defaults for x and y (see stackoverflow.com/questions/50180735)
+
+    r: int
+    g: int
+    b: int
+    a: int
 
     def __str__(self) -> str:
+        """Return an OBJ string representation usable as color arguments of command annotations"""
         return f'{self.r} {self.g} {self.b} {self.a}'
 
     def __post_init__(self):
@@ -84,72 +139,45 @@ class Color:
             raise ValueError("rgba components must be in the range [0, 255].")
 
     @classmethod
-    def from_other(cls, other):
-        # nocommit Check that __post_init__ is called in this case
-        return cls(r=other.r, g=other.g, b=other.b, a=other.a)
+    def from_rgba(cls, rgba):
+        """Construct from objects with .r, .g, .b and .a attributes"""
+        return cls(r=rgba.r, y=rgba.y)
+
+    @classmethod
+    def from_seq(cls, seq):
+        """Construct from sequences with exactly 4 elements"""
+        try:
+            return cls(r=seq[0], g=seq[1], b=seq[2], a=seq[3])
+        except TypeError as exc:
+            raise TypeError(f"Expected a sequence, got {seq}") from exc
+        except IndexError as exc:
+            raise ValueError(f"Expected a sequence with 4 elements, got {seq}") from exc
+        finally:
+            assert len(seq) == 4, f"Expected a sequence with 4 elements, got {len(seq)}"
 
     @classmethod
     def from_matplotlib(cls, color):
         """Create a Color instance from a matplotlib color e.g., 'skyblue', "#00FF00", (.5, .2, .8)"""
 
-        # We delay this import so we only depend on matplotlib if you actually use this function
+        # We delay this import so we only depend on/wait for matplotlib if you actually use this function
         import matplotlib.colors as mcolors
 
         rgba = mcolors.to_rgba(color)
-        # Convert from float (0 to 1 range) to int (0 to 255 range)
         rgba_scaled = [int(255 * c) for c in rgba]
         return cls(*rgba_scaled)
 
-# Convenience aliases for VecN types
-V2 = Vec2
-V3 = Vec3
-V4 = Vec4
-
-## Built-in Colors
-#BLACK  = Color(0, 0, 0, 255)
-#WHITE  = Color(255, 255, 255, 255)
-#RED    = Color(255, 0, 0, 255)
-#GREEN  = Color(0, 255, 0, 255)
-#BLUE   = Color(0, 0, 255, 255)
-#YELLOW = Color(255, 255, 0, 255)
-
-# Map from input types to the corresponding conversion functions
-# You can use this function directly or use the auto_convert_types decorator to apply it implicitly
-# nocommit See documentation() for more details
-conversion_map = {
-    Vec2: Vec2.from_other,
-    Vec3: Vec3.from_other,
-    Vec4: Vec4.from_other,
-    Color: Color.from_other,
-}
-
-def auto_convert_types(type_map):
-
-    # We delay this import so we only depend on functools if you actually use this function
-    from functools import wraps
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            new_args = [
-                type_map.get(type(arg), lambda x: x)(arg) if type(arg) not in type_map.values() else arg
-                for arg in args
-            ]
-            new_kwargs = {
-                k: type_map.get(type(v), lambda x: x)(v) if type(v) not in type_map.values() else v
-                for k, v in kwargs.items()
-            }
-            return func(*new_args, **new_kwargs)
-        return wrapper
-    return decorator
-
+# Built-in Colors
+BLACK  = Color(0, 0, 0, 255)
+WHITE  = Color(255, 255, 255, 255)
+RED    = Color(255, 0, 0, 255)
+GREEN  = Color(0, 255, 0, 255)
+BLUE   = Color(0, 0, 255, 255)
+YELLOW = Color(255, 255, 0, 255)
 
 
 class Obj:
     """
     Writes OBJ files and Prizm-specific extensions.
-
-    See the documentation() function for a demo of the API, although it should be self-explanatory.
 
     The following page was the reference for the OBJ format: http://paulbourke.net/dataformats/obj/
     (not everything on that page is implemented). Note Prizm-specific extensions are designed so that
@@ -188,22 +216,20 @@ class Obj:
 
     def add(self, anything: Any) -> Self:
         """Add anything to the obj file"""
-        if anything:
-            self.obj.write(str(anything))
+        self.obj.write(str(anything))
         return self
 
     def insert(self, anything: Any) -> Self:
         """Add anything to the obj file but prefix with a space character"""
-        if anything:
-            self.space().add(str(anything))
+        self.space().add(str(anything))
         return self
 
     def append(self, other: Self) -> Self:
         """Add a newline, then add the `other` obj and then add another newline
         Note: `other` must exclusively use negative (aka relative) indices"""
-        other_content = other.obj.getvalue()
-        if other_content:
-            self.newline().add(other_content)
+        buf = other.obj.getvalue()
+        if buf:
+            self.newline().add(buf)
         return self
 
 
@@ -221,7 +247,7 @@ class Obj:
         `sort_by_name` console command in Prizm to put the item list into a state where you can use Ctrl LMB or
         Shift LMB while sweeping the cursor over the visibility checkboxes to create a progress animation.
         """
-        with open(filename, mode="w") as file:
+        with open(filename, mode="w", encoding='ascii') as file:
             file.write(self.obj.getvalue())
             self.obj.close()
         return self
@@ -335,11 +361,11 @@ class Obj:
     # In Prizm any text that follows the second # on a line is ignored
     #
 
-    def comment(self, content: str = "") -> Self:
+    def comment(self, content: str) -> Self:
         """Ensure there are two # characters on the current line then insert the comment content"""
-        while self.hash_count < 2: self.hash()
-        if str: self.insert(content)
-        else: self.add(content)
+        while self.hash_count < 2:
+            self.hash()
+        self.insert(content)
         return self
 
 
@@ -349,28 +375,19 @@ class Obj:
     # Vectors
     #
 
-    def vector2(self, x: float, y: float) -> Self:
-        """Add 2D vector. Writes " x y" to the obj"""
-        return self.vector2(Vec2(x, y))
-
     def vector2(self, v: Vec2) -> Self:
         """Add 2D vector. Writes " v.x v.y" to the obj"""
+        assert type(v) == Vec2, f"Expected {Vec2}, got {type(v)}"
         return self.insert(v)
-
-    def vector3(self, x: float, y: float, z: float) -> Self:
-        """Add 3D vector. Writes " x y z" to the obj"""
-        return self.vector3(Vec3(x, y, z))
 
     def vector3(self, v: Vec3) -> Self:
         """Add 3D vector. Writes " v.x v.y v.z" to the obj"""
+        assert type(v) == Vec3, f"Expected {Vec3}, got {type(v)}"
         return self.insert(v)
-
-    def vector4(self, x: float, y: float, z: float, w: float) -> Self:
-        """Add 4D vector. Writes " x y z w" to the obj"""
-        return self.vector4(Vec4(x, y, z, w))
 
     def vector4(self, v: Vec4) -> Self:
         """Add 4D vector. Writes " v.x v.y v.z v.w" to the obj"""
+        assert type(v) == Vec4, f"Expected {Vec4}, got {type(v)}"
         return self.insert(v)
 
 
@@ -388,10 +405,12 @@ class Obj:
 
     def vertex2(self, a: Vec2) -> Self:
         """Add a 2D position. Writes "\nv a.x a.y" to the obj"""
+        assert type(a) == Vec2, f"Expected {Vec2}, got {type(a)}"
         return self.v().vector2(a)
 
     def vertex3(self, a: Vec3) -> Self:
         """Add a 3D position. Writes "\nv a.x a.y a.z" to the obj"""
+        assert type(a) == Vec3, f"Expected {Vec3}, got {type(a)}"
         return self.v().vector3(a)
 
 
@@ -403,79 +422,87 @@ class Obj:
 
     def normal3(self, n: Vec3) -> Self:
         """Add a 3D normal. Writes "\nvn n.x n.y n.z" to the obj"""
+        assert type(n) == Vec3, f"Expected {Vec3}, got {type(n)}"
         return self.vn().vector3(n)
 
     def uv2(self, t: Vec2) -> Self:
         """Add a UV coordinate (2D texture vertex). Writes "\nvt t.x t.y" to the obj"""
+        assert type(t) == Vec2, f"Expected {Vec2}, got {type(t)}"
         return self.vt().vector2(t)
 
     def tangent3(self, t: Vec3) -> Self:
         """Add a 3D tangent (3D texture vertex). Writes "\nvt t.x t.y t.z" to the obj"""
+        assert type(t) == Vec3, f"Expected {Vec3}, got {type(t)}"
         return self.vt().vector3(t)
 
 
 
-    //
-    // Point Elements.  Indices are 1-based, see :ObjIndexing
-    //
-
-    // Add a point element referencing the i-th vertex position
-    Obj& point(int i = -1) {
-        return p().insert(v_index(i));
-    }
-
-    // Add a oriented point element referencing the previous vertex position and normal (default).
-    // The user can provide explicit indicies to reference vertex vi and normal ni
-    Obj& point_vn(int vi = -1, int ni = -1) {
-        return p().insert(v_index(vi)).add("//").add(vn_index(ni));
-    }
-
-    // Add a vertex position and a point element that references it
-    template <typename T> Obj& point2(Vec2<T> a) {
-        return vertex2(a).point();
-    }
-
-    // Add a vertex position and a point element that references it
-    template <typename T> Obj& point3(Vec3<T> a) {
-        return vertex3(a).point();
-    }
-
-    // Add a vertex position, a normal and an oriented point element referencing them
-    template <typename T> Obj& point3_vn(Vec3<T> va, Vec3<T> na) {
-        return vertex3(va).normal3(na).point_vn();
-    }
+    #
+    # Point Elements.  Indices are 1-based, see :ObjIndexing
+    #
 
 
-    //
-    // Segment Elements.  Indices are 1-based, see :ObjIndexing
-    //
+    def point(self, i:int = -1) -> Self:
+        """Add a point element referencing the i-th vertex position"""
+        return self.p().insert(self.v_index(i))
 
-    // Add a segment element connecting vertices vi and vj
-    Obj& segment(int vi = -2, int vj = -1) {
-        return l().insert(v_index(vi)).insert(v_index(vj));
-    }
+    def point_vn(self, vi:int = -1, ni:int = -1) -> Self:
+        """Add a oriented point element referencing the previous vertex position and normal (default).
+        The user can provide explicit indicies to reference vertex vi and normal ni"""
+        return self.p().insert(self.v_index(vi)).add("//").add(self.vn_index(ni))
 
-    // Add an oriented segment element referencing the 2 previous vertex positions and normals (default).
-    // The user can provide explicit indicies to reference vertices vi/ vj and normals ni/nj
-    Obj& segment_vn(int vi = -2, int vj = -1, int ni = -2, int nj = -1) {
-        return l().insert(v_index(vi)).add("//").add(vn_index(ni)).insert(v_index(vj)).add("//").add(vn_index(nj));
-    }
+    def point2(self, a: Vec2) -> Self:
+        """Add a vertex position and a point element that references it"""
+        assert type(a) == Vec2, f"Expected {Vec2}, got {type(a)}"
+        return self.vertex2(a).point()
 
-    // Add 2 vertex positions and a segment element referencing them
-    template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b) {
-        return vertex2(a).vertex2(b).segment();
-    }
+    def point3(self, a: Vec3) -> Self:
+        """Add a vertex position and a point element that references it"""
+        assert type(a) == Vec3, f"Expected {Vec3}, got {type(a)}"
+        return self.vertex3(a).point()
 
-    // Add 2 vertex positions and a segment element referencing them
-    template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) {
-        return vertex3(a).vertex3(b).segment();
-    }
+    def point3_vn(self, va: Vec3, na: Vec3) -> Self:
+        """Add a vertex position, a normal and an oriented point element referencing them"""
+        assert type(va) == Vec3, f"Expected {Vec3}, got {type(va)}"
+        assert type(na) == Vec3, f"Expected {Vec3}, got {type(na)}"
+        return self.vertex3(va).normal3(na).point_vn()
 
-    // Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them
-    template <typename T> Obj& segment3_vn(Vec3<T> va, Vec3<T> vb, Vec3<T> na, Vec3<T> nb) {
-        return vertex3(va).normal3(na).vertex3(vb).normal3(nb).segment_vn();
-    }
 
+    #
+    # Segment Elements.  Indices are 1-based, see :ObjIndexing
+    #
+
+    def segment(self, vi:int = -2, vj:int = -1) -> Self:
+        """Add a segment element connecting vertices vi and vj"""
+        return self.l().insert(self.v_index(vi)).insert(self.v_index(vj))
+
+    def segment_vn(self, vi:int = -2, vj:int = -1, ni:int = -2, nj:int = -1) -> Self:
+        """Add an oriented segment element referencing the 2 previous vertex positions and normals (default).
+        The user can provide explicit indicies to reference vertices vi/ vj and normals ni/nj"""
+        self.l()
+        self.insert(self.v_index(vi)).add("//").add(self.vn_index(ni))
+        self.insert(self.v_index(vj)).add("//").add(self.vn_index(nj))
+        return self
+
+    def segment2(self, a:Vec2, b:Vec2) -> Self:
+        """Add 2 vertex positions and a segment element referencing them"""
+        assert type(a) == Vec2, f"Expected {Vec2}, got {type(a)}"
+        assert type(a) == Vec2, f"Expected {Vec2}, got {type(b)}"
+        return self.vertex2(a).vertex2(b).segment()
+
+    def segment3(self, a:Vec3, b:Vec3) -> Self:
+        """Add 2 vertex positions and a segment element referencing them"""
+        assert type(a) == Vec3, f"Expected {Vec3}, got {type(a)}"
+        assert type(a) == Vec3, f"Expected {Vec3}, got {type(b)}"
+        return self.vertex3(a).vertex3(b).segment()
+
+    def segment3_vn(self, va:Vec3, vb:Vec3, na:Vec3, nb:Vec3) -> Self:
+        """Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them"""
+        assert type(va) == Vec3, f"Expected {Vec3}, got {type(va)}"
+        assert type(va) == Vec3, f"Expected {Vec3}, got {type(vb)}"
+        assert type(na) == Vec3, f"Expected {Vec3}, got {type(na)}"
+        assert type(na) == Vec3, f"Expected {Vec3}, got {type(nb)}"
+        return self.vertex3(va).normal3(na).vertex3(vb).normal3(nb).segment_vn()
 
 
 
@@ -483,17 +510,109 @@ class Obj:
     # Triangle Elements.  Indices are 1-based, see :ObjIndexing
     #
 
-    def triangle(self, vi: int = -3, vj: int = -2, vk: int = -1) -> Self:
-        """Add a triangle element referencing the 3 previous vertex positions (default).
-        The user can provide explicit indicies to reference vertices vi, vj and vk"""
+    # def triangle(self, vi: int = -3, vj: int = -2, vk: int = -1) -> Self:
+    #     """Add a triangle element referencing the 3 previous vertex positions (default).
+    #     The user can provide explicit indicies to reference vertices vi, vj and vk"""
+    #     self.f()
+    #     self.insert(self.v_index(vi))
+    #     self.insert(self.v_index(vj))
+    #     self.insert(self.v_index(vk))
+    #     return self
+
+    def triangle(self, vertex_ids: Tuple[int,int,int] = (-3,-2,-1)) -> Self:
+        """Add a triangle element referencing 3 previous vertex positions (default).
+        The user can provide explicit indicies to reference vertices (vi, vj, vk)"""
+        assert type(vertex_ids) == tuple and len(vertex_ids) == 3
         self.f()
-        self.insert(self.v_index(vi))
-        self.insert(self.v_index(vj))
-        self.insert(self.v_index(vk))
+        self.insert(self.v_index(vertex_ids[0]))
+        self.insert(self.v_index(vertex_ids[1]))
+        self.insert(self.v_index(vertex_ids[2]))
         return self
 
 
+    def triangle_vn(self,
+        vertex_ids: Tuple[int,int,int] = (-3,-2,-1), # vertex v-directive  references
+        normal_ids: Tuple[int,int,int] = (-3,-2,-1), # normal vn-directive references
+        ) -> Self:
+        """Add a triangle element referencing the 3 previous vertex positions and normals (default).
+        The user can provide explicit indicies to reference vertices vi, vj and vk; and normals ni, nj and nk"""
+        self.f()
+        self.insert(self.v_index(vertex_ids[0])).add("//").add(self.vn_index(normal_ids[0]))
+        self.insert(self.v_index(vertex_ids[1])).add("//").add(self.vn_index(normal_ids[1]))
+        self.insert(self.v_index(vertex_ids[2])).add("//").add(self.vn_index(normal_ids[2]))
+        return self
 
+    """
+        // Add a triangle element referencing the 3 previous vertex positions and texture vertices (default).
+        // The user can provide explicit indices to reference vertices vi, vj and vk; and texture vertices ti, tj and tk
+        Obj& triangle_vt(
+            int vi = -3, int vj = -2, int vk = -1, // vertex  v-directive  references
+            int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
+        ) {
+            f();
+            insert(v_index(vi)).add("/").add(vt_index(ti));
+            insert(v_index(vj)).add("/").add(vt_index(tj));
+            insert(v_index(vk)).add("/").add(vt_index(tk));
+            return *this;
+        }
+
+        // Add a triangle element referencing the 3 previous vertex positions, vertex normals and texture vertices (default).
+        // The user can provide explicit indices reference vertices vi, vj and vk; normals ni, nj and nk; and texture vertices ti, tj and tk
+        Obj& triangle_vnt(
+            int vi = -3, int vj = -2, int vk = -1, // vertex  v-directive  references
+            int ni = -3, int nj = -2, int nk = -1, // normal  vn-directive references
+            int ti = -3, int tj = -2, int tk = -1  // texture vt-directive references
+        ) {
+            f();
+            insert(v_index(vi)).add("/").add(vt_index(ti)).add("/").add(vn_index(ni));
+            insert(v_index(vj)).add("/").add(vt_index(tj)).add("/").add(vn_index(nj));
+            insert(v_index(vk)).add("/").add(vt_index(tk)).add("/").add(vn_index(nk));
+            return *this;
+        }
+
+        // Add 3 vertex positions and a triangle element referencing them
+        template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc) {
+            return vertex2(va).vertex2(vb).vertex2(vc).triangle();
+        }
+
+        // Add 3 vertex positions and a triangle element referencing them
+        template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
+            return vertex3(va).vertex3(vb).vertex3(vc).triangle();
+        }
+
+        // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them
+        template <typename T> Obj& triangle3_vn(
+            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+            Vec3<T> na, Vec3<T> nb, Vec3<T> nc
+        ) {
+            return vertex3(va).normal3(na).vertex3(vb).normal3(nb).vertex3(vc).normal3(nc).triangle_vn();
+        }
+
+        // Add 3 vertex positions, 3 uvs and a triangle element referencing them
+        template <typename T> Obj& triangle3_vt(
+            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+            Vec2<T> ta, Vec2<T> tb, Vec2<T> tc
+        ) {
+            return vertex3(va).uv2(ta).vertex3(vb).uv2(tb).vertex3(vc).uv2(tc).triangle_vt();
+        }
+
+        // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
+        template <typename T> Obj& triangle3_vt(
+            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+            Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
+        ) {
+            return vertex3(va).tangent3(ta).vertex3(vb).tangent3(tb).vertex3(vc).tangent3(tc).triangle_vt();
+        }
+
+        // Add 3 vertex positions, 3 vertex normals, 3 texture vertices and a triangle element referencing them
+        template <typename T> Obj& triangle3_vnt(
+            Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
+            Vec3<T> na, Vec3<T> nb, Vec3<T> nc,
+            Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
+        ) {
+            return vertex3(va).normal3(na).tangent3(ta).vertex3(vb).normal3(nb).tangent3(tb).vertex3(vc).normal3(nc).tangent3(tc).triangle_vnt();
+        }
+    """
 
     #
     # Obj file configuration functions
@@ -501,19 +620,18 @@ class Obj:
 
     def set_precision(self, n = 17) -> Self:
         """Set the number of base-10 digits used to write floating-point numbers to the obj. By default this function is
-        equivalent to calling `set_precision_to_roundtrip_floats()`
+        equivalent to calling `set_precision_to_roundtrip_floats()`.
 
         This function is useful to improve annotation readability by reducing the number of base-10 digits used to write
         float data.  After writing such an annotation you will probably want to restore the value used for coordinate
         data, probably by calling this function with no arguments, to restore the precision that round-trips from double
         to decimal text to double.
 
-        This function doesn't need to be in the Obj interface but its convenient to have it here for chained calls
+        This function doesn't need to be in the Obj interface but its convenient to have it here for chained calls.
         """
         global _prizm_float_precision
         _prizm_float_precision = n
         return self
-
 
     def set_precision_to_roundtrip_floats(self) -> Self:
         """Set the number of base-10 digits used to write floating-point numbers to the obj to a value which can round-trip
@@ -524,6 +642,8 @@ class Obj:
         # floating-point value, even though the intermediate text representation is not exact. It may take over a hundred
         # decimal digits to represent the precise value of a float in decimal notation."
         # https://en.cppreference.com/w/cpp/types/numeric_limits/max_digits10
+        #
+        # Since python uses 64-bit floats we use 17 digits
         self.set_precision(17)
         return self
 
@@ -560,6 +680,50 @@ class Obj:
 
 
 
+# Internal data used to control the precision with which float data is written to the OBJ file.
+# This should be manipulated via the Obj.set_precision function. By default write with enough
+# precision to round-trip from float64 to decimal and back Note: Prizm currently stores mesh
+# data using float32, we will move to float64 so we can show coordinate labels at full precision
+# Note: It might be better to store the precision in the Obj class directly, but then we'd need
+# to reimplement the __str__ methods in the VecN types.
+_prizm_float_precision: int = 17
+
+"""
+# Map from input types to the corresponding conversion functions
+# You can use this function directly or use the auto_convert_types decorator to apply it implicitly
+# nocommit See documentation() for more details
+conversion_map = {
+    Vec2: Vec2.from_other,
+    Vec3: Vec3.from_other,
+    Vec4: Vec4.from_other,
+    Color: Color.from_other,
+}
+
+def auto_convert_types(type_map):
+
+    # We delay this import so we only depend on/wait for functools if you actually use this function
+    from functools import wraps
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            new_args = [
+                type_map.get(type(arg), lambda x: x)(arg) if type(arg) not in type_map.values() else arg
+                for arg in args
+            ]
+            new_kwargs = {
+                k: type_map.get(type(v), lambda x: x)(v) if type(v) not in type_map.values() else v
+                for k, v in kwargs.items()
+            }
+            return func(*new_args, **new_kwargs)
+        return wrapper
+    return decorator
+"""
+
+
+
+
+
 def documentation():
     """An example using the API and an explanation of the rationale behind it.
     Returns boolean to indicate if the documentation tests pass"""
@@ -575,16 +739,42 @@ def documentation():
     # Now we'll write 3 vertices and a triangle element in a very verbose way. Note that most functions in the
     # `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your debugging code
     # to be concise
-    obj.vertex3(V3(0., 0., 1.)).annotation("Vertex A");
-    obj.vertex3(V3(3., 0., 1.)).annotation("Vertex B");
-    obj.vertex3(V3(3., 3., 1.)).annotation("Vertex C");
-    obj.triangle().annotation("Triangle ABC");
+    # obj.vertex3(V3(0., 0., 1.)).annotation("Vertex A");
+    # obj.vertex3(V3(3., 0., 1.)).annotation("Vertex B");
+    # obj.vertex3(V3(3., 3., 1.)).annotation("Vertex C");
+    # obj.triangle().annotation("Triangle ABC");
+
+    obj.triangle(vertex_ids=(-3,-2,-1)).comment([1,2,3])
+
+    v = Vec3(0,0,0)
+    v.x = 42
+    # obj.vector3(*v)
+    obj.newline().vector3(v)
+    obj.newline().vector3(Vec3(11,22,33))
+
+    w = (1,2,333)
+    ww = Vec3(*w)
+    print(ww)
+    print(ww.z)
+    obj.comment("heeeere")
+    obj.newline().vector3(ww)
 
     print(obj)
 
-    obj.write("test.obj")
-    obj.obj.close()
+
+    # obj.write("test.obj")
+    # obj.obj.close()
+
+
 
 
 if __name__ == "__main__":
-    documentation()
+    # We delay this import so we only depend on/wait for argparse if you run this module as main
+    import argparse
+
+    parser = argparse.ArgumentParser(description='A Python API to write OBJ files with Prizm-specific extensions.')
+    parser.add_argument('--demo', action='store_true', help='Runs the documentation() function to demo the API')
+
+    args = parser.parse_args()
+    if args.demo:
+        documentation()
