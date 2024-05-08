@@ -45,7 +45,7 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * Pin labels while rotating/panning the camera
 DONE};
 
-PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
+PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 
@@ -56,6 +56,11 @@ PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
 * TODO Use complementary colors for backfacing triangles
 * TODO Change hotkeys for loading shapes from F1-F4 to just 1-4. Later we can make F1 help and F2 rename items?
 * TODO Make the menus that popup in the Details view movable, especially the clipping one, its annoying not to be visible. Or maybe remove the option to toggle between the menu/tree and make menu turn into tree if clicked, and tree turn into menu if closed
+DONE};
+
+PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
+* Added an initial version of a python api
+* TODO Add UI buttons to make it usable
 DONE};
 
 PRIZM_VERSION_0_9_3 :: Version.{"0.9.3", "17 April 2024", #string DONE
@@ -689,7 +694,8 @@ DONE
 
 init_changelog :: () {
     //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
-    //array_add(*changelog, PRIZM_VERSION_0_10_0);
+    //array_add(*changelog, PRIZM_VERSION_0_11_0);
+    array_add(*changelog, PRIZM_VERSION_0_10_0);
     array_add(*changelog, PRIZM_VERSION_0_9_3);
     array_add(*changelog, PRIZM_VERSION_0_9_2);
     array_add(*changelog, PRIZM_VERSION_0_9_1);
