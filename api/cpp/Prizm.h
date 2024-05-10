@@ -1,6 +1,7 @@
 #ifndef PRIZM_API
 #define PRIZM_API
 
+// TODO Minimize C++ STL dependencies
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -95,7 +96,7 @@ std::ostream& operator<<(std::ostream& os, const Color& v) {
     return os;
 }
 
-// Convenience aliases for VecN types
+// Convenience aliases for VecN types TODO Perhaps we should just remove these, they are easy to add in usage code
 using V2f = Vec2<float>;
 using V3f = Vec3<float>;
 using V4f = Vec4<float>;
@@ -120,13 +121,13 @@ const Color YELLOW{255, 255, 0, 255};
 bool documentation(bool write_files = false);
 
 //
-// Writes obj files and Prizm-specific extensions.
+// Writes OBJ files and Prizm-specific extensions.
 //
-// See the documentation() function for a demo of the api, athough it should be self-explanatory.
+// See the documentation() function for a demo of the API, athough it should be self-explanatory.
 //
-// The following page was the reference for the .obj format: http://paulbourke.net/dataformats/obj/
+// The following page was the reference for the OBJ format: http://paulbourke.net/dataformats/obj/
 // (not everything on that page is implemented). Note Prizm-specific extensions are designed so that
-// .obj files containing such extensions will always open in other obj viewers.
+// OBJ files containing such extensions will always open in other OBJ viewers.
 //
 // You can extend this class by defining a PRIZM_OBJ_CLASS_EXTRA macro, this is mostly useful if
 // you want to add functions chain calls (i.e., obj.function1().function2()). If you don't care
@@ -138,7 +139,7 @@ struct Obj {
     // State
     //
 
-    // Current contents of the .obj file
+    // Current contents of the OBJ file
     std::stringstream obj;
 
     // Number of hash characters on the current line, these are significant for Prizm:
@@ -178,18 +179,18 @@ struct Obj {
         set_precision();
     }
 
-    // Add anything to the obj file using operator<<
+    // Add anything to the OBJ file using operator<<
     template <typename T> Obj& add(const T& anything) {
         obj << anything;
         return *this;
     }
 
-    // Add anything to the obj file using operator<< but prefix with a space character
+    // Add anything to the OBJ file using operator<< but prefix with a space character
     template <typename T> Obj& insert(const T& anything) {
         return space().add(anything);
     }
 
-    // Add a newline, then add the `other` obj and then add another newline
+    // Add a newline, then add the `other` Obj and then add another newline
     // Note: `other` must exclusively use negative (aka relative) indices
     Obj& append(const Obj& other) {
         std::basic_stringbuf<char,std::char_traits<char>,std::allocator<char>>* buf = other.obj.rdbuf();
@@ -221,7 +222,7 @@ struct Obj {
         return *this;
     }
 
-    // Returns the current state of the obj file as a std::string
+    // Returns the current state of the Obj as a std::string
     std::string to_std_string() const {
         return obj.str();
     }
@@ -492,7 +493,10 @@ struct Obj {
     // Add an oriented segment element referencing the 2 previous vertex positions and normals (default).
     // The user can provide explicit indicies to reference vertices vi/ vj and normals ni/nj
     Obj& segment_vn(int vi = -2, int vj = -1, int ni = -2, int nj = -1) {
-        return l().insert(v_index(vi)).add("//").add(vn_index(ni)).insert(v_index(vj)).add("//").add(vn_index(nj));
+        l();
+        insert(v_index(vi)).add("//").add(vn_index(ni));
+        insert(v_index(vj)).add("//").add(vn_index(nj));
+        return *this;
     }
 
     // Add 2 vertex positions and a segment element referencing them
@@ -853,14 +857,14 @@ struct Obj {
     // off by default). Note: You can call these functions whenever you like, the command will be written to this->obj
     // at the point you call them but Prizm will defer execution until the entire file has been parsed.
     //
-    // (Advanced Note) If you look at the output obj file you will notice that command annotations which configure
+    // (Advanced Note) If you look at the output OBJ file you will notice that command annotations which configure
     // item state start with a 0, this is a Prizm item index.  The Prizm application has a global array of items
     // (aka meshes) and the index into this list is often used as the first argument in console commands. When console
-    // commands are executed by the function which load .obj files as command annotations a _local_ array of items is
-    // created, the item with local index 0 is the item with geometry given in the .obj, if a console command which has
+    // commands are executed by the function which load OBJ files as command annotations a _local_ array of items is
+    // created, the item with local index 0 is the item with geometry given in the OBJ if a console command which has
     // a side effect of generating a new item is executed as a command annotation then this item will have index >0 and
     // you can pass that value (e.g., to the `item_command` function) to run a console command on one of these
-    // generated items which are not explicitly in the .obj file.  Note: This complexity is intentionally avoided in
+    // generated items which are not explicitly in the OBJ file.  Note: This complexity is intentionally avoided in
     // the Prizm::Obj command annotation API, so the functions below are hardcoded to work with item 0 only, but you
     // can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command" on the
     // item with index 1.
