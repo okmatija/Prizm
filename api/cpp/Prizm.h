@@ -629,7 +629,7 @@ struct Obj {
     Obj& polyline_vn(int N, bool closed = false) {
         if (N < 2) return *this;
         l(); // Start the element
-        for (int i = -N; i < 0; i++) insert(v_index(i)).add("//").insert(vn_index(i)); // Continue the element
+        for (int i = -N; i < 0; i++) insert(v_index(i)).add("//").add(vn_index(i)); // Continue the element
         if (closed) insert(-N); // Close the polyline
         return *this;
     }
