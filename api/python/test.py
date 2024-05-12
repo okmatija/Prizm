@@ -1,16 +1,23 @@
-from prizm import Obj, Vec2, Vec3, Color, documentation
-import prizm
-import unittest
+"""Tests for Prizm's OBJ authoring API"""
 
-def last_line(obj: str) -> str:
+import unittest
+from prizm import Obj, Vec2, documentation
+
+def last_line(obj: Obj) -> str:
+    """Return the last line of the text represented by `obj`"""
     return str(obj).splitlines()[-1]
 
 class TestPrizm(unittest.TestCase):
+    """Test Prizm's OBJ authoring API"""
 
     def test_documentation(self):
-        self.assertTrue(documentation()) # If this fails debug with `python prizm.py --demo`
+        """Test the documentation function.
+        Note: If this fails debug with `python prizm.py --demo`"""
+        self.assertTrue(documentation()) #
 
     def test_polyline(self):
+        """Tests various polyline functions"""
+
         s = last_line(Obj().polyline(4))
         self.assertEqual(s, "l -4 -3 -2 -1")
 
@@ -59,8 +66,7 @@ class TestPrizm(unittest.TestCase):
         with self.assertRaises(TypeError): # Expect at least two points
             Obj().polyline2(Vec2(0,0))
 
-    def test_polygon(self):
-        pass # @Incomplete
+
 
 if __name__ == '__main__':
     unittest.main()
