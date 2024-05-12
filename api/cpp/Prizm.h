@@ -1,7 +1,7 @@
 #ifndef PRIZM_API
 #define PRIZM_API
 
-// TODO Minimize C++ STL dependencies
+// @TODO Minimize C++ STL dependencies
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -113,6 +113,8 @@ const Color WHITE{255, 255, 255, 255};
 const Color RED{255, 0, 0, 255};
 const Color GREEN{0, 255, 0, 255};
 const Color BLUE{0, 0, 255, 255};
+const Color AQUA{0, 255, 255, 255};
+const Color MAGENTA{255, 0, 255, 255};
 const Color YELLOW{255, 255, 0, 255};
 
 
@@ -444,6 +446,7 @@ struct Obj {
 
     // Add a 3D tangent (3D texture vertex)
     // Note: writes "\nvt t.x t.y t.z" to the obj
+    // @TODO Rename to uvw or uv3?
     template <typename T> Obj& tangent3(Vec3<T> t) {
         return vt().vector3(t);
     }
@@ -596,6 +599,7 @@ struct Obj {
     }
 
     // Add 3 vertex positions, 3 texture vertices and a triangle element referencing them
+    // @TODO This seems not very useful, perhaps just remove it
     template <typename T> Obj& triangle3_vt(
         Vec3<T> va, Vec3<T> vb, Vec3<T> vc,
         Vec3<T> ta, Vec3<T> tb, Vec3<T> tc
@@ -621,20 +625,22 @@ struct Obj {
     //
 
     // Add a polyline element referencing the previous N vertex positions
+    // N should be at least 2
     Obj& polyline(int N, bool closed = false) {
         if (N < 2) return *this;
         l(); // Start the element
         for (int i = -N; i < 0; i++) insert(v_index(i)); // Continue the element
-        if (closed) insert(-N); // Close the polyline
+        if (closed) insert(v_index(-N)); // Close the polyline
         return *this;
     }
 
     // Add an oriented polyline element referencing the previous N vertex positions and normals
+    // N should be at least 2
     Obj& polyline_vn(int N, bool closed = false) {
         if (N < 2) return *this;
         l(); // Start the element
         for (int i = -N; i < 0; i++) insert(v_index(i)).add("//").add(vn_index(i)); // Continue the element
-        if (closed) insert(-N); // Close the polyline
+        if (closed) insert(v_index(-N)).add("//").add(vn_index(-N)); // Close the polyline
         return *this;
     }
 
@@ -649,18 +655,19 @@ struct Obj {
     }
 
     // Add N vertex positions, described by the given 2D coordinate buffer, and a polyline element referencing them.
-    // If closed is true write the first point index again to close the polyline
+    // N should be at least 2. If closed is true write the first point index again to close the polyline
     template <typename T> Obj& polyline2(int N, T* XYs, bool closed = false) {
         return poly_impl('l', N, XYs, 2, closed);
     }
 
     // Add N vertex positions, described by the given 3D coordinate buffer, and a polyline element referencing them.
-    // If closed is true write the first point index again to close the polyline
+    // N should be at least 2. If closed is true write the first point index again to close the polyline
     template <typename T> Obj& polyline3(int N, T* XYZs, bool closed = false) {
         return poly_impl('l', N, XYZs, 3, closed);
     }
 
     // Add the given 2D vertex positions and a polyline element referencing them
+    // @TODO Test if this can this be called with only two points
     template <typename T> Obj& polyline2(int N, Vec2<T> p1, Vec2<T> p2, Vec2<T> p3, ...) {
         va_list va;
         va_start(va, p3);
@@ -670,6 +677,7 @@ struct Obj {
     }
 
     // Add the given 3D vertex positions and a polyline element referencing them
+    // @TODO Test if this can this be called with only two points
     template <typename T> Obj& polyline3(int N, Vec3<T> p1, Vec3<T> p2, Vec3<T> p3, ...) {
         va_list va;
         va_start(va, p3);
@@ -683,17 +691,19 @@ struct Obj {
 
 
     //
-    // Polygons. These are sequences of triangle elements aka triangle fans
+    // Convex Polygons. These are sequences of triangle elements aka triangle fans
     //
 
-    // Add a polygon element referencing the previous N vertices
+    // Add a polygon element referencing the previous N vertices.
+    // N should be at least 3
     Obj& polygon(int N) {
+        if (N < 3) return *this;
         f(); // Start the element
         for (int i = -N; i < 0; i++) insert(v_index(i)); // Continue the element
         return *this;
     }
 
-    // Add a polygon element referencing the vertices with the given indices
+    // Add a polygon element referencing the vertices with the given indices.
     Obj& polygon(int N, int i, int j, int k, ...) {
         triangle(i, j, k); // Start the element
         va_list va;
@@ -704,11 +714,13 @@ struct Obj {
     }
 
     // Add N vertex positions, described by the given 2D coordinate buffer, and a polygon element referencing them
+    // N should be at least 3
     template <typename T> Obj& polygon2(int N, T* XYs) {
         return poly_impl('f', N, XYs, 2);
     }
 
     // Add N vertex positions, described by the given 3D coordinate buffer, and a polygon element referencing them
+    // N should be at least 3
     template <typename T> Obj& polygon3(int N, T* XYZs) {
         return poly_impl('f', N, XYZs, 3);
     }
@@ -746,7 +758,7 @@ struct Obj {
 
     // Add a 3D box region defined by min/max, visualized with segment elements
     template <typename T> Obj& box3_min_max(Vec3<T> min, Vec3<T> max) {
-        // This has some redundant edges but having them means we can annotate all sgements in the shape conveniently
+        // This has some redundant edges but having them means we could annotate all segments in the shape conveniently
         Vec3<T> p000{min.x, min.y, min.z}, p100{max.x, min.y, min.z}, p010{min.x, max.y, min.z}, p110{max.x, max.y, min.z};
         Vec3<T> p001{min.x, min.y, max.z}, p101{max.x, min.y, max.z}, p011{min.x, max.y, max.z}, p111{max.x, max.y, max.z};
         return polyline3(16, p000, p100, p110, p010, p000, p001, p101, p100, p101, p111, p110, p111, p011, p010, p011, p001);
@@ -831,8 +843,7 @@ struct Obj {
     //
 
     // Start an attribute: Start an annotation string if needed, then add an @ to introduce a new attribute
-    Obj& attribute()
-    {
+    Obj& attribute() {
         return annotation().space().at();
     }
 
@@ -1113,7 +1124,8 @@ struct Obj {
 
     // Writes a polyline or a triangle fan
     template <typename T> Obj& poly_impl(char directive, int point_count, T* coords, uint8_t point_dimension, bool repeat_last = false) {
-        if (point_count <= 0) {
+        min_count == 'f' ? 3 : 2;
+        if (point_count < min_count) {
             return *this;
         }
 
@@ -1160,6 +1172,7 @@ struct Obj {
 
     // Return the v-directive index to use
     int v_index(int i) {
+        // @TODO Could ensure i and v_count are consistent here to catch errors! Prizm does a good job of catching errors anyway so maybe this is not needed---but need to confirm Prizm catches this particular error
         return (i > 0 || use_negative_indices) ? i : v_count + 1 + i;
     }
 
@@ -1188,7 +1201,7 @@ struct Obj {
 
 bool documentation(bool write_files) {
 
-    // This `documentation` function is also used a test suite, hence this lambda
+    // This `documentation` function is also used a test, hence this function
     bool tests_pass = true;
     auto test = [&write_files](std::string filename, std::string got, std::string wanted) {
         bool passed = true;
@@ -1268,7 +1281,7 @@ bool documentation(bool write_files) {
             star.points.g,
             star.points.h).annotation("star polygon");
 
-        // The previous line wrote the coordinate data again even though we wrote it when we called polygon2, this
+        // The previous line wrote the coordinate data again even though we wrote it when we called polyline2, this
         // is probably fine for debugging code but, just to illustrate another function, we can write only an obj
         // f-directive references the previous vertices as follows:
         obj.polygon(8).annotation("star polygon again");
@@ -1507,7 +1520,7 @@ p -1
     }
 
 
-
+    // @TODO Add an example where the append function can be used to add a common footer to multiple obj files (this would be slightly easier than defining a lambda to append it to the given Obj)
 
 
     // Some obj viewers do not support negative indices so there is an option to use positive indices instead
@@ -1634,3 +1647,6 @@ Obj& Obj::sphere3(V3f center, float radius, int slices, int stacks) {
 #endif // PRIZM_API_IMPLEMENTATION
 
 #endif // PRIZM_API
+
+
+// @Think Use a Line_State enum to determine whether to write a space before hashes when a comment is on a newline?

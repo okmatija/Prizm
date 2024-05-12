@@ -1464,7 +1464,7 @@ show_api_ui :: () {
 
 show_cpp_api_ui :: () {
     do_tree := ImGui.TreeNodeEx("C++", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
-    show_tooltip("Tools to interface between Prizm and your C++ program\nCurrently uses C++ std headers :( will fix someday...");
+    show_tooltip("Tools to interface between Prizm and your C++ program");
     if do_tree {
         defer ImGui.TreePop();
 

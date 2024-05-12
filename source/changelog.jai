@@ -59,8 +59,18 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
+* Improvements/fixes for api/cpp/Prism.h
+
+    * Fixed polyline functions which did not correctly write the indices of closed polylines
+    * Fixed polyline function writing a spurious space after // (the separator between a vertex index and a normal index) in some cases
+    * Changed polygon functions to do nothing rather than writing broken data when called with fewer than 3 indices/vertices
+
 * Added an initial version of a python api
-* TODO Add UI buttons to make it usable
+
+    * TODO Add UI buttons to make it usable
+    * Maintenance: `mypy.exe prizm.py` should return no issues
+    * Maintenance: `pylint.exe` should be "reasonable" i.e., fix errors but too-many-statements, using-constant-test, line-too-long etc
+    * The above comments also apply to the test.py file
 DONE};
 
 PRIZM_VERSION_0_9_3 :: Version.{"0.9.3", "17 April 2024", #string DONE
