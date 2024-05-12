@@ -1,20 +1,12 @@
 """A Python API to write OBJ files with Prizm-specific extensions.
 
 See the documentation() function for a demo of the API, although it should be self-explanatory.
-
 """
 
 import dataclasses
 import io
 from typing import Self, Any, Tuple
 
-# Usage example:
-
-#     import sys
-#     sys.path.append("/path/to/Prizm/api/python/")
-#     import Prizm
-
-# TODO Consider addressing the unidiomatic-typecheck pylint complaint, what we use now seems faster though..
 
 @dataclasses.dataclass
 class Vec2:
@@ -110,13 +102,19 @@ class Color:
         rgba_scaled = [int(255 * c) for c in rgba]
         return cls(*rgba_scaled)
 
+
+
 # Built-in Colors
-BLACK  = Color(0, 0, 0, 255)
-WHITE  = Color(255, 255, 255, 255)
-RED    = Color(255, 0, 0, 255)
-GREEN  = Color(0, 255, 0, 255)
-BLUE   = Color(0, 0, 255, 255)
-YELLOW = Color(255, 255, 0, 255)
+BLACK   = Color(  0,   0,   0, 255)
+WHITE   = Color(255, 255, 255, 255)
+RED     = Color(255,   0,   0, 255)
+GREEN   = Color(  0, 255,   0, 255)
+BLUE    = Color(  0,   0, 255, 255)
+AQUA    = Color(  0, 255, 255, 255)
+MAGENTA = Color(255,   0, 255, 255)
+YELLOW  = Color(255, 255,   0, 255)
+
+
 
 
 class Obj:
@@ -349,12 +347,10 @@ class Obj:
 
     def vertex2(self, a: Vec2) -> Self:
         """Add a 2D position. Writes "\nv a.x a.y" to the obj"""
-        assert type(a) == Vec2, f"Expected {Vec2}, got {type(a)}"
         return self.v().vector2(a)
 
     def vertex3(self, a: Vec3) -> Self:
         """Add a 3D position. Writes "\nv a.x a.y a.z" to the obj"""
-        assert type(a) == Vec3, f"Expected {Vec3}, got {type(a)}"
         return self.v().vector3(a)
 
 
@@ -366,17 +362,14 @@ class Obj:
 
     def normal3(self, n: Vec3) -> Self:
         """Add a 3D normal. Writes "\nvn n.x n.y n.z" to the obj"""
-        assert type(n) == Vec3, f"Expected {Vec3}, got {type(n)}"
         return self.vn().vector3(n)
 
     def uv2(self, t: Vec2) -> Self:
         """Add a UV coordinate (2D texture vertex). Writes "\nvt t.x t.y" to the obj"""
-        assert type(t) == Vec2, f"Expected {Vec2}, got {type(t)}"
         return self.vt().vector2(t)
 
     def tangent3(self, t: Vec3) -> Self:
         """Add a 3D tangent (3D texture vertex). Writes "\nvt t.x t.y t.z" to the obj"""
-        assert type(t) == Vec3, f"Expected {Vec3}, got {type(t)}"
         return self.vt().vector3(t)
 
 
@@ -397,18 +390,14 @@ class Obj:
 
     def point2(self, a: Vec2) -> Self:
         """Add a vertex position and a point element that references it"""
-        assert type(a) == Vec2, f"Expected {Vec2}, got {type(a)}"
         return self.vertex2(a).point()
 
     def point3(self, a: Vec3) -> Self:
         """Add a vertex position and a point element that references it"""
-        assert type(a) == Vec3, f"Expected {Vec3}, got {type(a)}"
         return self.vertex3(a).point()
 
     def point3_vn(self, va: Vec3, na: Vec3) -> Self:
         """Add a vertex position, a normal and an oriented point element referencing them"""
-        assert type(va) == Vec3, f"Expected {Vec3}, got {type(va)}"
-        assert type(na) == Vec3, f"Expected {Vec3}, got {type(na)}"
         return self.vertex3(va).normal3(na).point_vn()
 
 
@@ -430,22 +419,14 @@ class Obj:
 
     def segment2(self, a:Vec2, b:Vec2) -> Self:
         """Add 2 vertex positions and a segment element referencing them"""
-        assert type(a) == Vec2, f"Expected {Vec2}, got {type(a)}"
-        assert type(a) == Vec2, f"Expected {Vec2}, got {type(b)}"
         return self.vertex2(a).vertex2(b).segment()
 
     def segment3(self, a:Vec3, b:Vec3) -> Self:
         """Add 2 vertex positions and a segment element referencing them"""
-        assert type(a) == Vec3, f"Expected {Vec3}, got {type(a)}"
-        assert type(a) == Vec3, f"Expected {Vec3}, got {type(b)}"
         return self.vertex3(a).vertex3(b).segment()
 
     def segment3_vn(self, va:Vec3, vb:Vec3, na:Vec3, nb:Vec3) -> Self:
         """Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them"""
-        assert type(va) == Vec3, f"Expected {Vec3}, got {type(va)}"
-        assert type(va) == Vec3, f"Expected {Vec3}, got {type(vb)}"
-        assert type(na) == Vec3, f"Expected {Vec3}, got {type(na)}"
-        assert type(na) == Vec3, f"Expected {Vec3}, got {type(nb)}"
         return self.vertex3(va).normal3(na).vertex3(vb).normal3(nb).segment_vn()
 
 
@@ -542,17 +523,120 @@ class Obj:
     # Polylines. These are sequences of segment elements
     #
 
+    def polyline(self, N: int, closed: bool = False) -> Self:
+        """Add a polyline element referencing the previous N vertex positions. N should be at least 2"""
+        if N < 2:
+            return self
+        self.l() # Start the element
+        for i in range(-N, 0):
+            self.insert(self.v_index(i)) # Continue the element
+        if closed:
+            self.insert(self.v_index(-N)) # Close the polyline
+        return self
+
+    def polyline_ids(self, i: int, j: int, *ks : int) -> Self:
+        """Add a polyline element referencing the vertices with the given indicies"""
+        self.segment(i, j) # Start the element
+        for k in ks:
+            self.insert(self.v_index(k)) # Continue the element
+        return self
+
+    def polyline_vn(self, N: int, closed: bool = False) -> Self:
+        """Add an oriented polyline element referencing the previous N vertex positions and normals. N should be at least 2"""
+        if N < 2:
+            return self
+        self.l() # Start the element
+        for i in range(-N, 0):
+            self.insert(self.v_index(i)).add("//").add(self.vn_index(i)) # Continue the element
+        if closed:
+            self.insert(self.v_index(-N)).add("//").add(self.vn_index(-N)) # Close the polyline
+        return self
+
+    def polyline2(self, a: Vec2, b: Vec2, *cs : Vec2) -> Self:
+        """Add the given 2D vertex positions and a polyline element referencing them"""
+        self.vertex2(a).vertex2(b)
+        for c in cs:
+            self.vertex2(c)
+        self.polyline(2 + len(cs))
+        return self
+
+    def polyline3(self, a: Vec3, b: Vec3, *cs : Vec3) -> Self:
+        """Add the given 3D vertex positions and a polyline element referencing them"""
+        self.vertex3(a).vertex3(b)
+        for c in cs:
+            self.vertex3(c)
+        self.polyline(2 + len(cs))
+        return self
+
+
+
     #
-    # Polygons. These are sequences of triangle elements aka triangle fans
+    # Convex Polygons. These are sequences of triangle elements aka triangle fans
     #
+
+    def polygon(self, N: int) -> Self:
+        """Add a polygon element referencing the previous N vertices. N should be at least 3"""
+        if N < 3:
+            return self
+        self.f() # Start the element
+        for i in range(-N, 0):
+            self.insert(self.v_index(i)) # Continue the element
+        return self
+
+    def polygon_ids(self, i: int, j: int, k: int, *ls : int) -> Self:
+        """Add a polygon element referencing the vertices with the given indices"""
+        self.triangle(i, j, k) # Start the element
+        for l in ls:
+            self.insert(self.v_index(l)) # Continue the element
+        return self
+
+    def polygon2(self, a: Vec2, b: Vec2, c: Vec2, *ds : Vec2) -> Self:
+        """Add the given 2D vertex positions and a polygon element referencing them"""
+        self.vertex2(a).vertex2(b).vertex2(c)
+        for d in ds:
+            self.vertex2(d)
+        self.polygon(3 + len(ds))
+        return self
+
+    def polygon3(self, a: Vec3, b: Vec3, c: Vec3, *ds : Vec3) -> Self:
+        """Add the given 3D vertex positions and a polygon element referencing them"""
+        self.vertex3(a).vertex3(b).vertex3(c)
+        for d in ds:
+            self.vertex3(d)
+        self.polygon(3 + len(ds))
+        return self
+
+
+
+
 
     #
     # Axis-aligned Boxes.
     #
 
-    #
-    # Shapes.
-    #
+    def box2_min_max(self, min: Vec2, max: Vec2) -> Self:
+        """Add a 2D box region defined by min/max, visualized with segment elements"""
+        self.polyline2(min, Vec2(max.x,min.y), max, Vec2(min.x,max.y), min)
+        return self
+
+    def box3_min_max(self, min: Vec3, max: Vec3) -> Self:
+        """Add a 3D box region defined by min/max, visualized with segment elements"""
+        # This has some redundant edges but having them means we could annotate all sgements in the shape conveniently
+        p000, p100, p010, p110 = Vec3(min.x, min.y, min.z), Vec3(max.x, min.y, min.z), Vec3(min.x, max.y, min.z), Vec3(max.x, max.y, min.z)
+        p001, p101, p011, p111 = Vec3(min.x, min.y, max.z), Vec3(max.x, min.y, max.z), Vec3(min.x, max.y, max.z), Vec3(max.x, max.y, max.z)
+        return self.polyline3(p000, p100, p110, p010, p000, p001, p101, p100, p101, p111, p110, p111, p011, p010, p011, p001)
+
+    def box2_center_extents(self, center: Vec2, extents: Vec2) -> Self:
+        """Add a 2D box region defined by a center point and extents vector (box side lengths), visualized with segment elements"""
+        a = Vec2(center.x - extents.x/2, center.y - extents.y/2)
+        b = Vec2(center.x + extents.x/2, center.y + extents.y/2)
+        return self.box2_min_max(a, b)
+
+    def box3_center_extents(self, center: Vec3, extents: Vec3) -> Self:
+        """Add a 3D box region defined by a center point and extents vector (box side lengths), visualized with segment elements"""
+        a = Vec3(center.x - extents.x/2, center.y - extents.y/2, center.z - extents.z/2)
+        b = Vec3(center.x + extents.x/2, center.y + extents.y/2, center.z + extents.z/2)
+        return self.box3_min_max(a, b)
 
 
 
@@ -613,6 +697,17 @@ class Obj:
     # strings more clearly. See Prizm::documentation() for more details.
     #
 
+    def attribute(self) -> Self:
+        """Start an attribute: Start an annotation string if needed, then add an @ to introduce a new attribute"""
+        return self.annotation().space().at()
+
+    def attribute(self, data: Any) -> Self:
+        """Add an attribute containing the given data to the obj.  Data should be a numerical data type, see attribute()"""
+        return self.attribute().insert(data) # Use insert to add a space is for legibility.
+
+
+
+
 
 
     #
@@ -639,6 +734,239 @@ class Obj:
     # can do something like `obj.command("my_command").insert(1).insert("string_argument")` to run "my_command" on the
     # item with index 1.
     #
+
+    def command(self, command_name: str) -> Self:
+        """Start a command annotation, arguments should be `insert`ed after this"""
+        return self.newline().hash().bang().insert(command_name)
+
+
+    def item_command(self, command_name: str, item_index: int = 0) -> Self:
+        """Start a command annotation whose first argument is a Prizm item index (See the Advanced Note above)"""
+        return self.command(command_name).insert(item_index);
+
+
+    # Annotation labels.  These functions affect annotations on every geometric entity, there are more granular functions as well
+
+    def set_annotations_visible(self, visible: bool) -> Self:
+        """Set visibility of all annotations"""
+        return self.item_command("set_annotations_visible").insert(visible)
+
+
+    def set_annotations_color(self, color: Color) -> Self:
+        """Set color of all annotation text"""
+        return self.item_command("set_annotations_color").insert(color)
+
+
+    def set_annotations_scale(self, scale: float) -> Self:
+        """Set scale of all annotation text.  The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4."""
+        # TODO :FixScaleParameter The scale parameter is weird, use size in pixels instead
+        return self.item_command("set_annotations_scale").insert(scale)
+
+
+
+    # Vertex labels
+
+    def set_vertex_annotations_visible(self, visible: bool) -> Self:
+        """Set visibility of vertex annotations i.e., annotations on obj file v-directive data"""
+        return self.item_command("set_vertex_annotations_visible").insert(visible)
+
+
+    #set_vertex_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    #set_vertex_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
+
+    def set_vertex_index_labels_visible(self, visible: bool) -> Self:
+        """Set visibility of vertex index labels i.e., 0-based indices into the obj file v-directive data"""
+        return self.item_command("set_vertex_index_labels_visible").insert(visible)
+
+
+    def set_vertex_position_labels_visible(self, visible: bool) -> Self:
+        """Set visibility of vertex position labels i.e., the coordinates of the obj file v-directive data"""
+        return self.item_command("set_vertex_position_labels_visible").insert(visible)
+
+
+    def set_vertex_label_color(self, color: Color) -> Self:
+        """Set color of vertex index/position labels"""
+        return self.item_command("set_vertex_label_color").insert(color)
+
+
+    def set_vertex_label_scale(self, scale: float) -> Self:
+        """Set scale of vertex index/position labels. The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4"""
+        # See :FixScaleParameter
+        return self.item_command("set_vertex_label_scale").insert(scale)
+
+
+
+    # Point labels
+
+    def set_point_annotations_visible(self, visible: bool) -> Self:
+        """Set visibility of point annotations i.e., annotations on obj file p-directive data"""
+        return self.item_command("set_point_annotations_visible").insert(visible)
+
+
+    #set_point_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    #set_point_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
+
+    def set_point_index_labels_visible(self, visible: bool) -> Self:
+        """Set visibility of point element index labels i.e., 0-based indices into the obj file p-directive data
+        Note: set_vertex_index_labels_visible is probably the function you want!"""
+        return self.item_command("set_point_index_labels_visible").insert(visible)
+
+
+    def set_point_label_color(self, color: Color) -> Self:
+        """Set color of point index labels
+        Note: set_vertex_label_color is probably the function you want!"""
+        return self.item_command("set_point_label_color").insert(color)
+
+
+    def set_point_label_scale(self, scale: float) -> Self:
+        """Set scale of point index labels. The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4
+        Note: set_vertex_label_scale is probably the function you want!"""
+        # See :FixScaleParameter
+        return self.item_command("set_point_label_scale").insert(scale)
+
+
+
+    # Segment labels
+
+    def set_segment_annotations_visible(self, visible: bool) -> Self:
+        """Set visibility of segment annotations i.e., annotations on obj file l-directive data"""
+        return self.item_command("set_segment_annotations_visible").insert(visible)
+
+
+    #set_segment_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    #set_segment_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
+
+    def set_segment_index_labels_visible(self, visible: bool = True) -> Self:
+        """Set visibility of segment element index labels i.e., 0-based indices into the obj file l-directive data"""
+        return self.item_command("set_segment_index_labels_visible").insert(visible)
+
+
+    def set_segment_label_color(self, color: Color) -> Self:
+        """Set color of segment index labels"""
+        return self.item_command("set_segment_label_color").insert(color)
+
+
+    def set_segment_label_scale(self, scale: float) -> Self:
+        """Set scale of segment index labels.  The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4"""
+        # See :FixScaleParameter
+        return self.item_command("set_segment_label_scale").insert(scale)
+
+
+
+    # Triangle labels
+
+    def set_triangle_annotations_visible(self, visible: bool) -> Self:
+        """Set visibility of triangle annotations i.e., annotations on obj file f-directive data"""
+        return self.item_command("set_triangle_annotations_visible").insert(visible)
+
+
+    #set_triangle_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
+    #set_triangle_annotations_scale not implemented (do we want this granularity? using set_annotations_scale seems sufficient)
+
+    def set_triangle_index_labels_visible(self, visible: bool = True) -> Self:
+        """Set visibility of triangle element index labels i.e., 0-based indices into the obj file f-directive data"""
+        return self.item_command("set_triangle_index_labels_visible").insert(visible)
+
+
+    def set_triangle_label_color(self, color: Color) -> Self:
+        """Set color of triangle index labels"""
+        return self.item_command("set_triangle_label_color").insert(color)
+
+
+    def set_triangle_label_scale(self, scale: float) -> Self:
+        """Set scale of triangle index labels. The scale parameter is a float in the range [0.2, 1.0], by default Prizm uses 0.4"""
+        # See :FixScaleParameter
+        return self.item_command("set_triangle_label_scale").insert(scale)
+
+
+
+    # Vertex rendering
+
+    def set_vertices_visible(self, visible: bool = True) -> Self:
+        """Set visibility of vertices i.e., obj file v-directive data"""
+        return self.item_command("set_vertices_visible").insert(visible)
+
+
+    def set_vertices_color(self, color: Color) -> Self:
+        """Set color of vertices i.e., obj file v-directive data"""
+        return self.item_command("set_vertices_color").insert(color)
+
+
+    def set_vertices_size(self, size: int) -> Self:
+        """Set size/radius of vertices i.e., obj file v-directive data"""
+        return self.item_command("set_vertices_size").insert(size)
+
+
+
+    # Point rendering
+
+    def set_points_visible(self, visible: bool) -> Self:
+        """Set visibility of points i.e., obj file p-directive data. Note: set_vertices_visible is probably the function you want!"""
+        return self.item_command("set_points_visible").insert(visible)
+
+
+    def set_points_color(self, color: Color) -> Self:
+        """Set color of points i.e., obj file p-directive data. Note: set_vertices_color is probably the function you want!"""
+        return self.item_command("set_points_color").insert(color)
+
+
+    def set_points_size(self, size: int) -> Self:
+        """Set size/radius of points i.e., obj file p-directive data. Note: set_vertices_size is probably the function you want!"""
+        return self.item_command("set_points_size").insert(size)
+
+
+
+   # Segment rendering
+
+    def set_segments_visible(self, visible: bool) -> Self:
+        """Set visibility of segments i.e., obj file l-directive data"""
+        return self.item_command("set_segments_visible").insert(visible)
+
+
+    def set_segments_color(self, color: Color) -> Self:
+        """Set color of segments i.e., obj file l-directive data"""
+        return self.item_command("set_segments_color").insert(color)
+
+
+    def set_segments_width(self, width: float) -> Self:
+        """Set width of segments i.e., obj file l-directive data"""
+        return self.item_command("set_segments_width").insert(width)
+
+
+
+    # Edges rendering. Applies to triangle edges, but not segment elements.
+
+    def set_edges_visible(self, visible: bool) -> Self:
+        """Set visibility of triangle edges i.e., obj file f-directive data"""
+        return self.item_command("set_edges_visible").insert(visible)
+
+
+    def set_edges_color(self, color: Color) -> Self:
+        """Set color of triangle edges i.e., obj file f-directive data"""
+        return self.item_command("set_edges_color").insert(color)
+
+
+    def set_edges_width(self, width: float) -> Self:
+        """Set width of triangle edges i.e., obj file f-directive data"""
+        return self.item_command("set_edges_width").insert(width)
+
+
+
+    # Triangle rendering
+
+    def set_triangles_visible(self, visible: bool) -> Self:
+        """Set visibility of triangles i.e., obj file f-directive data"""
+        return self.item_command("set_triangles_visible").insert(visible)
+
+
+    def set_triangles_color(self, color: Color) -> Self:
+        """Set color of triangles i.e., obj file f-directive data"""
+        return self.item_command("set_triangles_color").insert(color)
+
+
+
+
+
 
 
     #
@@ -734,3 +1062,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.demo:
         documentation()
+
+
+# TODO Consider addressing the unidiomatic-typecheck pylint complaint, what we use now seems faster though...
+# TODO Add some shapes e.g., sphere
+# TODO Consider reporting error/warnings when elements reference vertices that don't exist (Prizm checks this on load though...)
+
+# Usage example:
+#     import sys
+#     sys.path.append("/path/to/Prizm/api/python/")
+#     import Prizm
+# nocommit type check when done
+# nocommit add the UI
+# nocommit update the wiki
