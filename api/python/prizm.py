@@ -1382,11 +1382,3 @@ if __name__ == "__main__":
 # TODO Add some shapes e.g., sphere
 # TODO Consider reporting error/warnings when elements reference vertices that don't exist (Prizm checks this on load though...)
 
-# Usage example:
-#     import sys
-#     sys.path.append("/path/to/Prizm/api/python/")
-#     import Prizm
-# nocommit type check when done
-# nocommit add the UI
-# nocommit update the wiki
-

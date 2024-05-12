@@ -138,6 +138,8 @@ App :: struct {
         using_unreal := false;
         using_unreal_engine := false;
         using_unreal_geometrycore := false;
+
+        using_python_import_aliases := true;
     }
     api : API;
 

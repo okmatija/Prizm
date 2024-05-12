@@ -1463,7 +1463,7 @@ show_api_ui :: () {
 }
 
 show_cpp_api_ui :: () {
-    do_tree := ImGui.TreeNodeEx("C++", ImGui.TreeNodeFlags.SpanAvailWidth | .DefaultOpen);
+    do_tree := ImGui.TreeNodeEx("C++", ImGui.TreeNodeFlags.SpanAvailWidth);
     show_tooltip("Tools to interface between Prizm and your C++ program");
     if do_tree {
         defer ImGui.TreePop();
@@ -1512,7 +1512,7 @@ show_cpp_api_ui :: () {
             path_overwrite_separators(include, #char "/");
         }
 
-        if ImGui.Button("Copy #include API") {
+        if ImGui.Button("Copy #include lines") {
             SDL_SetClipboardText(temp_c_string(include));
         }
 
@@ -1520,8 +1520,8 @@ show_cpp_api_ui :: () {
             ImGui.BeginTooltip();
             // ImGui.PushTextWrapPos(450);
             ImGui.TextUnformatted(#string DONE
-This button copies the Prizm C++ API #include line(s) to your clipboard.
-You can paste it into your program and use it to write .obj files.
+This button copies the C++ API #include lines to your clipboard.
+You can paste it into your program and use it to write OBJ files.
 Having a debug API separate from your project source like this should
 mean your CI system will catch forgotten/leftover debug code.
 The copied string will be:
@@ -1536,11 +1536,45 @@ DONE);
 
 show_python_api_ui :: () {
     do_tree := ImGui.TreeNodeEx("Python", ImGui.TreeNodeFlags.SpanAvailWidth);
-    show_tooltip("Tools to interface between Prizm and your python program");
+    show_tooltip("Tools to interface between Prizm and your Python program");
     if do_tree {
         defer ImGui.TreePop();
 
-        ImGui.Text("This is incomplete");
+        ImGui.Checkbox("Use import aliases", *app.api.using_python_import_aliases);
+        show_tooltip("Enable to this use `from prizm import ...`\nwhich is will save you some typing");
+
+        modify :: (import : *string, line : string) {
+            import.* = join(import.*, line,, temp);
+        }
+
+        import : string;
+        modify(*import, "import sys\n");
+        modify(*import, "sys.path.append(\"C:/Dev/Prizm/api/python\")\n");
+        if app.api.using_python_import_aliases {
+            modify(*import, "from prizm import Obj, Vec2, Vec3, Vec4, Color, documentation\n");
+        } else {
+            modify(*import, "import prizm\n");
+        }
+
+        if ImGui.Button("Copy import lines") {
+            SDL_SetClipboardText(temp_c_string(import));
+        }
+
+        if (ImGui.IsItemHovered(.DelayNormal)) {
+            ImGui.BeginTooltip();
+            // ImGui.PushTextWrapPos(450);
+            ImGui.TextUnformatted(#string DONE
+This button copies the Python API import line(s) to your clipboard.
+You can paste it into your program and use it to write OBJ files.
+Having a debug API separate from your project source like this should
+mean your CI system will catch forgotten/leftover debug code.
+The copied string will be:
+
+DONE);
+            ImGui.TextColored(app.theme.keymap_color, import);
+            // ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
+        }
     }
 }
 
