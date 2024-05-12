@@ -5,7 +5,7 @@ See the documentation() function for a demo of the API, although it should be se
 
 import dataclasses
 import io
-from typing import Self, Any, Tuple
+from typing import Self, Any
 
 
 @dataclasses.dataclass
@@ -89,7 +89,7 @@ class Color:
     @classmethod
     def from_rgba(cls, rgba):
         """Construct from objects with .r, .g, .b and .a attributes"""
-        return cls(r=rgba.r, y=rgba.y)
+        return cls(r=rgba.r, g=rgba.g, b=rgba.b, a=rgba.a)
 
     @classmethod
     def from_matplotlib(cls, color):
@@ -290,7 +290,8 @@ class Obj:
         if self.hash_count == 0:
             # Add a space here to help other obj viewers which might fail to parse numbers not delimited by whitespace
             self.space().hash()
-        self.insert(data)
+        if data:
+            self.insert(data)
         return self
 
 
@@ -523,15 +524,15 @@ class Obj:
     # Polylines. These are sequences of segment elements
     #
 
-    def polyline(self, N: int, closed: bool = False) -> Self:
+    def polyline(self, n: int, closed: bool = False) -> Self:
         """Add a polyline element referencing the previous N vertex positions. N should be at least 2"""
-        if N < 2:
+        if n < 2:
             return self
         self.l() # Start the element
-        for i in range(-N, 0):
+        for i in range(-n, 0):
             self.insert(self.v_index(i)) # Continue the element
         if closed:
-            self.insert(self.v_index(-N)) # Close the polyline
+            self.insert(self.v_index(-n)) # Close the polyline
         return self
 
     def polyline_ids(self, i: int, j: int, *ks : int) -> Self:
@@ -541,31 +542,31 @@ class Obj:
             self.insert(self.v_index(k)) # Continue the element
         return self
 
-    def polyline_vn(self, N: int, closed: bool = False) -> Self:
-        """Add an oriented polyline element referencing the previous N vertex positions and normals. N should be at least 2"""
-        if N < 2:
+    def polyline_vn(self, n: int, closed: bool = False) -> Self:
+        """Add an oriented polyline element referencing the previous n vertex positions and normals. n should be at least 2"""
+        if n < 2:
             return self
         self.l() # Start the element
-        for i in range(-N, 0):
+        for i in range(-n, 0):
             self.insert(self.v_index(i)).add("//").add(self.vn_index(i)) # Continue the element
         if closed:
-            self.insert(self.v_index(-N)).add("//").add(self.vn_index(-N)) # Close the polyline
+            self.insert(self.v_index(-n)).add("//").add(self.vn_index(-n)) # Close the polyline
         return self
 
-    def polyline2(self, a: Vec2, b: Vec2, *cs : Vec2) -> Self:
+    def polyline2(self, a: Vec2, b: Vec2, *cs : Vec2, closed:bool = False) -> Self:
         """Add the given 2D vertex positions and a polyline element referencing them"""
         self.vertex2(a).vertex2(b)
         for c in cs:
             self.vertex2(c)
-        self.polyline(2 + len(cs))
+        self.polyline(2 + len(cs), closed)
         return self
 
-    def polyline3(self, a: Vec3, b: Vec3, *cs : Vec3) -> Self:
+    def polyline3(self, a: Vec3, b: Vec3, *cs : Vec3, closed:bool = False) -> Self:
         """Add the given 3D vertex positions and a polyline element referencing them"""
         self.vertex3(a).vertex3(b)
         for c in cs:
             self.vertex3(c)
-        self.polyline(2 + len(cs))
+        self.polyline(2 + len(cs), closed)
         return self
 
 
@@ -574,12 +575,12 @@ class Obj:
     # Convex Polygons. These are sequences of triangle elements aka triangle fans
     #
 
-    def polygon(self, N: int) -> Self:
-        """Add a polygon element referencing the previous N vertices. N should be at least 3"""
-        if N < 3:
+    def polygon(self, n: int) -> Self:
+        """Add a polygon element referencing the previous n vertices. n should be at least 3"""
+        if n < 3:
             return self
         self.f() # Start the element
-        for i in range(-N, 0):
+        for i in range(-n, 0):
             self.insert(self.v_index(i)) # Continue the element
         return self
 
@@ -614,16 +615,16 @@ class Obj:
     # Axis-aligned Boxes.
     #
 
-    def box2_min_max(self, min: Vec2, max: Vec2) -> Self:
+    def box2_min_max(self, bmin: Vec2, bmax: Vec2) -> Self:
         """Add a 2D box region defined by min/max, visualized with segment elements"""
-        self.polyline2(min, Vec2(max.x,min.y), max, Vec2(min.x,max.y), min)
+        self.polyline2(bmin, Vec2(bmax.x,bmin.y), bmax, Vec2(bmin.x,bmax.y), bmin)
         return self
 
-    def box3_min_max(self, min: Vec3, max: Vec3) -> Self:
+    def box3_min_max(self, bmin: Vec3, bmax: Vec3) -> Self:
         """Add a 3D box region defined by min/max, visualized with segment elements"""
         # This has some redundant edges but having them means we could annotate all sgements in the shape conveniently
-        p000, p100, p010, p110 = Vec3(min.x, min.y, min.z), Vec3(max.x, min.y, min.z), Vec3(min.x, max.y, min.z), Vec3(max.x, max.y, min.z)
-        p001, p101, p011, p111 = Vec3(min.x, min.y, max.z), Vec3(max.x, min.y, max.z), Vec3(min.x, max.y, max.z), Vec3(max.x, max.y, max.z)
+        p000, p100, p010, p110 = Vec3(bmin.x, bmin.y, bmin.z), Vec3(bmax.x, bmin.y, bmin.z), Vec3(bmin.x, bmax.y, bmin.z), Vec3(bmax.x, bmax.y, bmin.z)
+        p001, p101, p011, p111 = Vec3(bmin.x, bmin.y, bmax.z), Vec3(bmax.x, bmin.y, bmax.z), Vec3(bmin.x, bmax.y, bmax.z), Vec3(bmax.x, bmax.y, bmax.z)
         return self.polyline3(p000, p100, p110, p010, p000, p001, p101, p100, p101, p111, p110, p111, p011, p010, p011, p001)
 
     def box2_center_extents(self, center: Vec2, extents: Vec2) -> Self:
@@ -697,13 +698,15 @@ class Obj:
     # strings more clearly. See Prizm::documentation() for more details.
     #
 
-    def attribute(self) -> Self:
-        """Start an attribute: Start an annotation string if needed, then add an @ to introduce a new attribute"""
-        return self.annotation().space().at()
-
     def attribute(self, data: Any) -> Self:
-        """Add an attribute containing the given data to the obj.  Data should be a numerical data type, see attribute()"""
-        return self.attribute().insert(data) # Use insert to add a space is for legibility.
+        """Add an attribute containing the given data to the obj"""
+        # Start an attribute: Start an annotation string if needed, then add an @ to introduce a new attribute
+        self.annotation(None).space().at()
+        if data:
+            # Use insert to add a space is for legibility.
+            self.insert(data)
+        return self
+
 
 
 
@@ -742,14 +745,14 @@ class Obj:
 
     def item_command(self, command_name: str, item_index: int = 0) -> Self:
         """Start a command annotation whose first argument is a Prizm item index (See the Advanced Note above)"""
-        return self.command(command_name).insert(item_index);
+        return self.command(command_name).insert(item_index)
 
 
     # Annotation labels.  These functions affect annotations on every geometric entity, there are more granular functions as well
 
     def set_annotations_visible(self, visible: bool) -> Self:
         """Set visibility of all annotations"""
-        return self.item_command("set_annotations_visible").insert(visible)
+        return self.item_command("set_annotations_visible").insert(int(visible))
 
 
     def set_annotations_color(self, color: Color) -> Self:
@@ -768,7 +771,7 @@ class Obj:
 
     def set_vertex_annotations_visible(self, visible: bool) -> Self:
         """Set visibility of vertex annotations i.e., annotations on obj file v-directive data"""
-        return self.item_command("set_vertex_annotations_visible").insert(visible)
+        return self.item_command("set_vertex_annotations_visible").insert(int(visible))
 
 
     #set_vertex_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
@@ -776,12 +779,12 @@ class Obj:
 
     def set_vertex_index_labels_visible(self, visible: bool) -> Self:
         """Set visibility of vertex index labels i.e., 0-based indices into the obj file v-directive data"""
-        return self.item_command("set_vertex_index_labels_visible").insert(visible)
+        return self.item_command("set_vertex_index_labels_visible").insert(int(visible))
 
 
     def set_vertex_position_labels_visible(self, visible: bool) -> Self:
         """Set visibility of vertex position labels i.e., the coordinates of the obj file v-directive data"""
-        return self.item_command("set_vertex_position_labels_visible").insert(visible)
+        return self.item_command("set_vertex_position_labels_visible").insert(int(visible))
 
 
     def set_vertex_label_color(self, color: Color) -> Self:
@@ -800,7 +803,7 @@ class Obj:
 
     def set_point_annotations_visible(self, visible: bool) -> Self:
         """Set visibility of point annotations i.e., annotations on obj file p-directive data"""
-        return self.item_command("set_point_annotations_visible").insert(visible)
+        return self.item_command("set_point_annotations_visible").insert(int(visible))
 
 
     #set_point_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
@@ -809,7 +812,7 @@ class Obj:
     def set_point_index_labels_visible(self, visible: bool) -> Self:
         """Set visibility of point element index labels i.e., 0-based indices into the obj file p-directive data
         Note: set_vertex_index_labels_visible is probably the function you want!"""
-        return self.item_command("set_point_index_labels_visible").insert(visible)
+        return self.item_command("set_point_index_labels_visible").insert(int(visible))
 
 
     def set_point_label_color(self, color: Color) -> Self:
@@ -830,7 +833,7 @@ class Obj:
 
     def set_segment_annotations_visible(self, visible: bool) -> Self:
         """Set visibility of segment annotations i.e., annotations on obj file l-directive data"""
-        return self.item_command("set_segment_annotations_visible").insert(visible)
+        return self.item_command("set_segment_annotations_visible").insert(int(visible))
 
 
     #set_segment_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
@@ -838,7 +841,7 @@ class Obj:
 
     def set_segment_index_labels_visible(self, visible: bool = True) -> Self:
         """Set visibility of segment element index labels i.e., 0-based indices into the obj file l-directive data"""
-        return self.item_command("set_segment_index_labels_visible").insert(visible)
+        return self.item_command("set_segment_index_labels_visible").insert(int(visible))
 
 
     def set_segment_label_color(self, color: Color) -> Self:
@@ -857,7 +860,7 @@ class Obj:
 
     def set_triangle_annotations_visible(self, visible: bool) -> Self:
         """Set visibility of triangle annotations i.e., annotations on obj file f-directive data"""
-        return self.item_command("set_triangle_annotations_visible").insert(visible)
+        return self.item_command("set_triangle_annotations_visible").insert(int(visible))
 
 
     #set_triangle_annotations_color not implemented (do we want this granularity? using set_annotations_color seems sufficient)
@@ -865,7 +868,7 @@ class Obj:
 
     def set_triangle_index_labels_visible(self, visible: bool = True) -> Self:
         """Set visibility of triangle element index labels i.e., 0-based indices into the obj file f-directive data"""
-        return self.item_command("set_triangle_index_labels_visible").insert(visible)
+        return self.item_command("set_triangle_index_labels_visible").insert(int(visible))
 
 
     def set_triangle_label_color(self, color: Color) -> Self:
@@ -884,7 +887,7 @@ class Obj:
 
     def set_vertices_visible(self, visible: bool = True) -> Self:
         """Set visibility of vertices i.e., obj file v-directive data"""
-        return self.item_command("set_vertices_visible").insert(visible)
+        return self.item_command("set_vertices_visible").insert(int(visible))
 
 
     def set_vertices_color(self, color: Color) -> Self:
@@ -902,7 +905,7 @@ class Obj:
 
     def set_points_visible(self, visible: bool) -> Self:
         """Set visibility of points i.e., obj file p-directive data. Note: set_vertices_visible is probably the function you want!"""
-        return self.item_command("set_points_visible").insert(visible)
+        return self.item_command("set_points_visible").insert(int(visible))
 
 
     def set_points_color(self, color: Color) -> Self:
@@ -920,7 +923,7 @@ class Obj:
 
     def set_segments_visible(self, visible: bool) -> Self:
         """Set visibility of segments i.e., obj file l-directive data"""
-        return self.item_command("set_segments_visible").insert(visible)
+        return self.item_command("set_segments_visible").insert(int(visible))
 
 
     def set_segments_color(self, color: Color) -> Self:
@@ -938,7 +941,7 @@ class Obj:
 
     def set_edges_visible(self, visible: bool) -> Self:
         """Set visibility of triangle edges i.e., obj file f-directive data"""
-        return self.item_command("set_edges_visible").insert(visible)
+        return self.item_command("set_edges_visible").insert(int(visible))
 
 
     def set_edges_color(self, color: Color) -> Self:
@@ -956,7 +959,7 @@ class Obj:
 
     def set_triangles_visible(self, visible: bool) -> Self:
         """Set visibility of triangles i.e., obj file f-directive data"""
-        return self.item_command("set_triangles_visible").insert(visible)
+        return self.item_command("set_triangles_visible").insert(int(visible))
 
 
     def set_triangles_color(self, color: Color) -> Self:
@@ -999,55 +1002,366 @@ _prizm_float_precision: int = 17
 
 
 
-def documentation():
+def documentation() -> bool:
     """An example using the API and an explanation of the rationale behind it.
     Returns boolean to indicate if the documentation tests pass"""
 
-    # First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
-    # the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment.
-    obj = Obj()
+    # This `documentation` function is also used a test, hence this function
+    tests_pass = True
+    def test(filename: str, got: str, wanted: str) -> bool:
+        passed = True
+        if wanted == got:
+            print(f"Test {filename} PASSED...")
+        else:
+            print(f"Test {filename} FAILED...")
+            print(f"Wanted: {wanted}\nGot: {got}")
+            passed = False
 
-    # First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
-    # the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment.
-    obj.comment("This file tests the Prizm Python API")
+        if True:
+            with open(filename, mode="w", encoding='ascii') as file:
+                file.write(got)
+        else:
+            # This is for debugging
+            with open("wanted.obj", mode="w", encoding='ascii') as file:
+                file.write(wanted)
+            with open("got.obj", mode="w", encoding='ascii') as file:
+                file.write(got)
+            assert False, "Wrote wanted.obj and got.obj for debugging"
 
-    # Now we'll write 3 vertices and a triangle element in a very verbose way. Note that most functions in the
-    # `Obj` API return `Obj&` which allows you to chain calls which can be handy if you like your debugging code
-    # to be concise
-    obj.vertex3(Vec3(0., 0., 1.)).annotation("Vertex A");
-    obj.vertex3(Vec3(3., 0., 1.)).annotation("Vertex B");
-    obj.vertex3(Vec3(3., 3., 1.)).annotation("Vertex C");
-    obj.triangle().annotation("Triangle ABC");
+        return passed
+
+    # This block illustrates most of the API
+    if True:
+        # First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
+        # the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment.
+        obj = Obj()
+
+        # First we'll add a comment at the top of the file. If you look at the `output` string below you can see that
+        # the provided text is prefixed by ## in the obj file, the obj spec uses a # to start a comment.
+        obj.comment("This file tests the Prizm Python API")
+
+        # Now we'll write 3 vertices and a triangle element in a very verbose way. Note that most functions in the
+        # `Obj` API return `Self` which allows you to chain calls which can be handy if you like your debugging code
+        # to be concise
+        obj.vertex3(Vec3(0., 0., 1.)).annotation("Vertex A")
+        obj.vertex3(Vec3(3., 0., 1.)).annotation("Vertex B")
+        obj.vertex3(Vec3(3., 3., 1.)).annotation("Vertex C")
+        obj.triangle().annotation("Triangle ABC")
+
+        # The previous block had a lot of typing... you can do something similar (without the vertex annotations) as a
+        # one-liner like this:
+        obj.triangle3(Vec3(0., 0., 2.), Vec3(3., 0., 2.), Vec3(3., 3., 2.)).annotation("Triangle ABC")
+
+        # The triangle element and vertex positions we just added to the obj all have _Annotation_ strings associated
+        # with them. These strings can be visualized in Prizm by turning on annotation labelling.  The annotations are
+        # written to the obj file using obj comment syntax which means that adding them doesn't prevent the geometry
+        # loading in a different obj viewer (but, of course, in a different viewer you won't be able to see the
+        # annotations). Note we need to use the verbose version we want to annotate the vertices.
+
+        # The Obj class will have a bunch of functions for writing compound shapes for now polylines, polygons and
+        # boxes are supported but more will be added. To demo these functions we'll use the following data which
+        # represents a 2D star shape.
+        star = (Vec2(2, 2), Vec2(10, 0), Vec2(2, -2), Vec2(0, -10), Vec2(-2, -2), Vec2(-10, 0), Vec2(-2, 2), Vec2(0, 10))
+
+        # First we'll write the star as a polyline boundary using the tuple directly:
+        obj.polyline2(*star, closed=True).annotation("star boundary")
+
+        # Next, we'll write the star as a polygon using a variadic function call, a similar variadic function also
+        # exists for writing polyline2 geometry
+        obj.polygon2(Vec2(2, 2), Vec2(10, 0), Vec2(2, -2), Vec2(0, -10), Vec2(-2, -2), Vec2(-10, 0), Vec2(-2, 2), Vec2(0, 10)).annotation("star polygon")
+
+        # The previous line wrote the coordinate data again even though we wrote it when we called polyline2, this
+        # is probably fine for debugging code but, just to illustrate another function, we can write only an obj
+        # f-directive references the previous vertices as follows:
+        obj.polygon(8).annotation("star polygon again")
+
+        # Note the obj spec allows you to reference previous vertices by using negative indices.  This feature is
+        # pretty handy for not having to track the current vertex index and also for enabling you to concatenate obj
+        # files into a single jumbo file, which we'll illustrate later.  One downside of using this feature is that
+        # it appears not to be well supported by other viewers so in a future update of this API we'll add a function
+        # to convert files into some well-supported subset of the spec e.g., by converting negative indices into
+        # positive ones and converting l-/f-directives with more than 2/3 indices on a single line into a list of
+        # l-/f-directives with exactly 2/3 indices on each line.
+
+        # In general functions ending with a number have 2D/3D vector arguments and write both v-directives and the
+        # relevant element directives. If you want to just write the element directive you can use the functions with
+        # no number postfix. Note for some functions the number indicating dimension is redundant but we write it
+        # anyway for consistency.
+
+        # Here we write a bounding box for the star we just logged:
+        star_min, star_max = Vec2(float('inf'), float('inf')), Vec2(float('-inf'), float('-inf'))
+        for i in range(0,8):
+            x, y = star[i].x, star[i].y
+            star_max.x = max(star_max.x , x)
+            star_min.x = min(star_min.x , x)
+            star_max.y = max(star_max.y , y)
+            star_min.y = min(star_min.y , y)
+        obj.box2_min_max(star_min, star_max).annotation("star bounding box")
+
+        # So far we've only had one annotation per geometric entity (vertex/element), this is because Prizm
+        # represents annotations with a single string and there are no plans to change this. If you call the
+        # annotation function more than once per line each call concatenates into a single annotation string
+        obj.point2(Vec2(4., 7.)).annotation("these").annotation("are").annotation("concatenated")
+
+        # In some cases it can be useful attach more one or pieces of typed numerical data to the each geometric
+        # entity of a mesh e.g., a scalar cost of a triangle edge collapse or a vertex displacement in a finite
+        # element mesh.  A future version of Prizm will support this by adding _Attributes_ to its internal mesh
+        # datastructure along with UI for inspecting and rendering them.  The current plan for attributes is that
+        # they will be set by parsing and extracting data stored in the annotation strings.  This extraction step
+        # will require users to execute a console command explicity or by adding a _Command Annotation_ to the
+        # obj file (command annotations are explained later but they are essentially console commands executed by
+        # the obj file).  In order to facilitate this parsing Prizm will assume attributes are prefixed by an @
+        # and as part of the attribute extraction the relevant portion of the annotation string will be trimmed.
+        # After extraction, the data structure you can inspect in Prizm will have typed attributes as well as
+        # annotations corresponding to the part of the raw in-file annotation strings before the first @.
+        #
+        # Although there is no special rendering/UI for attributes yet (you can only view attributes as the raw
+        # annotation strings) you might still prefer to call the attribute function when adding multiple pieces
+        # of data to a geometric entity because the @'s make the separate data more distinguishable. Here is an
+        # example of point with an annotation and two attributes of different types. Note rendering/UI support
+        # for annotations in Prizm is built around the assumption that they contain only string data.
+        obj.point2(Vec2(3., 3.)).annotation("some string").attribute(42).attribute(Vec2(0.,0.))
+
+        # Add some blank space to clearly separate obj geometry from the command annotations to come.
+        obj.newline(3)
+
+        # Next we'll demonstrate how you can configure how Prizm displays the obj file when it is loaded by writing
+        # command annotations to the obj file.
+        obj.comment("Command Annotations:")
+
+        # Configuring how Prizm displays the obj file is handy because, depending on your debugging use-case, you
+        # will want to see different things.  You could configure the display settings you want by clicking around
+        # in the UI, or by calling the relevant console commands after the file is loaded but this can be slow or
+        # annoying so to save you having to do this manually Prizm's command annotation facility enables you to
+        # execute console commands immediately after the file is loaded.
+        #
+        # For the obj we have been creating so far we are probably only interested in seeing the annotations we added,
+        # so in practice we would probably only want to call the following functions...
+        obj.set_annotations_visible(True)
+        obj.set_annotations_scale(1.)
+        obj.set_annotations_color(BLUE)
+
+        # ...but since we are using this documentation for testing as well we'll just call all the config functions
+        # to verify they are executed with no errors.  First we'll set the precision of the floats we write to the obj
+        # file so that the `output` string looks a bit nicer.
+        obj.set_precision(2)
+        obj.set_vertex_index_labels_visible(False)
+        obj.set_vertex_position_labels_visible(False)
+        obj.set_vertex_label_color(BLACK)
+        obj.set_vertex_label_scale(.4)
+        obj.set_vertex_annotations_visible(True)
+        obj.set_point_index_labels_visible(False)
+        obj.set_point_label_color(RED)
+        obj.set_point_label_scale(.4)
+        obj.set_point_annotations_visible(True)
+        obj.set_segment_index_labels_visible(False)
+        obj.set_segment_label_color(GREEN)
+        obj.set_segment_label_scale(.4)
+        obj.set_segment_annotations_visible(True)
+        obj.set_triangle_index_labels_visible(False)
+        obj.set_triangle_label_color(BLUE)
+        obj.set_triangle_label_scale(.4)
+        obj.set_triangle_annotations_visible(True)
+        obj.set_vertices_visible(True)
+        obj.set_vertices_color(BLUE)
+        obj.set_vertices_size(7)
+        obj.set_points_visible(True)
+        obj.set_points_color(RED)
+        obj.set_points_size(3)
+        obj.set_segments_visible(True)
+        obj.set_segments_color(RED)
+        obj.set_segments_width(3.)
+        obj.set_edges_visible(True)
+        obj.set_edges_color(BLACK)
+        obj.set_edges_width(4.)
+        obj.set_triangles_visible(True)
+        obj.set_triangles_color(GREEN)
+
+        # Note we didn't need to explicitly call newline() after each command annotation. Command annotations must be
+        # on a newline so this is called internally by the implementation
+
+        # End the obj with a newline to make the formatting of the `output` string nicer
+        obj.newline()
+
+        # Once we have finished adding to the obj file we can write it out using the `write` function. If we called
+        # this here we would generate a file containing the `output` string.  I personally find using absolute paths
+        # convenient when working in Unreal because I can never remember the directory the Editor is running in.
+        # obj.write("C:/path/to/my/debug/folder/debug_file.obj")
+
+        output = r"""## This file tests the Prizm Python API
+v 0 0 1 # Vertex A
+v 3 0 1 # Vertex B
+v 3 3 1 # Vertex C
+f -3 -2 -1 # Triangle ABC
+v 0 0 2
+v 3 0 2
+v 3 3 2
+f -3 -2 -1 # Triangle ABC
+v 2 2
+v 10 0
+v 2 -2
+v 0 -10
+v -2 -2
+v -10 0
+v -2 2
+v 0 10
+l -8 -7 -6 -5 -4 -3 -2 -1 -8 # star boundary
+v 2 2
+v 10 0
+v 2 -2
+v 0 -10
+v -2 -2
+v -10 0
+v -2 2
+v 0 10
+f -8 -7 -6 -5 -4 -3 -2 -1 # star polygon
+f -8 -7 -6 -5 -4 -3 -2 -1 # star polygon again
+v -10 -10
+v 10 -10
+v 10 10
+v -10 10
+v -10 -10
+l -5 -4 -3 -2 -1 # star bounding box
+v 4 7
+p -1 # these are concatenated
+v 3 3
+p -1 # some string @ 42 @ 0 0
+
+
+## Command Annotations:
+#! set_annotations_visible 0 1
+#! set_annotations_scale 0 1.0
+#! set_annotations_color 0 0 0 255 255
+#! set_vertex_index_labels_visible 0 0
+#! set_vertex_position_labels_visible 0 0
+#! set_vertex_label_color 0 0 0 0 255
+#! set_vertex_label_scale 0 0.4
+#! set_vertex_annotations_visible 0 1
+#! set_point_index_labels_visible 0 0
+#! set_point_label_color 0 255 0 0 255
+#! set_point_label_scale 0 0.4
+#! set_point_annotations_visible 0 1
+#! set_segment_index_labels_visible 0 0
+#! set_segment_label_color 0 0 255 0 255
+#! set_segment_label_scale 0 0.4
+#! set_segment_annotations_visible 0 1
+#! set_triangle_index_labels_visible 0 0
+#! set_triangle_label_color 0 0 0 255 255
+#! set_triangle_label_scale 0 0.4
+#! set_triangle_annotations_visible 0 1
+#! set_vertices_visible 0 1
+#! set_vertices_color 0 0 0 255 255
+#! set_vertices_size 0 7
+#! set_points_visible 0 1
+#! set_points_color 0 255 0 0 255
+#! set_points_size 0 3
+#! set_segments_visible 0 1
+#! set_segments_color 0 255 0 0 255
+#! set_segments_width 0 3.0
+#! set_edges_visible 0 1
+#! set_edges_color 0 0 0 0 255
+#! set_edges_width 0 4.0
+#! set_triangles_visible 0 1
+#! set_triangles_color 0 0 255 0 255
+"""
+
+        # Since this` documentation` function you are reading is used for testing we actually call the `to_std_string`
+        # function here to generate a string to compare with `output`
+        if not test("prizm_documentation_ex1.obj", str(obj), output):
+            tests_pass = False
 
 
 
 
 
 
+    # This block illustrates how, if you use only relative indexing for point/segment/triangle elements, you can use
+    # the `append` function to concatenate different obj files
+    if True:
+        # Create the first obj
+        first = Obj()
+        first.comment("The first obj:").segment2(Vec2(0, 0), Vec2(1, 0))
+
+        # Create the second obj
+        second = Obj()
+        second.comment("The second obj:").point3(Vec3(1, 2, 3))
+
+        # Concatenate the objs
+        first.append(second)
+
+        output = r"""## The first obj:
+v 0 0
+v 1 0
+l -2 -1
+## The second obj:
+v 1 2 3
+p -1"""
+
+        if not test("prizm_documentation_ex2.obj", str(first), output):
+            tests_pass = False
 
 
 
 
 
-    obj.triangle(vis=(-3,-2,-1)).comment([1,2,3])
+    # Some obj viewers do not support negative indices so there is an option to use positive indices instead
+    if True:
+        obj = Obj()
+        obj.set_use_negative_indices(False)
+        obj.segment2(Vec2(0, 0), Vec2(1, 0))
+        obj.point3(Vec3(1, 2, 3))
 
-    v = Vec3(0,0,0)
-    v.x = 42
-    # obj.vector3(*v)
-    obj.newline().vector3(v)
-    obj.newline().vector3(Vec3(11,22,33))
+        output = r"""
+v 0 0
+v 1 0
+l 1 2
+v 1 2 3
+p 3"""
 
-    w = (1,2,333)
-    ww = Vec3(*w)
-    print(ww)
-    print(ww.z)
-    obj.comment("heeeere")
-    obj.newline().vector3(ww)
+        if not test("prizm_documentation_ex3.obj", str(obj), output):
+            tests_pass = False
 
-    print(obj)
 
-    # obj.write("test.obj")
-    # obj.obj.close()
+
+
+
+
+    # This block illustrates a possibly handy use-case where you can create and write an obj file in one line
+    if True:
+        # We don't test this function to keep everything on a single line
+        filename = "prizm_documentation_ex4.obj"
+        Obj().triangle2(Vec2(0., 0.), Vec2(1., 0.), Vec2(1., 1.)).annotation("triangle").point2(Vec2(3., 3.)).annotation("point").write(filename)
+        print(f"Wrote {filename}")
+
+
+
+
+
+
+    # This block illustrates another kinda wacky use-case where you could use the Obj class as a debug file logger
+    # for files which have nothing to do with the obj format
+    if True:
+        from inspect import currentframe, getframeinfo
+
+        obj = Obj()
+        obj.add("some int =").insert(5).newline()
+        obj.add("some type with __str__ =").insert(Vec2(2, 3)).newline()
+        if True:
+            frame = currentframe()
+            if frame is not None:
+                obj.add("condition passed on line").insert(getframeinfo(frame).lineno)
+            else:
+                obj.add("No current frame available.")
+            obj.add("\n") # We don't care about tracking # chars so just log special characters directly
+
+        # We don't test this function because the lineno stuff makes it brittle
+        filename = "prizm_documentation_ex5.obj"
+        obj.write(filename)
+        print(f"Wrote {filename}")
+
+
+
+    return tests_pass
 
 
 
@@ -1075,3 +1389,4 @@ if __name__ == "__main__":
 # nocommit type check when done
 # nocommit add the UI
 # nocommit update the wiki
+
