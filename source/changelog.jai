@@ -9,6 +9,8 @@ Version :: struct {
 
 PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
 
+* https://github.com/okmatija/Prizm/compare/v0.9.3...main
+
 * New Feature: Attributes TODO Add a feature flag for enabling this
 
     * Attributes are complementary to annotations but are intended to be dense (every mesh element will have a value) overlays of typed data associated with mesh elements (vertex/face/edge/halfedges...). Currently string, float, Vector3, Matrix3 types are supported. The concept of annotations has been refined to be a sparse overlay of string data attached mesh elements which are addressable via the .obj format e.g., vertices via lines starting with the 'v' directive, and faces via lines starting with the 'f' directive
@@ -59,21 +61,21 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 * TODO Update compiler and SDL version!
 DONE};
 
-PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
-* Improvements to api/cpp/Prism.h
+PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "13 May 2024", #string DONE
+* Added a Python API for OBJ authoring with Prizm extensions
+
+    * Usage: Navigate to the "Prism > Tools > API > Python", configure the API by pressing checkboxes and press the button to copy the relevant import text to your clipboard, then paste that string into the file you want to debug
+    * The API has functions to write geometry in plain OBJ format (based on http://paulbourke.net/dataformats/obj/) as well as functions to write Prism-specific extensions e.g., annotations and command annotations. See the `documentation()` function for more info
+    * The API attempts to minimize dependencies and only imports modules as needed e.g., the Color can be constructed from matplotlib color types, but matplotlib is only imported if you actually call this function.  Doing this seems to be a bit unidiomatic in Python so we might change it.
+    * Having this debug code live outside your project is a feature since it ensures you can't accidentally commit code which writes out OBJs to production: your CI/CD pipeline should fail to compile because it won't be able to find the Prism API 
+    * Maintenance: `mypy.exe prizm.py` should return no issues; `pylint.exe` should be "reasonable" i.e., fix errors but too-many-statements, using-constant-test, line-too-long etc. This also applies to the `test.py` file
+
+* Improvements to the C++ API
 
     * Fixed polyline functions which did not correctly write the indices of closed polylines
     * Fixed polyline function writing a spurious space after // (the separator between a vertex index and a normal index) in some cases
     * Changed polygon functions to do nothing rather than writing broken data when called with fewer than 3 indices/vertices
     * Added aqua and magenta colors and made minor imporovements to the documentation
-
-* Added an initial version of a Python API for OBJ authoring with Prizm extensions
-
-    * Usage: Navigate to the "Prism > Tools > API > Python", configure the API by pressing checkboxes and press the button to copy the relevant import text to your clipboard, then paste that string into the file you want to debug
-    * The API has functions to write geometry in plain .obj format (based on http://paulbourke.net/dataformats/obj/) as well as functions to write Prism-specific extensions e.g., annotations and command annotations. See the `documentation()` function for more info
-    * The API attempts to minimize dependencies and only imports modules as needed e.g., the Color can be constructed from matplotlib color types, but matplotlib is only imported if you actually call this function.  Doing this seems to be a bit unidiomatic in Python so we might change it.
-    * Having this debug code live outside your project is a feature since it ensures you can't accidentally commit code which writes out objs to production: your CI/CD pipeline should fail to compile because it won't be able to find the Prism API 
-    * Maintenance: `mypy.exe prizm.py` should return no issues; `pylint.exe` should be "reasonable" i.e., fix errors but too-many-statements, using-constant-test, line-too-long etc. This also applies to the `test.py` file
 DONE};
 
 PRIZM_VERSION_0_9_3 :: Version.{"0.9.3", "17 April 2024", #string DONE
