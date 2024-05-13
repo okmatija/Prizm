@@ -1177,9 +1177,6 @@ def documentation() -> bool:
         obj.set_triangles_visible(True)
         obj.set_triangles_color(GREEN)
 
-        # Note we didn't need to explicitly call newline() after each command annotation. Command annotations must be
-        # on a newline so this is called internally by the implementation
-
         # End the obj with a newline to make the formatting of the `output` string nicer
         obj.newline()
 

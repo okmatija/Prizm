@@ -56,6 +56,7 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 * TODO Use complementary colors for backfacing triangles
 * TODO Change hotkeys for loading shapes from F1-F4 to just 1-4. Later we can make F1 help and F2 rename items?
 * TODO Make the menus that popup in the Details view movable, especially the clipping one, its annoying not to be visible. Or maybe remove the option to toggle between the menu/tree and make menu turn into tree if clicked, and tree turn into menu if closed
+* TODO Update compiler and SDL version!
 DONE};
 
 PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
@@ -73,9 +74,6 @@ PRIZM_VERSION_0_10_0 :: Version.{"0.10.0", "WIP", #string DONE
     * The API attempts to minimize dependencies and only imports modules as needed e.g., the Color can be constructed from matplotlib color types, but matplotlib is only imported if you actually call this function.  Doing this seems to be a bit unidiomatic in Python so we might change it.
     * Having this debug code live outside your project is a feature since it ensures you can't accidentally commit code which writes out objs to production: your CI/CD pipeline should fail to compile because it won't be able to find the Prism API 
     * Maintenance: `mypy.exe prizm.py` should return no issues; `pylint.exe` should be "reasonable" i.e., fix errors but too-many-statements, using-constant-test, line-too-long etc. This also applies to the `test.py` file
-
-* TODO update the wiki
-* TODO Update compiler and SDL version!
 DONE};
 
 PRIZM_VERSION_0_9_3 :: Version.{"0.9.3", "17 April 2024", #string DONE
