@@ -1543,13 +1543,15 @@ show_python_api_ui :: () {
         ImGui.Checkbox("Use import aliases", *app.api.using_python_import_aliases);
         show_tooltip("Enable to this use `from prizm import ...`\nwhich is will save you some typing");
 
+        exe_directory := get_directory(get_path_of_running_executable());
+
         modify :: (import : *string, line : string) {
             import.* = join(import.*, line,, temp);
         }
 
         import : string;
         modify(*import, "import sys\n");
-        modify(*import, "sys.path.append(\"C:/Dev/Prizm/api/python\")\n");
+        modify(*import, tprint("sys.path.append(\"%/api/python\")\n", exe_directory));
         if app.api.using_python_import_aliases {
             modify(*import, "from prizm import Obj, Vec2, Vec3, Vec4, Color, documentation\n");
         } else {
