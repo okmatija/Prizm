@@ -478,7 +478,8 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "render/shader_triangles.jai";
 #load "render/shader_points_lines.jai";
 #load "render/shader_normal_vectors.jai";
-#load "render/shader_deferred.jai";
+#load "render/shader_geometry.jai";
+#load "render/shader_lighting.jai";
 #load "render/render.jai";
 #load "render/render_utils.jai";
 #load "render/render_text.jai";
