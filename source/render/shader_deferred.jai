@@ -9,16 +9,13 @@ Shader_Geometry :: struct {
         cache_shader_uniform_location(shader, "world_from_model", .Matrix4);
         cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
         cache_shader_uniform_location(shader, "clip_from_view", .Matrix4);
-
-        // Values for these are set in use_geometry_pass
-        cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
-        cache_shader_uniform_location(shader, "gbuffer_normal", .Texture);
+        cache_shader_uniform_location(shader, "base_color", .Float4);
 
     }
 
-    use_shader :: (shader : Shader, using mesh : Simple_Mesh) {
+    use_shader :: (shader : Shader, using mesh : Simple_Mesh, base_color : Vector4) {
 
-        // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms
+        // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
         assert(glIsProgram(shader.program) == GL_TRUE);
 
@@ -28,6 +25,7 @@ Shader_Geometry :: struct {
         set_shader_uniform_value(shader, "world_from_model", world_from_model.floats);
         set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
         set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
+        set_shader_uniform_value(shader, "base_color", base_color.component);
 
     }
 }
@@ -45,7 +43,7 @@ Shader_Lighting :: struct {
         cache_shader_uniform_location(shader, "camera.look_direction", .Float3);
         cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
         cache_shader_uniform_location(shader, "gbuffer_normal", .Texture);
-        // nocommit Albedo is needed...!
+        cache_shader_uniform_location(shader, "gbuffer_base_color", .Texture);
 
     }
 
@@ -60,11 +58,13 @@ Shader_Lighting :: struct {
         look_direction := current_look_direction();
         position_uniform := Texture_Uniform.{*app.geometry_pass.position, GL_TEXTURE0};
         normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, GL_TEXTURE1};
+        base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, GL_TEXTURE2};
 
         set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);
         set_shader_uniform_value(shader, "gbuffer_position", position_uniform);
         set_shader_uniform_value(shader, "gbuffer_normal", normal_uniform);
+        set_shader_uniform_value(shader, "gbuffer_base_color", base_color_uniform);
 
     }
 }

@@ -72,7 +72,9 @@ cache_shader_uniform_location :: (shader : *Shader, name_string : string, kind :
 
     // :InvalidUniformLocationUnusedVariables This assert is annoying when developing shaders since it triggers
     // whenever we comment usage code but leave declarations. Consider disabling it to work on shaders...
-    assert(uniform.location != -1, "Got -1 location for uniform '%', if you do not use this variable in the shader you should not call glGetUniformLocation (this applies recursively to struct members..!)");
+    assert(uniform.location != -1,
+        "Got -1 location for uniform '%', if you do not use this variable in the shader you should not call glGetUniformLocation (this applies recursively to struct members..!)",
+        name_string);
 }
 
 Texture_Uniform :: struct {

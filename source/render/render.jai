@@ -514,7 +514,18 @@ render_entities_gbuffer :: () {
 
         maybe_update_render_info(ri, *it.mesh);
 
-        use_shader(*app.shader_geometry, it.mesh);
+        app.shader_geometry.use_shader(*app.shader_geometry, it.mesh, di.triangle_style.color);
+
+        // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
+
+        // nocommit Pull this outside the item loop
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindVertexArray(ri.triangles_vao);
@@ -538,7 +549,7 @@ render_entities_gbuffer :: () {
             POSITION :: 2;
         }
 
-        channel : GBuffer_Channel = .POSITION;
+        channel : GBuffer_Channel = .BASE_COLOR;
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
         glClearColor(0., 0., 0., 1.); 
@@ -554,48 +565,48 @@ render_entities_gbuffer :: () {
         if #complete channel == {
         case .BASE_COLOR;
 
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
+            glUniform1ui(glGetUniformLocation(app.blit_program, "screen_texture"), 2);
+
         case .NORMAL;
 
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
             glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
-            attachments : [1]GLenum = .[GL_COLOR_ATTACHMENT1];
-            glDrawBuffers(1, attachments.data);
 
         case .POSITION;
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
             glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
-            attachments : [1]GLenum = .[GL_COLOR_ATTACHMENT0];
-            glDrawBuffers(1, attachments.data);
 
         }
 
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
-#if false {
-    // Lighting pass
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-    glClearColor(0., 0., 0., 1.); 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    use_shader(*app.shader_lighting);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
-
-    // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
-    attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
-    glDrawBuffers(2, attachments.data);
-
-    glBindVertexArray(app.quad_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);  
-}
+//#if false {
+//    // Lighting pass
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+//    glClearColor(0., 0., 0., 1.); 
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//
+//    use_shader(*app.shader_lighting);
+//
+//    glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+//
+//    glActiveTexture(GL_TEXTURE1);
+//    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
+//
+//    // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+//    attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
+//    glDrawBuffers(2, attachments.data);
+//
+//    glBindVertexArray(app.quad_vao);
+//    glDrawArrays(GL_TRIANGLES, 0, 6);  
+//}
 
 
 }

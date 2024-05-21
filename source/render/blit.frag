@@ -4,19 +4,20 @@ out vec4 frag_color;
 
 in vec2 tex_coords;
 
-uniform sampler2D screen_texture;
-
 const int GBuffer_Channel_BASE_COLOR = 0;
 const int GBuffer_Channel_NORMAL = 1;
 const int GBuffer_Channel_POSITION = 2;
+
 uniform int channel = GBuffer_Channel_NORMAL;
+uniform sampler2D screen_texture;
 
 void main() {
     //frag_color = vec4(tex_coords.x, tex_coords.y, 0, 1);
 
     if (channel == GBuffer_Channel_BASE_COLOR) {
 
-        frag_color = texture(screen_texture, tex_coords);
+        vec3 sample = texture(screen_texture, tex_coords).rgb;
+        frag_color = vec4(sample,1);
 
     } else if (channel == GBuffer_Channel_NORMAL) {
 

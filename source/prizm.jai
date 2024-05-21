@@ -180,34 +180,13 @@ main :: () {
 } else {
         render_entities_gbuffer();
 
-        /*
-
-Deferred rendering plan:
-
-        geometry_pass(); // Input: Item Color and shape, Output: position_texture, normal_texture
-        ssao_pass(); // Input: position_texture (z==depth), normal_texture, noise_texture, Output: ssao_texture
-        ssao_blur_pass(); // Input: ssao_texture, Output blurred_ssao_texture
-        lighting_pass(); // Input: textures Output: color_texture
-        render_to_screen_pass(); // Output: color_texture to screen
-        */
+        //// Deferred rendering plan:
+        //geometry_pass(); // Input: Item Color and shape, Output: position_texture, normal_texture
+        //ssao_pass(); // Input: position_texture (z==depth), normal_texture, noise_texture, Output: ssao_texture
+        //ssao_blur_pass(); // Input: ssao_texture, Output blurred_ssao_texture
+        //lighting_pass(); // Input: textures Output: color_texture
+        //render_to_screen_pass(); // Output: color_texture to screen
 }
-
-        // SSAO Pass
-
-        // SSAO Blurring Pass
-
-        /*
-        // Lighting Pass
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Bind default framebuffer
-        glClearColor(1., 0., 0., 1.);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(app.ssao_program);
-        glBindVertexArray(app.ssao_vao);
-        glDisable(GL_DEPTH_TEST);
-        glBindTexture(GL_TEXTURE_2D, app.framebuffer_color);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        */
-
 
         render_text();
         render_axes_triad();
