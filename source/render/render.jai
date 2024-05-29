@@ -500,36 +500,32 @@ set_gbuffer_program :: () {
 
 render_entities_gbuffer :: () {
 
+    DebugScopeGLGroup("render_entities_gbuffer");
 
     //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
 
-    use_geometry_pass();
+    {
+        DebugScopeGLGroup("geometry pass");
 
-    for :VisibleOpaque app.entities {
-        ri := *it.render_info;
-        di :=  it.display_info;
+        use_geometry_pass();
 
-        if !it.mesh.triangles.count continue;
-        if !di.triangle_style.visible continue;
+        for :VisibleOpaque app.entities {
+            ri := *it.render_info;
+            di :=  it.display_info;
 
-        maybe_update_render_info(ri, *it.mesh);
+            if !it.mesh.triangles.count continue;
+            if !di.triangle_style.visible continue;
 
-        app.shader_geometry.use_shader(*app.shader_geometry, it.mesh, di.triangle_style.color);
+            maybe_update_render_info(ri, *it.mesh);
 
-        // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
+            app.shader_geometry.use_shader(*app.shader_geometry, it.mesh, di.triangle_style.color);
+            //debug_print_active_uniforms(app.shader_geometry.program);
 
-        // nocommit Pull this outside the item loop
+            // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
-
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(ri.triangles_vao);
-        glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+            glBindVertexArray(ri.triangles_vao);
+            glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+        }
     }
 
     //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
@@ -541,76 +537,21 @@ render_entities_gbuffer :: () {
     //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // Debug gbuffer
+    //debug_gbuffer();
+
     {
-        GBuffer_Channel :: enum {
-            BASE_COLOR :: 0;
-            NORMAL :: 1;
-            POSITION :: 2;
-        }
+        DebugScopeGLGroup("lighting pass");
 
-        channel : GBuffer_Channel = .BASE_COLOR;
-
+        // Lighting pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
         glClearColor(0., 0., 0., 1.); 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(app.blit_program);  
-        assert(glIsProgram(app.blit_program) == GL_TRUE);
+        use_shader(*app.shader_lighting);
 
         glBindVertexArray(app.quad_vao);
-        glDisable(GL_DEPTH_TEST);
-
-        screen_texture_loc := glGetUniformLocation(app.blit_program, "screen_texture");
-        if #complete channel == {
-        case .BASE_COLOR;
-
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
-            glUniform1i(screen_texture_loc, 2);// Texture unit 2
-
-        case .NORMAL;
-
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
-            glUniform1i(screen_texture_loc, 1);
-
-        case .POSITION;
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-            glUniform1i(screen_texture_loc, 0);
-
-        }
-
-        channel_loc := glGetUniformLocation(app.blit_program, "channel");
-        glUniform1i(channel_loc, xx channel);
-
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
-
-//#if false {
-//    // Lighting pass
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-//    glClearColor(0., 0., 0., 1.); 
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//
-//    use_shader(*app.shader_lighting);
-//
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-//
-//    glActiveTexture(GL_TEXTURE1);
-//    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
-//
-//    // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
-//    attachments : [2]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1];
-//    glDrawBuffers(2, attachments.data);
-//
-//    glBindVertexArray(app.quad_vao);
-//    glDrawArrays(GL_TRIANGLES, 0, 6);  
-//}
-
 
 }
 

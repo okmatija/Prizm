@@ -62,6 +62,7 @@ resize_textures :: () {
 }
 
 init_rendering :: () {
+    DebugScopeGLGroup("init_rendering");
 
     //
     // Init GBuffer framebuffer
@@ -398,13 +399,83 @@ debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {
     }
 }
 
+GBuffer_Channel :: enum {
+    BASE_COLOR :: 0;
+    NORMAL :: 1;
+    POSITION :: 2;
+}
+
+debug_gbuffer :: () {
+    DebugScopeGLGroup("debug gbuffer");
+
+    channel : GBuffer_Channel = cast(GBuffer_Channel)app.debug_int;
+    combo_box("GBuffer channel", *channel, type_info(GBuffer_Channel));
+    app.debug_int = cast(int)channel;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    glClearColor(0., 0., 0., 1.); 
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(app.blit_program);  
+    assert(glIsProgram(app.blit_program) == GL_TRUE);
+
+    glBindVertexArray(app.quad_vao);
+    glDisable(GL_DEPTH_TEST);
+
+    screen_texture_loc := glGetUniformLocation(app.blit_program, "screen_texture");
+    if #complete channel == {
+    case .BASE_COLOR;
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
+        glUniform1i(screen_texture_loc, 2);// Texture unit 2
+
+    case .NORMAL;
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
+        glUniform1i(screen_texture_loc, 1);
+
+    case .POSITION;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+        glUniform1i(screen_texture_loc, 0);
+
+    }
+
+    channel_loc := glGetUniformLocation(app.blit_program, "channel");
+    glUniform1i(channel_loc, xx channel);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);  
+}
+
+
+// Wrapper around the different ways to label objects.
+// Based on GL.jai/gl_label_object, but removes is_debug_context, which we can't set since we load the GL context with SDL
+debug_label_object :: (identifier: GLenum, name: GLuint, label: string) {
+    #if DEBUG_OPENGL {
+        if label {
+            if GL_VERSION_4_3           glObjectLabel(identifier, name, xx label.count, label.data);
+            else if GL_KHR_debug        glObjectLabelKHR(identifier, name, xx label.count, label.data);
+            else if GL_EXT_debug_label  glLabelObjectEXT(identifier, name, xx label.count, label.data);
+        }
+    }
+}
+
+DebugScopeGLGroup :: (message: string) #expand {
+    if DEBUG_OPENGL        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, xx message.count, message.data);
+    `defer if DEBUG_OPENGL glPopDebugGroup();
+}
+
+
 print_errors :: (loc := #caller_location) {
     DumpGLErrors("context %", #location());
 
     {
         error := glGetError();
         if (error != GL_NO_ERROR) {
-            print("error:%:%,%: code % (%)\n", loc.fully_pathed_filename, loc.line_number, loc.character_number, error, formatInt(error, base=16));
+            print("error:%:%,%: code % (0x%)\n", loc.fully_pathed_filename, loc.line_number, loc.character_number, error, formatInt(error, base=16));
             print("stack trace\n");
             for pack_stack_trace() {
                 print_stack_trace(*it);

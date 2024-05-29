@@ -6,11 +6,13 @@ HELP_STRING :: #string DONE
 
 Build Options:
   help       print this help message
-  verydebug  build debug mode with the memory debugger enabled
-  debug      build debug mode (default)
-  release    build release mode
-  shipping   build release mode, set application icon and bundle zip file
-  custom     build with custom build options set in a gui
+  debug_gl   build with opengl in debug mode, and use GL 4.3 so RenderDoc annotations work
+  Choose one of:
+    verydebug  build debug mode with the memory debugger enabled
+    debug      build debug mode (default)
+    release    build release mode
+    shipping   build release mode, set application icon and bundle zip file
+    custom     build with custom build options set in a gui
 DONE
 
 OUTPUT_EXE_NAME :: "Prizm";
@@ -118,9 +120,11 @@ build :: () {
         build_constants := tprint(#string DONE
 OUTPUT_EXE_NAME :: "%";
 USE_MEMORY_DEBUGGER :: %;
+DEBUG_OPENGL :: %;
 DONE,
                 build_options.output_executable_name,
-                ifx HasArgument("verydebug") then "true"  else "false",
+                ifx HasArgument("verydebug") then "true" else "false",
+                ifx HasArgument("debug_gl")  then "true" else "false",
         );
         add_build_string(build_constants, w);
 

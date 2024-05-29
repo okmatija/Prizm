@@ -139,6 +139,7 @@ App :: struct {
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
     debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
+    debug_int := 0; // A integer debug variable for whatever use
 }
 
 Window_Size :: struct {

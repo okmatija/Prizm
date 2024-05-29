@@ -14,6 +14,7 @@ Geometry_Pass :: struct {
     // Convenient to put color attachement textures after depth texture
 
     // @Cleanup Clarify if world position?
+    // nocommit Store the texture units here as well?
     position : Texture;
     position.format = .RGBA16F;
     position.filter = .NEAREST;
@@ -77,8 +78,8 @@ use_geometry_pass :: () {
 
     // Geometry Pass: (positions, normals, albedo, depth?)
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
-    //debug_print_active_uniforms(app.shader_geometry.program);
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
 
     glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -87,10 +88,21 @@ use_geometry_pass :: () {
     // // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
     // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+    debug_label_object(GL_TEXTURE, app.geometry_pass.position.gl_handle, "position");
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
+    debug_label_object(GL_TEXTURE, app.geometry_pass.normal.gl_handle, "normal");
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
+    debug_label_object(GL_TEXTURE, app.geometry_pass.base_color.gl_handle, "base_color");
+
     glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     //glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 

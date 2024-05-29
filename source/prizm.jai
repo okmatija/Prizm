@@ -63,12 +63,9 @@ main :: () {
     console_load_history();
 
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, cast(s32)(ifx DEBUG_OPENGL then 4 else 3));
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
-
-    // gl_version_major, gl_version_minor = gl_get_version();
-    // print("Using OpenGL %.%", gl_version_major, gl_version_minor);
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
@@ -78,8 +75,14 @@ main :: () {
 
     gl_load(*gl, SDL_GL_GetProcAddress);
 
-    gl_enable_debug_output(true);
-    // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+    if DEBUG_OPENGL {
+        gl_version_major, gl_version_minor = gl_get_version();
+        print("Using OpenGL %.%\n", gl_version_major, gl_version_minor);
+        // @Note DEBUG_OPENGL enables RenderDoc annotations
+        log_error("DEBUG_OPENGL enabled!");
+        // gl_enable_debug_output(true);
+        // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+    }
 
     TRIAD_AXIS_LENGTH :: 1;
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
@@ -193,8 +196,11 @@ main :: () {
         render_demo_mode();
 
         ImGui.PopFont();
-        ImGui.Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
+        {
+            DebugScopeGLGroup("ImGui Rendering");
+            ImGui.Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
+        }
 
         SDL_GL_SwapWindow(app.window);
 

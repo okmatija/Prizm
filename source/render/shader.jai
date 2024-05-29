@@ -79,7 +79,8 @@ cache_shader_uniform_location :: (shader : *Shader, name_string : string, kind :
 
 Texture_Uniform :: struct {
     texture : *Texture;
-    texture_unit : GLenum;
+    texture_unit : u32;
+    texture_name : string;
 }
 
 set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_value : Any, loc := #caller_location) {
@@ -209,8 +210,9 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
         assert(tex.texture != null);
         assert(tex.texture.gl_handle != 0);
 
-        glActiveTexture(tex.texture_unit);
+        glActiveTexture(GL_TEXTURE0 + tex.texture_unit);
         glBindTexture(GL_TEXTURE_2D, tex.texture.gl_handle);
+        debug_label_object(GL_TEXTURE, tex.texture.gl_handle, tex.texture_name);
         glUniform1i(location, cast(GLint)tex.texture_unit); // Must use glUniform1i or glUniform1iv variants to load samplers
 
     }

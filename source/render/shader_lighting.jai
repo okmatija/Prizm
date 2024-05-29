@@ -7,9 +7,9 @@ Shader_Lighting :: struct {
 
         //debug_print_active_uniforms(shader.program); // nocommit
 
-        cache_shader_uniform_location(shader, "camera.eye_position", .Float3);
+        // cache_shader_uniform_location(shader, "camera.eye_position", .Float3);
         cache_shader_uniform_location(shader, "camera.look_direction", .Float3);
-        cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
+        // cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
         cache_shader_uniform_location(shader, "gbuffer_normal", .Texture);
         cache_shader_uniform_location(shader, "gbuffer_base_color", .Texture);
 
@@ -24,13 +24,14 @@ Shader_Lighting :: struct {
 
         // @TODO @Speed These could all be set in uniform buffers just once per frame
         look_direction := current_look_direction();
-        position_uniform := Texture_Uniform.{*app.geometry_pass.position, GL_TEXTURE0};
-        normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, GL_TEXTURE1};
-        base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, GL_TEXTURE2};
+        position_uniform := Texture_Uniform.{*app.geometry_pass.position, 0, "position"};
+        normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, 1, "normal"};
+        base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, 2, "base_color"};
 
-        set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
+        // set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);
-        set_shader_uniform_value(shader, "gbuffer_position", position_uniform);
+
+        // set_shader_uniform_value(shader, "gbuffer_position", position_uniform);
         set_shader_uniform_value(shader, "gbuffer_normal", normal_uniform);
         set_shader_uniform_value(shader, "gbuffer_base_color", base_color_uniform);
 
