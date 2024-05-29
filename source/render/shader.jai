@@ -211,7 +211,7 @@ set_shader_uniform_value :: (shader : Shader, uniform_name : string, uniform_val
 
         glActiveTexture(tex.texture_unit);
         glBindTexture(GL_TEXTURE_2D, tex.texture.gl_handle);
-        glUniform1ui(location, tex.texture_unit);
+        glUniform1i(location, cast(GLint)tex.texture_unit); // Must use glUniform1i or glUniform1iv variants to load samplers
 
     }
 }

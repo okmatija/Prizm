@@ -561,27 +561,30 @@ render_entities_gbuffer :: () {
         glBindVertexArray(app.quad_vao);
         glDisable(GL_DEPTH_TEST);
 
-        glUniform1i(glGetUniformLocation(app.blit_program, "channel"), xx channel);
+        screen_texture_loc := glGetUniformLocation(app.blit_program, "screen_texture");
         if #complete channel == {
         case .BASE_COLOR;
 
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
-            glUniform1ui(glGetUniformLocation(app.blit_program, "screen_texture"), 2);
+            glUniform1i(screen_texture_loc, 2);// Texture unit 2
 
         case .NORMAL;
 
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
-            glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 1);
+            glUniform1i(screen_texture_loc, 1);
 
         case .POSITION;
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-            glUniform1i(glGetUniformLocation(app.blit_program, "screen_texture"), 0);
+            glUniform1i(screen_texture_loc, 0);
 
         }
+
+        channel_loc := glGetUniformLocation(app.blit_program, "channel");
+        glUniform1i(channel_loc, xx channel);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
