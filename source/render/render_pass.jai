@@ -72,8 +72,6 @@ init_geometry_pass :: () {
 }
 
 use_geometry_pass :: () {
-    // TODO Add RenderDoc tags
-
     pass : *Geometry_Pass = *app.geometry_pass;
 
     // Geometry Pass: (positions, normals, albedo, depth?)
@@ -89,14 +87,16 @@ use_geometry_pass :: () {
     // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
-    debug_label_object(GL_TEXTURE, app.geometry_pass.position.gl_handle, "position");
+    glBindTexture(GL_TEXTURE_2D, pass.position.gl_handle);
+    debug_label_object(GL_TEXTURE, pass.position.gl_handle, "position");
+
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
-    debug_label_object(GL_TEXTURE, app.geometry_pass.normal.gl_handle, "normal");
+    glBindTexture(GL_TEXTURE_2D, pass.normal.gl_handle);
+    debug_label_object(GL_TEXTURE, pass.normal.gl_handle, "normal");
+
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
-    debug_label_object(GL_TEXTURE, app.geometry_pass.base_color.gl_handle, "base_color");
+    glBindTexture(GL_TEXTURE_2D, pass.base_color.gl_handle);
+    debug_label_object(GL_TEXTURE, pass.base_color.gl_handle, "base_color");
 
     glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
