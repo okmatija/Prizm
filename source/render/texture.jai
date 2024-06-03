@@ -21,7 +21,7 @@ Texture :: struct {
     buffer : GLuint = ---;
 }
 
-texture_init :: (texture : *Texture, width : s32, height : s32) {
+texture_init :: (texture : *Texture, width : s32, height : s32, data : *void = null) {
     info : Pixel_Format_Info = get_pixel_format_info(texture.format);
 
     if !texture.gl_handle {
@@ -49,7 +49,7 @@ texture_init :: (texture : *Texture, width : s32, height : s32) {
         0, // border
         info.gl_format,
         info.gl_type,
-        null // data
+        data
     );
 
     //glBindTexture(GL_TEXTURE_2D, 0);

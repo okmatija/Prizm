@@ -528,18 +528,24 @@ render_entities_gbuffer :: () {
         }
     }
 
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-    //// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
-    //// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
-    //// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
-    //w, h := app.window_size.width, app.window_size.height;
-    //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //debug_gbuffer();
-
     {
+        DebugScopeGLGroup("SSAO pass");
+
+        use_ssao_pass();
+        use_shader(*app.shader_ssao);
+
+        glBindVertexArray(app.quad_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);  
+    }
+
+    debug_blit_texture();
+
+
+    //{
+    //    DebugScopeGLGroup("SSAO blur pass");
+    //}
+
+    if false {
         DebugScopeGLGroup("lighting pass");
 
         // Lighting pass

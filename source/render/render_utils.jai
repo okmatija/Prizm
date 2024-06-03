@@ -91,38 +91,11 @@ init_rendering :: () {
         assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
 
-        // Generate SSAO sample kernel
-        ssao_kernel : [64]Vector3 = ---;
-        for * ssao_kernel {
-            it.x = random_get_zero_to_one() * 2. - 1.;
-            it.y = random_get_zero_to_one() * 2. - 1.;
-            it.z = random_get_zero_to_one(); // Hemisphere nocommit We should also try a spherical kernel
-            normalize(it);
-            it.* *= random_get_zero_to_one();
-
-            // scale samples so they are more aligned to the center of the kernel
-            scale : float = cast(float)it_index / ssao_kernel.count;
-            scale = lerp(.1, 1., scale * scale);
-            it.* *= scale;
-        }
-
-        // Generate SSAO noise texture used to rotate the kernel around the z-axis i.e., in the surface tangent space
-        ssao_noise_values : [16]Vector3 = ---;
-        for * ssao_noise_values {
-            it.x = random_get_zero_to_one() * 2. - 1.;
-            it.y = random_get_zero_to_one() * 2. - 1.;
-            it.z = 0.;
-        }
-        glBindTexture(GL_TEXTURE_2D, app.render_info.ssao_noise);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT, ssao_noise_values.data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
     */
 
     init_geometry_pass();
+    init_ssao_pass();
 
     //
     // Init shaders
@@ -131,6 +104,7 @@ init_rendering :: () {
     // @Cleanup We read the same file multiple times which sucks.
 
     init_shader(*app.shader_geometry);
+    init_shader(*app.shader_ssao);
     init_shader(*app.shader_lighting);
 
     init_shader(*app.shader_aabb);
@@ -399,17 +373,28 @@ debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {
     }
 }
 
-GBuffer_Channel :: enum {
-    BASE_COLOR :: 0;
-    NORMAL :: 1;
-    POSITION :: 2;
+Debug_Channel :: enum {
+    GBUFFER_BASE_COLOR :: 0;
+    GBUFFER_NORMAL :: 1;
+    GBUFFER_POSITION :: 2;
+    SSAO_COLOR :: 3;
 }
 
-debug_gbuffer :: () {
+debug_blit_texture :: () {
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+    //// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+    //// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+    //// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+    //w, h := app.window_size.width, app.window_size.height;
+    //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
     DebugScopeGLGroup("debug gbuffer");
 
-    channel : GBuffer_Channel = cast(GBuffer_Channel)app.debug_int;
-    combo_box("GBuffer channel", *channel, type_info(GBuffer_Channel));
+    channel : Debug_Channel = cast(Debug_Channel)app.debug_int;
+    combo_box("Debug Channel", *channel, type_info(Debug_Channel));
     app.debug_int = cast(int)channel;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
@@ -424,22 +409,28 @@ debug_gbuffer :: () {
 
     screen_texture_loc := glGetUniformLocation(app.blit_program, "screen_texture");
     if #complete channel == {
-    case .BASE_COLOR;
+    case .GBUFFER_BASE_COLOR;
 
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
         glUniform1i(screen_texture_loc, 2);// Texture unit 2
 
-    case .NORMAL;
+    case .GBUFFER_NORMAL;
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
         glUniform1i(screen_texture_loc, 1);
 
-    case .POSITION;
+    case .GBUFFER_POSITION;
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+        glUniform1i(screen_texture_loc, 0);
+
+    case .SSAO_COLOR;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app.ssao_pass.ssao_color.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
     }
