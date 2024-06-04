@@ -1,6 +1,8 @@
 Shader_Lighting :: struct {
     using #as base : Shader;
 
+    use_ssao : bool;
+
     init_shader :: (shader : *Shader) {
 
         shader.program = get_shader_program(LIGHTING_VERT, LIGHTING_FRAG);
@@ -12,10 +14,13 @@ Shader_Lighting :: struct {
         // cache_shader_uniform_location(shader, "gbuffer_position", .Texture);
         cache_shader_uniform_location(shader, "gbuffer_normal", .Texture);
         cache_shader_uniform_location(shader, "gbuffer_base_color", .Texture);
+        cache_shader_uniform_location(shader, "ssao", .Texture);
+        cache_shader_uniform_location(shader, "use_ssao", .Bool);
 
     }
 
-    use_shader :: (shader : Shader) {
+    // nocommit This should be Shader_Lighting... Fix all similar functions as well
+    use_shader :: (shader : Shader_Lighting) {
 
         // nocommit I think the following is better in a use_pass function??
 
@@ -27,6 +32,7 @@ Shader_Lighting :: struct {
         position_uniform := Texture_Uniform.{*app.geometry_pass.position, 0, "position"};
         normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, 1, "normal"};
         base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, 2, "base_color"};
+        ssao_uniform := Texture_Uniform.{*app.ssao_pass.ssao_color, 3, "ssao"};
 
         // set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);
@@ -34,6 +40,8 @@ Shader_Lighting :: struct {
         // set_shader_uniform_value(shader, "gbuffer_position", position_uniform);
         set_shader_uniform_value(shader, "gbuffer_normal", normal_uniform);
         set_shader_uniform_value(shader, "gbuffer_base_color", base_color_uniform);
+        set_shader_uniform_value(shader, "ssao", ssao_uniform);
+        set_shader_uniform_value(shader, "use_ssao", shader.use_ssao);
 
     }
 }

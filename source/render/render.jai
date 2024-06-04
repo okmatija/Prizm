@@ -538,14 +538,14 @@ render_entities_gbuffer :: () {
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
-    debug_blit_texture();
+    // debug_blit_texture();
 
 
     //{
     //    DebugScopeGLGroup("SSAO blur pass");
     //}
 
-    if false {
+    {
         DebugScopeGLGroup("lighting pass");
 
         // Lighting pass
@@ -553,6 +553,7 @@ render_entities_gbuffer :: () {
         glClearColor(0., 0., 0., 1.); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        app.shader_lighting.use_ssao = (app.shader_ssao.kernel_kind != .DISABLED);
         use_shader(*app.shader_lighting);
 
         glBindVertexArray(app.quad_vao);

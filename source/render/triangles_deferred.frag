@@ -15,6 +15,8 @@ uniform Camera camera;
 // uniform sampler2D gbuffer_position;
 uniform sampler2D gbuffer_normal;
 uniform sampler2D gbuffer_base_color; // albedo
+uniform sampler2D ssao;
+uniform bool use_ssao;
 
 vec3 ambient_color   = vec3(0.0);
 vec3 specular_color  = vec3(1.0);
@@ -47,6 +49,9 @@ void main()
     // vec3 position_world = texture(gbuffer_position, tex_coords).rgb;
 
     float ambient_occlusion = 1.;
+    if (use_ssao) {
+        ambient_occlusion = texture(ssao, tex_coords).r;
+    }
 
     //switch (display_mode)
     {
@@ -61,7 +66,7 @@ void main()
             float light_power = 1.;
 
             vec3 diffuse_color = texture(gbuffer_base_color, tex_coords).rgb; // nocommit vec4?
-            ambient_color = 0.1 * diffuse_color * ambient_occlusion;
+            ambient_color = .3 * diffuse_color * ambient_occlusion;
             vec4 color_linear = vec4(0, 0, 0, 1);
             color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power, diffuse_color);
             vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
