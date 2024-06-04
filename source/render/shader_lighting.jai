@@ -32,7 +32,7 @@ Shader_Lighting :: struct {
         position_uniform := Texture_Uniform.{*app.geometry_pass.position, 0, "position"};
         normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, 1, "normal"};
         base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, 2, "base_color"};
-        ssao_uniform := Texture_Uniform.{*app.ssao_pass.ssao_color, 3, "ssao"};
+        ssao_uniform := Texture_Uniform.{*app.ssao_blur_pass.ssao_blurred, 3, "ssao"};
 
         // set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);

@@ -208,28 +208,48 @@ use_ssao_pass :: () {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, pass.ssao_noise.gl_handle);
     debug_label_object(GL_TEXTURE, pass.ssao_noise.gl_handle, "tex_noise");
-
-    // @TODO Replace with texture?
-    for pass.ssao_kernel {
-        glUniform3f(glGetUniformLocation(app.shader_ssao.program, temp_c_string(tprint("samples[%]", it_index))), it.x, it.y, it.z);
-    }
-
-    // TODO depth
-
-    // glCullFace(GL_BACK);
-    // glDepthFunc(GL_LESS);
-    // glEnable(GL_DEPTH_TEST);
-    // glDisable(GL_BLEND);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    //glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
 }
 
 Ssao_Blur_Pass :: struct {
+    framebuffer : Framebuffer;
+
     // Inputs (Read textures)
     ssao : *Texture;
 
     // Outputs (Write textures)
     ssao_blurred : Texture;
+    ssao_blurred.format = .R32F;
+    ssao_blurred.filter =.NEAREST;
+    ssao_blurred.wrap = .REPEAT;
+}
+
+init_ssao_blur_pass :: () {
+    pass : *Ssao_Blur_Pass = *app.ssao_blur_pass;
+    pass.ssao = *app.ssao_pass.ssao_color;
+
+    glGenFramebuffers(1, *pass.framebuffer.gl_handle);
+    glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
+
+    texture_init(*pass.ssao_blurred, app.window_size.width, app.window_size.height);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pass.ssao_blurred.gl_handle, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
+}
+
+use_ssao_blur_pass :: () {
+
+    pass : *Ssao_Blur_Pass = *app.ssao_blur_pass;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
+    //assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    //glClearColor(0., 0., 0., 1.); // Must use a black clear color for the geometry pass!
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // // @Think Maybe we can have the metaprogram check that the app global variable is not modified in these functions
+    // // FIXME: When rendering entities we clear the depth buffer which means the order of these functions is quite @Volatile!
+    // glBindTexture(GL_TEXTURE_2D, app.render_info.gbuffer_albedo_texture);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, pass.ssao.gl_handle);
+    debug_label_object(GL_TEXTURE, pass.ssao.gl_handle, "occlusion_input");
 }

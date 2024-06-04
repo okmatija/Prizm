@@ -538,12 +538,18 @@ render_entities_gbuffer :: () {
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
+
+    {
+       DebugScopeGLGroup("SSAO blur pass");
+
+        use_ssao_blur_pass();
+        use_shader(*app.shader_ssao_blur);
+
+        glBindVertexArray(app.quad_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);  
+    }
+
     // debug_blit_texture();
-
-
-    //{
-    //    DebugScopeGLGroup("SSAO blur pass");
-    //}
 
     {
         DebugScopeGLGroup("lighting pass");

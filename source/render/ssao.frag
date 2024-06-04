@@ -17,7 +17,7 @@ uniform bool hemisphere_kernel;
 // TODO make these uniforms
 int kernel_size = 64; // @Volatile samples.count == kernel_size
 float radius = 0.5;
-float bias = 0.025;
+float bias = 0.025 * 2; // nocommit Make this a parameter, check parameters in other software...we dont want loads of knobs though, especially when Prizm can be compiled from source
 
 void main()
 {

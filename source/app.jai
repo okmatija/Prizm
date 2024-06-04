@@ -164,10 +164,12 @@ App_Render_Info :: struct {
 
     geometry_pass : Geometry_Pass;
     ssao_pass : Ssao_Pass;
+    ssao_blur_pass : Ssao_Blur_Pass;
 
     // GBuffer ("Geometry Buffer") for deferred rendering of opaque items
     shader_geometry : Shader_Geometry;
     shader_ssao : Shader_Ssao;
+    shader_ssao_blur : Shader_Ssao_Blur;
     shader_lighting : Shader_Lighting;
 
     /*

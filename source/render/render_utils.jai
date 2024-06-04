@@ -96,6 +96,7 @@ init_rendering :: () {
 
     init_geometry_pass();
     init_ssao_pass();
+    init_ssao_blur_pass();
 
     //
     // Init shaders
@@ -105,6 +106,7 @@ init_rendering :: () {
 
     init_shader(*app.shader_geometry);
     init_shader(*app.shader_ssao);
+    init_shader(*app.shader_ssao_blur);
     init_shader(*app.shader_lighting);
 
     init_shader(*app.shader_aabb);
@@ -378,6 +380,7 @@ Debug_Channel :: enum {
     GBUFFER_NORMAL :: 1;
     GBUFFER_POSITION :: 2;
     SSAO_COLOR :: 3;
+    SSAO_COLOR_BLURRED :: 4;
 }
 
 debug_blit_texture :: () {
@@ -431,6 +434,12 @@ debug_blit_texture :: () {
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, app.ssao_pass.ssao_color.gl_handle);
+        glUniform1i(screen_texture_loc, 0);
+
+    case .SSAO_COLOR_BLURRED;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app.ssao_blur_pass.ssao_blurred.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
     }

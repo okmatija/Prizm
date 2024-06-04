@@ -57,7 +57,30 @@ Shader_Ssao :: struct {
     }
 }
 
+Shader_Ssao_Blur :: struct {
+    using #as base : Shader;
+
+    init_shader :: (shader : *Shader) {
+
+        shader.program = get_shader_program(SSAO_VERT, SSAO_BLUR_FRAG);
+
+        cache_shader_uniform_location(shader, "occlusion_input", .Texture);
+    }
+
+    use_shader :: (shader : *Shader_Ssao_Blur) { // nocommit Why pointer? change the use_shader helper as well
+
+        // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
+        glUseProgram(shader.program);
+        assert(glIsProgram(shader.program) == GL_TRUE);
+
+        ssao := Texture_Uniform.{app.ssao_blur_pass.ssao, 0, "occlusion_input"};
+        set_shader_uniform_value(shader, "occlusion_input", ssao);
+    }
+}
+
+
 #scope_file
 
 SSAO_VERT, SSAO_VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(SSAO_VERT_OK);
 SSAO_FRAG, SSAO_FRAG_OK :: #run read_entire_file("source/render/ssao.frag"); #assert(SSAO_FRAG_OK);
+SSAO_BLUR_FRAG, SSAO_BLUR_FRAG_OK :: #run read_entire_file("source/render/ssao_blur.frag"); #assert(SSAO_BLUR_FRAG_OK);

@@ -9,6 +9,7 @@ const int Debug_Channel_GBUFFER_BASE_COLOR = 0;
 const int Debug_Channel_GBUFFER_NORMAL = 1;
 const int Debug_Channel_GBUFFER_POSITION = 2;
 const int Debug_Channel_SSAO_COLOR = 3;
+const int Debug_Channel_SSAO_COLOR_BLURRED = 4;
 
 
 uniform int channel = Debug_Channel_GBUFFER_NORMAL;
@@ -40,6 +41,11 @@ void main() {
         frag_color = vec4(visualized_color, 1);
 
     } else if (channel == Debug_Channel_SSAO_COLOR) {
+
+        float sample = texture(screen_texture, tex_coords).r;
+        frag_color = vec4(sample,sample,sample,1);
+
+    } else if (channel == Debug_Channel_SSAO_COLOR_BLURRED) {
 
         float sample = texture(screen_texture, tex_coords).r;
         frag_color = vec4(sample,sample,sample,1);
