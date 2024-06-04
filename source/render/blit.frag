@@ -42,7 +42,7 @@ void main() {
     } else if (channel == Debug_Channel_SSAO_COLOR) {
 
         float sample = texture(screen_texture, tex_coords).r;
-        frag_color = vec4(sample,0,0,1);
+        frag_color = vec4(sample,sample,sample,1);
 
     }
 

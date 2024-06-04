@@ -1,6 +1,14 @@
 Shader_Ssao :: struct {
     using #as base : Shader;
 
+    Ssao_Kernel_Kind :: enum {
+        DISABLED; // Disable SSAO. nocommit Implement this!
+        SPHERE;
+        HEMISPHERE;
+    };
+
+    kernel_kind : Ssao_Kernel_Kind = .SPHERE;
+
     init_shader :: (shader : *Shader) {
 
         shader.program = get_shader_program(SSAO_VERT, SSAO_FRAG);
@@ -8,15 +16,19 @@ Shader_Ssao :: struct {
         cache_shader_uniform_location(shader, "tex_position", .Texture);
         cache_shader_uniform_location(shader, "tex_normal", .Texture);
         cache_shader_uniform_location(shader, "tex_noise", .Texture);
-        // cache_shader_uniform_location(shader, "samples", .XXX);
         cache_shader_uniform_location(shader, "window_width", .Float1);
         cache_shader_uniform_location(shader, "window_height", .Float1);
         cache_shader_uniform_location(shader, "clip_from_view", .Matrix4);
         cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
+        cache_shader_uniform_location(shader, "hemisphere_kernel", .Bool);
+
+        for app.ssao_pass.ssao_kernel {
+            cache_shader_uniform_location(shader, tprint("samples[%]", it_index), .Float3);
+        }
 
     }
 
-    use_shader :: (shader : *Shader) { // nocommit Why pointer? change the use_shader helper as well
+    use_shader :: (shader : *Shader_Ssao) { // nocommit Why pointer? change the use_shader helper as well
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
@@ -32,11 +44,15 @@ Shader_Ssao :: struct {
         set_shader_uniform_value(shader, "tex_position", position);
         set_shader_uniform_value(shader, "tex_normal", normal);
         set_shader_uniform_value(shader, "tex_noise", noise);
-        //set_shader_uniform_value(shader, "samples", .Float3); // nocommit
         set_shader_uniform_value(shader, "window_width", cast(float)app.window_size.width);
         set_shader_uniform_value(shader, "window_height", cast(float)app.window_size.height);
         set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
         set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
+        set_shader_uniform_value(shader, "hemisphere_kernel", shader.kernel_kind == .HEMISPHERE);
+
+        for app.ssao_pass.ssao_kernel {
+            set_shader_uniform_value(shader, tprint("samples[%]", it_index), it.component);
+        }
 
     }
 }

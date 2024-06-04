@@ -160,7 +160,7 @@ init_ssao_pass :: () {
         for * pass.ssao_kernel {
             it.x = random_get_zero_to_one() * 2. - 1.;
             it.y = random_get_zero_to_one() * 2. - 1.;
-            it.z = random_get_zero_to_one(); // Hemisphere nocommit We should also try a spherical kernel
+            it.z = random_get_zero_to_one() * 2. - 1.;
             normalize(it);
             it.* *= random_get_zero_to_one();
 

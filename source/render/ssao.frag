@@ -7,19 +7,17 @@ in vec2 tex_coords;
 uniform sampler2D tex_position;
 uniform sampler2D tex_normal;
 uniform sampler2D tex_noise;
-
 uniform vec3 samples[64]; // @Volatile samples.count == kernel_size
-
 uniform float window_width;
 uniform float window_height;
+uniform mat4 clip_from_view;
+uniform mat4 view_from_world;
+uniform bool hemisphere_kernel;
 
 // TODO make these uniforms
 int kernel_size = 64; // @Volatile samples.count == kernel_size
 float radius = 0.5;
 float bias = 0.025;
-
-uniform mat4 clip_from_view;
-uniform mat4 view_from_world;
 
 void main()
 {
@@ -43,15 +41,19 @@ void main()
     for(int i = 0; i < kernel_size; ++i)
     {
         // Get sample position
-        vec3 sample_position = TBN * samples[i]; // from tangent to view-space
+        vec3 sample = samples[i];
+        if (hemisphere_kernel && sample.z < 0.) {
+            sample.z *= -1;
+        }
+        vec3 sample_position = TBN * sample; // from tangent to view-space
         sample_position = frag_position + sample_position * radius; 
-        
+
         // Project sample position (to sample texture) (to get position on screen/texture)
         vec4 offset = vec4(sample_position, 1.0);
         offset = clip_from_view * offset; // From view to clip-space
         offset.xyz /= offset.w; // Perspective divide
         offset.xyz = offset.xyz * 0.5 + 0.5; // Transform to range [0, 1]
-        
+
         // Get sample depth
         vec4 sample_position_world = vec4(texture(tex_position, offset.xy).xyz, 1.);
         float sample_depth = (view_from_world * sample_position_world).z; // get depth value of kernel sample

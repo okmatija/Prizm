@@ -1119,6 +1119,21 @@ DONE, Labelling_Mode.RAY_CAST));
     //    defer ImGui.EndMenu();
     //}
 
+    if ImGui.BeginMenu("Rendering") {
+        defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
+
+        combo_box("SSAO Kernel", *app.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind));
+        // @Cleanup Use a table to eliminate this brittle space alignment
+        show_tooltip(tprint(#string DONE
+%:   Disable SSAO. For untextured models SSAO improves clarity.
+%:     Darkens concave/"inner" edges and lightens convex edges (default).
+%: Darkens concave/"inner" edges, convex edges/flat planes unmodified.
+DONE, Shader_Ssao.Ssao_Kernel_Kind.DISABLED, Shader_Ssao.Ssao_Kernel_Kind.SPHERE, Shader_Ssao.Ssao_Kernel_Kind.HEMISPHERE));
+    }
+
     if ImGui.BeginMenu("Labelling") {
         defer ImGui.EndMenu();
 
