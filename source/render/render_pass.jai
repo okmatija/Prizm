@@ -123,7 +123,7 @@ Ssao_Pass :: struct {
     ssao_noise.filter =.NEAREST;
     ssao_noise.wrap = .REPEAT; // We will use tile the whole screen with this noise texture
 
-    ssao_kernel : [64]Vector3 = ---; // @TODO Make this a texture?
+    ssao_kernel : [Shader_Ssao.SAMPLES_MAX]Vector3 = ---; // @TODO Make this a texture?
 
     // Outputs (Write textures)
     ssao_color : Texture;
@@ -143,15 +143,6 @@ init_ssao_pass :: () {
 
     texture_init(*pass.ssao_color, app.window_size.width, app.window_size.height);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pass.ssao_color.gl_handle, 0);
-
-    // attachments : [1]GLenum = .[GL_COLOR_ATTACHMENT0];
-    // glDrawBuffers(1, attachments.data);
-    // assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-    // status := glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    // if status != GL_FRAMEBUFFER_COMPLETE {
-    //     //print_stack_trace();
-    //     assert(false, "Framebuffer error.\n");
-    // }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
 

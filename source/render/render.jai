@@ -549,7 +549,7 @@ render_entities_gbuffer :: () {
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
-    // debug_blit_texture();
+    //debug_blit_texture();
 
     {
         DebugScopeGLGroup("lighting pass");

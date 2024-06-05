@@ -1132,6 +1132,18 @@ DONE, Labelling_Mode.RAY_CAST));
 %:     Darkens concave/"inner" edges and lightens convex edges (default).
 %: Darkens concave/"inner" edges, convex edges/flat planes unmodified.
 DONE, Shader_Ssao.Ssao_Kernel_Kind.DISABLED, Shader_Ssao.Ssao_Kernel_Kind.SPHERE, Shader_Ssao.Ssao_Kernel_Kind.HEMISPHERE));
+
+        if (app.shader_ssao.kernel_kind == .DISABLED) {
+            ImGui.BeginDisabled();
+        }
+
+        ImGui.DragFloat("SSAO bias", *app.shader_ssao.bias, .001, 0., .2, format="%.3f");
+        ImGui.DragFloat("SSAO kernel radius", *app.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
+        ImGui.DragInt("SSAO sample count", *app.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
+
+        if (app.shader_ssao.kernel_kind == .DISABLED) {
+            ImGui.EndDisabled();
+        }
     }
 
     if ImGui.BeginMenu("Labelling") {

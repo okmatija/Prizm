@@ -7,17 +7,16 @@ in vec2 tex_coords;
 uniform sampler2D tex_position;
 uniform sampler2D tex_normal;
 uniform sampler2D tex_noise;
-uniform vec3 samples[64]; // @Volatile samples.count == kernel_size
 uniform float window_width;
 uniform float window_height;
 uniform mat4 clip_from_view;
 uniform mat4 view_from_world;
 uniform bool hemisphere_kernel;
 
-// TODO make these uniforms
-int kernel_size = 64; // @Volatile samples.count == kernel_size
-float radius = 0.5;
-float bias = 0.025 * 2; // nocommit Make this a parameter, check parameters in other software...we dont want loads of knobs though, especially when Prizm can be compiled from source
+uniform vec3 samples[64]; // @Volatile samples.count == SAMPLES_MAX
+uniform int samples_count;
+uniform float bias;
+uniform float radius;
 
 void main()
 {
@@ -38,7 +37,7 @@ void main()
     
     // iterate over the sample kernel and calculate occlusion factor
     float occlusion = 0.0;
-    for(int i = 0; i < kernel_size; ++i)
+    for(int i = 0; i < samples_count; ++i)
     {
         // Get sample position
         vec3 sample = samples[i];
@@ -62,7 +61,7 @@ void main()
         float range_check = smoothstep(0.0, 1.0, radius / abs(frag_position.z - sample_depth));
         occlusion += (sample_depth >= sample_position.z + bias ? 1.0 : 0.0) * range_check;           
     }
-    occlusion = 1.0 - (occlusion / kernel_size);
+    occlusion = 1.0 - (occlusion / samples_count);
     
     frag_color = occlusion;
 }

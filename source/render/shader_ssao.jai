@@ -7,7 +7,11 @@ Shader_Ssao :: struct {
         HEMISPHERE;
     };
 
+    SAMPLES_MAX : s32 : 64; // @Volatile In the shader samples.count == SAMPLES_MAX
+    samples_count : s32 = SAMPLES_MAX;
     kernel_kind : Ssao_Kernel_Kind = .SPHERE;
+    kernel_radius := 1.5;
+    bias : float = .05;
 
     init_shader :: (shader : *Shader) {
 
@@ -21,6 +25,9 @@ Shader_Ssao :: struct {
         cache_shader_uniform_location(shader, "clip_from_view", .Matrix4);
         cache_shader_uniform_location(shader, "view_from_world", .Matrix4);
         cache_shader_uniform_location(shader, "hemisphere_kernel", .Bool);
+        cache_shader_uniform_location(shader, "samples_count", .Int1);
+        cache_shader_uniform_location(shader, "radius", .Float1);
+        cache_shader_uniform_location(shader, "bias", .Float1);
 
         for app.ssao_pass.ssao_kernel {
             cache_shader_uniform_location(shader, tprint("samples[%]", it_index), .Float3);
@@ -49,6 +56,11 @@ Shader_Ssao :: struct {
         set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
         set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
         set_shader_uniform_value(shader, "hemisphere_kernel", shader.kernel_kind == .HEMISPHERE);
+        assert(shader.samples_count >= 0);
+        assert(shader.samples_count <= SAMPLES_MAX);
+        set_shader_uniform_value(shader, "samples_count", shader.samples_count);
+        set_shader_uniform_value(shader, "radius", shader.kernel_radius);
+        set_shader_uniform_value(shader, "bias", shader.bias);
 
         for app.ssao_pass.ssao_kernel {
             set_shader_uniform_value(shader, tprint("samples[%]", it_index), it.component);
