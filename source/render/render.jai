@@ -494,10 +494,6 @@ render_entities :: () {
     for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
 }
 
-set_gbuffer_program :: () {
-
-}
-
 render_entities_gbuffer :: () {
 
     DebugScopeGLGroup("render_entities_gbuffer");
@@ -505,9 +501,11 @@ render_entities_gbuffer :: () {
     //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
 
     {
-        DebugScopeGLGroup("geometry pass");
+        DebugScopeGLGroup("Geometry Pass");
 
         use_geometry_pass();
+
+        render_background();
 
         for :VisibleOpaque app.entities {
             ri := *it.render_info;
@@ -529,7 +527,7 @@ render_entities_gbuffer :: () {
     }
 
     {
-        DebugScopeGLGroup("SSAO pass");
+        DebugScopeGLGroup("SSAO Pass");
 
         use_ssao_pass();
         use_shader(*app.shader_ssao);
@@ -540,7 +538,7 @@ render_entities_gbuffer :: () {
 
 
     {
-       DebugScopeGLGroup("SSAO blur pass");
+       DebugScopeGLGroup("SSAO Blur Pass");
 
         use_ssao_blur_pass();
         use_shader(*app.shader_ssao_blur);
@@ -549,23 +547,21 @@ render_entities_gbuffer :: () {
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
-    //debug_blit_texture();
-
     {
-        DebugScopeGLGroup("lighting pass");
+        DebugScopeGLGroup("Lighting Pass");
 
-        // Lighting pass
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-        glClearColor(0., 0., 0., 1.); 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        app.shader_lighting.use_ssao = (app.shader_ssao.kernel_kind != .DISABLED);
+        use_lighting_pass();
         use_shader(*app.shader_lighting);
 
         glBindVertexArray(app.quad_vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
+    {
+        DebugScopeGLGroup("Render to Screen Pass");
+
+        blit_texture();
+    }
 }
 
 
@@ -638,8 +634,6 @@ render_background :: () {
 
         case .CUSTOM_SHADER;
 
-            // FIXMEEE We can remove this is we put the quad on the far plan..!?
-            // FIXMEEE When I remove this the depth tests for other shaders gets screwed up... I should add that!
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
 

@@ -1144,6 +1144,8 @@ DONE, Shader_Ssao.Ssao_Kernel_Kind.DISABLED, Shader_Ssao.Ssao_Kernel_Kind.SPHERE
         if (app.shader_ssao.kernel_kind == .DISABLED) {
             ImGui.EndDisabled();
         }
+
+        combo_box("Show Channel", *app.blit_channel, type_info(Blit_Channel));
     }
 
     if ImGui.BeginMenu("Labelling") {

@@ -13,7 +13,7 @@ Shader_Geometry :: struct {
 
     }
 
-    use_shader :: (shader : Shader, using mesh : Simple_Mesh, base_color : Vector4) {
+    use_shader :: (shader : Shader, mesh : Simple_Mesh, base_color : Vector4) {
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
@@ -22,7 +22,7 @@ Shader_Geometry :: struct {
         view_from_world := make_look_at_matrix(app.camera);
         clip_from_view := make_orthographic_projection_matrix(app.camera);
 
-        set_shader_uniform_value(shader, "world_from_model", world_from_model.floats);
+        set_shader_uniform_value(shader, "world_from_model", mesh.world_from_model.floats);
         set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
         set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
         set_shader_uniform_value(shader, "base_color", base_color.component);

@@ -97,6 +97,7 @@ init_rendering :: () {
     init_geometry_pass();
     init_ssao_pass();
     init_ssao_blur_pass();
+    init_lighting_pass();
 
     //
     // Init shaders
@@ -375,15 +376,16 @@ debug_print_active_uniforms :: (program : GLuint, loc := #caller_location) {
     }
 }
 
-Debug_Channel :: enum {
+Blit_Channel :: enum {
     GBUFFER_BASE_COLOR :: 0;
     GBUFFER_NORMAL :: 1;
     GBUFFER_POSITION :: 2;
     SSAO_COLOR :: 3;
     SSAO_COLOR_BLURRED :: 4;
+    DEFAULT_LIT :: 5;
 }
 
-debug_blit_texture :: () {
+blit_texture :: () {
     //glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer_framebuffer);
     //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
     //// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
@@ -392,13 +394,6 @@ debug_blit_texture :: () {
     //w, h := app.window_size.width, app.window_size.height;
     //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    DebugScopeGLGroup("debug gbuffer");
-
-    channel : Debug_Channel = cast(Debug_Channel)app.debug_int;
-    combo_box("Debug Channel", *channel, type_info(Debug_Channel));
-    app.debug_int = cast(int)channel;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
     glClearColor(0., 0., 0., 1.); 
@@ -411,7 +406,7 @@ debug_blit_texture :: () {
     glDisable(GL_DEPTH_TEST);
 
     screen_texture_loc := glGetUniformLocation(app.blit_program, "screen_texture");
-    if #complete channel == {
+    if #complete app.blit_channel == {
     case .GBUFFER_BASE_COLOR;
 
         glActiveTexture(GL_TEXTURE2);
@@ -442,10 +437,16 @@ debug_blit_texture :: () {
         glBindTexture(GL_TEXTURE_2D, app.ssao_blur_pass.ssao_blurred.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
+    case .DEFAULT_LIT;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app.lighting_pass.lit.gl_handle);
+        glUniform1i(screen_texture_loc, 0);
+
     }
 
     channel_loc := glGetUniformLocation(app.blit_program, "channel");
-    glUniform1i(channel_loc, xx channel);
+    glUniform1i(channel_loc, xx app.blit_channel);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);  
 }

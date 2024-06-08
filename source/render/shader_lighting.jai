@@ -1,8 +1,6 @@
 Shader_Lighting :: struct {
     using #as base : Shader;
 
-    use_ssao : bool;
-
     init_shader :: (shader : *Shader) {
 
         shader.program = get_shader_program(LIGHTING_VERT, LIGHTING_FRAG);
@@ -33,6 +31,7 @@ Shader_Lighting :: struct {
         normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, 1, "normal"};
         base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, 2, "base_color"};
         ssao_uniform := Texture_Uniform.{*app.ssao_blur_pass.ssao_blurred, 3, "ssao"};
+        use_ssao : bool = (app.shader_ssao.kernel_kind != .DISABLED);
 
         // set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);
@@ -41,7 +40,7 @@ Shader_Lighting :: struct {
         set_shader_uniform_value(shader, "gbuffer_normal", normal_uniform);
         set_shader_uniform_value(shader, "gbuffer_base_color", base_color_uniform);
         set_shader_uniform_value(shader, "ssao", ssao_uniform);
-        set_shader_uniform_value(shader, "use_ssao", shader.use_ssao);
+        set_shader_uniform_value(shader, "use_ssao", use_ssao);
 
     }
 }

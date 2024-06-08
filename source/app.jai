@@ -160,28 +160,18 @@ App_Render_Info :: struct {
 
     quad_vao : GLuint;
 
-    blit_program : GLuint; // Used to blit framebuffer textures nocommit Is this the portable way to do it?
+    blit_program : GLuint; // Used to blit framebuffer textures to the screen
+    blit_channel : Blit_Channel = .DEFAULT_LIT;
 
     geometry_pass : Geometry_Pass;
     ssao_pass : Ssao_Pass;
     ssao_blur_pass : Ssao_Blur_Pass;
+    lighting_pass : Lighting_Pass;
 
-    // GBuffer ("Geometry Buffer") for deferred rendering of opaque items
     shader_geometry : Shader_Geometry;
     shader_ssao : Shader_Ssao;
     shader_ssao_blur : Shader_Ssao_Blur;
     shader_lighting : Shader_Lighting;
-
-    /*
-    ssao_program : GLuint;
-    ssao_blur_program : GLuint;
-    ssao_vao : GLuint;
-
-    ssao_framebuffer : GLuint;
-    ssao_color_texture : GLuint;
-    ssao_blur_texture : GLuint;
-    ssao_noise_texture : GLuint;
-    */
 }
 
 // @Incomplete Deduplicate file watcher directories on linux
