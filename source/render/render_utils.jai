@@ -64,35 +64,11 @@ resize_textures :: () {
 init_rendering :: () {
     DebugScopeGLGroup("init_rendering");
 
-    //
-    // Init GBuffer framebuffer
-    //
-
     w, h : u32 = cast(u32)app.window_size.width, cast(u32)app.window_size.height;
 
     //
-    // Init SSAO framebuffer
+    // Init Framebuffers
     //
-
-    /*
-    {
-        glGenFramebuffers(1, *app.render_info.framebuffer);
-        glGenTextures(1, *app.render_info.framebuffer_color);
-        glGenTextures(1, *app.render_info.framebuffer_depth);
-        glGenTextures(1, *app.render_info.ssao_noise);
-
-        resize_textures();
-
-        // Attach texture to the framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, app.render_info.framebuffer);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app.render_info.framebuffer_color, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app.render_info.framebuffer_depth, 0);
-        //GL_DEPTH_ATTACHMENT // TODO
-        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Restore the default framebuffer after initialization
-
-    }
-    */
 
     init_geometry_pass();
     init_ssao_pass();
@@ -100,10 +76,10 @@ init_rendering :: () {
     init_lighting_pass();
 
     //
-    // Init shaders
+    // Init Shaders
     //
 
-    // @Cleanup We read the same file multiple times which sucks.
+    // @Cleanup We read the same shader files multiple times which sucks.
 
     init_shader(*app.shader_geometry);
     init_shader(*app.shader_ssao);
@@ -125,19 +101,6 @@ init_rendering :: () {
         VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
         FRAG, FRAG_OK :: #run read_entire_file("source/render/blit.frag"); #assert(FRAG_OK);
         app.blit_program = get_shader_program(VERT, FRAG);
-    }
-
-    #if false { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/ssao_blur.frag"); #assert(FRAG_OK);
-        app.ssao_blur_program = get_shader_program(VERT, FRAG);
-    }
-
-    #if false { // nocommit
-        VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/ssao.frag"); #assert(FRAG_OK);
-        app.ssao_program = get_shader_program(VERT, FRAG);
-        glGenVertexArrays(1, *app.ssao_vao);
     }
 }
 

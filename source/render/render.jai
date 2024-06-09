@@ -501,8 +501,6 @@ render_entities_gbuffer :: () {
     //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
 
     {
-        DebugScopeGLGroup("Geometry Pass");
-
         use_geometry_pass();
 
         render_background();
@@ -516,7 +514,7 @@ render_entities_gbuffer :: () {
 
             maybe_update_render_info(ri, *it.mesh);
 
-            app.shader_geometry.use_shader(*app.shader_geometry, it.mesh, di.triangle_style.color);
+            app.shader_geometry.use_shader(*app.shader_geometry, it);
             //debug_print_active_uniforms(app.shader_geometry.program);
 
             // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
@@ -527,8 +525,6 @@ render_entities_gbuffer :: () {
     }
 
     {
-        DebugScopeGLGroup("SSAO Pass");
-
         use_ssao_pass();
         use_shader(*app.shader_ssao);
 
@@ -538,8 +534,6 @@ render_entities_gbuffer :: () {
 
 
     {
-       DebugScopeGLGroup("SSAO Blur Pass");
-
         use_ssao_blur_pass();
         use_shader(*app.shader_ssao_blur);
 
@@ -548,8 +542,6 @@ render_entities_gbuffer :: () {
     }
 
     {
-        DebugScopeGLGroup("Lighting Pass");
-
         use_lighting_pass();
         use_shader(*app.shader_lighting);
 
