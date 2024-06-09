@@ -44,7 +44,7 @@ Shader_Ssao :: struct {
         clip_from_view := make_orthographic_projection_matrix(app.camera);
         view_from_world := make_look_at_matrix(app.camera);
 
-        position := Texture_Uniform.{*app.geometry_pass.position, 0, "tex_position"};
+        position := Texture_Uniform.{*app.geometry_pass.position, 0, "tex_position"}; // @Speed @TODOOO Use unprojected depth buffer here instead!   
         normal := Texture_Uniform.{*app.geometry_pass.normal, 1, "tex_normal"};
         noise := Texture_Uniform.{*app.ssao_pass.ssao_noise, 2, "tex_noise"};
 

@@ -176,20 +176,15 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-#if false {
-        render_background();
-        render_selections();
-        render_entities(); // forward rendering
-} else {
-        render_entities_gbuffer();
-
-        //// Deferred rendering plan:
-        //geometry_pass(); // Input: Item Color and shape, Output: position_texture, normal_texture
-        //ssao_pass(); // Input: position_texture (z==depth), normal_texture, noise_texture, Output: ssao_texture
-        //ssao_blur_pass(); // Input: ssao_texture, Output blurred_ssao_texture
-        //lighting_pass(); // Input: textures Output: color_texture
-        //render_to_screen_pass(); // Output: color_texture to screen
-}
+        if app.settings.use_deferred_renderer {
+            // deferred rendering (WIP)
+            render_entities_gbuffer();
+        } else {
+            // forward rendering
+            render_background();
+            render_selections();
+            render_entities();
+        }
 
         render_text();
         render_axes_triad();

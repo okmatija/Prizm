@@ -30,7 +30,7 @@ void main()
     vec3 normal = (transpose(inverse(view_from_world)) * vec4(normal_world, 0.)).xyz;
     vec3 noise_offset = normalize(texture(tex_noise, tex_coords * noise_scale).xyz);
 
-    // create TBN change-of-basis matrix: from tangent-space to view-space
+    // create TBN change-of-basis matrix: from tangent-space to view-space @Cleanup only need this with hemisphere kernel
     vec3 tangent = normalize(noise_offset - normal * dot(noise_offset, normal));
     vec3 bi_tangent = cross(normal, tangent);
     mat3 TBN = mat3(tangent, bi_tangent, normal);

@@ -92,7 +92,7 @@ init_geometry_pass :: () {
     texture_init(*pass.base_color, app.window_size.width, app.window_size.height);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, pass.base_color.gl_handle, 0);
 
-    attachments : [3]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2];
+    attachments : [3]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2]; // nocommit no GL_DEPTH_ATTACHMENT?
     glDrawBuffers(3, attachments.data);
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);

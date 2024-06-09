@@ -339,6 +339,7 @@ User_Settings :: struct {
     disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
+    use_deferred_renderer := false; // This is an experimental WIP
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {

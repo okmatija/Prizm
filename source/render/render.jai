@@ -492,7 +492,7 @@ render_entities_gbuffer :: () {
 
             maybe_update_render_info(ri, *it.mesh);
 
-            app.shader_geometry.use_shader(*app.shader_geometry, it);
+            use_shader(*app.shader_geometry, it);
             //debug_print_active_uniforms(app.shader_geometry.program);
 
             // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
@@ -608,7 +608,7 @@ render_background :: () {
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
 
-            app.shader_background.use_shader(*app.shader_background);
+            use_shader(*app.shader_background);
 
             glBindVertexArray(app.shader_background.vao);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

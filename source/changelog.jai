@@ -98,6 +98,8 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Cleanup shader code
     * TODO Make backtick cycle the terminal state from transparent to opaque and off. Esc always turns it off
     * TODOOOOOO Console save button, actually just remove that and the options menu, and just  
+    * TODOOOOOO Fix bug where camera planes don't update correctly when panning, which makes things clip when you rotate
+    * TODOOO When you use item_perturb_positions reloading via F5 does not work afterwards
 
 // We use reflection to determine uniform locations in the shader. Each derived shader type
 // will use the members of the Uniforms struct member (if there is no such member the shader

@@ -2175,8 +2175,6 @@ SOFTWARE.
 DONE);
         }
 
-        // nocommit Mention KodaJai here
-
         if ImGui.TreeNodeEx(temp_c_string(tprint("Jai % (twitter.com/Jonathan_Blow)", COMPILER_VERSION)), .SpanAvailWidth) {
             defer ImGui.TreePop();
             ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.changelog_color);

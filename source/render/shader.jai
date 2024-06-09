@@ -17,10 +17,6 @@ init_shader :: (shader : *$T/Shader) {
 use_shader :: (shader : *$T/Shader, entity : Entity) {
     shader.use_shader(shader, entity);
 }
-// nocommit remove this
-use_shader :: (shader : *$T/Shader, mesh : Simple_Mesh) {
-    shader.use_shader(shader, mesh);
-}
 use_shader :: (shader : *$T/Shader) {
     shader.use_shader(shader);
 }
