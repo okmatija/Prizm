@@ -7,13 +7,13 @@
 #
 # Using the scroll wheel while the cursor is over the point where the sliver connects to the bulk
 # of the shape reveals an interesting fold, I wonder what was up there... we may never know. Anyway,
-# another way to make this local geometry easier to look at is by using a clipping sphere to hide
+# another way to make this local geometry easier to look at is by using a clipping ball to hide
 # the rest of the shape, do this by holding Shift and left clicking on a triangle where you would
-# like the clipping sphere to be centered. The radius will be set according to where you release
+# like the clipping ball to be centered. The radius will be set according to where you release
 # the mouse click.
 #
 # Press 'f' to focus the camera on the clipped geometry
-# Press 'c' to toggle showing/hiding the clipping sphere you just created (maybe press 'f' again)
+# Press 'c' to toggle showing/hiding the clipping ball you just created (maybe press 'f' again)
 #
 
 

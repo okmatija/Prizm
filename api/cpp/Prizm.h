@@ -125,7 +125,7 @@ bool documentation(bool write_files = false);
 //
 // Writes OBJ files and Prizm-specific extensions.
 //
-// See the documentation() function for a demo of the API, athough it should be self-explanatory.
+// See the Prizm::documentation() function for a demo of the API, although it should be self-explanatory.
 //
 // The following page was the reference for the OBJ format: http://paulbourke.net/dataformats/obj/
 // (not everything on that page is implemented). Note Prizm-specific extensions are designed so that

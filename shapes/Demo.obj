@@ -34,8 +34,8 @@ f 11 14 12 # Third triangle
 f 12 14 15 # Fourth triangle
 
 ## Use a #! to call console commands immediately after all geometry is
-## parsed. Here we just log an error (which automatically open the
-## console) but you could configuring render settings, load other files
-## or call a custom command to process loaded geometry/annotations.
+## parsed. Here we just log to the console but you could configuring
+## render settings, load other files or call a custom command to process
+## loaded geometry/annotations.
 
-#! prizm_log_error "Printed via a command annotation in shapes/Demo.obj"
+#! prizm_log "Printed via a command annotation in shapes/Demo.obj"

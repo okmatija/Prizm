@@ -39,6 +39,9 @@ Display_Info :: struct {
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
 
+    clip_radius_mode : bool;
+    clip_radius_mode_show_wireframe : bool;
+
     //
     // Transient data
     //
@@ -128,9 +131,9 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
-    center : Vector3;          @Uniform
-    radius := 0h7F800000;      @Uniform // +inf nocommit Make this a constatn
-    is_active : bool = false;  @Uniform
+    center : Vector3;
+    radius := 0h7F800000; // +inf nocommit Make this a constatn
+    is_active : bool = false;
 }
 
 // Note: all arguments must be in the same space e.g., world/model coordinates
@@ -146,8 +149,12 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
 Normal_Style :: struct {
     visible := false;
     color := Vector4.{0., 0., .8, 1.};
-    scale : float = 1.; // Multiplies the obj normal. If normalized is true then this value is the length
-    normalized : bool = true; // If true the obj normal is normalized before scale is applied
+
+    // Multiplies the obj normal. If normalized is true then this value is the length
+    scale : float = 1.;
+
+    // If true the obj normal is normalized before scale is applied
+    normalized : bool = true;
 }
 
 // Could also be used for tetrahedra edges when/if those are supported
@@ -185,12 +192,13 @@ Triangle_Style :: struct {
     }
 
     visible := false;
+
     color := Vector4.{1., 1., 1., 1.};
     display_mode := Display_Mode.BLINN_PHONG;
     backface_mode := Backface_Mode.FIXED;
     flat_shading := true;
-
     edge_style : Edge_Style;
+
     normal_style : Normal_Style;
 }
 

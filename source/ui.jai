@@ -1107,7 +1107,7 @@ show_preferences :: () {
             show_tooltip(tprint(#string DONE
 CP Query Radius in pixels, this affects:
 - Selection of items and elements
-- Clipping sphere center seeding
+- Clipping ball center seeding
 - Label visibility in % labelling mode
 DONE, Labelling_Mode.RAY_CAST));
             app.settings.closest_point_query_max_dist_px = cast(int) radius_px;
@@ -1118,6 +1118,35 @@ DONE, Labelling_Mode.RAY_CAST));
     //if ImGui.BeginMenu("Camera") {
     //    defer ImGui.EndMenu();
     //}
+
+    if ImGui.BeginMenu("Rendering") {
+        defer ImGui.EndMenu();
+
+        ImGui.PushItemWidth(item_width);
+        defer ImGui.PopItemWidth();
+
+        combo_box("SSAO Kernel", *app.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind));
+        // @Cleanup Use a table to eliminate this brittle space alignment
+        show_tooltip(tprint(#string DONE
+%:   Disable SSAO. For untextured models SSAO improves clarity.
+%:     Darkens concave/"inner" edges and lightens convex edges (default).
+%: Darkens concave/"inner" edges, convex edges/flat planes unmodified.
+DONE, Shader_Ssao.Ssao_Kernel_Kind.DISABLED, Shader_Ssao.Ssao_Kernel_Kind.SPHERE, Shader_Ssao.Ssao_Kernel_Kind.HEMISPHERE));
+
+        if (app.shader_ssao.kernel_kind == .DISABLED) {
+            ImGui.BeginDisabled();
+        }
+
+        ImGui.DragFloat("SSAO bias", *app.shader_ssao.bias, .001, 0., .2, format="%.3f");
+        ImGui.DragFloat("SSAO kernel radius", *app.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
+        ImGui.DragInt("SSAO sample count", *app.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
+
+        if (app.shader_ssao.kernel_kind == .DISABLED) {
+            ImGui.EndDisabled();
+        }
+
+        combo_box("Show Channel", *app.blit_channel, type_info(Blit_Channel));
+    }
 
     if ImGui.BeginMenu("Labelling") {
         defer ImGui.EndMenu();
@@ -2881,14 +2910,14 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                 old_clip_sphere := clip_sphere;
                 
                 BINDING :: "Shift LMB";
-                DESCRIBE :: "Click-drag to set clipping sphere on selected items";
+                DESCRIBE :: "Click-drag to set clipping ball on selected items";
 
                 ImGui.TableSetColumnIndex(0);
-                ImGui.Text("Sphere");
+                ImGui.Text("Ball");
                 show_tooltip_binding(DESCRIBE, BINDING);
                 ImGui.SameLine();
                 ImGui.Checkbox(imgui_label("##clip_sphere", *clip_sphere), *clip_sphere.is_active);
-                show_tooltip("Enable clipping using distance from a point.\nKeep the region inside the sphere.");
+                show_tooltip("Enable clipping using distance from a point.\nKeep the region inside the ball.");
 
                 ImGui.TableSetColumnIndex(1);
                 ImGui.Text("Center");
@@ -2918,7 +2947,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                         clip_sphere.radius = POSITIVE_INF;
                     }
                 }
-                show_tooltip("Reset sphere to contain the universe");
+                show_tooltip("Reset ball to contain the universe");
 
                 get_update(old_clip_sphere, clip_sphere);
             }
@@ -2930,7 +2959,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     MIN_RANGE :: .1;
 
                     ImGui.TableSetColumnIndex(0);
-                    ImGui.Text("Slab  ");
+                    ImGui.Text("Slab");
                     ImGui.SameLine();
                     ImGui.Checkbox(imgui_label("##clip_plane", p), *p.is_active);
                     show_tooltip("Enable clipping using a distance range from a plane passing through the origin.\nKeep the region bounded by the parallel planes positioned at the range min/max.");
@@ -2989,53 +3018,6 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
             }
         }
     }
-}
-
-make_opengl_texture :: (texture_data : *u8, texture_width : s32, texture_height : s32) -> GLuint {
-    gl_handle : GLuint;
-
-    // Create an OpenGL texture identifier
-    glGenTextures(1, *gl_handle);
-    glBindTexture(GL_TEXTURE_2D, gl_handle);
-
-    // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
-
-    // Upload pixels into texture
-    //glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cast(u32)texture_width, cast(u32)texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
-
-    return gl_handle;
-}
-
-load_texture_from_file :: (filename : string) -> Texture, bool {
-    texture : Texture;
-
-    // Load from file
-    texture_data : *u8 = stbi_load(temp_c_string(filename), *texture.width, *texture.height, null, 4);
-    defer stbi_image_free(texture_data);
-
-    if texture_data == null {
-        return texture, false;
-    }
-
-    texture.gl_handle = make_opengl_texture(texture_data, texture.width, texture.height);
-
-    return texture, true;
-}
-
-load_texture_from_memory :: (buffer : []u8) -> Texture, bool {
-    texture : Texture;
-
-    channels : s32;
-    texture_data : *u8 = stbi_load_from_memory(buffer.data, cast(s32)buffer.count, *texture.width, *texture.height, *channels, 4);
-
-    texture.gl_handle = make_opengl_texture(texture_data, texture.width, texture.height);
-
-    return texture, true;
 }
 
 // @Cleanup I think to_c_string leaks memory, perhaps we can fix by pushing the temporary allocator before calling it

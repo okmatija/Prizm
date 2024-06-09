@@ -40,6 +40,12 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Cleanup where the binaries/libaries are stored, to unclutter the top-level directory. Look at Unreal/Focus
     * TODO There is a bug where rotation feels bad when the application has a large aspect ratio e.g., very short and fat???
     * TODO Cleanup shader code
+    * TODO Make backtick cycle the terminal state from transparent to opaque and off. Esc always turns it off
+    * TODOOOOOO Console save button, actually just remove that and the options menu, and just  
+    * TODOOOOOO Fix bug where camera planes don't update correctly when panning, which makes things clip when you rotate
+    * TODOOO When you use item_perturb_positions reloading via F5 does not work afterwards
+
+
     * Show only the portion of folder names which distinguishes the folder, otherwise it gets very long
     * MacOS support
     * mp4 videos on the wiki
@@ -48,10 +54,18 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
+    1. Fix important bugs and release!!
+    2. Then move on to implementing Depth Peeling!
 
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 
+* Refactored rendering to support SSAO and Depth Peeling
+* Changed shapes/Demo.obj to log a regular message rather than an error, which is less annoying/noisy
+* Changed user-facing text mentioning "clipping spheres" to use terminology "clipping balls", this uses the same number of characters as "clipping slabs"
+* Renamed `item_copy_clipping_sphere` command to `item_copy_clipping_ball` to be consistent with the above change
+* TODO Restored feature where the AABB of the selected items is visualized when the "Details > Clipping" UI is visible FIXME There is still a bug here... when you close the Details UI while the clipping UI is open in tree more then the AABBs are stuck forever!
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
+* TODOOOOOOOO Fix the bug where the framebuffer is not scaled with the window... Just make the window bigger to see the problem!
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
 * TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)

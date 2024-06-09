@@ -15,7 +15,7 @@ struct Clip_Sphere {
 
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-uniform vec4 normals_color = vec4(0., 0., .8, 1.); // rgba
+uniform vec4 normal_style_color = vec4(0., 0., .8, 1.); // rgba
 
 in vec3 fragment_position_ws;
 
@@ -76,5 +76,5 @@ void main() {
         }
     }
 
-    out_color = normals_color;
+    out_color = normal_style_color;
 }

@@ -1,7 +1,6 @@
 #version 330 core
 
 struct Camera {
-    vec3 eye_position;
     vec3 look_direction;
 };
 
@@ -18,8 +17,23 @@ struct Clip_Sphere {
     bool is_active;
 };
 
+// @Cleanup Use these structs rather than having data floating around
+//struct Edge_Style {
+//    vec4 color;
+//    float width;
+//};
+//
+//struct Triangle_Style {
+//    vec4 color;
+//    int display_mode;
+//    int backface_mode;
+//    bool flat_shading;
+//    Edge_Style edge_style;
+//};
+
 const int Display_Mode_NORMALS = 0;
 const int Display_Mode_BLINN_PHONG = 1;
+
 const int Backface_Mode_NONE = 0;
 const int Backface_Mode_CULL = 1;
 const int Backface_Mode_FIXED = 2;
@@ -29,17 +43,19 @@ const int Backface_Mode_SCREENTONE_2 = 5;
 
 uniform float wave; // time varying value in range [-1,1]
 uniform Camera camera;
+
 uniform int display_mode = Display_Mode_NORMALS;
 uniform int backface_mode = Backface_Mode_FIXED;
-
-uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
-uniform vec4 color; // rgba
 uniform bool flat_shading = true;
+uniform vec4 color; // rgba
 uniform vec4 edges_color; // rgba
 uniform float edges_width;
+
+uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
+
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
-uniform Clip_Sphere clip_sphere_prev;
+uniform Clip_Sphere clip_sphere_prev; // .is_active is not used!
 uniform bool clip_radius_mode = false;
 
 in vec3 vertex_normal_ws;
@@ -126,7 +142,6 @@ void main() {
 
     if (!gl_FrontFacing) {
         if (backface_mode == Backface_Mode_CULL) {
-            // Cull backfaces early out
             discard;
         }
     }

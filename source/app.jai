@@ -50,13 +50,6 @@ App :: struct {
     INITIAL_WINDOW_SIZE :: Window_Size.{1440, 900, false};
     window_size : Window_Size = INITIAL_WINDOW_SIZE;;
 
-    aabb_program : GLuint;
-    triangles_program : GLuint; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
-    points_lines_program : GLuint;
-    triangles_normal_program : GLuint;
-    segments_normal_program : GLuint;
-    points_normal_program : GLuint;
-
     Background_Style :: enum #specified {
         SOLID_COLOR :: 0;
         CUSTOM_SHADER :: 1;
@@ -64,8 +57,8 @@ App :: struct {
 
     background_style := Background_Style.CUSTOM_SHADER;
     background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
-    background_program : GLuint;
-    background_vao : GLuint;
+
+    using render_info : App_Render_Info; // nocommit Remove this using
 
     show_ui := true;
     show_fps := false;
@@ -148,18 +141,39 @@ App :: struct {
     debug_frame := false; // True on the frame in which space was pressed (see my_debug_function)
     debug_mode :=  false; // Toggled by pressing space (see my_debug_function)
     debug_color := CONTEXT_MENU_POPUP_TARGET_BORDER_COLOR;
+    debug_int := 0; // A integer debug variable for whatever use
 }
 
 Window_Size :: struct {
-    width : s32; @Uniform // In Pixels
-    height : s32; @Uniform // In Pixels
+    width : s32; // In Pixels
+    height : s32; // In Pixels
     fullscreen := false;
 }
 
-Texture :: struct {
-    gl_handle : GLuint;
-    width : s32;
-    height : s32;
+App_Render_Info :: struct {
+    shader_aabb : Shader_AABB;
+    shader_background : Shader_Background;
+
+    shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
+    shader_points_lines : Shader_Points_Lines;
+    shader_point_normal_vectors : Shader_Point_Normal_Vectors;
+    shader_segment_normal_vectors : Shader_Segment_Normal_Vectors;
+    shader_triangle_normal_vectors : Shader_Triangle_Normal_Vectors;
+
+    quad_vao : GLuint;
+
+    blit_program : GLuint; // Used to blit framebuffer textures to the screen
+    blit_channel : Blit_Channel = .DEFAULT_LIT;
+
+    geometry_pass : Geometry_Pass;
+    ssao_pass : Ssao_Pass;
+    ssao_blur_pass : Ssao_Blur_Pass;
+    lighting_pass : Lighting_Pass;
+
+    shader_geometry : Shader_Geometry;
+    shader_ssao : Shader_Ssao;
+    shader_ssao_blur : Shader_Ssao_Blur;
+    shader_lighting : Shader_Lighting;
 }
 
 // @Incomplete Deduplicate file watcher directories on linux
@@ -327,6 +341,7 @@ User_Settings :: struct {
     disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
+    use_deferred_renderer := false; // This is an experimental WIP
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {
@@ -438,9 +453,6 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "numeric.jai";
 #load "io_obj.jai";
 #load "io_utils.jai";
-#load "render.jai";
-#load "render_utils.jai";
-#load "render_text.jai";
 #load "carpet.jai";
 #load "camera.jai";
 #load "entities.jai";
@@ -457,6 +469,21 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "colors.jai";
 #load "demo_mode.jai";
 #load "updates.jai";
+
+#load "render/shader.jai";
+#load "render/shader_aabb.jai";
+#load "render/shader_background.jai";
+#load "render/shader_triangles.jai";
+#load "render/shader_points_lines.jai";
+#load "render/shader_normal_vectors.jai";
+#load "render/shader_geometry.jai";
+#load "render/shader_ssao.jai";
+#load "render/shader_lighting.jai";
+#load "render/render.jai";
+#load "render/render_utils.jai";
+#load "render/render_text.jai";
+#load "render/render_pass.jai";
+#load "render/texture.jai";
 
 #load "console/console.jai";
 #load "console/commands.jai";
