@@ -27,12 +27,8 @@ Shader_Points_Lines :: struct {
         cache_shader_uniform_location(shader, "point_size", .Float1);
     }
 
-    use_shader :: (
-        shader : Shader,
-        using mesh : Simple_Mesh,
-        using display_info : Display_Info,
-        clip_radius_mode : bool,
-        color : Vector4) {
+    use_shader :: (shader : Shader, entity : Entity) {
+        using entity.display_info;
 
         glUseProgram(shader.program);
         assert(glIsProgram(shader.program) == GL_TRUE);
@@ -41,7 +37,7 @@ Shader_Points_Lines :: struct {
         clip_from_view := make_orthographic_projection_matrix(app.camera);
         wave := ifx flash_wave_dt == 0 then -1 else cos(5 * flash_wave_dt);
 
-        set_shader_uniform_value(shader, "world_from_model", world_from_model.floats);
+        set_shader_uniform_value(shader, "world_from_model", entity.mesh.world_from_model.floats);
         set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
         set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
 
@@ -57,7 +53,6 @@ Shader_Points_Lines :: struct {
         }
 
         set_shader_uniform_value(shader, "wave", wave);
-        set_shader_uniform_value(shader, "color", color.component);
 
         // @Cleanup Why is this different to e.g., normals
         used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;

@@ -323,15 +323,17 @@ render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
     glDrawArrays(GL_LINES, 0, 24);
 }
 
-render_mesh_positions :: (entity : Entity, clip_radius_mode_show_wireframe : bool) {
+render_mesh_positions :: (entity : Entity) {
+    using entity.display_info;
 
     if !entity.mesh.positions.count return;
-    if !entity.display_info.vertex_style.visible && !clip_radius_mode_show_wireframe return;
+    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
 
-    shader := *app.shader_points_lines;
-    shader.use_shader(shader, entity.mesh, entity.display_info, clip_radius_mode_show_wireframe, entity.display_info.vertex_style.color);
+    use_shader(*app.shader_points_lines, entity);
+
     used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)entity.display_info.vertex_style.size;
-    set_shader_uniform_value(shader, "point_size", used_point_size);
+    set_shader_uniform_value(*app.shader_points_lines, "point_size", used_point_size);
+    set_shader_uniform_value(*app.shader_points_lines, "color", vertex_style.color.component);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -344,17 +346,19 @@ render_mesh_positions :: (entity : Entity, clip_radius_mode_show_wireframe : boo
     glDrawArrays(GL_POINTS, 0, xx entity.mesh.positions.count);
 }
 
-render_mesh_points :: (entity : Entity, clip_radius_mode_show_wireframe : bool) {
+render_mesh_points :: (entity : Entity) {
+    using entity.display_info;
 
     if !entity.mesh.points.count return;
-    if !entity.display_info.point_style.visible && !clip_radius_mode_show_wireframe return;
+    if !point_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    shader := *app.shader_points_lines;
-    shader.use_shader(shader, entity.mesh, entity.display_info, clip_radius_mode_show_wireframe, entity.display_info.point_style.vertex_style.color);
-    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)entity.display_info.point_style.vertex_style.size;
-    set_shader_uniform_value(shader, "point_size", used_point_size);
+    use_shader(*app.shader_points_lines, entity);
+
+    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)point_style.vertex_style.size;
+    set_shader_uniform_value(*app.shader_points_lines, "point_size", used_point_size);
+    set_shader_uniform_value(*app.shader_points_lines, "color", point_style.vertex_style.color.component);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -367,17 +371,18 @@ render_mesh_points :: (entity : Entity, clip_radius_mode_show_wireframe : bool) 
     glDrawArrays(GL_POINTS, 0, xx entity.mesh.points.count);
 }
 
-render_mesh_segments :: (entity : Entity, clip_radius_mode : bool) {
+render_mesh_segments :: (entity : Entity) {
+    using entity.display_info;
 
     if !entity.mesh.segments.count return;
-    if !entity.display_info.segment_style.visible && !clip_radius_mode return;
+    if !segment_style.visible && !clip_radius_mode return;
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    shader := *app.shader_points_lines;
-    shader.use_shader(shader, entity.mesh, entity.display_info, clip_radius_mode, entity.display_info.segment_style.color);
+    use_shader(*app.shader_points_lines, entity);
+    set_shader_uniform_value(*app.shader_points_lines, "color", segment_style.color.component);
 
-    used_segments_width := ifx clip_radius_mode then 1. else entity.display_info.segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
+    used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
         // See also glEnable(GL_LINE_SMOOTH);
         glLineWidth(xx used_segments_width);
@@ -399,17 +404,18 @@ MIN_EDGES_WIDTH_GL_FILL :: 1.2;
 
 // Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
 // TODOO Maybe note the degenerate triangles when we parse the obj file and store them so we don't render all edges here... rendering all the edges with lines is ugly (it would be less ugly if we used quads strips to render lines).
-render_mesh_triangles_as_lines :: (entity : Entity, clip_radius_mode_show_wireframe : bool) {
+render_mesh_triangles_as_lines :: (entity : Entity) {
+    using entity.display_info;
 
     if !entity.mesh.triangles.count return;
-    if !entity.display_info.triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe return;
+    if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe return;
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    shader := *app.shader_points_lines;
-    shader.use_shader(shader, entity.mesh, entity.display_info, clip_radius_mode_show_wireframe, entity.display_info.triangle_style.edge_style.color);
+    use_shader(*app.shader_points_lines, entity);
+    set_shader_uniform_value(*app.shader_points_lines, "color", triangle_style.edge_style.color.component);
 
-    used_edges_width := max(entity.display_info.triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
+    used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
     glLineWidth(xx used_edges_width); // See also glEnable(GL_LINE_SMOOTH);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -418,17 +424,19 @@ render_mesh_triangles_as_lines :: (entity : Entity, clip_radius_mode_show_wirefr
     glDrawArrays(GL_TRIANGLES, 0, xx (3 * entity.mesh.triangles.count));
 }
 
-render_mesh_triangles :: (entity : Entity, clip_radius_mode : bool, clip_radius_mode_show_wireframe : bool) {
+render_mesh_triangles :: (entity : Entity) {
+
+    using entity.display_info;
  
     if !entity.mesh.triangles.count return;
-    if !entity.display_info.triangle_style.visible return;
+    if !triangle_style.visible return;
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
     use_shader(*app.shader_triangles, entity);
 
     // @Volatile :ClipRadiusModeEdgeWidth
-    app.shader_triangles.set_shader_clip_radius_uniforms(app.shader_triangles, entity.display_info.triangle_style, clip_radius_mode, clip_radius_mode_show_wireframe);
+    app.shader_triangles.set_shader_clip_radius_uniforms(app.shader_triangles, triangle_style, clip_radius_mode, clip_radius_mode_show_wireframe);
 
     // nocommit Remove this
     last_polygon_mode: [2]GLuint;
@@ -540,23 +548,22 @@ render_selections :: () {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
-    entity := *app.select_tool.entity;
-    mesh := *app.select_tool.entity.mesh;
-
-    dummy_clip_radius_mode := false; // @Incomplete Support this for the selection item when its the 0-th item?
-    dummy_clip_radius_mode_show_wireframe := false; // @Incomplete Support this for the selection item when its the 0-th item?
+    app.select_tool.entity.display_info.clip_radius_mode = false; // @Incomplete Support this for the selection item when its the 0-th item?
+    app.select_tool.entity.display_info.clip_radius_mode_show_wireframe = false; // @Incomplete Support this for the selection item when its the 0-th item?
 
     // @Cleanuppp We can call maybe_update_render_info once, here.
 
-    render_mesh_positions(app.select_tool.entity, dummy_clip_radius_mode);
-    render_mesh_points(app.select_tool.entity, dummy_clip_radius_mode);
+    render_mesh_positions(app.select_tool.entity);
+    render_mesh_points(app.select_tool.entity);
     render_mesh_point_normals(app.select_tool.entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_segments(app.select_tool.entity, dummy_clip_radius_mode);
+    render_mesh_segments(app.select_tool.entity);
     render_mesh_segment_normals(app.select_tool.entity);
-    render_mesh_triangles_as_lines(app.select_tool.entity, dummy_clip_radius_mode);
-    render_mesh_triangles(entity, dummy_clip_radius_mode, dummy_clip_radius_mode_show_wireframe);
+    render_mesh_triangles_as_lines(app.select_tool.entity);
+    render_mesh_triangles(app.select_tool.entity);
     render_mesh_triangle_normals(app.select_tool.entity);
 
+    // entity := *app.select_tool.entity;
+    // mesh := *app.select_tool.entity.mesh;
     // projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
     //
     // // We intentionally always all the text for selections since there usually aren't lots
@@ -657,23 +664,21 @@ VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible
 VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
 
 render_entity_geometry :: (entity : *Entity, entity_index : int) {
-    ri := *entity.render_info;
-    di :=  entity.display_info;
 
-    clip_radius_mode := entity_in_clip_radius_mode(entity_index);
-    clip_radius_mode_show_wireframe := mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
+    entity.display_info.clip_radius_mode = entity_in_clip_radius_mode(entity_index);
+    entity.display_info.clip_radius_mode_show_wireframe = mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
-    render_mesh_triangles(entity, clip_radius_mode, clip_radius_mode_show_wireframe);
-    render_mesh_triangles_as_lines(entity, clip_radius_mode_show_wireframe);
+    render_mesh_triangles(entity);
+    render_mesh_triangles_as_lines(entity);
     render_mesh_triangle_normals(entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_segments(entity, clip_radius_mode_show_wireframe);
+    render_mesh_segments(entity);
     render_mesh_segment_normals(entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_points(entity, clip_radius_mode_show_wireframe);
+    render_mesh_points(entity);
     render_mesh_point_normals(entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_positions(entity, clip_radius_mode_show_wireframe);
+    render_mesh_positions(entity);
 
-    if di.aabb_visible {
-        render_aabb(ri.bounding_aabb, entity.mesh.world_from_model);
+    if entity.display_info.aabb_visible {
+        render_aabb(entity.render_info.bounding_aabb, entity.mesh.world_from_model);
     }
 }
 

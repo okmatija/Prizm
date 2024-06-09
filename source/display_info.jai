@@ -39,6 +39,9 @@ Display_Info :: struct {
     clip_ranges[1] = .{normal=.{0,1,0}};
     clip_ranges[2] = .{normal=.{0,0,1}};
 
+    clip_radius_mode : bool;
+    clip_radius_mode_show_wireframe : bool;
+
     //
     // Transient data
     //

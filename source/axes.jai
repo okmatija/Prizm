@@ -3,6 +3,7 @@ Axes_Triad :: struct {
     y_axis : Entity;
     z_axis : Entity;
     origin : Entity;
+
     visible := true;
 }
 
@@ -63,10 +64,10 @@ render_axes_triad :: () {
 
     ScopeGlState();
 
-    render_mesh_triangles(app.triad.origin, false, false);
-    render_mesh_triangles(app.triad.x_axis, false, false);
-    render_mesh_triangles(app.triad.y_axis, false, false);
-    render_mesh_triangles(app.triad.z_axis, false, false);
+    render_mesh_triangles(app.triad.origin);
+    render_mesh_triangles(app.triad.x_axis);
+    render_mesh_triangles(app.triad.y_axis);
+    render_mesh_triangles(app.triad.z_axis);
 
     // Bug Screws up the background shader!!?
     // render_mesh_triangles_as_lines(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
