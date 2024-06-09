@@ -14,9 +14,10 @@ init_shader :: (shader : *$T/Shader) {
 }
 
 // Convenience function to set the shader program and set the uniforms
-use_shader :: (shader : *$T/Shader, mesh : Simple_Mesh, display_info : Display_Info) {
-    shader.use_shader(shader, mesh, display_info);
+use_shader :: (shader : *$T/Shader, entity : Entity) {
+    shader.use_shader(shader, entity);
 }
+// nocommit remove this
 use_shader :: (shader : *$T/Shader, mesh : Simple_Mesh) {
     shader.use_shader(shader, mesh);
 }

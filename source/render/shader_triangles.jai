@@ -38,7 +38,8 @@ Shader_Triangles :: struct {
         cache_shader_uniform_location(shader, "wave", .Float1);
     }
 
-    use_shader :: (shader : Shader, using mesh : Simple_Mesh, using display_info : Display_Info) {
+    use_shader :: (shader : Shader, entity : Entity) {
+        using entity.display_info;
 
         glUseProgram(shader.program);
         assert(glIsProgram(shader.program) == GL_TRUE);
@@ -53,7 +54,7 @@ Shader_Triangles :: struct {
 
         set_shader_uniform_value(shader, "window_size", window_size_vector2.component);
 
-        set_shader_uniform_value(shader, "world_from_model", world_from_model.floats);
+        set_shader_uniform_value(shader, "world_from_model", entity.mesh.world_from_model.floats);
         set_shader_uniform_value(shader, "view_from_world", view_from_world.floats);
         set_shader_uniform_value(shader, "clip_from_view", clip_from_view.floats);
 
