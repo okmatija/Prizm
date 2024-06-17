@@ -436,7 +436,7 @@ render_mesh_triangles :: (entity : Entity) {
     use_shader(*app.shader_triangles, entity);
 
     // @Volatile :ClipRadiusModeEdgeWidth
-    app.shader_triangles.set_shader_clip_radius_uniforms(app.shader_triangles, triangle_style, clip_radius_mode, clip_radius_mode_show_wireframe);
+    app.shader_triangles.set_shader_clip_radius_uniforms(app.shader_triangles, entity);
 
     // nocommit Remove this
     last_polygon_mode: [2]GLuint;
@@ -481,24 +481,29 @@ render_entities_gbuffer :: () {
     {
         use_geometry_pass();
 
+        glDepthMask(GL_FALSE);
         render_background();
+        glDepthMask(GL_TRUE);
 
         for :VisibleOpaque app.entities {
-            ri := *it.render_info;
-            di :=  it.display_info;
+            maybe_update_render_info(*it.render_info, *it.mesh);
 
             if !it.mesh.triangles.count continue;
-            if !di.triangle_style.visible continue;
-
-            maybe_update_render_info(ri, *it.mesh);
-
+            if !it.display_info.triangle_style.visible continue;
             use_shader(*app.shader_geometry, it);
-            //debug_print_active_uniforms(app.shader_geometry.program);
-
-            // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
-
-            glBindVertexArray(ri.triangles_vao);
+            glBindVertexArray(it.render_info.triangles_vao);
             glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+
+            // nocommitttt We should be able to share this with forward rendering, but I want to profile first...!
+            // render_mesh_triangles(entity);
+            // render_mesh_triangles_as_lines(entity);
+            // render_mesh_triangle_normals(entity); // Probably we want to pass clip_radius_mode here too?
+            // render_mesh_segments(entity);
+            // render_mesh_segment_normals(entity); // Probably we want to pass clip_radius_mode here too?
+            // render_mesh_points(entity);
+            // render_mesh_point_normals(entity); // Probably we want to pass clip_radius_mode here too?
+            // render_mesh_positions(entity);
+
         }
     }
 

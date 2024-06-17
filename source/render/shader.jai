@@ -15,6 +15,7 @@ init_shader :: (shader : *$T/Shader) {
 
 // Convenience function to set the shader program and set the uniforms
 use_shader :: (shader : *$T/Shader, entity : Entity) {
+    //debug_print_active_uniforms(shader.program);
     shader.use_shader(shader, entity);
 }
 use_shader :: (shader : *$T/Shader) {

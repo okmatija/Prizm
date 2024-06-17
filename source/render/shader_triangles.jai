@@ -84,7 +84,9 @@ Shader_Triangles :: struct {
     }
 
     // See :ClipRadiusModeEdgeWidth
-    set_shader_clip_radius_uniforms :: (shader : Shader, triangle_style : Triangle_Style, clip_radius_mode : bool, clip_radius_mode_show_wireframe : bool) {
+    set_shader_clip_radius_uniforms :: (shader : Shader, entity : Entity) {
+        using entity.display_info;
+
         set_shader_uniform_value(shader, "clip_radius_mode", clip_radius_mode);
 
         used_edges_width := max(triangle_style.edge_style.width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering
