@@ -54,7 +54,7 @@ Geometry_Pass :: struct {
     // nocommit Rename to position_world
     // nocommit Store the texture units here as well?
     position : Texture;
-    position.format = .RGBA16F;
+    position.format = .RGBA32F;
     position.filter = .NEAREST;
     position.wrap = .CLAMP_TO_EDGE;
 
