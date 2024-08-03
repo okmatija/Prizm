@@ -442,7 +442,7 @@ handle_load_string :: (path : string, recursive := false) {
 
         match_count := 0;
 
-        files := file_list(abs_directory_path, recursive=recursive, follow_symlinks=false,, temp);
+        files := file_list(abs_directory_path, recursive=recursive, follow_directory_symlinks=false,, temp);
         for _file, file_index : files {
             file := _file;
             file = canonically_formatted_path_string(file,, temp);
@@ -550,7 +550,7 @@ handle_directory :: (path : string) {
     pending.path = copy_string(path);
     this_allocation_is_not_a_leak(pending.path.data); // When we close the application we can just drop this memory
 
-    files := file_list(path, recursive=false, follow_symlinks=false,, temp);
+    files := file_list(path, recursive=false, follow_directory_symlinks=false,, temp);
     not_loadable_count := 0;
     for file : files {
         if supported_format(file) {
