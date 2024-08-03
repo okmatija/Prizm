@@ -39,6 +39,10 @@ handle_one_option :: (p: *Metaprogram_Plugin, options: [] string, cursor: int) -
     return cursor;  // We did not handle anything.
 }
 
+set_min_size :: (p: *Metaprogram_Plugin, _min_size: int) {
+
+}
+
 log_help :: (p: *Metaprogram_Plugin) {
     log(HELP_STRING, MINIMUM_SIZE_DEFAULT);
 }

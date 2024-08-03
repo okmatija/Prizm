@@ -10,8 +10,8 @@
 	}
 
 	// Call this at the start of the scope you want to profile.
-	ZoneScoped :: ($name := "", text := "", color: u32 = 0, value: u64 = 0) #expand #no_debug {
-        location := #location(#this);
+	ZoneScoped :: ($name := "", text := "", color: u32 = 0, value: u64 = 0, location:=#caller_location) #expand #no_debug {
+        //location := #location(#this);
 		#if name {
 			ZONE_NAME :: name;
 		} else {
