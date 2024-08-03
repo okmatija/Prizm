@@ -15,6 +15,14 @@ Build Options:
     custom     build with custom build options set in a gui
 DONE
 
+Build_Kind :: enum {
+    VERY_DEBUG;
+    DEBUG;
+    RELEASE;
+    SHIPPING;
+    CUSTOM;
+}
+
 OUTPUT_EXE_NAME :: "Prizm";
 
 // This is used to implement the shipping build option (it creates the .zip for distribution)
@@ -46,46 +54,66 @@ build :: () {
     w := compiler_create_workspace(OUTPUT_EXE_NAME);
     if !w exit(1);
 
-    command_line_arguments := get_build_options(w).compile_time_command_line;
+    init_preset_build_options(w);
 
-    if HasArgument("help") {
-        print(HELP_STRING);
-        exit(0);
-    }
 
-    {
-        build_options := get_build_options(w);
-        set_optimization(*build_options, .DEBUG, preserve_debug_info=true);
-        build_options.lazy_foreign_function_lookups = true; // Why do we set this?
-        build_options.stack_trace = true; // So that we can use the NoteEntryExit helper in carpet.jai
-        build_options.output_executable_name = OUTPUT_EXE_NAME;
-        table_add(*preset_build_options, "debug", build_options);
-    }
-
-    {
-        build_options := get_build_options(w);
-        set_optimization(*build_options, .OPTIMIZED);
-        build_options.lazy_foreign_function_lookups = true; // Why do we set this?
-#if OS == .WINDOWS {
-        // @FIXME This disables the runtime console but also hides printing to the 
-        // console, so we can't show usage message if the user --help argument!
-        // As a workaround we just show this message in the console but really we
-        // should fix this, the :DisableRuntimeConsoleCleanup used to work but its
-        // currently broken :(
-        build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"];
-}
-        build_options.output_executable_name = OUTPUT_EXE_NAME;
-        table_add(*preset_build_options, "release", build_options);
-    }
-
+    build_kind := Build_Kind.DEBUG;
     build_options : Build_Options;
     build_options_found : bool;
-    if HasArgument("custom") {
+    debug_gl : bool;
+    tracy_profiling : bool;
+
+    command_line_arguments := get_build_options(w).compile_time_command_line;
+    index := 0;
+    while index < command_line_arguments.count {
+        // Plugins may alter this index
+        defer index += 1;
+        it := command_line_arguments[index];
+
+        if it == {
+
+        case "help";
+
+            print(HELP_STRING);
+            exit(0);
+
+        case "debug_gl";
+
+            debug_gl = true;
+
+        case "verydebug";
+
+            build_kind = .VERY_DEBUG;
+
+        case "debug";
+
+            build_kind = .DEBUG;
+
+        case "release";
+
+            build_kind = .RELEASE;
+
+        case "shipping";
+
+            build_kind = .SHIPPING;
+
+        case "custom";
+
+            build_kind = .CUSTOM;
+
+        case "tracy";
+
+            tracy_profiling = true; // NOTE: We don't use the tracy handle_one_option function
+
+        }
+    }
+
+    if build_kind == .CUSTOM {
         compiler_report("This feature is currently broken, gl_load does not work at compile-time?");
         print("[%] Compiling with custom build options.\n", OUTPUT_EXE_NAME);
         build_options, build_options_found = table_find(*preset_build_options, "debug"); // Start from debug options
         build_gui(preset_build_options, chosen_build_options=*build_options);
-    } else if HasArgument("release") || HasArgument("shipping") {
+    } else if build_kind == .RELEASE || build_kind == .SHIPPING {
         print("[%] Compiling with release build options.\n", OUTPUT_EXE_NAME);
         build_options, build_options_found = table_find(*preset_build_options, "release");
     } else {
@@ -94,15 +122,17 @@ build :: () {
     }
     assert(build_options_found);
 
-    new_path: [..] string;
-    array_add(*new_path, ..build_options.import_path);
-    array_add(*new_path, "source/modules");
-    build_options.import_path = new_path;
+    // new_path: [..] string;
+    // array_add(*new_path, ..build_options.import_path);
+    // array_add(*new_path, "source/modules");
+    // array_add(*new_path, "../jai-tracy/tracy");
+    // build_options.import_path = new_path;
 
     plugin_names : [..]string;
     array_add(*plugin_names, "Check");
-
-    // Now that we know what the plugins are, init them.
+    if tracy_profiling {
+        array_add(*plugin_names, "tracy");
+    }
     init_plugins(plugin_names, *plugins, w);
 
     set_build_options(build_options, w);
@@ -121,10 +151,12 @@ build :: () {
 OUTPUT_EXE_NAME :: "%";
 USE_MEMORY_DEBUGGER :: %;
 DEBUG_OPENGL :: %;
+USE_TRACY :: %;
 DONE,
                 build_options.output_executable_name,
                 ifx HasArgument("verydebug") then "true" else "false",
                 ifx HasArgument("debug_gl")  then "true" else "false",
+                ifx HasArgument("tracy")  then "true" else "false",
         );
         add_build_string(build_constants, w);
 
@@ -236,6 +268,33 @@ DONE,
 }
 
 preset_build_options : Table(string, Build_Options);
+
+init_preset_build_options :: (w : Workspace) {
+    {
+        build_options := get_build_options(w);
+        set_optimization(*build_options, .DEBUG, preserve_debug_info=true);
+        build_options.lazy_foreign_function_lookups = true; // Why do we set this?
+        build_options.stack_trace = true; // So that we can use the NoteEntryExit helper in carpet.jai
+        build_options.output_executable_name = OUTPUT_EXE_NAME;
+        table_add(*preset_build_options, "debug", build_options);
+    }
+
+    {
+        build_options := get_build_options(w);
+        set_optimization(*build_options, .OPTIMIZED);
+        build_options.lazy_foreign_function_lookups = true; // Why do we set this?
+#if OS == .WINDOWS {
+        // @FIXME This disables the runtime console but also hides printing to the 
+        // console, so we can't show usage message if the user --help argument!
+        // As a workaround we just show this message in the console but really we
+        // should fix this, the :DisableRuntimeConsoleCleanup used to work but its
+        // currently broken :(
+        build_options.additional_linker_arguments=.["/SUBSYSTEM:windows", "/ENTRY:mainCRTStartup"];
+}
+        build_options.output_executable_name = OUTPUT_EXE_NAME;
+        table_add(*preset_build_options, "release", build_options);
+    }
+}
 
 // @Refactor
 // - Make use of an indent local variable, which is incremented/decremented when we print lines starting a new block (containing an opening brace)

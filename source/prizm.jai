@@ -136,6 +136,11 @@ main :: () {
 
     // Main loop
     while !app.closing_application {
+
+        #if USE_TRACY {
+            context._Tracy.FrameMark();
+        }
+
         // Cache the state we need this frame and reset it for the next frame
         g_this_frame_state = g_next_frame_state; // This should be read-only for this frame
         g_next_frame_state = ImGui_Frame_State.{};
