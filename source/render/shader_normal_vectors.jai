@@ -9,7 +9,7 @@ Shader_Point_Normal_Vectors :: struct {
     use_shader :: (shader : Shader, entity : Entity) {
         using entity.display_info;
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
         set_uniform_values(shader, entity.mesh, point_style.normal_style, clip_sphere, clip_ranges);
     }
 }
@@ -25,7 +25,7 @@ Shader_Segment_Normal_Vectors :: struct {
     use_shader :: (shader : Shader, entity : Entity) {
         using entity.display_info;
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
         set_uniform_values(shader, entity.mesh, segment_style.normal_style, clip_sphere, clip_ranges);
     }
 }
@@ -41,7 +41,7 @@ Shader_Triangle_Normal_Vectors :: struct {
     use_shader :: (shader : Shader, entity : Entity) {
         using entity.display_info;
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
         set_uniform_values(shader, entity.mesh, triangle_style.normal_style, clip_sphere, clip_ranges);
     }
 }

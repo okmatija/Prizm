@@ -66,6 +66,7 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 * TODO Restored feature where the AABB of the selected items is visualized when the "Details > Clipping" UI is visible FIXME There is still a bug here... when you close the Details UI while the clipping UI is open in tree more then the AABBs are stuck forever!
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
 * TODOOOOOOOO Fix the bug where the framebuffer is not scaled with the window... Just make the window bigger to see the problem!
+* TODOOOOOOOO Fix bug where text labels are not showing!!!
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
 * TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)

@@ -335,8 +335,9 @@ render_mesh_positions :: (entity : Entity) {
     set_shader_uniform_value(*app.shader_points_lines, "point_size", used_point_size);
     set_shader_uniform_value(*app.shader_points_lines, "color", vertex_style.color.component);
 
+    // nocommit refactor to set all the state before issuing the draw calls
     last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
+    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data); // nocommit Remove this its very slow
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);

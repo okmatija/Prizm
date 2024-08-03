@@ -39,7 +39,7 @@ Shader_Ssao :: struct {
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         clip_from_view := make_orthographic_projection_matrix(app.camera);
         view_from_world := make_look_at_matrix(app.camera);
@@ -83,7 +83,7 @@ Shader_Ssao_Blur :: struct {
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         ssao := Texture_Uniform.{app.ssao_blur_pass.ssao, 0, "occlusion_input"};
         set_shader_uniform_value(shader, "occlusion_input", ssao);

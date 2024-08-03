@@ -23,7 +23,7 @@ Shader_Lighting :: struct {
         // nocommit I think the following is better in a use_pass function??
 
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         // @TODO @Speed These could all be set in uniform buffers just once per frame
         look_direction := current_look_direction();

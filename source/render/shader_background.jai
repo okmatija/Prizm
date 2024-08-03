@@ -21,7 +21,7 @@ Shader_Background :: struct {
     use_shader :: (shader : Shader_Background) {
 
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE); // @Speed This call is very slow!
 
         resolution : Vector3 = .{cast(float)app.window_size.width, cast(float)app.window_size.height, 1.};
         set_shader_uniform_value(shader, "iResolution", resolution.component);

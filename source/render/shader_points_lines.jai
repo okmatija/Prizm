@@ -31,7 +31,7 @@ Shader_Points_Lines :: struct {
         using entity.display_info;
 
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         view_from_world := make_look_at_matrix(app.camera);
         clip_from_view := make_orthographic_projection_matrix(app.camera);

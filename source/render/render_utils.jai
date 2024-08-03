@@ -363,7 +363,7 @@ blit_texture :: () {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(app.blit_program);  
-    assert(glIsProgram(app.blit_program) == GL_TRUE);
+    //assert(glIsProgram(app.blit_program) == GL_TRUE); // @Speed This call is very slow!
 
     glBindVertexArray(app.quad_vao);
     glDisable(GL_DEPTH_TEST);
