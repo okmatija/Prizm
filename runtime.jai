@@ -37,7 +37,7 @@
         Compiler :: #import "Compiler";
         // Tracy requires these libs to work.
         #if OS == .WINDOWS {
-            TRACY_DEPENDENCY_LIBS :: string.["ws2_32.lib", "msvcprtd.lib"];
+            TRACY_DEPENDENCY_LIBS :: string.["ws2_32.lib", "msvcprtd.lib", "advapi32.lib", "user32.lib"];
         } else {
             TRACY_DEPENDENCY_LIBS :: string.["-lpthread", "-ldl", "-lc++"];
         }
