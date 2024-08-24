@@ -80,7 +80,9 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_10_2 :: Version.{"0.10.2", "WIP", #string DONE
+* TODO Add a feature flags section in the menu
 * TODO Setup the frikkin nice debugging in remedy....
+* TODO Round the table boundary when the style UIs are docked
 * TODO Debug vertex colors when the obj file doesn't specify any
 * TODO Rename the Details->Selection, Display->Details, make Infomation a Metrics tab, make Selection an Ops tab
 * TODO Implement the scale font by 2x and then render it .5x to fix blurry text on macos
@@ -102,6 +104,7 @@ PRIZM_VERSION_0_10_2 :: Version.{"0.10.2", "WIP", #string DONE
     * `v x y r g b`    A 2d point with color
     * `v x y z r g b`  A 3d point with color
 
+* Added option to configure the backface color
 * Removed color preview from the color picker tooltips
 * Changed combo box widget to hide the dropdown arrow by default.  The previous behaviour can be restored via "Preferences > Advanced > Combo Box Default"
 * Changed triangle style settings to better separate frontface and backface settings
@@ -762,6 +765,7 @@ DONE
 init_changelog :: () {
     //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
     //array_add(*changelog, PRIZM_VERSION_0_11_0);
+    array_add(*changelog, PRIZM_VERSION_0_10_2);
     array_add(*changelog, PRIZM_VERSION_0_10_1);
     array_add(*changelog, PRIZM_VERSION_0_10_0);
     array_add(*changelog, PRIZM_VERSION_0_9_3);

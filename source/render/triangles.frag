@@ -36,7 +36,6 @@ const int Display_Mode_VERTEX = 1;
 const int Display_Mode_NORMAL = 2;
 
 const int Backface_Mode_NONE = 0;
-const int Backface_Mode_CULL = 1;
 const int Backface_Mode_FIXED = 2;
 const int Backface_Mode_DARKEN = 3;
 const int Backface_Mode_SCREENTONE_1 = 4;
@@ -47,13 +46,15 @@ uniform Camera camera;
 
 uniform int display_mode = Display_Mode_NORMAL;
 uniform int backface_mode = Backface_Mode_FIXED;
+uniform bool backface_visible = true;
+uniform vec4 backface_color; // rgba
 uniform bool flat_shading = true;
 uniform vec4 color; // rgba
 uniform vec4 edges_color; // rgba
 uniform float edges_width;
 
 // nocommittttt Actually set this!!!!
-uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
+// uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
 
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
@@ -143,10 +144,8 @@ vec3 darken(in vec3 color, float darken_factor)
 
 void main() {
 
-    if (!gl_FrontFacing) {
-        if (backface_mode == Backface_Mode_CULL) {
-            discard;
-        }
+    if (!gl_FrontFacing && !backface_visible) {
+        discard;
     }
 
     for (int i = 0; i < 3; ++i) {

@@ -2755,11 +2755,11 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
                 "Backface Style    ");
 
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
+            ImGui.Checkbox(imgui_label("##backface_visible", display_info), *display_info.triangle_style.backface_visible);
             show_tooltip("Backface Visibility");
 
             ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            ImGui.ColorEdit4(imgui_label("##triangle_style.backface_color", display_info), *display_info.triangle_style.backface_color.component, DEFAULT_COLOR_EDIT_FLAGS);
             show_tooltip("Backface Color ");
 
             ImGui.SameLine();

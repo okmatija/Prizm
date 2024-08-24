@@ -166,7 +166,7 @@ Display_Mode :: enum #specified {
 
 Backface_Mode :: enum #specified {
     NONE :: 0;
-    CULL :: 1; // nocommitttt Replace with a checkbox
+    // CULL :: 1; // nocommitttt Replace with a checkbox
     FIXED :: 2;
     DARKEN :: 3;
     SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
@@ -230,6 +230,8 @@ Triangle_Style :: struct {
     color := Vector4.{1., 1., 1., 1.};
     display_mode := Display_Mode.PICKED;
     backface_mode := Backface_Mode.FIXED;
+    backface_visible := true;
+    backface_color := DEFAULT_BACKFACE_COLOR;
 
     // backface_color := DEFAULT_BACKFACE_COLOR;
     // frontface_style : Frontface_Style;
@@ -237,6 +239,8 @@ Triangle_Style :: struct {
 
     edge_style : Edge_Style;
     normal_style : Normal_Style;
+
+    // backface_style : Backface_Style;
 }
 
 

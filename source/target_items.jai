@@ -493,8 +493,7 @@ cycle_backface_mode :: (display_info : *Display_Info) -> Fraction {
         case .DARKEN;       result.numer = 1; mode.* = .SCREENTONE_1;
         case .SCREENTONE_1; result.numer = 2; mode.* = .SCREENTONE_2;
         case .SCREENTONE_2; result.numer = 3; mode.* = .NONE;
-        case .NONE;         result.numer = 4; mode.* = .CULL;
-        case .CULL;         result.numer = 5; mode.* = .FIXED;
+        case .NONE;         result.numer = 4; mode.* = .FIXED;
     }
     return result;
 }
