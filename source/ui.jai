@@ -1,6 +1,7 @@
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 EASY_RESIZE_FRACTION :: .25;
 WINDOW_RESIZE_MARGIN_PX :: 3;
+DEFAULT_COLOR_EDIT_FLAGS :: ImGui.ColorEditFlags.NoInputs | .NoTooltip;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
@@ -398,7 +399,7 @@ show_left_window_ui :: () {
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tools_ui();
     show_items_ui();
     show_details_ui();
@@ -829,11 +830,13 @@ show_items_ui :: () {
         ImGui.Text("% item% (% selected)", app.entities.count, ifx app.entities.count > 1 then "s" else "", selected.count);
         bindings : [..]Binding_With_Description = temp_array(Binding_With_Description);
         // @Volatile Sync with :SelectionKeybindTooltip
+        array_add(*bindings, make_Binding_With_Description("      LMB", "Set selected item"));
+        array_add(*bindings, make_Binding_With_Description("Ctrl  LMB", "Select/deselect item"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{control_pressed=true}), "Select/deselect all items"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{shift_pressed=true}), "Select/deselect visible items"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{alt_pressed=true}), "Toggle current item selection"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "`", .{}), "Use the 'select_...' console commands"));
-        show_tooltip_binding(..bindings, "Summary of ways to select items:");
+        show_tooltip_binding(..bindings, "How to select items:");
 
     } // end TreeNodeEx
 
@@ -939,25 +942,56 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         color_reset :=   false; // Reset with MMB
         mode_cycled :=   false; // Cycled with RMB
 
-        if entity.display_info.triangle_style.display_mode == .NORMALS {
-            ImGui.TextDisabled("NR."); // @Design Replace this with a image with a normal gradient
+        if entity.display_info.triangle_style.display_mode == .NORMAL {
+            ImGui.Text("Nrm"); // @Design Replace this with a image with a normal gradient
+        } else if entity.display_info.triangle_style.display_mode == .VERTEX {
+            ImGui.Text("Vtx"); // @Design Replace this with a image representing vertex colors
         } else {
             color : *Vector4 = get_entity_primary_color(entity);
-            if color {
-                // ImGui.PushStyleColor(ImGui.Col.FrameBg, ImGui.ImVec4.{1,1,1,0});
-                ImGui.PushStyleVar(ImGui.StyleVar.FrameBorderSize, 0);
-                color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
-                ImGui.PopStyleVar();
-                // ImGui.PopStyleColor();
-            }
+            // ImGui.PushStyleColor(ImGui.Col.FrameBg, ImGui.ImVec4.{1,1,1,0});
+            ImGui.PushStyleVar(ImGui.StyleVar.FrameBorderSize, 0);
+            color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            ImGui.PopStyleVar();
+            // ImGui.PopStyleColor();
         }
+
+        {
+            bindings := temp_array(Binding_With_Description);
+            array_add(*bindings, make_Binding_With_Description(to_string("RMB"), "Cycle shading style"));
+            array_add(*bindings, make_Binding_With_Description(to_string("MMB"), "Reset color from filename"));
+            show_tooltip_binding(..bindings, tprint("Current shading style: %", entity.display_info.triangle_style.display_mode));
+        }
+
         if ImGui.IsItemClicked(.Middle) {
             entity.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode; // Reset to default
             set_entity_primary_color(entity);
             color_reset = true;
         }
         if ImGui.IsItemClicked(.Right) {
-            cycle_display_mode(*entity.display_info.triangle_style.display_mode);
+
+            tmode : *Display_Mode = *entity.display_info.triangle_style.display_mode;
+            smode : *Color_Mode = *entity.display_info.segment_style.color_mode;
+            pmode : *Color_Mode = *entity.display_info.point_style.color_mode;
+            vmode : *Color_Mode = *entity.display_info.vertex_style.color_mode;
+
+            if #complete tmode.* == {
+                case .NORMAL;
+                    tmode.* = .PICKED;
+                    smode.* = .PICKED;
+                    pmode.* = .PICKED;
+                    vmode.* = .PICKED;
+                case .PICKED;
+                    tmode.* = .VERTEX;
+                    smode.* = .VERTEX;
+                    pmode.* = .VERTEX;
+                    vmode.* = .VERTEX;
+                case .VERTEX;
+                    tmode.* = .NORMAL;
+                    smode.* = .PICKED;
+                    pmode.* = .PICKED;
+                    vmode.* = .PICKED;
+            }
+
             mode_cycled = true;
         }
 
@@ -1000,7 +1034,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         }
 
         entity_tick_flash_hover(entity);
-
+        // show_tooltip_binding("Focus item", "F"); // DO NOT ENABLE: currently enables a tooltip even outside the item name
         header_annotation : *Annotation = entity_header_annotation(entity);
         if app.settings.show_header_annotation_tooltips && header_annotation {
             show_tooltip(to_string(header_annotation));
@@ -1078,7 +1112,7 @@ show_preferences :: () {
         {
             combo_box("Background", *app.background_style, type_info(app.Background_Style));
             if app.background_style == .SOLID_COLOR {
-                ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, DEFAULT_COLOR_EDIT_FLAGS);
             }
 
             // TODO Add a shader period thing
@@ -1650,7 +1684,7 @@ show_select_tool_ui :: () {
 
             // Color selection
             ImGui.TableNextColumn();
-            if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, ImGui.ColorEditFlags.NoInputs) {
+            if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, DEFAULT_COLOR_EDIT_FLAGS) {
                 // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
                 label_color.* = darken(element_color, .8);
             }
@@ -2276,7 +2310,7 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2298,7 +2332,7 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2316,7 +2350,7 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2334,7 +2368,7 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2658,7 +2692,7 @@ show_normal_style_ui :: (normal_style : *Normal_Style, padding : string = "") {
     ImGui.Checkbox(imgui_label("##normals_visible", normal_style), *normal_style.visible);
     show_tooltip("Normal Visibility");
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##normals_scale", normal_style), *normal_style.scale, .05);
@@ -2686,19 +2720,54 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Face Style        ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
-        show_tooltip("Triangle Face Visibility");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, ImGui.ColorEditFlags.NoInputs);
-        show_tooltip("Triangle Frontface Color");
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        combo_box("##Backface Mode", *display_info.triangle_style.backface_mode, type_info(Backface_Mode));
-        ImGui.PopItemWidth();
-        show_tooltip("Triangle Backface Render Mode");
+        
+        {
+            ImGui.Text(
+                "Frontface Style   ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
+            show_tooltip("Triangle Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            show_tooltip("Frontface Color");
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            combo_box("##Frontface Mode", *display_info.triangle_style.display_mode, type_info(Display_Mode));
+            show_tooltip("Frontface Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.triangle_style.flat_shading);
+            show_tooltip("Flat Shading");
+
+            // This doesn't seem very useful so I removed it
+            //ImGui.SameLine();
+            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+            //show_tooltip("Deduce item primary colors from the file path");
+        }
+
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text(
+                "Backface Style    ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
+            show_tooltip("Backface Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            show_tooltip("Backface Color ");
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            combo_box("##Backface Mode", *display_info.triangle_style.backface_mode, type_info(Backface_Mode));
+            show_tooltip("Backface Render Mode");
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2707,7 +2776,7 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ImGui.Checkbox(imgui_label("##triangle_style.edge_style.visible", display_info), *display_info.triangle_style.edge_style.visible);
         show_tooltip("Triangle Edges Visibility");
         ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##triangle_style.edge_style.color", display_info), *display_info.triangle_style.edge_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.ColorEdit4(imgui_label("##triangle_style.edge_style.color", display_info), *display_info.triangle_style.edge_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
         ImGui.DragFloat(imgui_label("##triangle_style.edge_style.width", display_info), *display_info.triangle_style.edge_style.width, .05);
@@ -2725,24 +2794,6 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ImGui.TableNextColumn();
         show_annotation_theme_ui(
             "Annotation Labels ", "Show annotations", *display_info.triangle_label_theme.annotation_label_theme);
-
-        if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.Text("Render Mode");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.triangle_style.flat_shading);
-            show_tooltip("Flat Shading");
-            ImGui.SameLine();
-            ImGui.PushItemWidth(120);
-            combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
-            ImGui.PopItemWidth();
-
-            // This doesn't seem very useful so I removed it
-            //ImGui.SameLine();
-            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-            //show_tooltip("Deduce item primary colors from the file path");
-        }
    }
 }
 
@@ -2768,13 +2819,17 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
         ImGui.Checkbox(imgui_label("##segment_style.visible", display_info), *display_info.segment_style.visible);
         show_tooltip("Segment Visibility");
         ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
         ImGui.DragFloat(imgui_label("##segment_style.width", display_info), *display_info.segment_style.width, .05);
         show_tooltip("Width");
         display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
         ImGui.PopItemWidth();
+
+            // ImGui.PushItemWidth(70);
+            // combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
+            // ImGui.PopItemWidth();
 
         ImGui.TableNextColumn();
         show_normal_style_ui(*display_info.segment_style.normal_style, "     ");
@@ -2811,7 +2866,7 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
         ImGui.Checkbox(imgui_label("##point_style.visible", display_info), *display_info.point_style.visible);
         show_tooltip("Point Visibility");
         ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
         ImGui.SameLine();
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
@@ -2853,9 +2908,9 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
             "Vertex Style      ");
         ImGui.SameLine();
         ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
-        show_tooltip("Positions visibility.\nRender vertex positions as points");
+        show_tooltip("Positions visibility\nRender vertex positions as points");
         ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
         ImGui.SameLine();
         ImGui.SameLine();
         ImGui.PushItemWidth(70);

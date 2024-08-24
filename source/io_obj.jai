@@ -103,18 +103,28 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
         if eat_possible_identifier(*parser, "v") {
 
-            position2 : Vector2 = ---;
-            position3 : Vector3 = ---;
-            dim, finite := obj_parse_position(*parser, *position2, *position3);
-            if !finite {
+            vertex : Obj_Vertex = ---;
+            dim := obj_parse_vertex(*parser, *vertex);
+            if !vertex.position_finite {
                 found_inf_or_nan = true;
             }
 
             if dim == 2 {
                 // @Think Maybe use app.invalid_point.z here
-                array_add(*mesh.positions, Vector3.{xy=position2});
+                array_add(*mesh.positions, Vector3.{xy=vertex.position2});
+                array_add(*mesh.colors, vertex.color);
             } else if dim == 3 {
-                array_add(*mesh.positions, position3);
+                array_add(*mesh.positions, vertex.position3);
+                array_add(*mesh.colors, vertex.color);
+            } else if dim == 4 {
+                array_add(*mesh.positions, vertex.position3);
+                array_add(*mesh.colors, vertex.color);
+            } else if dim == 5 {
+                array_add(*mesh.positions, Vector3.{xy=vertex.position2});
+                array_add(*mesh.colors, vertex.color);
+            } else if dim == 6 {
+                array_add(*mesh.positions, vertex.position3);
+                array_add(*mesh.colors, vertex.color);
             } else if parser.failed {
                 break;
             } else {

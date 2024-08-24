@@ -65,6 +65,7 @@ Shader_Triangles :: struct {
         set_shader_uniform_value(shader, "clip_sphere_prev.radius", clip_sphere_prev.radius);
         // set_shader_uniform_value(shader, "clip_sphere_prev.is_active", clip_sphere_prev.is_active); // Not used in the shader
 
+        // @Speedddddd These tprints are incredibly slow!
         for 0..2 {
             set_shader_uniform_value(shader, tprint("clip_range[%].is_active", it), clip_ranges[it].is_active);
             set_shader_uniform_value(shader, tprint("clip_range[%].normal", it), clip_ranges[it].normal.component);

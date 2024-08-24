@@ -172,6 +172,19 @@ ensure_finite :: (input : Vector2, fallback : Vector2 = .{0,0}) -> Vector2, bool
     return result, finite;
 }
 
+ensure_finite :: (input : float, fallback : float = 0) -> float, bool {
+    x : float = input;
+
+    finite := true;
+
+    if !is_finite(x) {
+        x = fallback;
+        finite = false;
+    }
+
+    return x, finite;
+}
+
 to_radians :: (degrees : float) -> float {
     scale :: PI / 180;
     return degrees * scale;

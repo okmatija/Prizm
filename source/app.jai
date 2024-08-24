@@ -337,11 +337,19 @@ User_Settings :: struct {
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
 
+    combo_box_style := Combo_Box_Default.HIDE_ARROW;
+
     show_header_annotation_tooltips := false;
     disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
     use_deferred_renderer := false; // This is an experimental WIP
+}
+
+Combo_Box_Default :: enum {
+    HIDE_ARROW :: 0;
+    SHOW_ARROW :: 1;
+    //HOVER_SHOW_ARROW;
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {

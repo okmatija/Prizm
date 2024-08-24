@@ -17,7 +17,9 @@ unreferenced_vertices : [..]Vertex;
 
 
 Simple_Mesh :: struct {
+    // @Cleanup We should really have a vertex struct... not sure the mesh attribute thing was a good idea either...
     positions : [..]Vector3;
+    colors : [..]Vector3;
 
     // Elements. Performance note: having overlapping elements (e.g., when a position is common to a point and a segment/triangle, or when segment lies on a triangle edge) computations like ray-casting may compute distances between the same positions more than once.
     // .obj loading will fill these in from p, l and f directives respectively
@@ -53,6 +55,7 @@ deinit :: (using mesh : *Simple_Mesh) {
 
     // Note: array_reset frees memory and zeros members
     array_reset(*positions);
+    array_reset(*colors);
     array_reset(*points);
     array_reset(*segments);
     array_reset(*triangles);
@@ -198,6 +201,7 @@ remove_elements_by_index :: (elements : *[..]$T, remove_indices : ..int) {
 // weld :: (mesh : Simple_Mesh) -> Simple_Mesh { }
 // unweld :: (mesh : Simple_Mesh) -> Simple_Mesh { }
 
+// nocommitttttt Support colors here
 merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
     positions_offset := dst.positions.count;
     points_offset :=    dst.points.count;

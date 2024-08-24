@@ -121,7 +121,14 @@ LabelWindow :: (window_position : Vector2, window_size : Vector2) #expand {
 
 // Combo box to select display mode enum value
 // @Cleanup Deduce the info_enum from the data
-combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum, flags : ImGui.ComboFlags = .None) -> bool {
+combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
+
+    // @TODO Make the arrow show up when the widget is hovered
+    flags : ImGui.ComboFlags = .NoArrowButton;
+    if app.settings.combo_box_style == .SHOW_ARROW {
+        flags = .None;
+    }
+
     changed := false;
     value := get_enum_value(data, info_enum);
     value_name := "";

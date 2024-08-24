@@ -138,6 +138,8 @@ to_Mesh :: (m : par_shapes_mesh) -> Simple_Mesh {
     memcpy(triangles.data, m.triangles.data, m.triangles.count * size_of(m.Triangle));
     triangles.count = m.triangles.count;
 
+    array_resize(*colors, positions.count, true);
+
     // @Incomplete tcoords
 
     return result;

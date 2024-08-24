@@ -1,6 +1,18 @@
 BYTES_TO_TRIM :: "# \t\r\n";
 
-obj_parse_position :: (p : *Parser, position2 : *Vector2, position3 : *Vector3) -> int, bool {
+// v-directive can be 2D/3D positions with
+Obj_Vertex :: struct {
+    position2 : Vector2 = ---;
+    position3 : Vector3 = ---;
+    w : float = 1.;
+    color : Vector3 = .{1, 1, 0}; // @TODO We really need to add a color type (This would be a LinearColor)
+
+    position_finite : bool = true;
+    w_finite : bool = true;
+    color_finite : bool = true;
+}
+
+obj_parse_vertex :: (p : *Parser, using vertex : *Obj_Vertex) -> int {
     is_number :: (t : Token) -> bool {
         // Identifier for nan and inf, parse_vectorN functions will error if the identifier is unrecognised
         if t.type == .INTEGER || t.type == .FLOAT {
@@ -16,23 +28,43 @@ obj_parse_position :: (p : *Parser, position2 : *Vector2, position3 : *Vector3) 
 
     // Look ahead to figure out if we have a 2D or 3D point
     dim := 0;
-    dim += xx is_number(peek_ahead(p, 0));
-    dim += xx is_number(peek_ahead(p, 1));
-    dim += xx is_number(peek_ahead(p, 2));
+    dim += xx is_number(peek_ahead(p, 0)); // x
+    if dim == 1 dim += xx is_number(peek_ahead(p, 1)); // y
+    if dim == 2 dim += xx is_number(peek_ahead(p, 2)); // z
 
-    finite := true;
+    if dim == 3 dim += xx is_number(peek_ahead(p, 3)); // r or w (but for point/line/triangle meshes we don't expect w != 1)
+    if dim == 4 dim += xx is_number(peek_ahead(p, 4)); // g
+    if dim == 5 dim += xx is_number(peek_ahead(p, 5)); // b
 
     if dim == 1 {
+        // 1d points (definitely error)
         error(p, peek_token(p), "Expected 2D or 3D point, but only got one component %.\n", to_string(peek_token(p)));
     } else if dim == 2 {
+        // 2d point
         fallback := Vector2.{app.invalid_point.x, app.invalid_point.y};
-        position2.*, finite = ensure_finite(parse_vector2(p), fallback);
+        position2, position_finite = ensure_finite(parse_vector2(p), fallback);
     } else if dim == 3 {
+        // 3d point
         fallback : Vector3 = app.invalid_point;
-        position3.*, finite = ensure_finite(parse_vector3(p), fallback);
+        position3, position_finite = ensure_finite(parse_vector3(p), fallback);
+    } else if dim == 4 {
+        // Homogenous coordinate
+        fallback : Vector3 = app.invalid_point;
+        position3, position_finite = ensure_finite(parse_vector3(p), fallback);
+        w, w_finite = ensure_finite(parse_float(p), 1.); // @TODO Expect that w is 1
+    } else if dim == 5 {
+        // 2d point with color
+        fallback := Vector2.{app.invalid_point.x, app.invalid_point.y};
+        position2, position_finite = ensure_finite(parse_vector2(p), fallback);
+        color, color_finite = ensure_finite(parse_vector3(p), Obj_Vertex.{}.color);
+    } else if dim == 6 {
+        // 3d point with color
+        fallback : Vector3 = app.invalid_point;
+        position3, position_finite = ensure_finite(parse_vector3(p), fallback);
+        color, color_finite = ensure_finite(parse_vector3(p), Obj_Vertex.{}.color);
     }
 
-    return dim, finite;
+    return dim;
 }
 
 // 1-based indices

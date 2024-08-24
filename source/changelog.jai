@@ -22,6 +22,7 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * TODO Fix Alt RMB not rotating about the alternative axis on windows
     * TODO Add a list of things that Prizm supports which you could add to hand rolled visualization code in your app
     * TODO Set the icon on linux
+    * TODO Implement an option to try hard to display the most broken obj files e.g., fill in y/z when only x is given in a v-directive? and anything else to display the data that was given (maybe vertex colors can be set to red to indicate made-up data and green to indicated provided data)
     * TODOOOOO Fix long change logs being truncated
     * TODOOOOO Handle high DPI properly (Roey/TomF reported), the text looks blurry there
     * Is there a bug with reloading vertex data????
@@ -67,6 +68,8 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 * TODOOOOOOOO Fix parsing when vn-directives don't have exactly 3 components..!
 * TODOOOOOOOO Fix the bug where the framebuffer is not scaled with the window... Just make the window bigger to see the problem!
 * TODOOOOOOOO Fix bug where text labels are not showing!!!
+* TODOOOOOOOO When you load a path that does not exist report the portion that does
+* TODOOOOOOOO Figure out how to easily view strings and arrays in Remedy/raddbg
 * TODO Per entity text label mode, so you can easily turn on labels all the time
 * TODO Change the Demo.obj file to not log an error. Lots of people will try pressing F1 and it sucks to get an error
 * TODO SSAO for shading. Allow user to choose between hemisphere and sphere kernel (latter can give grey on flat regions, and highlight edges...I think we actually perfer that)
@@ -74,6 +77,34 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 * TODO Change hotkeys for loading shapes from F1-F4 to just 1-4. Later we can make F1 help and F2 rename items?
 * TODO Make the menus that popup in the Details view movable, especially the clipping one, its annoying not to be visible. Or maybe remove the option to toggle between the menu/tree and make menu turn into tree if clicked, and tree turn into menu if closed
 * TODO Update compiler and SDL version!
+DONE};
+
+PRIZM_VERSION_0_10_2 :: Version.{"0.10.2", "WIP", #string DONE
+* TODO Setup the frikkin nice debugging in remedy....
+* TODO Debug vertex colors when the obj file doesn't specify any
+* TODO Rename the Details->Selection, Display->Details, make Infomation a Metrics tab, make Selection an Ops tab
+* TODO Implement the scale font by 2x and then render it .5x to fix blurry text on macos
+* TODO Fix the normals that appear in Test_Vertex_Colors.obj
+* TODO Show the part of the file path that does exist
+* TODO Change the flashing to go to black not white
+* TODO Add an icon for the frontface button
+* Support vertex colors for segments
+* Support vertex colors for points
+* Support vertex colors for vertices
+* TODO Support vertex colors in utility functions e.g., the function to merge meshes
+* TODO There is no opacity per vertex color. Terrible idea. Only opacity per item
+* TODO Add console command to group elements that touch vertices with the same color
+* TODO Add console command to split item by its group. Then you have separate items which you can change opacity on.
+* Added support for vertex colors. Here is a summary of what v-directives are now supported:
+    * `v x y`          A 2d point 
+    * `v x y z`        A 3d point 
+    * `v x y z w`      A 3d point. w is ignored, and assumed to be 1 since Prizm only supports simplex geometry, we may write an warning if its not 1
+    * `v x y r g b`    A 2d point with color
+    * `v x y z r g b`  A 3d point with color
+
+* Removed color preview from the color picker tooltips
+* Changed combo box widget to hide the dropdown arrow by default.  The previous behaviour can be restored via "Preferences > Advanced > Combo Box Default"
+* Changed triangle style settings to better separate frontface and backface settings
 DONE};
 
 PRIZM_VERSION_0_10_1 :: Version.{"0.10.1", "14 May 2024", #string DONE
@@ -526,7 +557,7 @@ PRISM_VERSION_0_3_0 :: Version.{"0.3.0", "06 September 2022", #string DONE
 
 * Fixed preset buttons so they act consistently with the global duplicate file behavior option
 * Fixed issue where files loaded from the commandline used a relative rather than absolute filename
-* Fixed issue where backfaces were not always rendered properly when the render mode was set to .NORMALS
+* Fixed issue where backfaces were not always rendered properly when the render mode was set to .NORMAL
 DONE
 };
 

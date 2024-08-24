@@ -86,22 +86,6 @@ Annotation_Theme :: struct {
     label_color : Vector4 = .{0., 0., .75, 1.}; // Blue, works well on both grey and white backgrounds
 }
 
-Backface_Mode :: enum #specified {
-    NONE :: 0;
-    CULL :: 1;
-    FIXED :: 2;
-    DARKEN :: 3;
-    SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
-    SCREENTONE_2 :: 5; // TODOOO Replace this with an outline mode where we discard all the fragments which aren't near the triangle edge
-}
-
-cycle_display_mode :: (mode : *Triangle_Style.Display_Mode) {
-    if #complete mode.* == {
-        case .NORMALS;     mode.* = .BLINN_PHONG;
-        case .BLINN_PHONG; mode.* = .NORMALS;
-    }
-}
-
 Clip_Mode :: enum #specified {
     HIDDEN ::  0;
     BLACKEN :: 1;
@@ -146,6 +130,7 @@ is_clipped :: (clip_sphere : Clip_Sphere, point : Point3) -> bool {
     return false;
 }
 
+// @Think Add a normal_color_style here which could be fixed or based on the vertex color?
 Normal_Style :: struct {
     visible := false;
     color := Vector4.{0., 0., .8, 1.};
@@ -164,9 +149,34 @@ Edge_Style :: struct {
     width : float = 1.;
 }
 
+// For rendering vertex positions, point elements and segment elements // nocommit rename to Point_Segment_Color_Mode
+// Point_Segment_Render_Mode
+Color_Mode :: enum #specified {
+    PICKED :: 0; // Use just one color
+    VERTEX :: 1; // Interpolate colors from vertices
+}
+
+// For rendering triangle elements
+// Frontface_Render_Mode rename to Triangle_Color_Mode
+Display_Mode :: enum #specified {
+    PICKED :: 0; // Use picked color
+    VERTEX :: 1; // Interpolate colors from vertices
+    NORMAL :: 2; // Computed from triangle normal
+}
+
+Backface_Mode :: enum #specified {
+    NONE :: 0;
+    CULL :: 1; // nocommitttt Replace with a checkbox
+    FIXED :: 2;
+    DARKEN :: 3;
+    SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
+    SCREENTONE_2 :: 5; // TODOOO Replace this with an outline mode where we discard all the fragments which aren't near the triangle edge
+}
+
 Vertex_Style :: struct {
     visible : bool;
     color : Vector4 = BLACK;
+    color_mode := Color_Mode.PICKED;
     size : s32 = 4; // @Cleanup Use float when we generate quads from coordinates
 }
 
@@ -180,25 +190,52 @@ Point_Style :: struct {
 Segment_Style :: struct {
     visible := false;
     color : Vector4 = BLACK;
+    color_mode := Color_Mode.PICKED;
     width : float = 1.;
 
     normal_style : Normal_Style;
 }
 
-Triangle_Style :: struct {
-    Display_Mode :: enum #specified {
-        NORMALS ::     0;
-        BLINN_PHONG :: 1;
-    }
+// Frontface_Style :: struct {
+//     Color_Mode :: enum #specified {
+//         PICKED :: 0; // Use picked color
+//         VERTEX :: 1; // Interpolate colors from vertices
+//         NORMAL :: 2; // Computed from triangle normal
+//     }
+//     visible := false; // Overall triangle visibility
+//     flat_shading := true; // Overall triangle flat/smooth shading
+//     color := Vector4.{1., 1., 1., 1.}; // Overall triangle opacity 
+//     color_mode := Color_Mode.PICKED;
+// }
 
+// Backface_Style :: struct {
+//     Color_Mode :: enum #specified {
+//         PICKED :: 0; // Use picked color
+//         COPIED :: 1; // Copied from frontface
+//         DARKEN :: 2; // Copied from frontface, then darkened
+//         DITHER :: 3; // Copied from frontface, with dithering
+//         // VERTEX :: N; // Interpolate colors from vertices
+//         // NORMAL :: N; // Interpolate colors from vertices
+//         // BORDER :: N; // Discard all the fragments not on triangle edge
+//     }
+//     visible := false; // If discard backfacing fragments
+//     color := Vector3.{1., 1., 1.};
+//     color_mode := Color_Mode.PICKED;
+// }
+
+Triangle_Style :: struct {
     visible := false;
+    flat_shading := true;
 
     color := Vector4.{1., 1., 1., 1.};
-    display_mode := Display_Mode.BLINN_PHONG;
+    display_mode := Display_Mode.PICKED;
     backface_mode := Backface_Mode.FIXED;
-    flat_shading := true;
-    edge_style : Edge_Style;
 
+    // backface_color := DEFAULT_BACKFACE_COLOR;
+    // frontface_style : Frontface_Style;
+    // backface_style : Backface_Style;
+
+    edge_style : Edge_Style;
     normal_style : Normal_Style;
 }
 

@@ -55,9 +55,9 @@ void main()
 
     //switch (display_mode)
     {
-        //case Display_Mode_NORMALS:
+        //case Display_Mode_NORMAL:
         {
-            // @Volatile @CopyPasta from NORMALS
+            // @Volatile @CopyPasta from NORMAL
             vec3 N = normal_world;
             // vec3 V = normalize(camera.eye_position - position_world);
             vec3 V = normalize(camera.look_direction); // This is the directional spotlight... Do we need the position texture in this shader then..???

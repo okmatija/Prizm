@@ -326,6 +326,7 @@ apply_update :: (update : Edge_Style_Update, source : Edge_Style, target : *Edge
 Vertex_Style_Update :: struct {
     visible : bool;
     color : Vector4_Update;
+    color_mode : bool;
     size : bool;
 }
 
@@ -334,6 +335,7 @@ get_update :: (old : Vertex_Style, new : Vertex_Style) -> Vertex_Style_Update {
 
     result.visible = get_update(old.visible, new.visible);
     result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
     result.size = get_update(old.size, new.size);
 
     return result;
@@ -342,6 +344,7 @@ get_update :: (old : Vertex_Style, new : Vertex_Style) -> Vertex_Style_Update {
 apply_update :: (update : Vertex_Style_Update, source : Vertex_Style, target : *Vertex_Style) {
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
     apply_update(update.size, source.size, *target.size);
 }
 
@@ -375,6 +378,7 @@ apply_update :: (update : Point_Style_Update, source : Point_Style, target : *Po
 Segment_Style_Update :: struct {
     visible : bool;
     color : Vector4_Update;
+    color_mode : bool;
     width : bool;
     normal_style : Normal_Style_Update;
 }
@@ -384,6 +388,7 @@ get_update :: (old : Segment_Style, new : Segment_Style) -> Segment_Style_Update
 
     result.visible = get_update(old.visible, new.visible);
     result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
     result.width = get_update(old.width, new.width);
     result.normal_style = get_update(old.normal_style, new.normal_style);
 
@@ -393,6 +398,7 @@ get_update :: (old : Segment_Style, new : Segment_Style) -> Segment_Style_Update
 apply_update :: (update : Segment_Style_Update, source : Segment_Style, target : *Segment_Style) {
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
     apply_update(update.width, source.width, *target.width);
     apply_update(update.normal_style, source.normal_style, *target.normal_style);
 }
