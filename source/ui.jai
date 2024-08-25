@@ -1228,11 +1228,13 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
         ImGui.PushItemWidth(item_width);
         defer ImGui.PopItemWidth();
 
-        combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
-        show_tooltip(#string DONE
-Transparent mode: log window ignores mouse input so you can interact with the scene while reading the log
-Interactive mode: log window captures mouse input so you can scroll through log messages
-DONE);
+        {
+            TOOLTIPS : [#run get_enum_count(Console.Log_Mode)]string : .[
+                "log window ignores mouse input so you can interact with the scene while reading the log",
+                "log window captures mouse input so you can scroll through log messages",
+            ];
+            combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)), TOOLTIPS);
+        }
         ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
     }
 
@@ -2827,23 +2829,34 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Segment Style     ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##segment_style.visible", display_info), *display_info.segment_style.visible);
-        show_tooltip("Segment Visibility");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        ImGui.DragFloat(imgui_label("##segment_style.width", display_info), *display_info.segment_style.width, .05);
-        show_tooltip("Width");
-        display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
-        ImGui.PopItemWidth();
+        {
+            ImGui.Text(
+                "Segment Style     ");
 
-        // ImGui.PushItemWidth(70);
-        // combo_box("##triangle_style.color_mode", *display_info.triangle_style.color_mode, type_info(type_of(display_info.triangle_style.display_mode)));
-        // ImGui.PopItemWidth();
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##segment_style.visible", display_info), *display_info.segment_style.visible);
+            show_tooltip("Segment Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+            ];
+            combo_box("##segment_style.color_mode", *display_info.segment_style.color_mode, type_info(type_of(display_info.segment_style.color_mode)), TOOLTIPS);
+            show_tooltip("Segment Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##segment_style.width", display_info), *display_info.segment_style.width, .05);
+            show_tooltip("Segment Width");
+            display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         show_normal_style_ui(*display_info.segment_style.normal_style, "     ");
@@ -2874,20 +2887,34 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Point Style       ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##point_style.visible", display_info), *display_info.point_style.visible);
-        show_tooltip("Point Visibility");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
-        ImGui.SameLine();
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        ImGui.InputInt("##point_style.size", *display_info.point_style.size);
-        show_tooltip("Size");
-        display_info.point_style.size = clamp(display_info.point_style.size, 1, 10);
-        ImGui.PopItemWidth();
+        {
+            ImGui.Text(
+                "Point Style       ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##point_style.visible", display_info), *display_info.point_style.visible);
+            show_tooltip("Point Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+            ];
+            combo_box("##point_style.color_mode", *display_info.point_style.color_mode, type_info(type_of(display_info.point_style.color_mode)), TOOLTIPS);
+            show_tooltip("Point Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(80);
+            ImGui.InputInt("##point_style.size", *display_info.point_style.size);
+            show_tooltip("Point Size");
+            display_info.point_style.size = clamp(display_info.point_style.size, 1, 10);
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         show_normal_style_ui(*display_info.point_style.normal_style, "     ");
@@ -2918,20 +2945,34 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Vertex Style      ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
-        show_tooltip("Positions visibility\nRender vertex positions as points");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
-        ImGui.SameLine();
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        ImGui.InputInt("##vertex_style.size", *display_info.vertex_style.size);
-        show_tooltip("Size");
-        display_info.vertex_style.size = clamp(display_info.vertex_style.size, 1, 10);
-        ImGui.PopItemWidth();
+        {
+            ImGui.Text(
+                "Vertex Style      ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
+            show_tooltip("Positions visibility\nRender vertex positions as points");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+            ];
+            combo_box("##vertex_style.color_mode", *display_info.vertex_style.color_mode, type_info(type_of(display_info.vertex_style.color_mode)), TOOLTIPS);
+            show_tooltip("Vertex Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(80);
+            ImGui.InputInt("##vertex_style.size", *display_info.vertex_style.size);
+            show_tooltip("Vertex Size");
+            display_info.vertex_style.size = clamp(display_info.vertex_style.size, 1, 10);
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         show_vertex_label_theme_ui(

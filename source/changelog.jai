@@ -86,9 +86,6 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
-* TODO Add option to set vertex coloring on all element types in the UI
-* TODO Fix the normals that appear in Test_Vertex_Colors.obj
-* TODO Fix that vertex color mode is chosen for the Widget.obj, but there were no vertex colors set!
 * TODO Rename the Details->Selection, Display->Details, make Infomation a Metrics tab, make Selection an Ops tab
 * TODO Support vertex colors in utility functions e.g., the function to merge meshes
 * Support vertex colors for segments
