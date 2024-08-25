@@ -106,6 +106,7 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
 * Removed color preview from the color picker tooltips
 * Changed combo box widget to hide the dropdown arrow by default.  The previous behaviour can be restored via "Preferences > Advanced > Combo Box Default"
 * Changed triangle style settings to better separate frontface and backface settings
+* Replaced item "Information" section with a "Properties" tab
 DONE};
 
 PRIZM_VERSION_0_10_1 :: Version.{"0.10.1", "14 May 2024", #string DONE

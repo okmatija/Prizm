@@ -1390,13 +1390,18 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
             // This will just show one item
             show_item_selection_ui();
 
-            display_information(entity);
             display_transform(entity);
 
             maybe_update_render_info(*entity.render_info, *entity.mesh);
 
             aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
             display_info_ui(*entity.display_info, aabb_world, entity_index);
+        }
+
+        if ImGui.BeginTabItem("Properties") {
+            defer ImGui.EndTabItem();
+
+            display_properties(entity);
         }
 
         if ImGui.BeginTabItem("Annotations") {
@@ -1435,6 +1440,20 @@ show_details_pane_ui_for_item_selection :: () {
                apply_update(update, app.template_display_info, *it.display_info);
             }
         }
+
+        ImGui.BeginDisabled();
+        if ImGui.BeginTabItem("Properties") {
+            defer ImGui.EndTabItem();
+            // @TODO Show a subset of properties relevant to a selection e.g., bounding box
+        }
+        ImGui.EndDisabled();
+
+        ImGui.BeginDisabled();
+        if ImGui.BeginTabItem("Annotations") {
+            defer ImGui.EndTabItem();
+        }
+        ImGui.EndDisabled();
+
     }
 }
 
@@ -2394,47 +2413,41 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
    return get_update(old_display_info, display_info);
 }
 
-display_information :: (entity : *Entity) {
+display_properties :: (entity : *Entity) {
+    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
 
-    do_section, section_mode := begin_item_details_section("Information");
-    if do_section {
-        defer end_item_details_section("Information");
-        table_flags : ImGui.TableFlags;
-        if section_mode == .TREE table_flags |= .BordersOuter;
+    ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
+    defer ImGui.EndTable();
 
-        ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
-        defer ImGui.EndTable();
+    ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);
+    ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthFixed);//;, 60);
+    ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+    ImGui.TableHeadersRow();
 
-        ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);
-        ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthFixed);//;, 60);
-        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
-        ImGui.TableHeadersRow();
+    Row :: (entry : string, description : string, tooltip : string) #expand {
+        ImGui.TableNextColumn();
+        ImGui.TextColored(app.theme.keymap_color, entry);
+        if tooltip show_tooltip(tooltip);
 
-        Row :: (entry : string, description : string, tooltip : string) #expand {
-            ImGui.TableNextColumn();
-            ImGui.TextColored(app.theme.keymap_color, entry);
-            if tooltip show_tooltip(tooltip);
-
-            ImGui.TableNextColumn();
-            ImGui.Text(description);
-            if tooltip show_tooltip(tooltip);
-        }
-
-        // @Incomplete Attributes/Annotations information?
-        Row("Date created", filetime_to_readable_date(get_entity_source(entity).creation_time), "Date/time when item was (re)loaded");
-        Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
-        Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
-        Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
-        Row("Triangles", tprint("%", entity.mesh.triangles.count), "Number of triangle elements");
-
-        aabb := entity.render_info.bounding_aabb;
-        Row("AABB Max Point", tprint("[%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z), "Model space AABB");
-        Row("AABB Min Point", tprint("[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z), "Model space AABB");
-
-        sphere := entity.render_info.bounding_sphere;
-        Row("Sphere center", tprint("[%, %, %]", sphere.center.x, sphere.center.y, sphere.center.z), "Model space bounding sphere");
-        Row("Sphere radius", tprint("%", sphere.radius), "Model space bounding sphere");
+        ImGui.TableNextColumn();
+        ImGui.Text(description);
+        if tooltip show_tooltip(tooltip);
     }
+
+    // @Incomplete Attributes/Annotations information?
+    Row("Date created", filetime_to_readable_date(get_entity_source(entity).creation_time), "Date/time when item was (re)loaded");
+    Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
+    Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
+    Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
+    Row("Triangles", tprint("%", entity.mesh.triangles.count), "Number of triangle elements");
+
+    aabb := entity.render_info.bounding_aabb;
+    Row("AABB Max Point", tprint("[%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z), "Model space AABB");
+    Row("AABB Min Point", tprint("[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z), "Model space AABB");
+
+    sphere := entity.render_info.bounding_sphere;
+    Row("Sphere center", tprint("[%, %, %]", sphere.center.x, sphere.center.y, sphere.center.z), "Model space bounding sphere");
+    Row("Sphere radius", tprint("%", sphere.radius), "Model space bounding sphere");
 }
 
 display_transform :: (entity : *Entity) {
