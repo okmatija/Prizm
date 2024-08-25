@@ -2731,9 +2731,14 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.triangles.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if  begin_item_details_section("Triangles (none)") {
             defer end_item_details_section("Triangles (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2835,9 +2840,14 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.segments.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if  begin_item_details_section("Segments (none)") {
             defer end_item_details_section("Segments (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2893,9 +2903,14 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
 show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.points.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if  begin_item_details_section("Points (none)") {
             defer end_item_details_section("Points (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2951,9 +2966,14 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
 show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.positions.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if begin_item_details_section("Vertices (none)") {
             defer end_item_details_section("Vertices (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }

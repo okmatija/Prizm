@@ -114,6 +114,7 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
     * Added option to configure the backface color
     * Added tooltips to a bunch of combo box elements
     * Removed color preview from the color picker tooltips
+    * Removed the tiny, empty popup that appeared when hovering a (disabled) elements/vertices section for an item with no elements/vertices
 DONE};
 
 PRIZM_VERSION_0_10_1 :: Version.{"0.10.1", "14 May 2024", #string DONE
