@@ -53,9 +53,9 @@ void main()
         ambient_occlusion = texture(ssao, tex_coords).r;
     }
 
-    //switch (display_mode)
+    //switch (frontface_mode)
     {
-        //case Display_Mode_NORMAL:
+        //case Frontface_Mode_NORMAL:
         {
             // @Volatile @CopyPasta from NORMAL
             vec3 N = normal_world;

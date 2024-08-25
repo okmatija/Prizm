@@ -31,9 +31,9 @@ struct Clip_Sphere {
 //    Edge_Style edge_style;
 //};
 
-const int Display_Mode_PICKED = 0;
-const int Display_Mode_VERTEX = 1;
-const int Display_Mode_NORMAL = 2;
+const int Frontface_Mode_PICKED = 0;
+const int Frontface_Mode_VERTEX = 1;
+const int Frontface_Mode_NORMAL = 2;
 
 const int Backface_Mode_PICKED = 0;
 const int Backface_Mode_COPIED = 1;
@@ -43,7 +43,7 @@ const int Backface_Mode_DITHER = 3;
 uniform float wave; // time varying value in range [-1,1]
 uniform Camera camera;
 
-uniform int display_mode = Display_Mode_NORMAL;
+uniform int frontface_mode = Frontface_Mode_NORMAL;
 uniform int backface_mode = Backface_Mode_PICKED;
 uniform bool backface_visible = true;
 uniform vec3 backface_color; // rgb
@@ -180,9 +180,9 @@ void main() {
 
     vec4 fill_color = color;
 
-    switch (display_mode) {
+    switch (frontface_mode) {
 
-        case Display_Mode_NORMAL: {
+        case Frontface_Mode_NORMAL: {
 
             if (!gl_FrontFacing && backface_mode == Backface_Mode_PICKED) {
                 // @Volatile @CopyPasta from PICKED
@@ -211,7 +211,7 @@ void main() {
 
         } break;
 
-        case Display_Mode_PICKED: {
+        case Frontface_Mode_PICKED: {
 
             // @Volatile @CopyPasta from NORMAL
             vec3 N = get_normal();
@@ -232,7 +232,7 @@ void main() {
 
         } break;
 
-        case Display_Mode_VERTEX: {
+        case Frontface_Mode_VERTEX: {
 
             // @Volatile @CopyPasta from NORMAL
             vec3 N = get_normal();
@@ -258,7 +258,7 @@ void main() {
     }
 
     if (!gl_FrontFacing) {
-        float darken_factor = (display_mode == 0 ? .5 : .6);
+        float darken_factor = (frontface_mode == Frontface_Mode_PICKED ? .5 : .6);
 
         switch (backface_mode) {
 

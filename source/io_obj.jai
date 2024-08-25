@@ -103,7 +103,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
         if eat_possible_identifier(*parser, "v") {
 
-            vertex : Obj_Vertex = ---;
+            vertex : Obj_Vertex;
             dim := obj_parse_vertex(*parser, *vertex);
             if !vertex.position_finite {
                 found_inf_or_nan = true;
@@ -111,7 +111,10 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
             if vertex.found_color {
                 // Feature Documentation: Used make the loaded file display vertex colors by default if any were detected
-                result.display_info.triangle_style.display_mode = .VERTEX;
+                result.display_info.triangle_style.color_mode = .VERTEX;
+                result.display_info.segment_style.color_mode = .VERTEX;
+                result.display_info.point_style.color_mode = .VERTEX;
+                // result.display_info.vertex_style.color_mode = .VERTEX;
             }
 
             if dim == 2 {

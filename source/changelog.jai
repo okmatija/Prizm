@@ -77,24 +77,23 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 * TODO Change hotkeys for loading shapes from F1-F4 to just 1-4. Later we can make F1 help and F2 rename items?
 * TODO Make the menus that popup in the Details view movable, especially the clipping one, its annoying not to be visible. Or maybe remove the option to toggle between the menu/tree and make menu turn into tree if clicked, and tree turn into menu if closed
 * TODO Update compiler and SDL version!
-DONE};
-
-PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
-* TODO Fix the normals that appear in Test_Vertex_Colors.obj
-* TODO Fix that vertex color mode is chosen for the Widget.obj, but there were no vertex colors set!
-* TODO Add a feature flags section in the menu
-* TODO Setup the frikkin nice debugging in remedy....
-* TODO Round the table boundary when the style UIs are docked
-* TODO Debug vertex colors when the obj file doesn't specify any
-* TODO Rename the Details->Selection, Display->Details, make Infomation a Metrics tab, make Selection an Ops tab
 * TODO Implement the scale font by 2x and then render it .5x to fix blurry text on macos
 * TODO Show the part of the file path that does exist
 * TODO Change the flashing to go to black not white
 * TODO Add an icon for the frontface button
+* TODO Setup the frikkin nice debugging in remedy....
+* TODO Round the table boundary when the style UIs are docked
+DONE};
+
+PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
+* TODO Add option to set vertex coloring on all element types in the UI
+* TODO Fix the normals that appear in Test_Vertex_Colors.obj
+* TODO Fix that vertex color mode is chosen for the Widget.obj, but there were no vertex colors set!
+* TODO Rename the Details->Selection, Display->Details, make Infomation a Metrics tab, make Selection an Ops tab
+* TODO Support vertex colors in utility functions e.g., the function to merge meshes
 * Support vertex colors for segments
 * Support vertex colors for points
 * Support vertex colors for vertices
-* TODO Support vertex colors in utility functions e.g., the function to merge meshes
 * TODO There is no opacity per vertex color. Terrible idea. Only opacity per item
 * TODO Add console command to group elements that touch vertices with the same color
 * TODO Add console command to split item by its group. Then you have separate items which you can change opacity on.

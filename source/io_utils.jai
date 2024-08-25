@@ -5,7 +5,7 @@ Obj_Vertex :: struct {
     position2 : Vector2 = ---;
     position3 : Vector3 = ---;
     w : float = 1.;
-    color : Vector3 = .{1, 1, 0}; // @TODO We really need to add a color type (This would be a LinearColor)
+    color : Vector3 = .{1, 1, 1}; // @TODO We really need to add a color type (This would be a LinearColor)
 
     position_finite : bool = true;
     w_finite : bool = true;

@@ -28,7 +28,7 @@ Shader_Triangles :: struct {
         cache_shader_uniform_location(shader, "clip_radius_mode", .Bool);
 
         // Triangle_Style stuff, maybe we should make a struct in the shader for this..?
-        cache_shader_uniform_location(shader, "display_mode", .Enum);
+        cache_shader_uniform_location(shader, "frontface_mode", .Enum);
         cache_shader_uniform_location(shader, "backface_mode", .Enum);
         cache_shader_uniform_location(shader, "backface_visible", .Bool);
         cache_shader_uniform_location(shader, "backface_color", .Float3);
@@ -76,7 +76,7 @@ Shader_Triangles :: struct {
         }
 
         // Triangle_Style stuff, maybe we should make a struct in the shader for this..?
-        set_shader_uniform_value(shader, "display_mode", triangle_style.display_mode);
+        set_shader_uniform_value(shader, "frontface_mode", triangle_style.color_mode);
         set_shader_uniform_value(shader, "backface_color", triangle_style.backface_style.color.component);
         set_shader_uniform_value(shader, "backface_mode", triangle_style.backface_style.color_mode);
         set_shader_uniform_value(shader, "backface_visible", triangle_style.backface_style.visible);

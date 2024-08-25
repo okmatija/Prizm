@@ -156,14 +156,6 @@ Color_Mode :: enum #specified {
     VERTEX :: 1; // Interpolate colors from vertices
 }
 
-// For rendering triangle elements
-// Frontface_Render_Mode rename to Triangle_Color_Mode
-Display_Mode :: enum #specified {
-    PICKED :: 0; // Use picked color
-    VERTEX :: 1; // Interpolate colors from vertices
-    NORMAL :: 2; // Computed from triangle normal
-}
-
 Vertex_Style :: struct {
     visible : bool;
     color : Vector4 = BLACK;
@@ -187,17 +179,18 @@ Segment_Style :: struct {
     normal_style : Normal_Style;
 }
 
-// Frontface_Style :: struct {
-//     Color_Mode :: enum #specified {
-//         PICKED :: 0; // Use picked color
-//         VERTEX :: 1; // Interpolate colors from vertices
-//         NORMAL :: 2; // Computed from triangle normal
-//     }
-//     visible := false; // Overall triangle visibility
-//     flat_shading := true; // Overall triangle flat/smooth shading
-//     color := Vector4.{1., 1., 1., 1.}; // Overall triangle opacity 
-//     color_mode := Color_Mode.PICKED;
-// }
+Frontface_Style :: struct {
+    Color_Mode :: enum #specified {
+        PICKED :: 0; // Use picked color
+        VERTEX :: 1; // Interpolate colors from vertices
+        NORMAL :: 2; // Computed from triangle normal
+    }
+
+    visible := false; // Overall triangle visibility
+    flat_shading := true; // Overall triangle flat/smooth shading
+    color := Vector4.{1., 1., 1., 1.}; // Overall triangle opacity controlled by alpha channel
+    color_mode := Color_Mode.PICKED;
+}
 
 Backface_Style :: struct {
     Color_Mode :: enum #specified {
@@ -206,26 +199,20 @@ Backface_Style :: struct {
         DARKEN :: 2; // Copy frontface, then darken
         DITHER :: 3; // Copy frontface, then dither
         // VERTEX :: N; // Interpolate colors from vertices
-        // NORMAL :: N; // Interpolate colors from vertices
+        // NORMAL :: N; // Interpolate colors from normals
         // BORDER :: N; // Discard all the fragments not on triangle edge
     }
+
     visible := true; // If discard backfacing fragments
     color := #run DEFAULT_BACKFACE_COLOR.xyz;
     color_mode := Color_Mode.PICKED;
 }
 
 Triangle_Style :: struct {
-    visible := false;
-    flat_shading := true;
-
-    color := Vector4.{1., 1., 1., 1.};
-    display_mode := Display_Mode.PICKED;
-
-    // frontface_style : Frontface_Style;
-    backface_style : Backface_Style;
-
     edge_style : Edge_Style;
     normal_style : Normal_Style;
+    backface_style : Backface_Style;
+    using frontface_style : Frontface_Style; // Using since this is the "main" style for the triangle
 }
 
 

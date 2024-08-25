@@ -857,12 +857,12 @@ show_items_ui :: () {
         if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
             source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
             for :Selected app.entities {
-                it.display_info.triangle_style.display_mode = source.display_info.triangle_style.display_mode;
+                it.display_info.triangle_style.color_mode = source.display_info.triangle_style.color_mode;
             }
         }
         if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
             for :Selected app.entities {
-                it.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode;
+                it.display_info.triangle_style.color_mode = Display_Info.{}.triangle_style.color_mode;
                 set_entity_primary_color(it);
             }
         }
@@ -943,9 +943,9 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         color_reset :=   false; // Reset with MMB
         mode_cycled :=   false; // Cycled with RMB
 
-        if entity.display_info.triangle_style.display_mode == .NORMAL {
+        if entity.display_info.triangle_style.color_mode == .NORMAL {
             ImGui.Text("Nrm"); // @Design Replace this with a image with a normal gradient
-        } else if entity.display_info.triangle_style.display_mode == .VERTEX {
+        } else if entity.display_info.triangle_style.color_mode == .VERTEX {
             ImGui.Text("Vtx"); // @Design Replace this with a image representing vertex colors
         } else {
             color : *Vector4 = get_entity_primary_color(entity);
@@ -961,17 +961,17 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             array_add(*bindings, make_Binding_With_Description(to_string("RMB"), "Cycle shading style"));
             array_add(*bindings, make_Binding_With_Description(to_string("MMB"), "Reset color from filename"));
             ScopeCellPaddingY(old_cell_padding_y);
-            show_tooltip_binding(..bindings, tprint("Current shading style: %", entity.display_info.triangle_style.display_mode));
+            show_tooltip_binding(..bindings, tprint("Current shading style: %", entity.display_info.triangle_style.color_mode));
         }
 
         if ImGui.IsItemClicked(.Middle) {
-            entity.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode; // Reset to default
+            entity.display_info.triangle_style.color_mode = Display_Info.{}.triangle_style.color_mode; // Reset to default
             set_entity_primary_color(entity);
             color_reset = true;
         }
         if ImGui.IsItemClicked(.Right) {
 
-            tmode : *Display_Mode = *entity.display_info.triangle_style.display_mode;
+            tmode : *Frontface_Style.Color_Mode = *entity.display_info.triangle_style.color_mode;
             smode : *Color_Mode = *entity.display_info.segment_style.color_mode;
             pmode : *Color_Mode = *entity.display_info.point_style.color_mode;
             vmode : *Color_Mode = *entity.display_info.vertex_style.color_mode;
@@ -2738,12 +2738,12 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            TOOLTIPS : [#run get_enum_count(Display_Mode)]string : .[
+            TOOLTIPS : [#run get_enum_count(Triangle_Style.Color_Mode)]string : .[
                 "Use picked color",
                 "Interpolate vertex colors",
                 "Triangle normals set colors",
             ];
-            combo_box("##Frontface Mode", *display_info.triangle_style.display_mode, type_info(Display_Mode), TOOLTIPS);
+            combo_box("##Frontface Mode", *display_info.triangle_style.color_mode, type_info(Triangle_Style.Color_Mode), TOOLTIPS);
             show_tooltip("Frontface Render Mode");
             ImGui.PopItemWidth();
 
@@ -2842,7 +2842,7 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
         ImGui.PopItemWidth();
 
         // ImGui.PushItemWidth(70);
-        // combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
+        // combo_box("##triangle_style.color_mode", *display_info.triangle_style.color_mode, type_info(type_of(display_info.triangle_style.display_mode)));
         // ImGui.PopItemWidth();
 
         ImGui.TableNextColumn();
