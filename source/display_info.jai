@@ -164,15 +164,6 @@ Display_Mode :: enum #specified {
     NORMAL :: 2; // Computed from triangle normal
 }
 
-Backface_Mode :: enum #specified {
-    NONE :: 0;
-    // CULL :: 1; // nocommitttt Replace with a checkbox
-    FIXED :: 2;
-    DARKEN :: 3;
-    SCREENTONE_1 :: 4; // Maybe a screentone option where tone-aligned pixels are culled, so its kindof like the transparency hack
-    SCREENTONE_2 :: 5; // TODOOO Replace this with an outline mode where we discard all the fragments which aren't near the triangle edge
-}
-
 Vertex_Style :: struct {
     visible : bool;
     color : Vector4 = BLACK;
@@ -208,20 +199,20 @@ Segment_Style :: struct {
 //     color_mode := Color_Mode.PICKED;
 // }
 
-// Backface_Style :: struct {
-//     Color_Mode :: enum #specified {
-//         PICKED :: 0; // Use picked color
-//         COPIED :: 1; // Copied from frontface
-//         DARKEN :: 2; // Copied from frontface, then darkened
-//         DITHER :: 3; // Copied from frontface, with dithering
-//         // VERTEX :: N; // Interpolate colors from vertices
-//         // NORMAL :: N; // Interpolate colors from vertices
-//         // BORDER :: N; // Discard all the fragments not on triangle edge
-//     }
-//     visible := false; // If discard backfacing fragments
-//     color := Vector3.{1., 1., 1.};
-//     color_mode := Color_Mode.PICKED;
-// }
+Backface_Style :: struct {
+    Color_Mode :: enum #specified {
+        PICKED :: 0; // Use picked color
+        COPIED :: 1; // Copy frontface
+        DARKEN :: 2; // Copy frontface, then darken
+        DITHER :: 3; // Copy frontface, then dither
+        // VERTEX :: N; // Interpolate colors from vertices
+        // NORMAL :: N; // Interpolate colors from vertices
+        // BORDER :: N; // Discard all the fragments not on triangle edge
+    }
+    visible := true; // If discard backfacing fragments
+    color := #run DEFAULT_BACKFACE_COLOR.xyz;
+    color_mode := Color_Mode.PICKED;
+}
 
 Triangle_Style :: struct {
     visible := false;
@@ -229,18 +220,12 @@ Triangle_Style :: struct {
 
     color := Vector4.{1., 1., 1., 1.};
     display_mode := Display_Mode.PICKED;
-    backface_mode := Backface_Mode.FIXED;
-    backface_visible := true;
-    backface_color := DEFAULT_BACKFACE_COLOR;
 
-    // backface_color := DEFAULT_BACKFACE_COLOR;
     // frontface_style : Frontface_Style;
-    // backface_style : Backface_Style;
+    backface_style : Backface_Style;
 
     edge_style : Edge_Style;
     normal_style : Normal_Style;
-
-    // backface_style : Backface_Style;
 }
 
 

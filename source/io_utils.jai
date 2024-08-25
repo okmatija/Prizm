@@ -10,6 +10,8 @@ Obj_Vertex :: struct {
     position_finite : bool = true;
     w_finite : bool = true;
     color_finite : bool = true;
+
+    found_color : bool = false;
 }
 
 obj_parse_vertex :: (p : *Parser, using vertex : *Obj_Vertex) -> int {
@@ -57,11 +59,13 @@ obj_parse_vertex :: (p : *Parser, using vertex : *Obj_Vertex) -> int {
         fallback := Vector2.{app.invalid_point.x, app.invalid_point.y};
         position2, position_finite = ensure_finite(parse_vector2(p), fallback);
         color, color_finite = ensure_finite(parse_vector3(p), Obj_Vertex.{}.color);
+        found_color = true;
     } else if dim == 6 {
         // 3d point with color
         fallback : Vector3 = app.invalid_point;
         position3, position_finite = ensure_finite(parse_vector3(p), fallback);
         color, color_finite = ensure_finite(parse_vector3(p), Obj_Vertex.{}.color);
+        found_color = true;
     }
 
     return dim;

@@ -308,8 +308,14 @@ All ::      #bake_arguments EntitiesIterator(entity_filter=false);
 Visible ::  #bake_arguments EntitiesIterator(entity_filter=#code !it.display_info.is_visible);
 Selected :: #bake_arguments EntitiesIterator(entity_filter=#code !it.is_selected);
 
+Feature_Flags :: struct {
+    use_deferred_renderer := false; // This is an experimental WIP
+}
+
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
+    feature_flags : Feature_Flags;
+
     item_list_max_size_before_scroll_px := 300.;
     annotation_list_max_size_before_scroll_px := 400.;
 
@@ -343,7 +349,6 @@ User_Settings :: struct {
     disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
-    use_deferred_renderer := false; // This is an experimental WIP
 }
 
 Combo_Box_Default :: enum {

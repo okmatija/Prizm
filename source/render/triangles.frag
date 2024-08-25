@@ -35,26 +35,22 @@ const int Display_Mode_PICKED = 0;
 const int Display_Mode_VERTEX = 1;
 const int Display_Mode_NORMAL = 2;
 
-const int Backface_Mode_NONE = 0;
-const int Backface_Mode_FIXED = 2;
-const int Backface_Mode_DARKEN = 3;
-const int Backface_Mode_SCREENTONE_1 = 4;
-const int Backface_Mode_SCREENTONE_2 = 5;
+const int Backface_Mode_PICKED = 0;
+const int Backface_Mode_COPIED = 1;
+const int Backface_Mode_DARKEN = 2;
+const int Backface_Mode_DITHER = 3;
 
 uniform float wave; // time varying value in range [-1,1]
 uniform Camera camera;
 
 uniform int display_mode = Display_Mode_NORMAL;
-uniform int backface_mode = Backface_Mode_FIXED;
+uniform int backface_mode = Backface_Mode_PICKED;
 uniform bool backface_visible = true;
-uniform vec4 backface_color; // rgba
+uniform vec3 backface_color; // rgb
 uniform bool flat_shading = true;
 uniform vec4 color; // rgba
 uniform vec4 edges_color; // rgba
 uniform float edges_width;
-
-// nocommittttt Actually set this!!!!
-// uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
 
 uniform Clip_Range clip_range[3];
 uniform Clip_Sphere clip_sphere;
@@ -188,7 +184,7 @@ void main() {
 
         case Display_Mode_NORMAL: {
 
-            if (!gl_FrontFacing && backface_mode == Backface_Mode_FIXED) {
+            if (!gl_FrontFacing && backface_mode == Backface_Mode_PICKED) {
                 // @Volatile @CopyPasta from PICKED
                 vec3 N = get_normal();
                 vec3 V = normalize(camera.look_direction);
@@ -196,8 +192,8 @@ void main() {
                 vec3 light_color = vec3(1);
                 float light_power = 1.;
 
-                if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
-                    fill_color = backface_color;
+                if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
+                    fill_color = vec4(backface_color, 1);
                 }
                 diffuse_color = fill_color.xyz;
                 vec4 color_linear = vec4(0, 0, 0, 1);
@@ -208,8 +204,8 @@ void main() {
             } else {
                 vec3 N = get_normal();
                 fill_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
-                if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
-                    fill_color = backface_color;
+                if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
+                    fill_color = vec4(backface_color, 1);
                 }
             }
 
@@ -224,8 +220,8 @@ void main() {
             vec3 light_color = vec3(1);
             float light_power = 1.;
 
-            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
-                fill_color = backface_color;
+            if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
+                fill_color = vec4(backface_color, 1);
             }
             diffuse_color = fill_color.xyz;
             vec4 color_linear = vec4(0, 0, 0, 1);
@@ -246,8 +242,8 @@ void main() {
             float light_power = 1.;
 
             fill_color = vec4(vertex_color, 1);
-            if (!gl_FrontFacing && (backface_mode == Backface_Mode_FIXED)) {
-                fill_color = backface_color;
+            if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
+                fill_color = vec4(backface_color, 1);
             }
 
             diffuse_color = fill_color.xyz;
@@ -272,17 +268,16 @@ void main() {
                 break;
             }
 
-            // Darken frontface color and screentone dark
-            case Backface_Mode_SCREENTONE_1: {
-                fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                    fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                }
-                break;
-            }
+            case Backface_Mode_DITHER: {
 
-            // Darken frontface color and screentone light
-            case Backface_Mode_SCREENTONE_2: {
+                // // Darken frontface color and screentone dark
+                // fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                // if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
+                //     fill_color.xyz = darken(fill_color.xyz, darken_factor);
+                // }
+                // break;
+
+                // Darken frontface color and screentone light
                 fill_color.xyz = darken(fill_color.xyz, darken_factor);
                 if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
                     fill_color.xyz = darken(fill_color.xyz, 1/darken_factor);

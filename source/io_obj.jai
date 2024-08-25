@@ -109,6 +109,11 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                 found_inf_or_nan = true;
             }
 
+            if vertex.found_color {
+                // Feature Documentation: Used make the loaded file display vertex colors by default if any were detected
+                result.display_info.triangle_style.display_mode = .VERTEX;
+            }
+
             if dim == 2 {
                 // @Think Maybe use app.invalid_point.z here
                 array_add(*mesh.positions, Vector3.{xy=vertex.position2});

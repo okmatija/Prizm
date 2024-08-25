@@ -485,21 +485,20 @@ query_progress_opacity :: (info : Display_Info) -> Fraction {
 //
 
 cycle_backface_mode :: (display_info : *Display_Info) -> Fraction {
-    mode : *Backface_Mode = *display_info.triangle_style.backface_mode;
+    mode : *Backface_Style.Color_Mode = *display_info.triangle_style.backface_style.color_mode;
     result : Fraction;
-    result.denom = 5;
+    result.denom = 4;
     if #complete mode.* == {
-        case .FIXED;        result.numer = 0; mode.* = .DARKEN; 
-        case .DARKEN;       result.numer = 1; mode.* = .SCREENTONE_1;
-        case .SCREENTONE_1; result.numer = 2; mode.* = .SCREENTONE_2;
-        case .SCREENTONE_2; result.numer = 3; mode.* = .NONE;
-        case .NONE;         result.numer = 4; mode.* = .FIXED;
+        case .PICKED; result.numer = 0; mode.* = .COPIED; 
+        case .COPIED; result.numer = 1; mode.* = .DARKEN;
+        case .DARKEN; result.numer = 2; mode.* = .DITHER;
+        case .DITHER; result.numer = 3; mode.* = .PICKED;
     }
     return result;
 }
 
 apply_backface_mode :: (from : Display_Info, to : *Display_Info) {
-    to.triangle_style.backface_mode = from.triangle_style.backface_mode;
+    to.triangle_style.backface_style.color_mode = from.triangle_style.backface_style.color_mode;
 }
 
 update_backface_mode :: () {

@@ -162,12 +162,13 @@ show_menu_bar_ui :: () {
         ImGui.Text("Ribbon Button UI");
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
-        combo_box(to_string(imgui_label("##RibbonButtonUI")), *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode));
+        TOOLTIPS : [#run get_enum_count(app.Ribbon_Button_Mode)]string : .[
+            "Always hide the ribbon buttons",
+            "Always show the ribbon buttons",
+            "Only show buttons if cursor nearby", 
+        ];
+        combo_box(to_string(imgui_label("##RibbonButtonUI")), *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode), TOOLTIPS);
         ImGui.PopItemWidth();
-        show_tooltip(tprint("%: Always hide the ribbon buttons\n%: Always show the ribbon buttons\n%: Only show buttons if cursor nearby", 
-            app.Ribbon_Button_Mode.HIDE,
-            app.Ribbon_Button_Mode.SHOW,
-            app.Ribbon_Button_Mode.AUTO));
 
         ImGui.Separator();
 
@@ -803,7 +804,7 @@ show_items_ui :: () {
                     //ImGui.PushItemWidth(ImGui.GetFontSize() * -12);
                     //defer ImGui.PopItemWidth();
 
-                    ScopeZeroCellPaddingY();
+                    old_padding_y : float = ScopeCellPaddingY(0.);
 
                     // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
                     if ImGui.BeginTable(imgui_label("Item List Table", xx folder), 5, flags=table_flags, outer_size=outer_size) {
@@ -814,7 +815,7 @@ show_items_ui :: () {
                         folder.last_frame_item_list_height_px = 0.;
                         for :ListClipperIterator local_entity : entities_in_folder {
                             folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_scrollbar);
+                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_scrollbar, old_padding_y);
                             if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
                             if update.visibility_changed    any_visibility_changed = true;
                         }
@@ -902,7 +903,7 @@ Item_Entry_Update :: struct {
     entity_to_remove := -1;
 }
 
-show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
+show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool, old_cell_padding_y : float) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
     ////    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
@@ -959,6 +960,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             bindings := temp_array(Binding_With_Description);
             array_add(*bindings, make_Binding_With_Description(to_string("RMB"), "Cycle shading style"));
             array_add(*bindings, make_Binding_With_Description(to_string("MMB"), "Reset color from filename"));
+            ScopeCellPaddingY(old_cell_padding_y);
             show_tooltip_binding(..bindings, tprint("Current shading style: %", entity.display_info.triangle_style.display_mode));
         }
 
@@ -1153,19 +1155,20 @@ DONE, Labelling_Mode.RAY_CAST));
     //    defer ImGui.EndMenu();
     //}
 
-    if ImGui.BeginMenu("Rendering") {
+    if app.settings.feature_flags.use_deferred_renderer && ImGui.BeginMenu("Rendering") {
         defer ImGui.EndMenu();
 
         ImGui.PushItemWidth(item_width);
         defer ImGui.PopItemWidth();
 
-        combo_box("SSAO Kernel", *app.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind));
-        // @Cleanup Use a table to eliminate this brittle space alignment
-        show_tooltip(tprint(#string DONE
-%:   Disable SSAO. For untextured models SSAO improves clarity.
-%:     Darkens concave/"inner" edges and lightens convex edges (default).
-%: Darkens concave/"inner" edges, convex edges/flat planes unmodified.
-DONE, Shader_Ssao.Ssao_Kernel_Kind.DISABLED, Shader_Ssao.Ssao_Kernel_Kind.SPHERE, Shader_Ssao.Ssao_Kernel_Kind.HEMISPHERE));
+        {
+            TOOLTIPS : [#run get_enum_count(Shader_Ssao.Ssao_Kernel_Kind)]string : .[
+                "Disable SSAO. For untextured models SSAO improves clarity.",
+                "Darkens concave/'inner' edges and lightens convex edges (default).",
+                "Darkens concave/'inner' edges, convex edges/flat planes unmodified.",
+            ];
+            combo_box("SSAO Kernel", *app.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind), TOOLTIPS);
+        }
 
         if (app.shader_ssao.kernel_kind == .DISABLED) {
             ImGui.BeginDisabled();
@@ -2509,7 +2512,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             }
 
             column_count : s32 = 4;
-            ScopeZeroCellPaddingY();
+            ScopeCellPaddingY(0.);
             if ImGui.BeginTable("##Annotations_Table", column_count, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
@@ -2627,7 +2630,7 @@ DONE;
                     }
 
                     column_count : s32 = 3;
-                    ScopeZeroCellPaddingY();
+                    ScopeCellPaddingY(0.);
                     if ImGui.BeginTable(imgui_label("##Attribute_Table", attribute), column_count, flags=table_flags, outer_size=outer_size) {
                         defer ImGui.EndTable();
 
@@ -2731,11 +2734,16 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 
             ImGui.SameLine();
             ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
-            show_tooltip("Frontface Color");
+            show_tooltip("Picked frontface Color");
 
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            combo_box("##Frontface Mode", *display_info.triangle_style.display_mode, type_info(Display_Mode));
+            TOOLTIPS : [#run get_enum_count(Display_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+                "Triangle normals set colors",
+            ];
+            combo_box("##Frontface Mode", *display_info.triangle_style.display_mode, type_info(Display_Mode), TOOLTIPS);
             show_tooltip("Frontface Render Mode");
             ImGui.PopItemWidth();
 
@@ -2755,16 +2763,22 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
                 "Backface Style    ");
 
             ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##backface_visible", display_info), *display_info.triangle_style.backface_visible);
+            ImGui.Checkbox(imgui_label("##backface_visible", display_info), *display_info.triangle_style.backface_style.visible);
             show_tooltip("Backface Visibility");
 
             ImGui.SameLine();
-            ImGui.ColorEdit4(imgui_label("##triangle_style.backface_color", display_info), *display_info.triangle_style.backface_color.component, DEFAULT_COLOR_EDIT_FLAGS);
-            show_tooltip("Backface Color ");
+            ImGui.ColorEdit3(imgui_label("##triangle_style.backface_color", display_info), *display_info.triangle_style.backface_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            show_tooltip("Picked backface Color ");
 
             ImGui.SameLine();
             ImGui.PushItemWidth(70);
-            combo_box("##Backface Mode", *display_info.triangle_style.backface_mode, type_info(Backface_Mode));
+            TOOLTIPS : [#run get_enum_count(Backface_Style.Color_Mode)]string : .[
+                "Use picked color",
+                "Use frontface color",
+                "Use frontface color, then darken",
+                "Use frontface color, then dither",
+            ];
+            combo_box("##Backface Mode", *display_info.triangle_style.backface_style.color_mode, type_info(Backface_Style.Color_Mode), TOOLTIPS);
             show_tooltip("Backface Render Mode");
             ImGui.PopItemWidth();
         }
@@ -2827,9 +2841,9 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
         display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
         ImGui.PopItemWidth();
 
-            // ImGui.PushItemWidth(70);
-            // combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
-            // ImGui.PopItemWidth();
+        // ImGui.PushItemWidth(70);
+        // combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
+        // ImGui.PopItemWidth();
 
         ImGui.TableNextColumn();
         show_normal_style_ui(*display_info.segment_style.normal_style, "     ");

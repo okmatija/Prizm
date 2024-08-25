@@ -185,7 +185,7 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-        if app.settings.use_deferred_renderer {
+        if app.settings.feature_flags.use_deferred_renderer {
             // deferred rendering (WIP)
             render_entities_gbuffer();
         } else {

@@ -92,11 +92,13 @@ BoxSection :: () #expand {
 }
 
 // Used to make the rows of tables close together
-ScopeZeroCellPaddingY :: () #expand {
+ScopeCellPaddingY :: (new_padding_y : float) -> float #expand {
     padding := ImGui.GetStyle().CellPadding;
-    padding.y = 0;
+    old_padding_y := padding.y;
+    padding.y = new_padding_y;
     ImGui.PushStyleVar(xx ImGui.StyleVar.CellPadding, padding);
     `defer ImGui.PopStyleVar();
+    return old_padding_y;
 }
 
 LabelWindow :: (window_position : Vector2, window_size : Vector2) #expand {
@@ -119,9 +121,7 @@ LabelWindow :: (window_position : Vector2, window_size : Vector2) #expand {
     `defer ImGui.End();
 }
 
-// Combo box to select display mode enum value
-// @Cleanup Deduce the info_enum from the data
-combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
+combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum, tooltips : []string = .[]) -> bool {
 
     // @TODO Make the arrow show up when the widget is hovered
     flags : ImGui.ComboFlags = .NoArrowButton;
@@ -135,6 +135,10 @@ combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
     for info_enum.names {
         if value == info_enum.values[it_index]  value_name = it;
     }
+
+    // Note: Use a fixed array with size determined by get_enum_count to ensure this assert passes
+    if tooltips assert(tooltips.count == info_enum.names.count);
+
     if ImGui.BeginCombo(imgui_label(label, data), temp_c_string(value_name), flags) {
         for info_enum.names {
             is_selected := value == info_enum.values[it_index];
@@ -142,6 +146,7 @@ combo_box :: (label : string, data: *void, info_enum: *Type_Info_Enum) -> bool {
                 set_enum_value(data, info_enum, info_enum.values[it_index]);
                 changed = true;
             }
+            if tooltips show_tooltip(tooltips[it_index]);
             if is_selected ImGui.SetItemDefaultFocus();
         }
 

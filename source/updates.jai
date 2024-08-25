@@ -404,6 +404,32 @@ apply_update :: (update : Segment_Style_Update, source : Segment_Style, target :
 }
 
 //
+// Backface_Style
+//
+
+Backface_Style_Update :: struct {
+    visible : bool;
+    color : Vector3_Update;
+    color_mode : bool;
+}
+
+get_update :: (old : Backface_Style, new : Backface_Style) -> Backface_Style_Update {
+    result : Backface_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
+
+    return result;
+}
+
+apply_update :: (update : Backface_Style_Update, source : Backface_Style, target : *Backface_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
+}
+
+//
 // Triangle_Style
 //
 
@@ -411,10 +437,10 @@ Triangle_Style_Update :: struct {
     visible : bool;
     color : Vector4_Update;
     display_mode : bool;
-    backface_mode : bool;
     flat_shading : bool;
     edge_style : Edge_Style_Update;
     normal_style : Normal_Style_Update;
+    backface_style : Backface_Style_Update;
 }
 
 get_update :: (old : Triangle_Style, new : Triangle_Style) -> Triangle_Style_Update {
@@ -423,10 +449,10 @@ get_update :: (old : Triangle_Style, new : Triangle_Style) -> Triangle_Style_Upd
     result.visible = get_update(old.visible, new.visible);
     result.color = get_update(old.color, new.color);
     result.display_mode = get_update(old.display_mode, new.display_mode);
-    result.backface_mode = get_update(old.backface_mode, new.backface_mode);
     result.flat_shading = get_update(old.flat_shading, new.flat_shading);
     result.edge_style = get_update(old.edge_style, new.edge_style);
     result.normal_style = get_update(old.normal_style, new.normal_style);
+    result.backface_style = get_update(old.backface_style, new.backface_style);
 
     return result;
 }
@@ -435,10 +461,10 @@ apply_update :: (update : Triangle_Style_Update, source : Triangle_Style, target
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.color, source.color, *target.color);
     apply_update(update.display_mode, source.display_mode, *target.display_mode);
-    apply_update(update.backface_mode, source.backface_mode, *target.backface_mode);
     apply_update(update.flat_shading, source.flat_shading, *target.flat_shading);
     apply_update(update.edge_style, source.edge_style, *target.edge_style);
     apply_update(update.normal_style, source.normal_style, *target.normal_style);
+    apply_update(update.backface_style, source.backface_style, *target.backface_style);
 }
 
 //
