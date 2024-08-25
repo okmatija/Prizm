@@ -1283,7 +1283,7 @@ show_details_ui :: () {
     }
 
     // Trailing space looks better when its shut
-    do_tree := ImGui.TreeNodeEx("Details ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    do_tree := ImGui.TreeNodeEx("Selection ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     show_tooltip(tooltip);
     if do_tree {
         defer ImGui.TreePop();
@@ -1384,11 +1384,11 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
     if ImGui.BeginTabBar("##DetailsTabBar", flags=ImGui.TabBarFlags.None) {
         defer ImGui.EndTabBar();
 
-        if ImGui.BeginTabItem("Display") {
+        if ImGui.BeginTabItem("Details") {
             defer ImGui.EndTabItem();
 
             // This will just show one item
-            show_item_selection_ui();
+            show_item_obj_file_ui();
 
             display_transform(entity);
 
@@ -1430,7 +1430,7 @@ show_details_pane_ui_for_item_selection :: () {
         if ImGui.BeginTabItem("Display") {
             defer ImGui.EndTabItem();
 
-            show_item_selection_ui();
+            show_item_obj_file_ui();
 
             // @Incomplete We should show the selection information here, helpful e.g., to select all items and know if there are any segment elements in the selection
 
@@ -1457,11 +1457,11 @@ show_details_pane_ui_for_item_selection :: () {
     }
 }
 
-show_item_selection_ui :: () {
+show_item_obj_file_ui :: () {
 
-    do_section, section_mode := begin_item_details_section("Selection");
+    do_section, section_mode := begin_item_details_section("Obj File");
     if do_section {
-        defer end_item_details_section("Selection");
+        defer end_item_details_section("Obj File");
         ConfigureItemDetailsSection();
 
         for :Selected entity : app.entities {
@@ -1483,6 +1483,12 @@ show_item_selection_ui :: () {
                 show_tooltip_binding("Focus", to_string(#char "f", pad_unmodified=false)); // @Volatile Sync with :FocusItemsKey
 
                 ImGui.SameLine();
+                if ImGui.Button("Reload") {
+                    reload_entity(entity, triggered_by_button=true);
+                }
+                show_tooltip_binding("Reload this item", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false)); // @Volatile Sync with :ReloadItemsKey
+
+                ImGui.SameLine();
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
                 if source {
                     ImGui.Checkbox(imgui_label("", entity), *source.auto_reload);
@@ -1498,22 +1504,22 @@ show_item_selection_ui :: () {
                 show_tooltip("Item index for console commands");
 
                 ImGui.SameLine();
-                text := entity_description(entity, with_creation_time=true);
+                text := entity_description(entity, with_creation_time=false);
                 ImGui.TextUnformatted(text);
                 entity_source_tooltip(entity);
             }
         }
 
         // Show these buttons for a single item as well
+        // if count_selected_entities() > 1 {
         {
-            if ImGui.Button("Reload") {
+            if ImGui.Button("     Reload All Selected Items      ") {
                 for :Selected entity : app.entities {
                     reload_entity(entity, triggered_by_button=true);
                 }
             }
-            show_tooltip_binding("Reload this item", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false)); // @Volatile Sync with :ReloadItemsKey
-            ImGui.SameLine();
-            if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
+
+            if ImGui.Button(imgui_label("Toggle Auto-Reload On Selected Items", *app.entities)) {
                 // Find the state to toggle
                 state := false;
                 for :Selected app.entities {

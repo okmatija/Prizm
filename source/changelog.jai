@@ -86,27 +86,34 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
-* TODO Rename the Details->Selection, Display->Details, make Infomation a Metrics tab, make Selection an Ops tab
-* TODO Support vertex colors in utility functions e.g., the function to merge meshes
-* Support vertex colors for segments
-* Support vertex colors for points
-* Support vertex colors for vertices
-* TODO There is no opacity per vertex color. Terrible idea. Only opacity per item
-* TODO Add console command to group elements that touch vertices with the same color
-* TODO Add console command to split item by its group. Then you have separate items which you can change opacity on.
-* Added support for vertex colors. Here is a summary of what v-directives are now supported:
-    * `v x y`          A 2d point 
-    * `v x y z`        A 3d point 
-    * `v x y z w`      A 3d point. w is ignored, and assumed to be 1 since Prizm only supports simplex geometry, we may write an warning if its not 1
-    * `v x y r g b`    A 2d point with color
-    * `v x y z r g b`  A 3d point with color
+* New Feature: Added support for vertex colors
 
-* Added option to configure the backface color
-* Added tooltips to a bunch of combo box elements
-* Removed color preview from the color picker tooltips
-* Changed combo box widget to hide the dropdown arrow by default.  The previous behaviour can be restored via "Preferences > Advanced > Combo Box Default"
-* Changed triangle style settings to better separate frontface and backface settings
-* Replaced item "Information" section with a "Properties" tab
+    * Here is a summary of what v-directives are now supported:
+        * `v x y`          A 2d point
+        * `v x y z`        A 3d point
+        * `v x y z w`      A 3d point. w is ignored, and assumed to be 1 since Prizm only supports simplex geometry, we may write an warning if its not 1
+        * `v x y r g b`    A 2d point with color
+        * `v x y z r g b`  A 3d point with color
+    * Vertex colors are supported for all element types (triangles/segments/points i.e., f/l/p-directives), as well as vertices (v-directives)
+    * TODO Support vertex colors in utility functions e.g., the function to merge meshes
+    * TODO There is no opacity per vertex color. Terrible idea. Only opacity per item
+    * TODO Add console command to group elements that touch vertices with the same color
+    * TODO Add console command to split item by its group. Then you have separate items which you can change opacity on.
+
+* Major improvements to the UI/UX
+
+    * Renamed the former top-level "Details" section to "Selection"
+    * Renamed the former "Details > Display" tab to a "Selection > Details" tab
+    * Replaced item "Details > Display > Information" section with a new "Selection > Properties" tab
+    * Renamed the former "Details > Display > Selection" section to a "Selection > Details > Obj File" tab, and improved the functionality
+
+* Minor changes to the UI/UX
+
+    * Changed combo box widgets to hide the dropdown arrow by default.  The previous behaviour can be restored via "Preferences > Advanced > Combo Box Default"
+    * Changed triangle style settings to better separate frontface and backface settings
+    * Added option to configure the backface color
+    * Added tooltips to a bunch of combo box elements
+    * Removed color preview from the color picker tooltips
 DONE};
 
 PRIZM_VERSION_0_10_1 :: Version.{"0.10.1", "14 May 2024", #string DONE
