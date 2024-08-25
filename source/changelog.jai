@@ -86,12 +86,12 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
-* New Feature: Added support for vertex colors
+* New Feature: Added support for rendering meshes using by interpolating vertex colors
 
     * Here is a summary of what v-directives are now supported:
         * `v x y`          A 2d point
         * `v x y z`        A 3d point
-        * `v x y z w`      A 3d point. w is ignored, and assumed to be 1 since Prizm only supports simplex geometry, we may write an warning if its not 1
+        * `v x y z w`      A 3d point, the w coordinate is ignored since Prizm only supports simplex geometry
         * `v x y r g b`    A 2d point with color
         * `v x y z r g b`  A 3d point with color
     * Vertex colors are supported for all element types (triangles/segments/points i.e., f/l/p-directives), as well as vertices (v-directives)
@@ -115,6 +115,8 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
     * Added tooltips to a bunch of combo box elements
     * Removed color preview from the color picker tooltips
     * Removed the tiny, empty popup that appeared when hovering a (disabled) elements/vertices section for an item with no elements/vertices
+
+* Fixed "Select" tool not selecting the element when in "Points" mode
 DONE};
 
 PRIZM_VERSION_0_10_1 :: Version.{"0.10.1", "14 May 2024", #string DONE

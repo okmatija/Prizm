@@ -48,6 +48,8 @@ Simple_Mesh :: struct {
     // @Incomplete Maybe have the annotations attached to points, segments, triangles here
 }
 
+
+
 // @Cleanup, Don't need to pass pointers here, and remove setting to null
 
 deinit :: (using mesh : *Simple_Mesh) {
@@ -101,12 +103,15 @@ add_triangle :: (using mesh : *Simple_Mesh, triangle : Triangle3) {
 
     tuple.x = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, triangle.a);
+    array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 
     tuple.y = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, triangle.b);
+    array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 
     tuple.z = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, triangle.c);
+    array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 
     // triangle_normals : *Simple_Mesh_Triangle_Normals = find_or_add_triangle_normals_attribute(mesh);
     // array_add(*triangle_normals.values, normals);
@@ -117,9 +122,11 @@ add_segment :: (using mesh : *Simple_Mesh, segment : Segment3) {
 
     tuple.x = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, segment.start);
+    array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 
     tuple.y = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, segment.end);
+    array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 
     // segment_normals : *Simple_Mesh_Segment_Normals = find_or_add_segment_normals_attribute(mesh);
     // array_add(*segment_normals.values, normals);
@@ -130,6 +137,7 @@ add_point :: (using mesh : *Simple_Mesh, position : Vector3) {
 
     index.* = cast(u32)mesh.positions.count;
     array_add(*mesh.positions, position);
+    array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 
     // point_normals : *Simple_Mesh_Point_Normals = find_or_add_point_normals_attribute(mesh);
     // array_add(*point_normals.values, normal);
@@ -204,6 +212,7 @@ remove_elements_by_index :: (elements : *[..]$T, remove_indices : ..int) {
 // nocommitttttt Support colors here
 merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
     positions_offset := dst.positions.count;
+    colors_offset :=    dst.colors.count;
     points_offset :=    dst.points.count;
     segments_offset :=  dst.segments.count;
     triangles_offset := dst.triangles.count;
@@ -215,6 +224,11 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
     array_resize(*dst.positions, dst.positions.count + src.positions.count);
     for i : 0..src.positions.count-1 {
         dst.positions[positions_offset + i] = transform_point(dst_model_from_world, mesh_position_world(src, i));
+    }
+
+    array_resize(*dst.colors, dst.colors.count + src.colors.count);
+    for i : 0..src.colors.count-1 {
+        dst.colors[colors_offset + i] = src.colors[i];
     }
 
     array_resize(*dst.points, dst.points.count + src.points.count);
@@ -540,8 +554,8 @@ mesh_point_hack :: inline (using mesh : Simple_Mesh, point_index : int, $world_s
     return inline mesh_position_hack(mesh, position_index, world_space);
 }
 
-mesh_point_model :: #bake_arguments mesh_position_hack(world_space=false);
-mesh_point_world :: #bake_arguments mesh_position_hack(world_space=true);
+mesh_point_model :: #bake_arguments mesh_point_hack(world_space=false);
+mesh_point_world :: #bake_arguments mesh_point_hack(world_space=true);
 
 
 
@@ -754,6 +768,7 @@ compact_mesh :: (mesh : *Simple_Mesh) {
     for i : 0..mesh.positions.count-1 {
         if used_positions[i] {
             mesh.positions[cursor] = mesh.positions[i];
+            mesh.colors[cursor] = mesh.colors[i];
 
             // Update the vertex indices of the remaining triangles
             for * :TriangleTupleIterator triangle_tuple : mesh {
@@ -779,6 +794,7 @@ compact_mesh :: (mesh : *Simple_Mesh) {
 
     // Update the number of vertices
     mesh.positions.count = cursor;
+    mesh.colors.count = cursor;
 
 }
 
