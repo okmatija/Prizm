@@ -16,7 +16,7 @@ Texture :: struct {
     wrap : Texture_Wrap;
     filter : Texture_Filter;
 
-    // nocommit Remove this when all KodaJai code is assimilated
+    // @Cleanup Remove this when all KodaJai code is assimilated
     #place gl_handle;
     buffer : GLuint = ---;
 }

@@ -20,7 +20,7 @@ resize_textures :: () {
 
         // // position color buffer
         // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // @Cleanup 32F? also, with 16 is should be GL_HALF_FLOAT
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -29,13 +29,13 @@ resize_textures :: () {
 
         // // normal color buffer
         // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // @Cleanup 32F? also, with 16 is should be GL_HALF_FLOAT
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
         // glBindTexture(GL_TEXTURE_2D, 0);
 
-        // nocommit Add depth buffer/texture here!
+        // @Cleanup Add depth buffer/texture here!
     }
 
     /*
@@ -48,7 +48,7 @@ resize_textures :: () {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // nocommit See this depth peeling implementation here:
+    // @Think See this depth peeling implementation here:
     // https://github.com/tsherif/webgl2examples/blob/da1153a15ebc09bb13498e5f732ef2036507740c/oit-dual-depth-peeling.html#L400-L408
     glBindTexture(GL_TEXTURE_2D, app.ssao_blur_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);

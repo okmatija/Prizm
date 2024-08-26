@@ -2,8 +2,8 @@
 Shader_Background :: struct {
     using #as base : Shader;
 
-    // nocommit Add a vbo here... I think RenderDoc can't see the quad mesh otherwise...?
-    vao : GLuint; // nocommit I think this should be elsewhere... in a pass? This background thing is currently more than a shader..
+    // @Cleanup Add a vbo here... I think RenderDoc can't see the quad mesh otherwise...?
+    vao : GLuint; // @Cleanup I think this should be elsewhere... in a pass? This background thing is currently more than a shader..
     // I think I actually need a far_plane_quad Simple_Mesh, which will store the vbo/vao
     // Move Render_Info into mesh
 

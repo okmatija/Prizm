@@ -2,7 +2,7 @@ Shader_Ssao :: struct {
     using #as base : Shader;
 
     Ssao_Kernel_Kind :: enum {
-        DISABLED; // Disable SSAO. nocommit Implement this!
+        DISABLED; // Disable SSAO
         SPHERE;
         HEMISPHERE;
     };
@@ -35,7 +35,7 @@ Shader_Ssao :: struct {
 
     }
 
-    use_shader :: (shader : *Shader_Ssao) { // nocommit Why pointer? change the use_shader helper as well
+    use_shader :: (shader : *Shader_Ssao) { // @Cleanup Why pointer? change the use_shader helper as well
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
@@ -79,7 +79,7 @@ Shader_Ssao_Blur :: struct {
         cache_shader_uniform_location(shader, "occlusion_input", .Texture);
     }
 
-    use_shader :: (shader : *Shader_Ssao_Blur) { // nocommit Why pointer? change the use_shader helper as well
+    use_shader :: (shader : *Shader_Ssao_Blur) { // @Cleanup Why pointer? change the use_shader helper as well
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);

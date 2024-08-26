@@ -51,14 +51,14 @@ Geometry_Pass :: struct {
 
     // Convenient to put color attachement textures after depth texture
 
-    // nocommit Rename to position_world
-    // nocommit Store the texture units here as well?
+    // @Cleanup Rename to position_world
+    // @Cleanup Store the texture units here as well?
     position : Texture;
     position.format = .RGBA32F;
     position.filter = .NEAREST;
     position.wrap = .CLAMP_TO_EDGE;
 
-    // nocommit Rename to normal_world
+    // @Cleanup Rename to normal_world
     normal : Texture;
     normal.format = .RGBA16F;
     normal.filter = .NEAREST;
@@ -92,7 +92,7 @@ init_geometry_pass :: () {
     texture_init(*pass.base_color, app.window_size.width, app.window_size.height);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, pass.base_color.gl_handle, 0);
 
-    attachments : [3]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2]; // nocommit no GL_DEPTH_ATTACHMENT?
+    attachments : [3]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2]; // @Cleanup no GL_DEPTH_ATTACHMENT?
     glDrawBuffers(3, attachments.data);
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);

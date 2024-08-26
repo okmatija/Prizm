@@ -5,7 +5,7 @@ Shader_Lighting :: struct {
 
         shader.program = get_shader_program(LIGHTING_VERT, LIGHTING_FRAG);
 
-        //debug_print_active_uniforms(shader.program); // nocommit
+        //debug_print_active_uniforms(shader.program);
 
         // cache_shader_uniform_location(shader, "camera.eye_position", .Float3);
         cache_shader_uniform_location(shader, "camera.look_direction", .Float3);
@@ -17,10 +17,10 @@ Shader_Lighting :: struct {
 
     }
 
-    // nocommit This should be Shader_Lighting... Fix all similar functions as well
+    // @Cleanupppp This should be Shader_Lighting... Fix all similar functions as well
     use_shader :: (shader : Shader_Lighting) {
 
-        // nocommit I think the following is better in a use_pass function??
+        // @Cleanup I think the following is better in a use_pass function??
 
         glUseProgram(shader.program);
         //assert(glIsProgram(shader.program) == GL_TRUE);

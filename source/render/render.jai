@@ -37,7 +37,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         return;
     }
 
-    assert(mesh.positions.count == mesh.colors.count); // nocommittttt This fires when you make a mesh selection!
+    assert(mesh.positions.count == mesh.colors.count);
 
     if info.is_dirty {
         defer info.is_dirty = false;
@@ -375,9 +375,9 @@ render_mesh_positions :: (entity : Entity) {
     set_shader_uniform_value(*app.render_info.shader_points_lines, "color", vertex_style.color.component);
     set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", vertex_style.color_mode);
 
-    // nocommit refactor to set all the state before issuing the draw calls
+    // @Cleanup refactor to set all the state before issuing the draw calls
     last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data); // nocommit Remove this its very slow
+    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data); // @Cleanup @Speed @TODOOO Remove this its very slow
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -481,11 +481,11 @@ render_mesh_triangles :: (entity : Entity) {
     // @Volatile :ClipRadiusModeEdgeWidth
     app.render_info.shader_triangles.set_shader_clip_radius_uniforms(app.render_info.shader_triangles, entity);
 
-    // nocommit Remove this
+    // @Cleanup Remove this
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
-    // nocommit Extract this
+    // @Cleanup Extract this
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -537,7 +537,7 @@ render_entities_gbuffer :: () {
             glBindVertexArray(it.render_info.triangles_vao);
             glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
 
-            // nocommitttt We should be able to share this with forward rendering, but I want to profile first...!
+            // @Cleanuppp We should be able to share this with forward rendering, but I want to profile first...!
             // render_mesh_triangles(entity);
             // render_mesh_triangles_as_lines(entity);
             // render_mesh_triangle_normals(entity); // Probably we want to pass clip_radius_mode here too?
@@ -591,7 +591,7 @@ render_selections :: () {
 
     ScopeGlState();
 
-    // nocommit Remove this, can it even be triggered???
+    // @Cleanup Remove this, can it even be triggered???
     if app.select_tool.entity.is_hovered {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
