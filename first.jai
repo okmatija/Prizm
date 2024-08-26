@@ -110,21 +110,17 @@ build :: () {
         }
     }
 
+    print("[%] Compiling with % build options.\n", OUTPUT_EXE_NAME, build_kind);
     if #complete build_kind == {
     case .CUSTOM;
         compiler_report("This feature is currently broken, gl_load does not work at compile-time?");
-        print("[%] Compiling with custom build options.\n", OUTPUT_EXE_NAME);
         build_options, build_options_found = table_find(*preset_build_options, "debug"); // Start from debug options
         build_gui(preset_build_options, chosen_build_options=*build_options);
     case .RELEASE; #through;
     case .SHIPPING;
-        print("[%] Compiling with release build options.\n", OUTPUT_EXE_NAME);
         build_options, build_options_found = table_find(*preset_build_options, "release");
-    case .DEBUG;
-        print("[%] Compiling with debug build options.\n", OUTPUT_EXE_NAME);
-        build_options, build_options_found = table_find(*preset_build_options, "debug");
+    case .DEBUG; #through;
     case .VERY_DEBUG;
-        print("[%] Compiling with very debug build options.\n", OUTPUT_EXE_NAME);
         build_options, build_options_found = table_find(*preset_build_options, "debug");
     }
     assert(build_options_found);
