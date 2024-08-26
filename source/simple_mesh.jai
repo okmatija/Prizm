@@ -574,7 +574,7 @@ mesh_segment_tuple :: (mesh : Simple_Mesh, segment_index : int) -> Tuple2(u32) {
     return mesh.segments[segment_index];
 }
 
-mesh_segment3_hack :: (mesh : Simple_Mesh, segment_index : int, $world_space : bool) -> Segment3 {
+mesh_segment_hack :: (mesh : Simple_Mesh, segment_index : int, $world_space : bool) -> Segment3 {
     tuple := inline mesh_segment_tuple(mesh, segment_index);
 
     result : Segment3 = ---;
@@ -583,9 +583,8 @@ mesh_segment3_hack :: (mesh : Simple_Mesh, segment_index : int, $world_space : b
     return result;
 }
 
-// nocommittttttttttttt Change to mesh_segment_model and mesh_segment_world!
-mesh_segment3_model :: #bake_arguments mesh_segment3_hack(world_space=false);
-mesh_segment3_world :: #bake_arguments mesh_segment3_hack(world_space=true);
+mesh_segment_model :: #bake_arguments mesh_segment_hack(world_space=false);
+mesh_segment_world :: #bake_arguments mesh_segment_hack(world_space=true);
 
 mesh_segment_color :: (mesh : Simple_Mesh, segment_index : int) -> Segment_Color {
     tuple := inline mesh_segment_tuple(mesh, segment_index);
@@ -722,7 +721,7 @@ SegmentIterator :: (using mesh : *Simple_Mesh, body : Code, flags : For_Flags, $
 
     for segment_index : 0..mesh.segments.count-1 {
         `it_index := segment_index;
-        `it : Segment3 = inline mesh_segment3_hack(mesh, segment_index, world_space);
+        `it : Segment3 = inline mesh_segment_hack(mesh, segment_index, world_space);
         #insert (remove=#assert(false)) body;
     }
 }

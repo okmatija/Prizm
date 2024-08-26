@@ -149,8 +149,8 @@ Edge_Style :: struct {
     width : float = 1.;
 }
 
-// For rendering vertex positions, point elements and segment elements // nocommit rename to Point_Segment_Color_Mode
-// Point_Segment_Render_Mode
+// For rendering vertex positions, point elements and segment elements
+// @Cleanup Rename to Point_Segment_Render_Mode
 Color_Mode :: enum #specified {
     PICKED :: 0; // Use just one color
     VERTEX :: 1; // Interpolate colors from vertices

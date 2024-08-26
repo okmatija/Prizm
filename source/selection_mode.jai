@@ -163,7 +163,7 @@ do_geometry_selection_mode :: () {
 
         // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
-        hit_segment : Segment3 = mesh_segment3_world(hit_entity.mesh, closest.element_index);
+        hit_segment : Segment3 = mesh_segment_world(hit_entity.mesh, closest.element_index);
 
         if mouse_toggle_in_geometry_selection() {
             // Search for the segment in the current selection mesh

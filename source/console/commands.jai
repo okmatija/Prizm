@@ -287,7 +287,7 @@ item_split_by_vertex_color :: (item_index : int) {
     }
 
     for :SegmentTupleIterator item.mesh {
-        s : Segment3 = mesh_segment3_model(item.mesh, it_index);
+        s : Segment3 = mesh_segment_model(item.mesh, it_index);
         c : Segment_Color = mesh_segment_color(item.mesh, it_index);
 
         e := table_find_pointer(*table, c.start);
@@ -758,7 +758,7 @@ item_focus_segment :: (item_index : int, segment_index : int, clip_radius : floa
             return;
         }
 
-        segment := mesh_segment3_model(entity.mesh, segment_index);
+        segment := mesh_segment_model(entity.mesh, segment_index);
         sphere.center = (segment.start + segment.end) / 2;
         sphere.radius = 2 * distance(segment.start, segment.end);
     }
