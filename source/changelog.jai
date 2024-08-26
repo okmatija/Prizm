@@ -92,7 +92,7 @@ PRIZM_VERSION_0_11_1 :: Version.{"0.11.1", "WIP", #string DONE
 * TODO Fix the console history not persisting across sessions...
 DONE};
 
-PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
+PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "26 August 2024", #string DONE
 * New Feature: Added support for rendering meshes using by interpolating vertex colors
 
     * Here is a summary of what v-directives are now supported:
