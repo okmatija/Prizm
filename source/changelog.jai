@@ -90,6 +90,7 @@ DONE};
 PRIZM_VERSION_0_11_1 :: Version.{"0.11.1", "WIP", #string DONE
 * TODO Support grouping/part naming
 * TODO Fix the console history not persisting across sessions...
+* TODO Add vertex colors/groups to the C++/Python APIs
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "26 August 2024", #string DONE
