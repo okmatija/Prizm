@@ -99,7 +99,7 @@ init_rendering :: () {
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/blit.frag"); #assert(FRAG_OK);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/debug_deferred.frag"); #assert(FRAG_OK);
         app.render_info.blit_program = get_shader_program(VERT, FRAG);
     }
 }
