@@ -97,8 +97,8 @@ Clip_Mode :: enum #specified {
 Clip_Range :: struct {
     normal : Vector3; // @Cleanup Is this unit???
     is_active : bool;
-    min : float = 0hFF800000; // -inf
-    max : float = 0h7F800000; // +inf
+    min : float = -FLOAT32_INFINITY; // -inf
+    max : float =  FLOAT32_INFINITY; // +inf
 }
 
 // Note: all arguments must be in the same space e.g., world/model coordinates
@@ -116,7 +116,7 @@ is_clipped :: (clip_ranges : []Clip_Range, point : Point3) -> bool {
 // @Volatile Keep synced with shaders
 Clip_Sphere :: struct {
     center : Vector3;
-    radius := 0h7F800000; // +inf nocommit Make this a constatn
+    radius := FLOAT32_INFINITY;
     is_active : bool = false;
 }
 
