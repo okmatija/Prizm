@@ -1390,7 +1390,7 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
             // This will just show one item
             show_item_obj_file_ui();
 
-            display_transform(entity);
+            display_mesh_ui(entity);
 
             maybe_update_render_info(*entity.render_info, *entity.mesh);
 
@@ -1459,9 +1459,9 @@ show_details_pane_ui_for_item_selection :: () {
 
 show_item_obj_file_ui :: () {
 
-    do_section, section_mode := begin_item_details_section("Obj File");
+    do_section, section_mode := begin_item_details_section("File");
     if do_section {
-        defer end_item_details_section("Obj File");
+        defer end_item_details_section("File");
         ConfigureItemDetailsSection();
 
         for :Selected entity : app.entities {
@@ -1469,20 +1469,6 @@ show_item_obj_file_ui :: () {
             ImGui.TableNextColumn();
             if entity_name(entity).count {
 
-                // @Volatile :FocusItemBehavior Sync with focus items shortcut
-                if ImGui.Button(imgui_label("Focus ", entity)) {
-                    prev_camera := app.camera;
-
-                    fit_on_screen(entity);
-
-                    // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
-                    if almost_equal(app.camera, prev_camera) {
-                        fit_on_screen_filled(entity);
-                    }
-                }
-                show_tooltip_binding("Focus", to_string(#char "f", pad_unmodified=false)); // @Volatile Sync with :FocusItemsKey
-
-                ImGui.SameLine();
                 if ImGui.Button("Reload") {
                     reload_entity(entity, triggered_by_button=true);
                 }
@@ -2456,22 +2442,35 @@ display_properties :: (entity : *Entity) {
     Row("Sphere radius", tprint("%", sphere.radius), "Model space bounding sphere");
 }
 
-display_transform :: (entity : *Entity) {
-    do_section, section_mode := begin_item_details_section("Transform");
+display_mesh_ui :: (entity : *Entity) {
+    do_section, section_mode := begin_item_details_section("Mesh");
     if do_section {
-        defer end_item_details_section("Transform");
+        defer end_item_details_section("Mesh");
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
-        ImGui.Text("This is a \"world from model\" transform");
         ImGui.PopStyleColor();
         shift := Vector3.{entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34};
         prev_shift := shift;
-        if ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05) {
+        if ImGui.DragFloat3(imgui_label("Translation", entity), *shift.component, .05) {
             update_entity_transform(entity, shift - prev_shift);
         }
+        show_tooltip("This is a \"world from model\" transform");
+
+        // @Volatile :FocusItemBehavior Sync with focus items shortcut
+        if ImGui.Button(imgui_label("Focus ", entity)) {
+            prev_camera := app.camera;
+
+            fit_on_screen(entity);
+
+            // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
+            if almost_equal(app.camera, prev_camera) {
+                fit_on_screen_filled(entity);
+            }
+        }
+        show_tooltip_binding("Focus", to_string(#char "f", pad_unmodified=false)); // @Volatile Sync with :FocusItemsKey
     }
 }
 

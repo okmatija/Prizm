@@ -104,14 +104,14 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
     * Vertex colors are supported for all element types (triangles/segments/points i.e., f/l/p-directives), as well as vertices (v-directives)
     * Added a new console command `item_split_by_vertex_color` which creates new items containing elements with matching vertex colors
 
-* Major improvements to the UI/UX
+* Improvements to the UI/UX
 
     * Renamed the former top-level "Details" section to "Selection"
     * Renamed the former "Details > Display" tab to a "Selection > Details" tab
     * Replaced item "Details > Display > Information" section with a new "Selection > Properties" tab
-    * Renamed the former "Details > Display > Selection" section to a "Selection > Details > Obj File" tab, and improved the functionality
-
-* Minor changes to the UI/UX
+    * Renamed the former "Details > Display > Selection" section to a "Selection > Details > File" section, and improved the functionality
+    * Renamed the former "Details > Display > Transform" section to a "Selection > Details > Mesh" section, and improved the functionality
+    * Moved the "Focus" button into the "Mesh" section
 
     * Changed combo box widgets to hide the dropdown arrow by default.  The previous behaviour can be restored via "Preferences > Advanced > Combo Box Default"
     * Changed triangle style settings to better separate frontface and backface settings
