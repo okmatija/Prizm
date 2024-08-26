@@ -4,30 +4,34 @@
 # 'File > Preferences > Items List > Show Header Annotation Tooltips'
 # Header annotations are useful to document the contents of a file.
 
-v -10 -10 0
-v  10 -10 0
-v  10  10 0 # (or vertex)
-v  10  10 0
-v -10  10 0
+v -10 -10 0    1 0 0 
+v  10 -10 0    0 1 0
+v  10  10 0    0 0 1 # (or vertex)
+v  10  10 0    1 0 0
+v -10  10 0    0 1 0
 l 1 2 # You can annotate...
 l 2 3 # any obj element...
 l 4 5 # with string data...
 l 5 1 # to display in the viewport.
 
-v -20 -20 0 # Vertex 6
-v  20 -20 0 # Vertex 7
-v  20  20 0 # Vertex 8
-v -20  20 0 # Vertex 9
-p 6 7 8 9 # A shared point annotation
+v -20 -20 0    1 0 0 # Vertex 6
+v  20 -20 0    0 1 0 # Vertex 7
+v  20  20 0    0 0 1 # Vertex 8
+v -20  20 0    1 0 1 # Vertex 9
+vn 0 0 1
+vn 0 1 0
+vn 1 0 0
+vn 1 0 1
+p 6//1 7//2 8//3 9//4 # A shared point annotation
 
 ## Use ## to add comments which are ignored by Prizm
 
-v 30 0 0
-v 40 0 0
-v 50 0 0
-v 30 20 0
-v 40 20 0
-v 50 20 0
+v 30 0  0     1 0 0
+v 40 0  0     0 1 0
+v 50 0  0     0 0 1
+v 30 20 0     1 0 0
+v 40 20 0     0 1 0
+v 50 20 0     0 0 1
 f 10 13 11 # First triangle
 f 11 13 14 ## Second triangle (Ignored!)
 f 11 14 12 # Third triangle
