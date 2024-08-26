@@ -326,6 +326,7 @@ apply_update :: (update : Edge_Style_Update, source : Edge_Style, target : *Edge
 Vertex_Style_Update :: struct {
     visible : bool;
     color : Vector4_Update;
+    color_mode : bool;
     size : bool;
 }
 
@@ -334,6 +335,7 @@ get_update :: (old : Vertex_Style, new : Vertex_Style) -> Vertex_Style_Update {
 
     result.visible = get_update(old.visible, new.visible);
     result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
     result.size = get_update(old.size, new.size);
 
     return result;
@@ -342,6 +344,7 @@ get_update :: (old : Vertex_Style, new : Vertex_Style) -> Vertex_Style_Update {
 apply_update :: (update : Vertex_Style_Update, source : Vertex_Style, target : *Vertex_Style) {
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
     apply_update(update.size, source.size, *target.size);
 }
 
@@ -375,6 +378,7 @@ apply_update :: (update : Point_Style_Update, source : Point_Style, target : *Po
 Segment_Style_Update :: struct {
     visible : bool;
     color : Vector4_Update;
+    color_mode : bool;
     width : bool;
     normal_style : Normal_Style_Update;
 }
@@ -384,6 +388,7 @@ get_update :: (old : Segment_Style, new : Segment_Style) -> Segment_Style_Update
 
     result.visible = get_update(old.visible, new.visible);
     result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
     result.width = get_update(old.width, new.width);
     result.normal_style = get_update(old.normal_style, new.normal_style);
 
@@ -393,8 +398,64 @@ get_update :: (old : Segment_Style, new : Segment_Style) -> Segment_Style_Update
 apply_update :: (update : Segment_Style_Update, source : Segment_Style, target : *Segment_Style) {
     apply_update(update.visible, source.visible, *target.visible);
     apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
     apply_update(update.width, source.width, *target.width);
     apply_update(update.normal_style, source.normal_style, *target.normal_style);
+}
+
+//
+// Frontface_Style
+//
+
+Frontface_Style_Update :: struct {
+    visible : bool;
+    color : Vector4_Update;
+    color_mode : bool;
+    flat_shading : bool;
+}
+
+get_update :: (old : Frontface_Style, new : Frontface_Style) -> Frontface_Style_Update {
+    result : Frontface_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
+    result.flat_shading = get_update(old.flat_shading, new.flat_shading);
+
+    return result;
+}
+
+apply_update :: (update : Frontface_Style_Update, source : Frontface_Style, target : *Frontface_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
+    apply_update(update.flat_shading, source.flat_shading, *target.flat_shading);
+}
+
+//
+// Backface_Style
+//
+
+Backface_Style_Update :: struct {
+    visible : bool;
+    color : Vector3_Update;
+    color_mode : bool;
+}
+
+get_update :: (old : Backface_Style, new : Backface_Style) -> Backface_Style_Update {
+    result : Backface_Style_Update;
+
+    result.visible = get_update(old.visible, new.visible);
+    result.color = get_update(old.color, new.color);
+    result.color_mode = get_update(old.color_mode, new.color_mode);
+
+    return result;
+}
+
+apply_update :: (update : Backface_Style_Update, source : Backface_Style, target : *Backface_Style) {
+    apply_update(update.visible, source.visible, *target.visible);
+    apply_update(update.color, source.color, *target.color);
+    apply_update(update.color_mode, source.color_mode, *target.color_mode);
 }
 
 //
@@ -402,37 +463,28 @@ apply_update :: (update : Segment_Style_Update, source : Segment_Style, target :
 //
 
 Triangle_Style_Update :: struct {
-    visible : bool;
-    color : Vector4_Update;
-    display_mode : bool;
-    backface_mode : bool;
-    flat_shading : bool;
     edge_style : Edge_Style_Update;
     normal_style : Normal_Style_Update;
+    backface_style : Backface_Style_Update;
+    frontface_style : Frontface_Style_Update;
 }
 
 get_update :: (old : Triangle_Style, new : Triangle_Style) -> Triangle_Style_Update {
     result : Triangle_Style_Update;
 
-    result.visible = get_update(old.visible, new.visible);
-    result.color = get_update(old.color, new.color);
-    result.display_mode = get_update(old.display_mode, new.display_mode);
-    result.backface_mode = get_update(old.backface_mode, new.backface_mode);
-    result.flat_shading = get_update(old.flat_shading, new.flat_shading);
     result.edge_style = get_update(old.edge_style, new.edge_style);
     result.normal_style = get_update(old.normal_style, new.normal_style);
+    result.backface_style = get_update(old.backface_style, new.backface_style);
+    result.frontface_style = get_update(old.frontface_style, new.frontface_style);
 
     return result;
 }
 
 apply_update :: (update : Triangle_Style_Update, source : Triangle_Style, target : *Triangle_Style) {
-    apply_update(update.visible, source.visible, *target.visible);
-    apply_update(update.color, source.color, *target.color);
-    apply_update(update.display_mode, source.display_mode, *target.display_mode);
-    apply_update(update.backface_mode, source.backface_mode, *target.backface_mode);
-    apply_update(update.flat_shading, source.flat_shading, *target.flat_shading);
     apply_update(update.edge_style, source.edge_style, *target.edge_style);
     apply_update(update.normal_style, source.normal_style, *target.normal_style);
+    apply_update(update.backface_style, source.backface_style, *target.backface_style);
+    apply_update(update.frontface_style, source.frontface_style, *target.frontface_style);
 }
 
 //

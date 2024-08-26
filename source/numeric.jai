@@ -127,6 +127,14 @@ hash_combine :: (lhs : u32, rhs : u32) -> u32 {
     return lhs;
 }
 
+hash_Vector3 :: (a : Vector3) -> u32 {
+    return hash_combine(get_hash(a.x), hash_combine(get_hash(a.y), get_hash(a.z)));
+}
+
+compare_Vector3 :: (a : Vector3, b : Vector3) -> bool {
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 hash_Tuple2i :: (key : Tuple2i) -> u32 {
     return hash_combine(get_hash(key.x), get_hash(key.y));
 }
@@ -170,6 +178,19 @@ ensure_finite :: (input : Vector2, fallback : Vector2 = .{0,0}) -> Vector2, bool
     }
 
     return result, finite;
+}
+
+ensure_finite :: (input : float, fallback : float = 0) -> float, bool {
+    x : float = input;
+
+    finite := true;
+
+    if !is_finite(x) {
+        x = fallback;
+        finite = false;
+    }
+
+    return x, finite;
 }
 
 to_radians :: (degrees : float) -> float {

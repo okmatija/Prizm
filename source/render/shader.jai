@@ -2,7 +2,7 @@
 // @Cleanup We read some shader files more than once. We should just store these inline
 
 Shader :: struct {
-    program : GLuint; // nocommit rename to gl_handle
+    program : GLuint; // @Cleanup rename to gl_handle
     type : Type;
     uniforms : [..]Shader_Uniform;
     // @Incomplete Maybe also store the shader text here
@@ -15,6 +15,7 @@ init_shader :: (shader : *$T/Shader) {
 
 // Convenience function to set the shader program and set the uniforms
 use_shader :: (shader : *$T/Shader, entity : Entity) {
+    //debug_print_active_uniforms(shader.program);
     shader.use_shader(shader, entity);
 }
 use_shader :: (shader : *$T/Shader) {

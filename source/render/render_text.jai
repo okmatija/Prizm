@@ -154,9 +154,9 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
         }
 
         // Segment position and position annotation labels
-        segment_tuple : Tuple2(u32) = mesh_segment3_tuple(entity.mesh, closest_world.element_index);
-        segment_model : Segment3 = mesh_segment3_model(entity.mesh, closest_world.element_index);
-        segment_world : Segment3 = mesh_segment3_world(entity.mesh, closest_world.element_index);
+        segment_tuple : Tuple2(u32) = mesh_segment_tuple(entity.mesh, closest_world.element_index);
+        segment_model : Segment3 = mesh_segment_model(entity.mesh, closest_world.element_index);
+        segment_world : Segment3 = mesh_segment_world(entity.mesh, closest_world.element_index);
         for 0..1 {
             position_world := segment_world.p[it];
             position_model := segment_model.p[it];
@@ -252,8 +252,8 @@ render_entity_text_spotlight :: ($entity_filter : Code) {
             }
 
             if any_segment_label_visible(entity, geometry_labels=false) for annotation : entity.line_annotations {
-                point_model := centroid(mesh_segment3_model(entity.mesh, annotation.id));
-                point_world := centroid(mesh_segment3_world(entity.mesh, annotation.id));
+                point_model := centroid(mesh_segment_model(entity.mesh, annotation.id));
+                point_world := centroid(mesh_segment_world(entity.mesh, annotation.id));
                 AddAnnotation(point_world, Label_Kind.SEGMENT|.ANNOTATION);
             }
 

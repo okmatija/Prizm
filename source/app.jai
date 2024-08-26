@@ -58,7 +58,7 @@ App :: struct {
     background_style := Background_Style.CUSTOM_SHADER;
     background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
 
-    using render_info : App_Render_Info; // nocommit Remove this using
+    render_info : App_Render_Info;
 
     show_ui := true;
     show_fps := false;
@@ -308,8 +308,14 @@ All ::      #bake_arguments EntitiesIterator(entity_filter=false);
 Visible ::  #bake_arguments EntitiesIterator(entity_filter=#code !it.display_info.is_visible);
 Selected :: #bake_arguments EntitiesIterator(entity_filter=#code !it.is_selected);
 
+Feature_Flags :: struct {
+    use_deferred_renderer := false; // This is an experimental WIP
+}
+
 // :UserConfig hotload changes to this file
 User_Settings :: struct {
+    feature_flags : Feature_Flags;
+
     item_list_max_size_before_scroll_px := 300.;
     annotation_list_max_size_before_scroll_px := 400.;
 
@@ -337,11 +343,18 @@ User_Settings :: struct {
     duplicate_file_behaviour := Duplicate_File_Behaviour.APPEND;
     color_from_path_behaviour := Color_From_Path_Behaviour.FILENAME_ONLY;
 
+    combo_box_style := Combo_Box_Default.HIDE_ARROW;
+
     show_header_annotation_tooltips := false;
     disable_reload_key_if_file_unchanged := true;
 
     show_imgui_demo_window := false;
-    use_deferred_renderer := false; // This is an experimental WIP
+}
+
+Combo_Box_Default :: enum {
+    HIDE_ARROW :: 0;
+    SHOW_ARROW :: 1;
+    //HOVER_SHOW_ARROW;
 }
 
 Color_From_Path_Behaviour :: enum u8 #specified {

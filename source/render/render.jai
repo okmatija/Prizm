@@ -1,9 +1,3 @@
-// @Cleanup replace this with: postion_loc = glGetAttribLocation()
-ATTRIB_POSITION  :: 0;
-ATTRIB_NORMAL    :: 1;
-// ATTRIB_TEXCOORDS :: 2;
-// ATTRIB_COLOR     :: 3;
-
 // Things that needs updating when the geometry changes
 Render_Info :: struct {
     is_dirty := true; // @Think Maybe this should be an enum saying what buffers need updating
@@ -43,6 +37,8 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         return;
     }
 
+    assert(mesh.positions.count == mesh.colors.count);
+
     if info.is_dirty {
         defer info.is_dirty = false;
 
@@ -63,19 +59,35 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             //
             // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
 
+            normals : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+            assert(normals != null);
+
+            NP := 3 * size_of(Vector3) * mesh.triangles.count;
+            NN := size_of(Matrix3) * normals.values.count;
+
             {
                 if !info.triangles_vbo glGenBuffers(1, *info.triangles_vbo);
 
+                triangle_colors : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*triangle_colors, 3 * mesh.triangles.count);
+
                 triangle_positions : [..]Vector3 = temp_array(Vector3);
                 array_reserve(*triangle_positions, 3 * mesh.triangles.count);
+
                 for :ModelTriangleIterator mesh {
                     array_add(*triangle_positions, it.a);
                     array_add(*triangle_positions, it.b);
                     array_add(*triangle_positions, it.c);
+
+                    vids := mesh_triangle_tuple(mesh, it_index);
+                    array_add(*triangle_colors, mesh.colors[vids.i]);
+                    array_add(*triangle_colors, mesh.colors[vids.j]);
+                    array_add(*triangle_colors, mesh.colors[vids.k]);
                 }
 
-                normals : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
-                assert(normals != null);
+                // print("mesh.colors = %\n", mesh.colors);
+                // print("triangle_colors = %\n", triangle_colors);
+
                 if mesh.triangles.count && (normals.values.count == 0) {
                     // log("Computing and assigning triangle normals to vertices\n");
                     // @Think Maybe this should happen in a tool so that the user is not confused when they look at normals created automatically on an item whose obj had no normals
@@ -85,13 +97,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                     }
                 }
 
-                NP := 3 * size_of(Vector3) * mesh.triangles.count;
-                NN := size_of(Matrix3) * normals.values.count;
-
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, 2*NP + NN, null, GL_STATIC_DRAW);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
                 glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP+NN, NP, triangle_colors.data);
             }
 
             {
@@ -100,12 +110,12 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBindVertexArray(info.triangles_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
 
-                NP := 3 * size_of(Vector3) * mesh.triangles.count;
-
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glEnableVertexAttribArray(ATTRIB_NORMAL);
+                glEnableVertexAttribArray(ATTRIB_COLOR);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
                 glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
+                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP+NN));
             }
 
             {
@@ -134,26 +144,36 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         }
 
         if mesh.segments.count {
+
+            normals : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+            assert(normals != null);
+
+            NP := 2 * size_of(Vector3) * mesh.segments.count;
+            NN := size_of(Matrix3x2) * normals.values.count;
+
             {
                 if !info.segments_vbo glGenBuffers(1, *info.segments_vbo);
 
+                segment_colors : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*segment_colors, 2 * mesh.segments.count);
+
                 segment_positions : [..]Vector3 = temp_array(Vector3);
                 array_reserve(*segment_positions, 2 * mesh.segments.count);
+
                 for :ModelSegmentIterator mesh {
                     array_add(*segment_positions, it.start);
                     array_add(*segment_positions, it.end);
+
+                    vids := mesh_segment_tuple(mesh, it_index);
+                    array_add(*segment_colors, mesh.colors[vids.i]);
+                    array_add(*segment_colors, mesh.colors[vids.j]);
                 }
 
-                normals : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
-                assert(normals != null);
-
-                NP := 2 * size_of(Vector3) * mesh.segments.count;
-                NN := size_of(Matrix3x2) * normals.values.count;
-
                 glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, 2*NP, null, GL_STATIC_DRAW);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
                 glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP+NN, NP, segment_colors.data);
             }
 
             {
@@ -161,8 +181,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
                 glBindVertexArray(info.segments_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
+
                 glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_COLOR);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP+NN);
             }
 
             {
@@ -170,8 +193,6 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
                 glBindVertexArray(info.segments_normals_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-
-                NP := 2 * size_of(Vector3) * mesh.segments.count;
 
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glEnableVertexAttribArray(ATTRIB_NORMAL);
@@ -181,25 +202,33 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         }
 
         if mesh.points.count {
+
+            normals : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+            assert(normals != null);
+
+            NP := size_of(Vector3) * mesh.points.count;
+            NN := size_of(Vector3) * normals.values.count;
+
             {
                 if !info.points_vbo glGenBuffers(1, *info.points_vbo);
 
+                point_colors : [..]Vector3 = temp_array(Vector3);
+                array_reserve(*point_colors, mesh.points.count);
+
                 point_positions : [..]Vector3 = temp_array(Vector3);
                 array_reserve(*point_positions, mesh.points.count);
+
                 for :ModelPointIterator mesh {
                     array_add(*point_positions, it);
+
+                    array_add(*point_colors, mesh.colors[mesh.points[it_index]]);
                 }
 
-                normals : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
-                assert(normals != null);
-
-                NP := size_of(Vector3) * mesh.points.count;
-                NN := size_of(Vector3) * normals.values.count;
-
                 glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-                glBufferData(GL_ARRAY_BUFFER, NP + NN, null, GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, 2*NP + NN, null, GL_STATIC_DRAW);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
                 glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP+NN, NP, point_colors.data);
             }
 
             {
@@ -207,8 +236,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
                 glBindVertexArray(info.points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
+
                 glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_COLOR);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP+NN));
             }
 
             {
@@ -217,7 +249,6 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glBindVertexArray(info.points_normals_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
 
-                NP := size_of(Vector3) * mesh.points.count;
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glEnableVertexAttribArray(ATTRIB_NORMAL);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
@@ -226,13 +257,18 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
         }
 
         if mesh.positions.count {
+
+            NP := size_of(Vector3) * mesh.positions.count;
+            assert(NP == (size_of(Vector3) * mesh.colors.count));
+
             {
                 if !info.positions_vbo glGenBuffers(1, *info.positions_vbo);
 
-                NP := size_of(Vector3) * mesh.positions.count;
                 glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
-                glBufferData(GL_ARRAY_BUFFER, NP, null, GL_STATIC_DRAW);
+
+                glBufferData(GL_ARRAY_BUFFER, 2*NP, null, GL_STATIC_DRAW);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
+                glBufferSubData(GL_ARRAY_BUFFER, NP, NP, mesh.colors.data);
             }
 
             {
@@ -240,8 +276,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
 
                 glBindVertexArray(info.positions_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
+
                 glEnableVertexAttribArray(ATTRIB_POSITION);
+                glEnableVertexAttribArray(ATTRIB_COLOR);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
+                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
             }
         }
 
@@ -261,7 +300,7 @@ render_mesh_triangle_normals :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_triangle_normal_vectors, entity);
+    use_shader(*app.render_info.shader_triangle_normal_vectors, entity);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -284,7 +323,7 @@ render_mesh_segment_normals :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_segment_normal_vectors, entity);
+    use_shader(*app.render_info.shader_segment_normal_vectors, entity);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -304,7 +343,7 @@ render_mesh_point_normals :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_point_normal_vectors, entity);
+    use_shader(*app.render_info.shader_point_normal_vectors, entity);
 
     glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
 
@@ -318,7 +357,7 @@ render_mesh_point_normals :: (entity : Entity) {
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
 
-    app.shader_aabb.use_shader(*app.shader_aabb, aabb_model, world_from_model);
+    app.render_info.shader_aabb.use_shader(*app.render_info.shader_aabb, aabb_model, world_from_model);
 
     glDrawArrays(GL_LINES, 0, 24);
 }
@@ -329,14 +368,16 @@ render_mesh_positions :: (entity : Entity) {
     if !entity.mesh.positions.count return;
     if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
 
-    use_shader(*app.shader_points_lines, entity);
+    use_shader(*app.render_info.shader_points_lines, entity);
 
-    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)entity.display_info.vertex_style.size;
-    set_shader_uniform_value(*app.shader_points_lines, "point_size", used_point_size);
-    set_shader_uniform_value(*app.shader_points_lines, "color", vertex_style.color.component);
+    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)vertex_style.size;
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "point_size", used_point_size);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", vertex_style.color.component);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", vertex_style.color_mode);
 
+    // @Cleanup refactor to set all the state before issuing the draw calls
     last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
+    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data); // @Cleanup @Speed @TODOOO Remove this its very slow
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -354,11 +395,12 @@ render_mesh_points :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_points_lines, entity);
+    use_shader(*app.render_info.shader_points_lines, entity);
 
     used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)point_style.vertex_style.size;
-    set_shader_uniform_value(*app.shader_points_lines, "point_size", used_point_size);
-    set_shader_uniform_value(*app.shader_points_lines, "color", point_style.vertex_style.color.component);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "point_size", used_point_size);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", point_style.vertex_style.color.component);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", point_style.vertex_style.color_mode);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -379,8 +421,9 @@ render_mesh_segments :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_points_lines, entity);
-    set_shader_uniform_value(*app.shader_points_lines, "color", segment_style.color.component);
+    use_shader(*app.render_info.shader_points_lines, entity);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", segment_style.color.component);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", segment_style.color_mode);
 
     used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
@@ -412,8 +455,8 @@ render_mesh_triangles_as_lines :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_points_lines, entity);
-    set_shader_uniform_value(*app.shader_points_lines, "color", triangle_style.edge_style.color.component);
+    use_shader(*app.render_info.shader_points_lines, entity);
+    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", triangle_style.edge_style.color.component);
 
     used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
@@ -433,16 +476,16 @@ render_mesh_triangles :: (entity : Entity) {
 
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
-    use_shader(*app.shader_triangles, entity);
+    use_shader(*app.render_info.shader_triangles, entity);
 
     // @Volatile :ClipRadiusModeEdgeWidth
-    app.shader_triangles.set_shader_clip_radius_uniforms(app.shader_triangles, triangle_style, clip_radius_mode, clip_radius_mode_show_wireframe);
+    app.render_info.shader_triangles.set_shader_clip_radius_uniforms(app.render_info.shader_triangles, entity);
 
-    // nocommit Remove this
+    // @Cleanup Remove this
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
 
-    // nocommit Extract this
+    // @Cleanup Extract this
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
@@ -481,49 +524,54 @@ render_entities_gbuffer :: () {
     {
         use_geometry_pass();
 
+        glDepthMask(GL_FALSE);
         render_background();
+        glDepthMask(GL_TRUE);
 
         for :VisibleOpaque app.entities {
-            ri := *it.render_info;
-            di :=  it.display_info;
+            maybe_update_render_info(*it.render_info, *it.mesh);
 
             if !it.mesh.triangles.count continue;
-            if !di.triangle_style.visible continue;
-
-            maybe_update_render_info(ri, *it.mesh);
-
-            use_shader(*app.shader_geometry, it);
-            //debug_print_active_uniforms(app.shader_geometry.program);
-
-            // nocommit I pass in a color with components in the range [0., 1.] but I specify a RGBA8 texture with components in the range [0,255]
-
-            glBindVertexArray(ri.triangles_vao);
+            if !it.display_info.triangle_style.visible continue;
+            use_shader(*app.render_info.shader_geometry, it);
+            glBindVertexArray(it.render_info.triangles_vao);
             glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
+
+            // @Cleanuppp We should be able to share this with forward rendering, but I want to profile first...!
+            // render_mesh_triangles(entity);
+            // render_mesh_triangles_as_lines(entity);
+            // render_mesh_triangle_normals(entity); // Probably we want to pass clip_radius_mode here too?
+            // render_mesh_segments(entity);
+            // render_mesh_segment_normals(entity); // Probably we want to pass clip_radius_mode here too?
+            // render_mesh_points(entity);
+            // render_mesh_point_normals(entity); // Probably we want to pass clip_radius_mode here too?
+            // render_mesh_positions(entity);
+
         }
     }
 
     {
         use_ssao_pass();
-        use_shader(*app.shader_ssao);
+        use_shader(*app.render_info.shader_ssao);
 
-        glBindVertexArray(app.quad_vao);
+        glBindVertexArray(app.render_info.quad_vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
 
     {
         use_ssao_blur_pass();
-        use_shader(*app.shader_ssao_blur);
+        use_shader(*app.render_info.shader_ssao_blur);
 
-        glBindVertexArray(app.quad_vao);
+        glBindVertexArray(app.render_info.quad_vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
     {
         use_lighting_pass();
-        use_shader(*app.shader_lighting);
+        use_shader(*app.render_info.shader_lighting);
 
-        glBindVertexArray(app.quad_vao);
+        glBindVertexArray(app.render_info.quad_vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);  
     }
 
@@ -543,7 +591,7 @@ render_selections :: () {
 
     ScopeGlState();
 
-    // nocommit Remove this, can it even be triggered???
+    // @Cleanup Remove this, can it even be triggered???
     if app.select_tool.entity.is_hovered {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
@@ -608,9 +656,9 @@ render_background :: () {
             glDisable(GL_DEPTH_TEST);
             defer glEnable(GL_DEPTH_TEST);
 
-            use_shader(*app.shader_background);
+            use_shader(*app.render_info.shader_background);
 
-            glBindVertexArray(app.shader_background.vao);
+            glBindVertexArray(app.render_info.shader_background.vao);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             /* TODOOO This line triggers, will it go away if we use GL_TRIANGLES? But why??
 
@@ -682,3 +730,8 @@ render_entity_geometry :: (entity : *Entity, entity_index : int) {
     }
 }
 
+// @Cleanup replace this with: postion_loc = glGetAttribLocation()
+ATTRIB_POSITION  :: 0;
+ATTRIB_NORMAL    :: 1;
+// ATTRIB_TEXCOORDS :: 2;
+ATTRIB_COLOR     :: 3;

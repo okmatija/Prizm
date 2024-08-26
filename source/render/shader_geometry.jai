@@ -17,7 +17,7 @@ Shader_Geometry :: struct {
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         view_from_world := make_look_at_matrix(app.camera);
         clip_from_view := make_orthographic_projection_matrix(app.camera);

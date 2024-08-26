@@ -43,6 +43,10 @@ NICE_YELLOW :: ImGui.ImVec4.{1, .8, 0, 1};
 NICE_BLUE :: BLUE; // ImGui.ImVec4.{216/255., 109/255., 48/255., 1};
 NICE_GREY :: #run color_convert_HSV_to_RGB(0, 0, 80./255, 1);
 
+DEFAULT_VERTEX_COLOR :: Vector3.{.8, .8, .8}; // This is _not_ white since that is hard to see against the default background
+DEFAULT_BACKFACE_COLOR :: ImGui.ImVec4.{130./255, 63./255, 122./255, 1.};
+// uniform vec4 backface_color = vec4(130./255, 63./255, 122./255, 1.); // rgba
+
 Named_Color :: struct {
     color : Vector4;
     name : string;

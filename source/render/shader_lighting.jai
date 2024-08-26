@@ -5,7 +5,7 @@ Shader_Lighting :: struct {
 
         shader.program = get_shader_program(LIGHTING_VERT, LIGHTING_FRAG);
 
-        //debug_print_active_uniforms(shader.program); // nocommit
+        //debug_print_active_uniforms(shader.program);
 
         // cache_shader_uniform_location(shader, "camera.eye_position", .Float3);
         cache_shader_uniform_location(shader, "camera.look_direction", .Float3);
@@ -17,21 +17,21 @@ Shader_Lighting :: struct {
 
     }
 
-    // nocommit This should be Shader_Lighting... Fix all similar functions as well
+    // @Cleanupppp This should be Shader_Lighting... Fix all similar functions as well
     use_shader :: (shader : Shader_Lighting) {
 
-        // nocommit I think the following is better in a use_pass function??
+        // @Cleanup I think the following is better in a use_pass function??
 
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         // @TODO @Speed These could all be set in uniform buffers just once per frame
         look_direction := current_look_direction();
-        position_uniform := Texture_Uniform.{*app.geometry_pass.position, 0, "position"};
-        normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, 1, "normal"};
-        base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, 2, "base_color"};
-        ssao_uniform := Texture_Uniform.{*app.ssao_blur_pass.ssao_blurred, 3, "ssao"};
-        use_ssao : bool = (app.shader_ssao.kernel_kind != .DISABLED);
+        position_uniform := Texture_Uniform.{*app.render_info.geometry_pass.position, 0, "position"};
+        normal_uniform := Texture_Uniform.{*app.render_info.geometry_pass.normal, 1, "normal"};
+        base_color_uniform := Texture_Uniform.{*app.render_info.geometry_pass.base_color, 2, "base_color"};
+        ssao_uniform := Texture_Uniform.{*app.render_info.ssao_blur_pass.ssao_blurred, 3, "ssao"};
+        use_ssao : bool = (app.render_info.shader_ssao.kernel_kind != .DISABLED);
 
         // set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);

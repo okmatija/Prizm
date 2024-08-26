@@ -393,7 +393,7 @@ show_items_list_key_bindings :: () {
     ScopeKeyBindTable("##ItemsListKeys");
 
     ShowBinding("      RMB", "(on a color) Cycle shading styles");
-    ShowBinding("      MMB", "(on a color) Reset color from the filename");
+    ShowBinding("      MMB", "(on a color) Reset color from filename");
     ShowBinding("      LMB", "(sweep over visibility checkbox) Update visibility");
     ShowBinding("Ctrl  LMB", "(sweep over visibility checkbox) Focus item");
     ShowBinding("Shift LMB", "(sweep over visibility checkbox) Focus item, update camera");

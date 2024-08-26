@@ -189,7 +189,9 @@ to_edge_Mesh :: (using box : AxisBox3, world_from_model : Matrix4) -> Simple_Mes
     AddEdge :: (a : Corner3, b : Corner3) #expand {
         offset : u32 = xx mesh.positions.count;
         array_add(*mesh.positions, corner(box, a));
+        array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
         array_add(*mesh.positions, corner(box, b));
+        array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
         tuple : *Tuple2(u32) = array_add(*mesh.segments);
         tuple.x, tuple.y = offset, offset + 1;
     }

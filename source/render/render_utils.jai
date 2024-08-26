@@ -20,7 +20,7 @@ resize_textures :: () {
 
         // // position color buffer
         // glBindTexture(GL_TEXTURE_2D, app.gbuffer_position_texture);
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // @Cleanup 32F? also, with 16 is should be GL_HALF_FLOAT
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -29,13 +29,13 @@ resize_textures :: () {
 
         // // normal color buffer
         // glBindTexture(GL_TEXTURE_2D, app.gbuffer_normal_texture);
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // nocommit 32F? also, with 16 is should be GL_HALF_FLOAT
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, null); // @Cleanup 32F? also, with 16 is should be GL_HALF_FLOAT
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app.gbuffer_normal_texture, 0);
         // glBindTexture(GL_TEXTURE_2D, 0);
 
-        // nocommit Add depth buffer/texture here!
+        // @Cleanup Add depth buffer/texture here!
     }
 
     /*
@@ -48,7 +48,7 @@ resize_textures :: () {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // nocommit See this depth peeling implementation here:
+    // @Think See this depth peeling implementation here:
     // https://github.com/tsherif/webgl2examples/blob/da1153a15ebc09bb13498e5f732ef2036507740c/oit-dual-depth-peeling.html#L400-L408
     glBindTexture(GL_TEXTURE_2D, app.ssao_blur_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
@@ -81,26 +81,26 @@ init_rendering :: () {
 
     // @Cleanup We read the same shader files multiple times which sucks.
 
-    init_shader(*app.shader_geometry);
-    init_shader(*app.shader_ssao);
-    init_shader(*app.shader_ssao_blur);
-    init_shader(*app.shader_lighting);
+    init_shader(*app.render_info.shader_geometry);
+    init_shader(*app.render_info.shader_ssao);
+    init_shader(*app.render_info.shader_ssao_blur);
+    init_shader(*app.render_info.shader_lighting);
 
-    init_shader(*app.shader_aabb);
-    init_shader(*app.shader_background);
+    init_shader(*app.render_info.shader_aabb);
+    init_shader(*app.render_info.shader_background);
 
-    init_shader(*app.shader_triangles);
-    init_shader(*app.shader_points_lines);
-    init_shader(*app.shader_triangle_normal_vectors);
-    init_shader(*app.shader_segment_normal_vectors);
-    init_shader(*app.shader_point_normal_vectors);
+    init_shader(*app.render_info.shader_triangles);
+    init_shader(*app.render_info.shader_points_lines);
+    init_shader(*app.render_info.shader_triangle_normal_vectors);
+    init_shader(*app.render_info.shader_segment_normal_vectors);
+    init_shader(*app.render_info.shader_point_normal_vectors);
 
-    glGenVertexArrays(1, *app.quad_vao);
+    glGenVertexArrays(1, *app.render_info.quad_vao);
 
     {
         VERT, VERT_OK :: #run read_entire_file("source/render/quad.vert"); #assert(VERT_OK);
-        FRAG, FRAG_OK :: #run read_entire_file("source/render/blit.frag"); #assert(FRAG_OK);
-        app.blit_program = get_shader_program(VERT, FRAG);
+        FRAG, FRAG_OK :: #run read_entire_file("source/render/debug_deferred.frag"); #assert(FRAG_OK);
+        app.render_info.blit_program = get_shader_program(VERT, FRAG);
     }
 }
 
@@ -358,58 +358,60 @@ blit_texture :: () {
     //glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    using app.render_info;
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
     glClearColor(0., 0., 0., 1.); 
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(app.blit_program);  
-    assert(glIsProgram(app.blit_program) == GL_TRUE);
+    glUseProgram(blit_program);  
+    //assert(glIsProgram(blit_program) == GL_TRUE); // @Speed This call is very slow!
 
-    glBindVertexArray(app.quad_vao);
+    glBindVertexArray(quad_vao);
     glDisable(GL_DEPTH_TEST);
 
-    screen_texture_loc := glGetUniformLocation(app.blit_program, "screen_texture");
-    if #complete app.blit_channel == {
+    screen_texture_loc := glGetUniformLocation(blit_program, "screen_texture");
+    if #complete blit_channel == {
     case .GBUFFER_BASE_COLOR;
 
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.base_color.gl_handle);
+        glBindTexture(GL_TEXTURE_2D, geometry_pass.base_color.gl_handle);
         glUniform1i(screen_texture_loc, 2);// Texture unit 2
 
     case .GBUFFER_NORMAL;
 
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.normal.gl_handle);
+        glBindTexture(GL_TEXTURE_2D, geometry_pass.normal.gl_handle);
         glUniform1i(screen_texture_loc, 1);
 
     case .GBUFFER_POSITION;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app.geometry_pass.position.gl_handle);
+        glBindTexture(GL_TEXTURE_2D, geometry_pass.position.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
     case .SSAO_COLOR;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app.ssao_pass.ssao_color.gl_handle);
+        glBindTexture(GL_TEXTURE_2D, ssao_pass.ssao_color.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
     case .SSAO_COLOR_BLURRED;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app.ssao_blur_pass.ssao_blurred.gl_handle);
+        glBindTexture(GL_TEXTURE_2D, ssao_blur_pass.ssao_blurred.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
     case .DEFAULT_LIT;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app.lighting_pass.lit.gl_handle);
+        glBindTexture(GL_TEXTURE_2D, lighting_pass.lit.gl_handle);
         glUniform1i(screen_texture_loc, 0);
 
     }
 
-    channel_loc := glGetUniformLocation(app.blit_program, "channel");
-    glUniform1i(channel_loc, xx app.blit_channel);
+    channel_loc := glGetUniformLocation(blit_program, "channel");
+    glUniform1i(channel_loc, xx blit_channel);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);  
 }

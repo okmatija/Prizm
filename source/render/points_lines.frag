@@ -23,12 +23,21 @@ const int Clip_Mode_BLACKEN = 1;
 const int Clip_Mode_DARKEN =  2;
 uniform int clip_mode = Clip_Mode_HIDDEN;
 
+const int Color_Mode_SINGLE = 0;
+const int Color_Mode_VERTEX = 1;
+uniform int color_mode = Color_Mode_SINGLE;
+
 in vec3 fragment_position_ws;
+in vec3 fragment_color;
 
 out vec4 out_color;
 
 void main() {
     vec4 used_color = color;
+
+    if (color_mode == Color_Mode_VERTEX) {
+        used_color = vec4(fragment_color, 1);
+    }
 
     for (int i = 0; i < 3; ++i) {
         if (clip_range[i].is_active) {

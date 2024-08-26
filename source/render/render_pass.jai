@@ -12,7 +12,7 @@ Lighting_Pass :: struct {
 
 
 init_lighting_pass :: () {
-    pass : *Lighting_Pass = *app.lighting_pass;
+    pass : *Lighting_Pass = *app.render_info.lighting_pass;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -27,7 +27,7 @@ use_lighting_pass :: () {
 
     DebugScopeGLGroup("Lighting Pass");
 
-    pass : *Lighting_Pass = *app.lighting_pass;
+    pass : *Lighting_Pass = *app.render_info.lighting_pass;
 
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
     //assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
@@ -51,14 +51,14 @@ Geometry_Pass :: struct {
 
     // Convenient to put color attachement textures after depth texture
 
-    // nocommit Rename to position_world
-    // nocommit Store the texture units here as well?
+    // @Cleanup Rename to position_world
+    // @Cleanup Store the texture units here as well?
     position : Texture;
-    position.format = .RGBA16F;
+    position.format = .RGBA32F;
     position.filter = .NEAREST;
     position.wrap = .CLAMP_TO_EDGE;
 
-    // nocommit Rename to normal_world
+    // @Cleanup Rename to normal_world
     normal : Texture;
     normal.format = .RGBA16F;
     normal.filter = .NEAREST;
@@ -75,7 +75,7 @@ Geometry_Pass :: struct {
 init_geometry_pass :: () {
     //pass.name = "Geometry_Pass";
 
-    pass : *Geometry_Pass = *app.geometry_pass;
+    pass : *Geometry_Pass = *app.render_info.geometry_pass;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -92,7 +92,7 @@ init_geometry_pass :: () {
     texture_init(*pass.base_color, app.window_size.width, app.window_size.height);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, pass.base_color.gl_handle, 0);
 
-    attachments : [3]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2]; // nocommit no GL_DEPTH_ATTACHMENT?
+    attachments : [3]GLenum = .[GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2]; // @Cleanup no GL_DEPTH_ATTACHMENT?
     glDrawBuffers(3, attachments.data);
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
@@ -112,7 +112,7 @@ init_geometry_pass :: () {
 use_geometry_pass :: () {
     DebugScopeGLGroup("Geometry Pass");
 
-    pass : *Geometry_Pass = *app.geometry_pass;
+    pass : *Geometry_Pass = *app.render_info.geometry_pass;
 
     // Geometry Pass: (positions, normals, albedo, depth?)
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -168,9 +168,9 @@ Ssao_Pass :: struct {
 };
 
 init_ssao_pass :: () {
-    pass : *Ssao_Pass = *app.ssao_pass;
-    pass.position = *app.geometry_pass.position; // @TODO Replace with Depth instead?
-    pass.normal = *app.geometry_pass.normal;
+    pass : *Ssao_Pass = *app.render_info.ssao_pass;
+    pass.position = *app.render_info.geometry_pass.position; // @TODO Replace with Depth instead?
+    pass.normal = *app.render_info.geometry_pass.normal;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -212,7 +212,7 @@ init_ssao_pass :: () {
 use_ssao_pass :: () {
     DebugScopeGLGroup("SSAO Pass");
 
-    pass : *Ssao_Pass = *app.ssao_pass;
+    pass : *Ssao_Pass = *app.render_info.ssao_pass;
 
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
 
@@ -243,8 +243,8 @@ Ssao_Blur_Pass :: struct {
 }
 
 init_ssao_blur_pass :: () {
-    pass : *Ssao_Blur_Pass = *app.ssao_blur_pass;
-    pass.ssao = *app.ssao_pass.ssao_color;
+    pass : *Ssao_Blur_Pass = *app.render_info.ssao_blur_pass;
+    pass.ssao = *app.render_info.ssao_pass.ssao_color;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -259,7 +259,7 @@ use_ssao_blur_pass :: () {
 
     DebugScopeGLGroup("SSAO Blur Pass");
 
-    pass : *Ssao_Blur_Pass = *app.ssao_blur_pass;
+    pass : *Ssao_Blur_Pass = *app.render_info.ssao_blur_pass;
 
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
 

@@ -28,8 +28,10 @@ Shader_Triangles :: struct {
         cache_shader_uniform_location(shader, "clip_radius_mode", .Bool);
 
         // Triangle_Style stuff, maybe we should make a struct in the shader for this..?
-        cache_shader_uniform_location(shader, "display_mode", .Enum);
+        cache_shader_uniform_location(shader, "frontface_mode", .Enum);
         cache_shader_uniform_location(shader, "backface_mode", .Enum);
+        cache_shader_uniform_location(shader, "backface_visible", .Bool);
+        cache_shader_uniform_location(shader, "backface_color", .Float3);
         cache_shader_uniform_location(shader, "flat_shading", .Bool);
         cache_shader_uniform_location(shader, "color", .Float4);
         cache_shader_uniform_location(shader, "edges_color", .Float4);
@@ -42,7 +44,7 @@ Shader_Triangles :: struct {
         using entity.display_info;
 
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE); // @Speed This call is very slow!
 
         view_from_world := make_look_at_matrix(app.camera);
         clip_from_view := make_orthographic_projection_matrix(app.camera);
@@ -65,6 +67,7 @@ Shader_Triangles :: struct {
         set_shader_uniform_value(shader, "clip_sphere_prev.radius", clip_sphere_prev.radius);
         // set_shader_uniform_value(shader, "clip_sphere_prev.is_active", clip_sphere_prev.is_active); // Not used in the shader
 
+        // @Speedddddd These tprints are incredibly slow!
         for 0..2 {
             set_shader_uniform_value(shader, tprint("clip_range[%].is_active", it), clip_ranges[it].is_active);
             set_shader_uniform_value(shader, tprint("clip_range[%].normal", it), clip_ranges[it].normal.component);
@@ -73,8 +76,10 @@ Shader_Triangles :: struct {
         }
 
         // Triangle_Style stuff, maybe we should make a struct in the shader for this..?
-        set_shader_uniform_value(shader, "display_mode", triangle_style.display_mode);
-        set_shader_uniform_value(shader, "backface_mode", triangle_style.backface_mode);
+        set_shader_uniform_value(shader, "frontface_mode", triangle_style.color_mode);
+        set_shader_uniform_value(shader, "backface_color", triangle_style.backface_style.color.component);
+        set_shader_uniform_value(shader, "backface_mode", triangle_style.backface_style.color_mode);
+        set_shader_uniform_value(shader, "backface_visible", triangle_style.backface_style.visible);
         set_shader_uniform_value(shader, "flat_shading", triangle_style.flat_shading);
         set_shader_uniform_value(shader, "color", triangle_style.color.component);
         set_shader_uniform_value(shader, "edges_color", triangle_style.edge_style.color.component);
@@ -84,7 +89,9 @@ Shader_Triangles :: struct {
     }
 
     // See :ClipRadiusModeEdgeWidth
-    set_shader_clip_radius_uniforms :: (shader : Shader, triangle_style : Triangle_Style, clip_radius_mode : bool, clip_radius_mode_show_wireframe : bool) {
+    set_shader_clip_radius_uniforms :: (shader : Shader, entity : Entity) {
+        using entity.display_info;
+
         set_shader_uniform_value(shader, "clip_radius_mode", clip_radius_mode);
 
         used_edges_width := max(triangle_style.edge_style.width, MIN_EDGES_WIDTH_GL_FILL); // See :NiceTriangleEdgesRendering

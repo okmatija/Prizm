@@ -42,8 +42,8 @@ void main()
     vec3 normal_world = texture(gbuffer_normal, tex_coords).rgb;
 
     if (normal_world == vec3(0)) {
-        // nocommit Look up how to do #include type things
-        discard; // nocommit Put the background shader in here!
+        // @Cleanup Look up how to do #include type things
+        discard; // @Cleanup Put the background shader in here!
     }
 
     // vec3 position_world = texture(gbuffer_position, tex_coords).rgb;
@@ -53,11 +53,11 @@ void main()
         ambient_occlusion = texture(ssao, tex_coords).r;
     }
 
-    //switch (display_mode)
+    //switch (frontface_mode)
     {
-        //case Display_Mode_NORMALS:
+        //case Frontface_Mode_NORMAL:
         {
-            // @Volatile @CopyPasta from NORMALS
+            // @Volatile @CopyPasta from NORMAL
             vec3 N = normal_world;
             // vec3 V = normalize(camera.eye_position - position_world);
             vec3 V = normalize(camera.look_direction); // This is the directional spotlight... Do we need the position texture in this shader then..???
@@ -65,7 +65,7 @@ void main()
             vec3 light_color = vec3(1);
             float light_power = 1.;
 
-            vec3 diffuse_color = texture(gbuffer_base_color, tex_coords).rgb; // nocommit vec4?
+            vec3 diffuse_color = texture(gbuffer_base_color, tex_coords).rgb; // @Cleanup vec4?
             ambient_color = .3 * diffuse_color * ambient_occlusion;
             vec4 color_linear = vec4(0, 0, 0, 1);
             color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power, diffuse_color);

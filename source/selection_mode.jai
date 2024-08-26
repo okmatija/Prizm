@@ -9,17 +9,21 @@ Geometry_Select_Tool :: struct {
     entity.display_info.vertex_style.visible = true;
     entity.display_info.vertex_style.size = 6;
     entity.display_info.vertex_style.color = SELECT_VERTEX;
+    entity.display_info.vertex_style.color_mode = .PICKED;
 
     entity.display_info.point_style.visible = true;
     entity.display_info.point_style.size = 6;
     entity.display_info.point_style.color = SELECT_POINT;
+    entity.display_info.point_style.color_mode = .PICKED;
 
     entity.display_info.segment_style.visible = true;
     entity.display_info.segment_style.width = 2;
     entity.display_info.segment_style.color = SELECT_SEGMENT;
+    entity.display_info.segment_style.color_mode = .PICKED;
 
     entity.display_info.triangle_style.visible = true;
     entity.display_info.triangle_style.color = SELECT_TRIANGLE;
+    entity.display_info.triangle_style.color_mode = .PICKED;
     entity.display_info.triangle_style.edge_style.visible = true;
     entity.display_info.triangle_style.edge_style.color = BLACK;
     entity.display_info.triangle_style.edge_style.width = 2.;
@@ -159,7 +163,7 @@ do_geometry_selection_mode :: () {
 
         // :NormalsInGeometrySelectionMode Get normals here
         hit_entity : *Entity = app.entities[closest.entity_index];
-        hit_segment : Segment3 = mesh_segment3_world(hit_entity.mesh, closest.element_index);
+        hit_segment : Segment3 = mesh_segment_world(hit_entity.mesh, closest.element_index);
 
         if mouse_toggle_in_geometry_selection() {
             // Search for the segment in the current selection mesh

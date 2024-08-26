@@ -5,9 +5,11 @@ uniform vec2 window_size;
 in VS_Out {
     vec3 vertex_normal_ws;
     vec3 fragment_position_ws;
+    vec3 vertex_color;
 } gs_in[];
 
 out vec3 vertex_normal_ws;
+out vec3 vertex_color;
 out vec3 triangle_normal_ws; // Computed for flat shading
 out vec3 fragment_position_ws;
 noperspective out vec3 dist; // Distance from each triangle edge. Used to render anti-aliased triangle edges on the actual triangle
@@ -35,18 +37,21 @@ void main() {
     dist = vec3(area / length(v0), 0, 0);
     gl_Position = gl_in[0].gl_Position;
     vertex_normal_ws = gs_in[0].vertex_normal_ws;
+    vertex_color = gs_in[0].vertex_color;
     fragment_position_ws = gs_in[0].fragment_position_ws;
     EmitVertex();
 
     dist = vec3(0, area / length(v1), 0);
     gl_Position = gl_in[1].gl_Position;
     vertex_normal_ws = gs_in[1].vertex_normal_ws;
+    vertex_color = gs_in[1].vertex_color;
     fragment_position_ws = gs_in[1].fragment_position_ws;
     EmitVertex();
 
     dist = vec3(0, 0, area / length(v2));
     gl_Position = gl_in[2].gl_Position;
     vertex_normal_ws = gs_in[2].vertex_normal_ws;
+    vertex_color = gs_in[2].vertex_color;
     fragment_position_ws = gs_in[2].fragment_position_ws;
     EmitVertex();
 

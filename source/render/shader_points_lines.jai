@@ -22,6 +22,7 @@ Shader_Points_Lines :: struct {
         cache_shader_uniform_location(shader, "wave", .Float1);
         cache_shader_uniform_location(shader, "clip_mode", .Enum);
         cache_shader_uniform_location(shader, "color", .Float4);
+        cache_shader_uniform_location(shader, "color_mode", .Enum);
 
         // We don't set the value for this uniform if we use this shader for rendering segments/triangle edges
         cache_shader_uniform_location(shader, "point_size", .Float1);
@@ -31,7 +32,7 @@ Shader_Points_Lines :: struct {
         using entity.display_info;
 
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         view_from_world := make_look_at_matrix(app.camera);
         clip_from_view := make_orthographic_projection_matrix(app.camera);

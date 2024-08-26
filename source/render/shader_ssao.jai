@@ -2,7 +2,7 @@ Shader_Ssao :: struct {
     using #as base : Shader;
 
     Ssao_Kernel_Kind :: enum {
-        DISABLED; // Disable SSAO. nocommit Implement this!
+        DISABLED; // Disable SSAO
         SPHERE;
         HEMISPHERE;
     };
@@ -29,24 +29,24 @@ Shader_Ssao :: struct {
         cache_shader_uniform_location(shader, "radius", .Float1);
         cache_shader_uniform_location(shader, "bias", .Float1);
 
-        for app.ssao_pass.ssao_kernel {
+        for app.render_info.ssao_pass.ssao_kernel {
             cache_shader_uniform_location(shader, tprint("samples[%]", it_index), .Float3);
         }
 
     }
 
-    use_shader :: (shader : *Shader_Ssao) { // nocommit Why pointer? change the use_shader helper as well
+    use_shader :: (shader : *Shader_Ssao) { // @Cleanup Why pointer? change the use_shader helper as well
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
         clip_from_view := make_orthographic_projection_matrix(app.camera);
         view_from_world := make_look_at_matrix(app.camera);
 
-        position := Texture_Uniform.{*app.geometry_pass.position, 0, "tex_position"}; // @Speed @TODOOO Use unprojected depth buffer here instead!   
-        normal := Texture_Uniform.{*app.geometry_pass.normal, 1, "tex_normal"};
-        noise := Texture_Uniform.{*app.ssao_pass.ssao_noise, 2, "tex_noise"};
+        position := Texture_Uniform.{*app.render_info.geometry_pass.position, 0, "tex_position"}; // @Speed @TODOOO Use unprojected depth buffer here instead!   
+        normal := Texture_Uniform.{*app.render_info.geometry_pass.normal, 1, "tex_normal"};
+        noise := Texture_Uniform.{*app.render_info.ssao_pass.ssao_noise, 2, "tex_noise"};
 
         set_shader_uniform_value(shader, "tex_position", position);
         set_shader_uniform_value(shader, "tex_normal", normal);
@@ -62,7 +62,7 @@ Shader_Ssao :: struct {
         set_shader_uniform_value(shader, "radius", shader.kernel_radius);
         set_shader_uniform_value(shader, "bias", shader.bias);
 
-        for app.ssao_pass.ssao_kernel {
+        for app.render_info.ssao_pass.ssao_kernel {
             set_shader_uniform_value(shader, tprint("samples[%]", it_index), it.component);
         }
 
@@ -79,13 +79,13 @@ Shader_Ssao_Blur :: struct {
         cache_shader_uniform_location(shader, "occlusion_input", .Texture);
     }
 
-    use_shader :: (shader : *Shader_Ssao_Blur) { // nocommit Why pointer? change the use_shader helper as well
+    use_shader :: (shader : *Shader_Ssao_Blur) { // @Cleanup Why pointer? change the use_shader helper as well
 
         // @TODOOO Improve abstraction a bit here: calling glUseProgram should be separate from setting uniforms, we can do it once before rendering each item
         glUseProgram(shader.program);
-        assert(glIsProgram(shader.program) == GL_TRUE);
+        //assert(glIsProgram(shader.program) == GL_TRUE);
 
-        ssao := Texture_Uniform.{app.ssao_blur_pass.ssao, 0, "occlusion_input"};
+        ssao := Texture_Uniform.{app.render_info.ssao_blur_pass.ssao, 0, "occlusion_input"};
         set_shader_uniform_value(shader, "occlusion_input", ssao);
     }
 }

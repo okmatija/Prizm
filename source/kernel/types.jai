@@ -93,3 +93,21 @@ Circle3 :: struct {
     normal : Vector3;
     radius : float;
 }
+
+Point_Color :: Vector3;
+
+Segment_Color :: struct {
+    start : Vector3 = DEFAULT_VERTEX_COLOR;
+    end : Vector3 = DEFAULT_VERTEX_COLOR;
+
+#place start;
+    p : [2]Vector3 = ---;
+}
+
+Triangle_Color :: struct {
+    a : Vector3 = DEFAULT_VERTEX_COLOR;
+    b : Vector3 = DEFAULT_VERTEX_COLOR;
+    c : Vector3 = DEFAULT_VERTEX_COLOR;
+#place a;
+    v : [3]Point3 = ---;
+}

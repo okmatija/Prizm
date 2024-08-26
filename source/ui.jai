@@ -1,6 +1,7 @@
 WINDOW_BORDER_UI_OFFSET :: ImGui.ImVec2.{10, 10};
 EASY_RESIZE_FRACTION :: .25;
 WINDOW_RESIZE_MARGIN_PX :: 3;
+DEFAULT_COLOR_EDIT_FLAGS :: ImGui.ColorEditFlags.NoInputs | .NoTooltip;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
@@ -161,12 +162,13 @@ show_menu_bar_ui :: () {
         ImGui.Text("Ribbon Button UI");
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
-        combo_box(to_string(imgui_label("##RibbonButtonUI")), *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode));
+        TOOLTIPS : [#run get_enum_count(app.Ribbon_Button_Mode)]string : .[
+            "Always hide the ribbon buttons",
+            "Always show the ribbon buttons",
+            "Only show buttons if cursor nearby", 
+        ];
+        combo_box(to_string(imgui_label("##RibbonButtonUI")), *app.ribbon_button_mode, type_info(app.Ribbon_Button_Mode), TOOLTIPS);
         ImGui.PopItemWidth();
-        show_tooltip(tprint("%: Always hide the ribbon buttons\n%: Always show the ribbon buttons\n%: Only show buttons if cursor nearby", 
-            app.Ribbon_Button_Mode.HIDE,
-            app.Ribbon_Button_Mode.SHOW,
-            app.Ribbon_Button_Mode.AUTO));
 
         ImGui.Separator();
 
@@ -398,7 +400,7 @@ show_left_window_ui :: () {
 
     // ScopedWindowBorderTheme(original_border_color, original_border_size);
 
-    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, ImGui.ColorEditFlags.NoInputs);
+    // ImGui.ColorEdit4("debug_color", *app.debug_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tools_ui();
     show_items_ui();
     show_details_ui();
@@ -802,7 +804,7 @@ show_items_ui :: () {
                     //ImGui.PushItemWidth(ImGui.GetFontSize() * -12);
                     //defer ImGui.PopItemWidth();
 
-                    ScopeZeroCellPaddingY();
+                    old_padding_y : float = ScopeCellPaddingY(0.);
 
                     // @Hack Include an extra empty padding column so the filename is not trucated when we use a scrolling region
                     if ImGui.BeginTable(imgui_label("Item List Table", xx folder), 5, flags=table_flags, outer_size=outer_size) {
@@ -813,7 +815,7 @@ show_items_ui :: () {
                         folder.last_frame_item_list_height_px = 0.;
                         for :ListClipperIterator local_entity : entities_in_folder {
                             folder.last_frame_item_list_height_px = clipper.ItemsHeight;
-                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_scrollbar);
+                            update : Item_Entry_Update = show_item_list_entry(local_entity.entity, local_entity.global_index, show_scrollbar, old_padding_y);
                             if update.entity_to_remove >= 0 entity_to_remove = update.entity_to_remove; 
                             if update.visibility_changed    any_visibility_changed = true;
                         }
@@ -829,11 +831,13 @@ show_items_ui :: () {
         ImGui.Text("% item% (% selected)", app.entities.count, ifx app.entities.count > 1 then "s" else "", selected.count);
         bindings : [..]Binding_With_Description = temp_array(Binding_With_Description);
         // @Volatile Sync with :SelectionKeybindTooltip
+        array_add(*bindings, make_Binding_With_Description("      LMB", "Set selected item"));
+        array_add(*bindings, make_Binding_With_Description("Ctrl  LMB", "Select/deselect item"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{control_pressed=true}), "Select/deselect all items"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{shift_pressed=true}), "Select/deselect visible items"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "a", .{alt_pressed=true}), "Toggle current item selection"));
         array_add(*bindings, make_Binding_With_Description(to_string(#char "`", .{}), "Use the 'select_...' console commands"));
-        show_tooltip_binding(..bindings, "Summary of ways to select items:");
+        show_tooltip_binding(..bindings, "How to select items:");
 
     } // end TreeNodeEx
 
@@ -853,12 +857,12 @@ show_items_ui :: () {
         if g_this_frame_state.index_of_selected_item_where_mode_was_cycled != -1 {
             source : *Entity = app.entities[g_this_frame_state.index_of_selected_item_where_mode_was_cycled];
             for :Selected app.entities {
-                it.display_info.triangle_style.display_mode = source.display_info.triangle_style.display_mode;
+                it.display_info.triangle_style.color_mode = source.display_info.triangle_style.color_mode;
             }
         }
         if g_this_frame_state.index_of_selected_item_where_color_was_reset != -1 {
             for :Selected app.entities {
-                it.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode;
+                it.display_info.triangle_style.color_mode = Display_Info.{}.triangle_style.color_mode;
                 set_entity_primary_color(it);
             }
         }
@@ -899,7 +903,7 @@ Item_Entry_Update :: struct {
     entity_to_remove := -1;
 }
 
-show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool) -> Item_Entry_Update {
+show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_column_to_fix_truncation : bool, old_cell_padding_y : float) -> Item_Entry_Update {
     result : Item_Entry_Update;
 
     ////    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
@@ -939,25 +943,57 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         color_reset :=   false; // Reset with MMB
         mode_cycled :=   false; // Cycled with RMB
 
-        if entity.display_info.triangle_style.display_mode == .NORMALS {
-            ImGui.TextDisabled("NR."); // @Design Replace this with a image with a normal gradient
+        if entity.display_info.triangle_style.color_mode == .NORMAL {
+            ImGui.Text("Nrm"); // @Design Replace this with a image with a normal gradient
+        } else if entity.display_info.triangle_style.color_mode == .VERTEX {
+            ImGui.Text("Vtx"); // @Design Replace this with a image representing vertex colors
         } else {
             color : *Vector4 = get_entity_primary_color(entity);
-            if color {
-                // ImGui.PushStyleColor(ImGui.Col.FrameBg, ImGui.ImVec4.{1,1,1,0});
-                ImGui.PushStyleVar(ImGui.StyleVar.FrameBorderSize, 0);
-                color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, ImGui.ColorEditFlags.NoInputs);
-                ImGui.PopStyleVar();
-                // ImGui.PopStyleColor();
-            }
+            // ImGui.PushStyleColor(ImGui.Col.FrameBg, ImGui.ImVec4.{1,1,1,0});
+            ImGui.PushStyleVar(ImGui.StyleVar.FrameBorderSize, 0);
+            color_changed = ImGui.ColorEdit4(imgui_label("##color", entity), *color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            ImGui.PopStyleVar();
+            // ImGui.PopStyleColor();
         }
+
+        {
+            bindings := temp_array(Binding_With_Description);
+            array_add(*bindings, make_Binding_With_Description(to_string("RMB"), "Cycle shading style"));
+            array_add(*bindings, make_Binding_With_Description(to_string("MMB"), "Reset color from filename"));
+            ScopeCellPaddingY(old_cell_padding_y);
+            show_tooltip_binding(..bindings, tprint("Current shading style: %", entity.display_info.triangle_style.color_mode));
+        }
+
         if ImGui.IsItemClicked(.Middle) {
-            entity.display_info.triangle_style.display_mode = Display_Info.{}.triangle_style.display_mode; // Reset to default
+            entity.display_info.triangle_style.color_mode = Display_Info.{}.triangle_style.color_mode; // Reset to default
             set_entity_primary_color(entity);
             color_reset = true;
         }
         if ImGui.IsItemClicked(.Right) {
-            cycle_display_mode(*entity.display_info.triangle_style.display_mode);
+
+            tmode : *Frontface_Style.Color_Mode = *entity.display_info.triangle_style.color_mode;
+            smode : *Color_Mode = *entity.display_info.segment_style.color_mode;
+            pmode : *Color_Mode = *entity.display_info.point_style.color_mode;
+            vmode : *Color_Mode = *entity.display_info.vertex_style.color_mode;
+
+            if #complete tmode.* == {
+                case .NORMAL;
+                    tmode.* = .PICKED;
+                    smode.* = .PICKED;
+                    pmode.* = .PICKED;
+                    vmode.* = .PICKED;
+                case .PICKED;
+                    tmode.* = .VERTEX;
+                    smode.* = .VERTEX;
+                    pmode.* = .VERTEX;
+                    vmode.* = .VERTEX;
+                case .VERTEX;
+                    tmode.* = .NORMAL;
+                    smode.* = .PICKED;
+                    pmode.* = .PICKED;
+                    vmode.* = .PICKED;
+            }
+
             mode_cycled = true;
         }
 
@@ -1000,7 +1036,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
         }
 
         entity_tick_flash_hover(entity);
-
+        // show_tooltip_binding("Focus item", "F"); // DO NOT ENABLE: currently enables a tooltip even outside the item name
         header_annotation : *Annotation = entity_header_annotation(entity);
         if app.settings.show_header_annotation_tooltips && header_annotation {
             show_tooltip(to_string(header_annotation));
@@ -1078,7 +1114,7 @@ show_preferences :: () {
         {
             combo_box("Background", *app.background_style, type_info(app.Background_Style));
             if app.background_style == .SOLID_COLOR {
-                ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, ImGui.ColorEditFlags.NoInputs);
+                ImGui.ColorEdit4("Background Color", *app.background_solid_color.component, DEFAULT_COLOR_EDIT_FLAGS);
             }
 
             // TODO Add a shader period thing
@@ -1119,33 +1155,34 @@ DONE, Labelling_Mode.RAY_CAST));
     //    defer ImGui.EndMenu();
     //}
 
-    if ImGui.BeginMenu("Rendering") {
+    if app.settings.feature_flags.use_deferred_renderer && ImGui.BeginMenu("Rendering") {
         defer ImGui.EndMenu();
 
         ImGui.PushItemWidth(item_width);
         defer ImGui.PopItemWidth();
 
-        combo_box("SSAO Kernel", *app.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind));
-        // @Cleanup Use a table to eliminate this brittle space alignment
-        show_tooltip(tprint(#string DONE
-%:   Disable SSAO. For untextured models SSAO improves clarity.
-%:     Darkens concave/"inner" edges and lightens convex edges (default).
-%: Darkens concave/"inner" edges, convex edges/flat planes unmodified.
-DONE, Shader_Ssao.Ssao_Kernel_Kind.DISABLED, Shader_Ssao.Ssao_Kernel_Kind.SPHERE, Shader_Ssao.Ssao_Kernel_Kind.HEMISPHERE));
+        {
+            TOOLTIPS : [#run get_enum_count(Shader_Ssao.Ssao_Kernel_Kind)]string : .[
+                "Disable SSAO. For untextured models SSAO improves clarity.",
+                "Darkens concave/'inner' edges and lightens convex edges (default).",
+                "Darkens concave/'inner' edges, convex edges/flat planes unmodified.",
+            ];
+            combo_box("SSAO Kernel", *app.render_info.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind), TOOLTIPS);
+        }
 
-        if (app.shader_ssao.kernel_kind == .DISABLED) {
+        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
             ImGui.BeginDisabled();
         }
 
-        ImGui.DragFloat("SSAO bias", *app.shader_ssao.bias, .001, 0., .2, format="%.3f");
-        ImGui.DragFloat("SSAO kernel radius", *app.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
-        ImGui.DragInt("SSAO sample count", *app.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
+        ImGui.DragFloat("SSAO bias", *app.render_info.shader_ssao.bias, .001, 0., .2, format="%.3f");
+        ImGui.DragFloat("SSAO kernel radius", *app.render_info.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
+        ImGui.DragInt("SSAO sample count", *app.render_info.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
 
-        if (app.shader_ssao.kernel_kind == .DISABLED) {
+        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
             ImGui.EndDisabled();
         }
 
-        combo_box("Show Channel", *app.blit_channel, type_info(Blit_Channel));
+        combo_box("Show Channel", *app.render_info.blit_channel, type_info(Blit_Channel));
     }
 
     if ImGui.BeginMenu("Labelling") {
@@ -1191,11 +1228,13 @@ DONE, Labelling_Mode.RAY_CAST, Labelling_Mode.SPOTLIGHT));
         ImGui.PushItemWidth(item_width);
         defer ImGui.PopItemWidth();
 
-        combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)));
-        show_tooltip(#string DONE
-Transparent mode: log window ignores mouse input so you can interact with the scene while reading the log
-Interactive mode: log window captures mouse input so you can scroll through log messages
-DONE);
+        {
+            TOOLTIPS : [#run get_enum_count(Console.Log_Mode)]string : .[
+                "log window ignores mouse input so you can interact with the scene while reading the log",
+                "log window captures mouse input so you can scroll through log messages",
+            ];
+            combo_box("Log Mode", *app.console.log_mode, type_info(type_of(app.console.log_mode)), TOOLTIPS);
+        }
         ImGui.Checkbox("Scroll to bottom", *app.console.scroll_to_bottom);
     }
 
@@ -1244,7 +1283,7 @@ show_details_ui :: () {
     }
 
     // Trailing space looks better when its shut
-    do_tree := ImGui.TreeNodeEx("Details ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
+    do_tree := ImGui.TreeNodeEx("Selection ", ImGui.TreeNodeFlags.SpanAvailWidth | .Framed);
     show_tooltip(tooltip);
     if do_tree {
         defer ImGui.TreePop();
@@ -1345,19 +1384,24 @@ show_details_pane_ui_for_item :: (using entity : *Entity, entity_index : int) {
     if ImGui.BeginTabBar("##DetailsTabBar", flags=ImGui.TabBarFlags.None) {
         defer ImGui.EndTabBar();
 
-        if ImGui.BeginTabItem("Display") {
+        if ImGui.BeginTabItem("Details") {
             defer ImGui.EndTabItem();
 
             // This will just show one item
-            show_item_selection_ui();
+            show_item_obj_file_ui();
 
-            display_information(entity);
-            display_transform(entity);
+            display_mesh_ui(entity);
 
             maybe_update_render_info(*entity.render_info, *entity.mesh);
 
             aabb_world := transform_axis_box3(entity.mesh.world_from_model, entity.render_info.bounding_aabb);
             display_info_ui(*entity.display_info, aabb_world, entity_index);
+        }
+
+        if ImGui.BeginTabItem("Properties") {
+            defer ImGui.EndTabItem();
+
+            display_properties(entity);
         }
 
         if ImGui.BeginTabItem("Annotations") {
@@ -1386,7 +1430,7 @@ show_details_pane_ui_for_item_selection :: () {
         if ImGui.BeginTabItem("Display") {
             defer ImGui.EndTabItem();
 
-            show_item_selection_ui();
+            show_item_obj_file_ui();
 
             // @Incomplete We should show the selection information here, helpful e.g., to select all items and know if there are any segment elements in the selection
 
@@ -1396,14 +1440,28 @@ show_details_pane_ui_for_item_selection :: () {
                apply_update(update, app.template_display_info, *it.display_info);
             }
         }
+
+        ImGui.BeginDisabled();
+        if ImGui.BeginTabItem("Properties") {
+            defer ImGui.EndTabItem();
+            // @TODO Show a subset of properties relevant to a selection e.g., bounding box
+        }
+        ImGui.EndDisabled();
+
+        ImGui.BeginDisabled();
+        if ImGui.BeginTabItem("Annotations") {
+            defer ImGui.EndTabItem();
+        }
+        ImGui.EndDisabled();
+
     }
 }
 
-show_item_selection_ui :: () {
+show_item_obj_file_ui :: () {
 
-    do_section, section_mode := begin_item_details_section("Selection");
+    do_section, section_mode := begin_item_details_section("File");
     if do_section {
-        defer end_item_details_section("Selection");
+        defer end_item_details_section("File");
         ConfigureItemDetailsSection();
 
         for :Selected entity : app.entities {
@@ -1411,18 +1469,10 @@ show_item_selection_ui :: () {
             ImGui.TableNextColumn();
             if entity_name(entity).count {
 
-                // @Volatile :FocusItemBehavior Sync with focus items shortcut
-                if ImGui.Button(imgui_label("Focus ", entity)) {
-                    prev_camera := app.camera;
-
-                    fit_on_screen(entity);
-
-                    // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
-                    if almost_equal(app.camera, prev_camera) {
-                        fit_on_screen_filled(entity);
-                    }
+                if ImGui.Button("Reload") {
+                    reload_entity(entity, triggered_by_button=true);
                 }
-                show_tooltip_binding("Focus", to_string(#char "f", pad_unmodified=false)); // @Volatile Sync with :FocusItemsKey
+                show_tooltip_binding("Reload this item", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false)); // @Volatile Sync with :ReloadItemsKey
 
                 ImGui.SameLine();
                 source : *Entity_Source_File = isa(entity.source, Entity_Source_File);
@@ -1440,22 +1490,22 @@ show_item_selection_ui :: () {
                 show_tooltip("Item index for console commands");
 
                 ImGui.SameLine();
-                text := entity_description(entity, with_creation_time=true);
+                text := entity_description(entity, with_creation_time=false);
                 ImGui.TextUnformatted(text);
                 entity_source_tooltip(entity);
             }
         }
 
         // Show these buttons for a single item as well
+        // if count_selected_entities() > 1 {
         {
-            if ImGui.Button("Reload") {
+            if ImGui.Button("     Reload All Selected Items      ") {
                 for :Selected entity : app.entities {
                     reload_entity(entity, triggered_by_button=true);
                 }
             }
-            show_tooltip_binding("Reload this item", to_string(cast(u32) Special_Key_Code.F5, pad_unmodified=false)); // @Volatile Sync with :ReloadItemsKey
-            ImGui.SameLine();
-            if ImGui.Button(imgui_label("Toggle Auto-Reload", *app.entities)) {
+
+            if ImGui.Button(imgui_label("Toggle Auto-Reload On Selected Items", *app.entities)) {
                 // Find the state to toggle
                 state := false;
                 for :Selected app.entities {
@@ -1622,7 +1672,7 @@ show_select_tool_ui :: () {
     if do_tree {
         defer ImGui.TreePop();
 
-        entity.display_info.is_visible = true; // nocommit :CleanupSelectTool Just set this is_visible state to do_tree?
+        entity.display_info.is_visible = true; // :CleanupSelectTool Just set this is_visible state to do_tree?
 
         select_element :: (
             element_name : string,
@@ -1650,7 +1700,7 @@ show_select_tool_ui :: () {
 
             // Color selection
             ImGui.TableNextColumn();
-            if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, ImGui.ColorEditFlags.NoInputs) {
+            if ImGui.ColorEdit4(imgui_label("##element_color", element_color), *element_color.component, DEFAULT_COLOR_EDIT_FLAGS) {
                 // This checkbox also sets the font color, to address feedback from BK: Black text on black wireframe is hard to read
                 label_color.* = darken(element_color, .8);
             }
@@ -2276,7 +2326,7 @@ show_vertex_label_theme_ui :: (name : string, tooltip : string, theme : *Vertex_
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2298,7 +2348,7 @@ show_element_label_theme_ui :: (name : string, tooltip : string, theme : *Elemen
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2316,7 +2366,7 @@ show_annotation_theme_ui :: (name : string, tooltip : string, theme : *Annotatio
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2334,7 +2384,7 @@ show_attribute_theme_ui :: (name : string, tooltip : string, theme : *Attribute_
     show_tooltip(tooltip);
 
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##color", theme), *theme.label_color.component, DEFAULT_COLOR_EDIT_FLAGS);
     show_tooltip("Text Color");
 
     ImGui.SameLine();
@@ -2355,65 +2405,72 @@ display_info_ui :: (display_info : *Display_Info, aabb : AxisBox3, entity_index 
    return get_update(old_display_info, display_info);
 }
 
-display_information :: (entity : *Entity) {
+display_properties :: (entity : *Entity) {
+    table_flags := ImGui.TableFlags.BordersOuter | .BordersInnerV | .RowBg;
 
-    do_section, section_mode := begin_item_details_section("Information");
-    if do_section {
-        defer end_item_details_section("Information");
-        table_flags : ImGui.TableFlags;
-        if section_mode == .TREE table_flags |= .BordersOuter;
+    ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
+    defer ImGui.EndTable();
 
-        ImGui.BeginTable("##InformationTable", 2, flags=table_flags);
-        defer ImGui.EndTable();
+    ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);
+    ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthFixed);//;, 60);
+    ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
+    ImGui.TableHeadersRow();
 
-        ImGui.TableSetupColumn("Property", ImGui.TableColumnFlags.WidthFixed);//, 0);
-        ImGui.TableSetupColumn("Value", ImGui.TableColumnFlags.WidthFixed);//;, 60);
-        ImGui.TableSetupScrollFreeze(0, 1); // Make header row always visible
-        ImGui.TableHeadersRow();
+    Row :: (entry : string, description : string, tooltip : string) #expand {
+        ImGui.TableNextColumn();
+        ImGui.TextColored(app.theme.keymap_color, entry);
+        if tooltip show_tooltip(tooltip);
 
-        Row :: (entry : string, description : string, tooltip : string) #expand {
-            ImGui.TableNextColumn();
-            ImGui.TextColored(app.theme.keymap_color, entry);
-            if tooltip show_tooltip(tooltip);
-
-            ImGui.TableNextColumn();
-            ImGui.Text(description);
-            if tooltip show_tooltip(tooltip);
-        }
-
-        // @Incomplete Attributes/Annotations information?
-        Row("Date created", filetime_to_readable_date(get_entity_source(entity).creation_time), "Date/time when item was (re)loaded");
-        Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
-        Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
-        Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
-        Row("Triangles", tprint("%", entity.mesh.triangles.count), "Number of triangle elements");
-
-        aabb := entity.render_info.bounding_aabb;
-        Row("AABB Max Point", tprint("[%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z), "Model space AABB");
-        Row("AABB Min Point", tprint("[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z), "Model space AABB");
-
-        sphere := entity.render_info.bounding_sphere;
-        Row("Sphere center", tprint("[%, %, %]", sphere.center.x, sphere.center.y, sphere.center.z), "Model space bounding sphere");
-        Row("Sphere radius", tprint("%", sphere.radius), "Model space bounding sphere");
+        ImGui.TableNextColumn();
+        ImGui.Text(description);
+        if tooltip show_tooltip(tooltip);
     }
+
+    // @Incomplete Attributes/Annotations information?
+    Row("Date created", filetime_to_readable_date(get_entity_source(entity).creation_time), "Date/time when item was (re)loaded");
+    Row("Positions", tprint("%", entity.mesh.positions.count), "Number of vertex positions");
+    Row("Points", tprint("%", entity.mesh.points.count), "Number of point elements");
+    Row("Segments", tprint("%", entity.mesh.segments.count), "Number of line segment elements");
+    Row("Triangles", tprint("%", entity.mesh.triangles.count), "Number of triangle elements");
+
+    aabb := entity.render_info.bounding_aabb;
+    Row("AABB Max Point", tprint("[%, %, %]", aabb.max_point.x, aabb.max_point.y, aabb.max_point.z), "Model space AABB");
+    Row("AABB Min Point", tprint("[%, %, %]", aabb.min_point.x, aabb.min_point.y, aabb.min_point.z), "Model space AABB");
+
+    sphere := entity.render_info.bounding_sphere;
+    Row("Sphere center", tprint("[%, %, %]", sphere.center.x, sphere.center.y, sphere.center.z), "Model space bounding sphere");
+    Row("Sphere radius", tprint("%", sphere.radius), "Model space bounding sphere");
 }
 
-display_transform :: (entity : *Entity) {
-    do_section, section_mode := begin_item_details_section("Transform");
+display_mesh_ui :: (entity : *Entity) {
+    do_section, section_mode := begin_item_details_section("Mesh");
     if do_section {
-        defer end_item_details_section("Transform");
+        defer end_item_details_section("Mesh");
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
 
         ImGui.PushStyleColor(xx ImGui.Col.Text, app.theme.generic_color);
-        ImGui.Text("This is a \"world from model\" transform");
         ImGui.PopStyleColor();
         shift := Vector3.{entity.mesh.world_from_model._14, entity.mesh.world_from_model._24, entity.mesh.world_from_model._34};
         prev_shift := shift;
-        if ImGui.DragFloat3(imgui_label("Offset", entity), *shift.component, .05) {
+        if ImGui.DragFloat3(imgui_label("Translation", entity), *shift.component, .05) {
             update_entity_transform(entity, shift - prev_shift);
         }
+        show_tooltip("This is a \"world from model\" transform");
+
+        // @Volatile :FocusItemBehavior Sync with focus items shortcut
+        if ImGui.Button(imgui_label("Focus ", entity)) {
+            prev_camera := app.camera;
+
+            fit_on_screen(entity);
+
+            // Not a exactly equal check becuase I think there is a feedback mechanism when the camera is computed from the sphere where we essentially have an operation like `camera = f(sphere, camera)` which with the "same" inputs the camera would change a bit FIXME There is still some bug here: load a lot of items and select all of them, the fit_on_screen and fit_on_screen_filled should give the same results but they are slightly different
+            if almost_equal(app.camera, prev_camera) {
+                fit_on_screen_filled(entity);
+            }
+        }
+        show_tooltip_binding("Focus", to_string(#char "f", pad_unmodified=false)); // @Volatile Sync with :FocusItemsKey
     }
 }
 
@@ -2475,7 +2532,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
             }
 
             column_count : s32 = 4;
-            ScopeZeroCellPaddingY();
+            ScopeCellPaddingY(0.);
             if ImGui.BeginTable("##Annotations_Table", column_count, flags=table_flags, outer_size=outer_size) {
                 defer ImGui.EndTable();
 
@@ -2593,7 +2650,7 @@ DONE;
                     }
 
                     column_count : s32 = 3;
-                    ScopeZeroCellPaddingY();
+                    ScopeCellPaddingY(0.);
                     if ImGui.BeginTable(imgui_label("##Attribute_Table", attribute), column_count, flags=table_flags, outer_size=outer_size) {
                         defer ImGui.EndTable();
 
@@ -2658,7 +2715,7 @@ show_normal_style_ui :: (normal_style : *Normal_Style, padding : string = "") {
     ImGui.Checkbox(imgui_label("##normals_visible", normal_style), *normal_style.visible);
     show_tooltip("Normal Visibility");
     ImGui.SameLine();
-    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, ImGui.ColorEditFlags.NoInputs);
+    ImGui.ColorEdit4(imgui_label("##normals_color", normal_style), *normal_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
     ImGui.SameLine();
     ImGui.PushItemWidth(70);
     ImGui.DragFloat(imgui_label("##normals_scale", normal_style), *normal_style.scale, .05);
@@ -2673,9 +2730,14 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
 
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.triangles.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if  begin_item_details_section("Triangles (none)") {
             defer end_item_details_section("Triangles (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2686,19 +2748,65 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Face Style        ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
-        show_tooltip("Triangle Face Visibility");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, ImGui.ColorEditFlags.NoInputs);
-        show_tooltip("Triangle Frontface Color");
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        combo_box("##Backface Mode", *display_info.triangle_style.backface_mode, type_info(Backface_Mode));
-        ImGui.PopItemWidth();
-        show_tooltip("Triangle Backface Render Mode");
+        
+        {
+            ImGui.Text(
+                "Frontface Style   ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##triangle_style.visible", display_info), *display_info.triangle_style.visible);
+            show_tooltip("Triangle Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##triangle_style.color", display_info), *display_info.triangle_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            show_tooltip("Picked frontface Color");
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Triangle_Style.Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+                "Triangle normals set colors",
+            ];
+            combo_box("##Frontface Mode", *display_info.triangle_style.color_mode, type_info(Triangle_Style.Color_Mode), TOOLTIPS);
+            show_tooltip("Frontface Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.triangle_style.flat_shading);
+            show_tooltip("Flat Shading");
+
+            // This doesn't seem very useful so I removed it
+            //ImGui.SameLine();
+            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
+            //show_tooltip("Deduce item primary colors from the file path");
+        }
+
+        {
+            ImGui.TableNextColumn();
+            ImGui.Text(
+                "Backface Style    ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##backface_visible", display_info), *display_info.triangle_style.backface_style.visible);
+            show_tooltip("Backface Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit3(imgui_label("##triangle_style.backface_color", display_info), *display_info.triangle_style.backface_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+            show_tooltip("Picked backface Color ");
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Backface_Style.Color_Mode)]string : .[
+                "Use picked color",
+                "Use frontface color",
+                "Use frontface color, then darken",
+                "Use frontface color, then dither",
+            ];
+            combo_box("##Backface Mode", *display_info.triangle_style.backface_style.color_mode, type_info(Backface_Style.Color_Mode), TOOLTIPS);
+            show_tooltip("Backface Render Mode");
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         ImGui.Text(
@@ -2707,7 +2815,7 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ImGui.Checkbox(imgui_label("##triangle_style.edge_style.visible", display_info), *display_info.triangle_style.edge_style.visible);
         show_tooltip("Triangle Edges Visibility");
         ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##triangle_style.edge_style.color", display_info), *display_info.triangle_style.edge_style.color.component, ImGui.ColorEditFlags.NoInputs);
+        ImGui.ColorEdit4(imgui_label("##triangle_style.edge_style.color", display_info), *display_info.triangle_style.edge_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
         ImGui.SameLine();
         ImGui.PushItemWidth(70);
         ImGui.DragFloat(imgui_label("##triangle_style.edge_style.width", display_info), *display_info.triangle_style.edge_style.width, .05);
@@ -2725,33 +2833,20 @@ show_rendering_triangles_ui :: (display_info : *Display_Info, entity_index : int
         ImGui.TableNextColumn();
         show_annotation_theme_ui(
             "Annotation Labels ", "Show annotations", *display_info.triangle_label_theme.annotation_label_theme);
-
-        if ImGui.TreeNodeEx("Advanced##Rendering", .SpanAvailWidth) {
-            defer ImGui.TreePop();
-
-            ImGui.Text("Render Mode");
-            ImGui.SameLine();
-            ImGui.Checkbox(imgui_label("##Flat Shading", display_info), *display_info.triangle_style.flat_shading);
-            show_tooltip("Flat Shading");
-            ImGui.SameLine();
-            ImGui.PushItemWidth(120);
-            combo_box("##triangle_style.display_mode", *display_info.triangle_style.display_mode, type_info(type_of(display_info.triangle_style.display_mode)));
-            ImGui.PopItemWidth();
-
-            // This doesn't seem very useful so I removed it
-            //ImGui.SameLine();
-            //ImGui.Button(imgui_label("Reset Colors##color_reset", display_info));
-            //show_tooltip("Deduce item primary colors from the file path");
-        }
    }
 }
 
 show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.segments.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if  begin_item_details_section("Segments (none)") {
             defer end_item_details_section("Segments (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2762,19 +2857,34 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Segment Style     ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##segment_style.visible", display_info), *display_info.segment_style.visible);
-        show_tooltip("Segment Visibility");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, ImGui.ColorEditFlags.NoInputs);
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        ImGui.DragFloat(imgui_label("##segment_style.width", display_info), *display_info.segment_style.width, .05);
-        show_tooltip("Width");
-        display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
-        ImGui.PopItemWidth();
+        {
+            ImGui.Text(
+                "Segment Style     ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##segment_style.visible", display_info), *display_info.segment_style.visible);
+            show_tooltip("Segment Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##segment_style.color", display_info), *display_info.segment_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+            ];
+            combo_box("##segment_style.color_mode", *display_info.segment_style.color_mode, type_info(type_of(display_info.segment_style.color_mode)), TOOLTIPS);
+            show_tooltip("Segment Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            ImGui.DragFloat(imgui_label("##segment_style.width", display_info), *display_info.segment_style.width, .05);
+            show_tooltip("Segment Width");
+            display_info.segment_style.width = clamp(display_info.segment_style.width, 1, 5);
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         show_normal_style_ui(*display_info.segment_style.normal_style, "     ");
@@ -2792,9 +2902,14 @@ show_rendering_segments_ui :: (display_info : *Display_Info, entity_index : int 
 show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.points.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if  begin_item_details_section("Points (none)") {
             defer end_item_details_section("Points (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2805,20 +2920,34 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Point Style       ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##point_style.visible", display_info), *display_info.point_style.visible);
-        show_tooltip("Point Visibility");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, ImGui.ColorEditFlags.NoInputs);
-        ImGui.SameLine();
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        ImGui.InputInt("##point_style.size", *display_info.point_style.size);
-        show_tooltip("Size");
-        display_info.point_style.size = clamp(display_info.point_style.size, 1, 10);
-        ImGui.PopItemWidth();
+        {
+            ImGui.Text(
+                "Point Style       ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##point_style.visible", display_info), *display_info.point_style.visible);
+            show_tooltip("Point Visibility");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##point_style.color", display_info), *display_info.point_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+            ];
+            combo_box("##point_style.color_mode", *display_info.point_style.color_mode, type_info(type_of(display_info.point_style.color_mode)), TOOLTIPS);
+            show_tooltip("Point Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(80);
+            ImGui.InputInt("##point_style.size", *display_info.point_style.size);
+            show_tooltip("Point Size");
+            display_info.point_style.size = clamp(display_info.point_style.size, 1, 10);
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         show_normal_style_ui(*display_info.point_style.normal_style, "     ");
@@ -2836,9 +2965,14 @@ show_rendering_points_ui :: (display_info : *Display_Info, entity_index : int = 
 show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int = -1) {
     if valid_geometry_index(entity_index) && app.entities[entity_index].mesh.positions.count == 0 {
         ImGui.BeginDisabled();
+        // We push these color styles to hide the teeny (roughly checkbox-size) popup that shows up when we hover this disabled widget
+        ImGui.PushStyleColor(xx ImGui.Col.Border, .{1,1,1,0});
+        ImGui.PushStyleColor(xx ImGui.Col.PopupBg, .{1,1,1,0});
         if begin_item_details_section("Vertices (none)") {
             defer end_item_details_section("Vertices (none)");
         }
+        ImGui.PopStyleColor();
+        ImGui.PopStyleColor();
         ImGui.EndDisabled();
         return;
     }
@@ -2849,20 +2983,34 @@ show_rendering_positions_ui :: (display_info : *Display_Info, entity_index : int
         ConfigureItemDetailsSection();
 
         ImGui.TableNextColumn();
-        ImGui.Text(
-            "Vertex Style      ");
-        ImGui.SameLine();
-        ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
-        show_tooltip("Positions visibility.\nRender vertex positions as points");
-        ImGui.SameLine();
-        ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, ImGui.ColorEditFlags.NoInputs);
-        ImGui.SameLine();
-        ImGui.SameLine();
-        ImGui.PushItemWidth(70);
-        ImGui.InputInt("##vertex_style.size", *display_info.vertex_style.size);
-        show_tooltip("Size");
-        display_info.vertex_style.size = clamp(display_info.vertex_style.size, 1, 10);
-        ImGui.PopItemWidth();
+        {
+            ImGui.Text(
+                "Vertex Style      ");
+
+            ImGui.SameLine();
+            ImGui.Checkbox(imgui_label("##vertex_style.visible", display_info), *display_info.vertex_style.visible);
+            show_tooltip("Positions visibility\nRender vertex positions as points");
+
+            ImGui.SameLine();
+            ImGui.ColorEdit4(imgui_label("##vertex_style.color", display_info), *display_info.vertex_style.color.component, DEFAULT_COLOR_EDIT_FLAGS);
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(70);
+            TOOLTIPS : [#run get_enum_count(Color_Mode)]string : .[
+                "Use picked color",
+                "Interpolate vertex colors",
+            ];
+            combo_box("##vertex_style.color_mode", *display_info.vertex_style.color_mode, type_info(type_of(display_info.vertex_style.color_mode)), TOOLTIPS);
+            show_tooltip("Vertex Render Mode");
+            ImGui.PopItemWidth();
+
+            ImGui.SameLine();
+            ImGui.PushItemWidth(80);
+            ImGui.InputInt("##vertex_style.size", *display_info.vertex_style.size);
+            show_tooltip("Vertex Size");
+            display_info.vertex_style.size = clamp(display_info.vertex_style.size, 1, 10);
+            ImGui.PopItemWidth();
+        }
 
         ImGui.TableNextColumn();
         show_vertex_label_theme_ui(
