@@ -1,6 +1,6 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.091, built on 8 June 2024";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.092, built on 4 August 2024";
 
 HELP_STRING :: #string DONE
 
@@ -29,6 +29,8 @@ OUTPUT_EXE_NAME :: "Prizm";
 #if OS == .WINDOWS {
 PATH_TO_7z :: "c:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\7z.exe";
 }
+
+//#assert(false && "Work on performance with deferred renderer using `jai first - tracy`");
 
 build :: () {
 
