@@ -58,7 +58,7 @@ App :: struct {
     background_style := Background_Style.CUSTOM_SHADER;
     background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
 
-    using render_info : App_Render_Info; // nocommit Remove this using
+    render_info : App_Render_Info;
 
     show_ui := true;
     show_fps := false;

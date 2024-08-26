@@ -1167,22 +1167,22 @@ DONE, Labelling_Mode.RAY_CAST));
                 "Darkens concave/'inner' edges and lightens convex edges (default).",
                 "Darkens concave/'inner' edges, convex edges/flat planes unmodified.",
             ];
-            combo_box("SSAO Kernel", *app.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind), TOOLTIPS);
+            combo_box("SSAO Kernel", *app.render_info.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind), TOOLTIPS);
         }
 
-        if (app.shader_ssao.kernel_kind == .DISABLED) {
+        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
             ImGui.BeginDisabled();
         }
 
-        ImGui.DragFloat("SSAO bias", *app.shader_ssao.bias, .001, 0., .2, format="%.3f");
-        ImGui.DragFloat("SSAO kernel radius", *app.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
-        ImGui.DragInt("SSAO sample count", *app.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
+        ImGui.DragFloat("SSAO bias", *app.render_info.shader_ssao.bias, .001, 0., .2, format="%.3f");
+        ImGui.DragFloat("SSAO kernel radius", *app.render_info.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
+        ImGui.DragInt("SSAO sample count", *app.render_info.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
 
-        if (app.shader_ssao.kernel_kind == .DISABLED) {
+        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
             ImGui.EndDisabled();
         }
 
-        combo_box("Show Channel", *app.blit_channel, type_info(Blit_Channel));
+        combo_box("Show Channel", *app.render_info.blit_channel, type_info(Blit_Channel));
     }
 
     if ImGui.BeginMenu("Labelling") {

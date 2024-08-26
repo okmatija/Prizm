@@ -12,7 +12,7 @@ Lighting_Pass :: struct {
 
 
 init_lighting_pass :: () {
-    pass : *Lighting_Pass = *app.lighting_pass;
+    pass : *Lighting_Pass = *app.render_info.lighting_pass;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -27,7 +27,7 @@ use_lighting_pass :: () {
 
     DebugScopeGLGroup("Lighting Pass");
 
-    pass : *Lighting_Pass = *app.lighting_pass;
+    pass : *Lighting_Pass = *app.render_info.lighting_pass;
 
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
     //assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
@@ -75,7 +75,7 @@ Geometry_Pass :: struct {
 init_geometry_pass :: () {
     //pass.name = "Geometry_Pass";
 
-    pass : *Geometry_Pass = *app.geometry_pass;
+    pass : *Geometry_Pass = *app.render_info.geometry_pass;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -112,7 +112,7 @@ init_geometry_pass :: () {
 use_geometry_pass :: () {
     DebugScopeGLGroup("Geometry Pass");
 
-    pass : *Geometry_Pass = *app.geometry_pass;
+    pass : *Geometry_Pass = *app.render_info.geometry_pass;
 
     // Geometry Pass: (positions, normals, albedo, depth?)
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -168,9 +168,9 @@ Ssao_Pass :: struct {
 };
 
 init_ssao_pass :: () {
-    pass : *Ssao_Pass = *app.ssao_pass;
-    pass.position = *app.geometry_pass.position; // @TODO Replace with Depth instead?
-    pass.normal = *app.geometry_pass.normal;
+    pass : *Ssao_Pass = *app.render_info.ssao_pass;
+    pass.position = *app.render_info.geometry_pass.position; // @TODO Replace with Depth instead?
+    pass.normal = *app.render_info.geometry_pass.normal;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -212,7 +212,7 @@ init_ssao_pass :: () {
 use_ssao_pass :: () {
     DebugScopeGLGroup("SSAO Pass");
 
-    pass : *Ssao_Pass = *app.ssao_pass;
+    pass : *Ssao_Pass = *app.render_info.ssao_pass;
 
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
 
@@ -243,8 +243,8 @@ Ssao_Blur_Pass :: struct {
 }
 
 init_ssao_blur_pass :: () {
-    pass : *Ssao_Blur_Pass = *app.ssao_blur_pass;
-    pass.ssao = *app.ssao_pass.ssao_color;
+    pass : *Ssao_Blur_Pass = *app.render_info.ssao_blur_pass;
+    pass.ssao = *app.render_info.ssao_pass.ssao_color;
 
     glGenFramebuffers(1, *pass.framebuffer.gl_handle);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
@@ -259,7 +259,7 @@ use_ssao_blur_pass :: () {
 
     DebugScopeGLGroup("SSAO Blur Pass");
 
-    pass : *Ssao_Blur_Pass = *app.ssao_blur_pass;
+    pass : *Ssao_Blur_Pass = *app.render_info.ssao_blur_pass;
 
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer.gl_handle);
 

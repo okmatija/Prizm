@@ -27,11 +27,11 @@ Shader_Lighting :: struct {
 
         // @TODO @Speed These could all be set in uniform buffers just once per frame
         look_direction := current_look_direction();
-        position_uniform := Texture_Uniform.{*app.geometry_pass.position, 0, "position"};
-        normal_uniform := Texture_Uniform.{*app.geometry_pass.normal, 1, "normal"};
-        base_color_uniform := Texture_Uniform.{*app.geometry_pass.base_color, 2, "base_color"};
-        ssao_uniform := Texture_Uniform.{*app.ssao_blur_pass.ssao_blurred, 3, "ssao"};
-        use_ssao : bool = (app.shader_ssao.kernel_kind != .DISABLED);
+        position_uniform := Texture_Uniform.{*app.render_info.geometry_pass.position, 0, "position"};
+        normal_uniform := Texture_Uniform.{*app.render_info.geometry_pass.normal, 1, "normal"};
+        base_color_uniform := Texture_Uniform.{*app.render_info.geometry_pass.base_color, 2, "base_color"};
+        ssao_uniform := Texture_Uniform.{*app.render_info.ssao_blur_pass.ssao_blurred, 3, "ssao"};
+        use_ssao : bool = (app.render_info.shader_ssao.kernel_kind != .DISABLED);
 
         // set_shader_uniform_value(shader, "camera.eye_position", app.camera.eye_position.component);
         set_shader_uniform_value(shader, "camera.look_direction", look_direction.component);
