@@ -154,7 +154,7 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
         }
 
         // Segment position and position annotation labels
-        segment_tuple : Tuple2(u32) = mesh_segment3_tuple(entity.mesh, closest_world.element_index);
+        segment_tuple : Tuple2(u32) = mesh_segment_tuple(entity.mesh, closest_world.element_index);
         segment_model : Segment3 = mesh_segment3_model(entity.mesh, closest_world.element_index);
         segment_world : Segment3 = mesh_segment3_world(entity.mesh, closest_world.element_index);
         for 0..1 {

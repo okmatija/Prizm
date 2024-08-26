@@ -164,7 +164,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                     array_add(*segment_positions, it.start);
                     array_add(*segment_positions, it.end);
 
-                    vids := mesh_segment3_tuple(mesh, it_index);
+                    vids := mesh_segment_tuple(mesh, it_index);
                     array_add(*segment_colors, mesh.colors[vids.i]);
                     array_add(*segment_colors, mesh.colors[vids.j]);
                 }

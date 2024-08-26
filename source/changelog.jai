@@ -83,6 +83,13 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 * TODO Add an icon for the frontface button
 * TODO Setup the frikkin nice debugging in remedy....
 * TODO Round the table boundary when the style UIs are docked
+* TODO Add a function to layout multiple items, scaling and transforming them into a grid
+* TODO Add a way to disable the ray casting
+DONE};
+
+PRIZM_VERSION_0_11_1 :: Version.{"0.11.1", "WIP", #string DONE
+* TODO Support grouping/part naming
+* TODO Fix the console history not persisting across sessions...
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
@@ -95,10 +102,7 @@ PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "WIP", #string DONE
         * `v x y r g b`    A 2d point with color
         * `v x y z r g b`  A 3d point with color
     * Vertex colors are supported for all element types (triangles/segments/points i.e., f/l/p-directives), as well as vertices (v-directives)
-    * TODO Support vertex colors in utility functions e.g., the function to merge meshes
-    * TODO There is no opacity per vertex color. Terrible idea. Only opacity per item
-    * TODO Add console command to group elements that touch vertices with the same color
-    * TODO Add console command to split item by its group. Then you have separate items which you can change opacity on.
+    * Added a new console command `item_split_by_vertex_color` which creates new items containing elements with matching vertex colors
 
 * Major improvements to the UI/UX
 
@@ -774,6 +778,7 @@ DONE
 init_changelog :: () {
     //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
     //array_add(*changelog, PRIZM_VERSION_0_12_0);
+    //array_add(*changelog, PRIZM_VERSION_0_11_1);
     array_add(*changelog, PRIZM_VERSION_0_11_0);
     array_add(*changelog, PRIZM_VERSION_0_10_1);
     array_add(*changelog, PRIZM_VERSION_0_10_0);

@@ -186,7 +186,7 @@ Frontface_Style :: struct {
         NORMAL :: 2; // Computed from triangle normal
     }
 
-    visible := false; // Overall triangle visibility
+    visible := true; // Overall triangle visibility
     flat_shading := true; // Overall triangle flat/smooth shading
     color := Vector4.{1., 1., 1., 1.}; // Overall triangle opacity controlled by alpha channel
     color_mode := Color_Mode.PICKED;

@@ -242,6 +242,86 @@ item_delete :: (item_index : int) {
     log("# Deleted item #% which had % vertices", item_index, vertex_count);
 } @RegisterCommand
 
+// For each vertex color found in the item with the given index create a new item
+// containing all elements incident to a vertex with that color.
+item_split_by_vertex_color :: (item_index : int) {
+    if !check_geometry_index(item_index) {
+        return;
+    }
+
+    item := app.entities[item_index];
+
+    // Collect all vertex colors in a map (color -> entity)
+    table : Table(Vector3, *Entity, hash_Vector3, compare_Vector3);
+
+    color_index := 0;
+    for item.mesh.colors {
+        e, added := find_or_add(*table, it);
+        if !added {
+            assert(e.* != null);
+        } else {
+            e.* = New(Entity);
+            set_entity_source_from_command(e.*, tprint("%_%", entity_name(item), color_index), app.console.history[app.console.history.count - 1]);
+            color_index += 1;
+        }
+    }
+
+    // For each element in the mesh add the element
+
+    for :TriangleTupleIterator item.mesh {
+        t : Triangle3 = mesh_triangle_model(item.mesh, it_index);
+        c : Triangle_Color = mesh_triangle_color(item.mesh, it_index);
+
+        e := table_find_pointer(*table, c.a);
+        add_triangle(*(e.*).mesh, t, c);
+
+        if c.b != c.a {
+            e := table_find_pointer(*table, c.b);
+            add_triangle(*(e.*).mesh, t, c);
+        }
+
+        if c.c != c.a && c.c != c.b {
+            e := table_find_pointer(*table, c.c);
+            add_triangle(*(e.*).mesh, t, c);
+        }
+    }
+
+    for :SegmentTupleIterator item.mesh {
+        s : Segment3 = mesh_segment3_model(item.mesh, it_index);
+        c : Segment_Color = mesh_segment_color(item.mesh, it_index);
+
+        e := table_find_pointer(*table, c.start);
+        add_segment(*(e.*).mesh, s, c);
+
+        if c.end != c.start {
+            e := table_find_pointer(*table, c.end);
+            add_segment(*(e.*).mesh, s, c);
+        }
+    }
+
+    for :ModelPointIterator item.mesh {
+        p : Point3 = mesh_point_model(item.mesh, it_index);
+        c : Point_Color = mesh_point_color(item.mesh, it_index);
+
+        e := table_find_pointer(*table, c);
+        add_point(*(e.*).mesh, p, c);
+    }
+
+
+    for e, c : table {
+        if !is_empty(e.mesh) {
+
+            set_entity_display_info(e);
+            e.display_info.triangle_style.color_mode = .VERTEX;
+            e.display_info.segment_style.color_mode = .VERTEX;
+            e.display_info.point_style.color_mode = .VERTEX;
+
+            add_entity(e, .OVERWRITE);
+        }
+    }
+
+} @RegisterCommand
+
 // Clears the points (obj p-directives) from the item item with the given `item_index`
 item_clear_points :: (item_index : int) {
     if !check_geometry_index(item_index) {
@@ -1045,7 +1125,7 @@ item_find_zero_area_triangles :: (item_index : int) {
     result := New(Entity);
     result.mesh.world_from_model = target.mesh.world_from_model;
     for zero_area_triangles {
-        add_triangle(*result.mesh, it);
+        add_triangle(*result.mesh, it, .{});
     }
     set_entity_source_from_command(result, tprint("%_zero_area", entity_name(target)), app.console.history[app.console.history.count - 1], result.mesh.positions.count);
     set_entity_display_info(result);

@@ -19,16 +19,20 @@ to_Mesh :: (shape : $T/Polyline_Soup) -> Simple_Mesh {
         point := polyline.points[0];
 #if T == Polyline_Soup2 {
         array_add(*mesh.positions, Vector3.{point.x, point.y, 0});
+        array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 } else {
         array_add(*mesh.positions, point);
+        array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 }
 
         for edge_index : 0..polyline.points.count-2 {
             point = polyline.points[edge_index + 1];
 #if T == Polyline_Soup2 {
             array_add(*mesh.positions, Vector3.{point.x, point.y, 0});
+            array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 } else {
             array_add(*mesh.positions, point);
+            array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
 }
             array_add(*mesh.segments, make_Tuple2(cast(u32) (index_offset + edge_index), xx (index_offset + edge_index  + 1)));
         }
@@ -139,6 +143,7 @@ to_Mesh :: (m : par_shapes_mesh) -> Simple_Mesh {
     triangles.count = m.triangles.count;
 
     array_resize(*colors, positions.count, true);
+    for * colors it.* = DEFAULT_VERTEX_COLOR;
 
     // @Incomplete tcoords
 

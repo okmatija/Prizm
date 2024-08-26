@@ -558,6 +558,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
         // Append the missing/invalid position
         array_add(*mesh.positions, app.invalid_point);
+        array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
     } else if missing_normals_count {
         log_warning("%: Detected % missing normals. These will be set to %.", filename, missing_normals_count, MISSING_NORMAL_FALLBACK);

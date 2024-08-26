@@ -127,6 +127,14 @@ hash_combine :: (lhs : u32, rhs : u32) -> u32 {
     return lhs;
 }
 
+hash_Vector3 :: (a : Vector3) -> u32 {
+    return hash_combine(get_hash(a.x), hash_combine(get_hash(a.y), get_hash(a.z)));
+}
+
+compare_Vector3 :: (a : Vector3, b : Vector3) -> bool {
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 hash_Tuple2i :: (key : Tuple2i) -> u32 {
     return hash_combine(get_hash(key.x), get_hash(key.y));
 }

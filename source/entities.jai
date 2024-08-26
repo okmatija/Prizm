@@ -1198,7 +1198,7 @@ set_entity_source_from_selection :: (entity : *Entity, name : string, vertex_cou
     set(*entity.source, source);
 }
 
-set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, vertex_count : s64) {
+set_entity_source_from_command :: (entity : *Entity, name : string, console_command : string, vertex_count : s64 = 0) {
     assert(entity != null);
 
     source : Entity_Source_Command;
