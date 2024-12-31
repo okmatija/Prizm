@@ -13,6 +13,21 @@ segments : [..]Vertex;
 points : [..]Vertex;
 unreferenced_vertices : [..]Vertex;
 
+    
+
+    Vertex :: struct {
+        position : Vector3;
+        color : Vector3;
+    }
+
+    Triangle :: struct {
+        vertex : Tuple3(u32);
+        normal : [3]Vector3;
+        texture : [3]Vector3;
+    }
+
+
+
 */
 
 
@@ -39,6 +54,26 @@ Simple_Mesh :: struct {
     // @Think maybe its better to have separate containers: vertex_attributes, point_attributes etc
     // @Think maybe have a map of attributes using unique names to identify them
     attributes : [..]*Simple_Mesh_Attribute_Base;
+
+    // triangle_normals :: [..]Vector3;
+    // segment_normals :: [..]Vector3;
+    // point_normals :: [..]Vector3;
+
+    // TODO Add a console command to generate a UV mesh
+    triangle_uvs : [..]Vector3;
+    segment_uvs : [..]Vector3;
+    point_uvs : [..]Vector3;
+
+    Group :: struct {
+        name : string;
+
+        Range :: Tuple2(u32); // Closed range i.e., includes start/end points
+        points : [..]Range;
+        triangles : [..]Range;
+        segments : [..]Range;
+    }
+
+    groups : [..]Group;
 
     // @Volatile Code in various places may need to change if this changes distances so they are not the same in world/model space
     world_from_model : Matrix4 = .{_11 = 1, _22 = 1, _33 = 1, _44 = 1};

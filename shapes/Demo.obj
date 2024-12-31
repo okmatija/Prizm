@@ -32,10 +32,16 @@ v 50 0  0     0 0 1
 v 30 20 0     1 0 0
 v 40 20 0     0 1 0
 v 50 20 0     0 0 1
-f 10 11 13 # First triangle
-f 11 14 13 ## Second triangle (Ignored!)
-f 11 12 14 # Third triangle
-f 12 15 14 # Fourth triangle
+vt 0.0 0.0
+vt 0.5 0.0
+vt 1.0 0.0
+vt 0.0 1.0
+vt 0.5 1.0
+vt 1.0 1.0
+f 10/1 11/2 13/4 # First triangle
+f 11/2 14/5 13/4 ## Second triangle (Ignored!)
+f 11/2 12/3 14/5 # Third triangle
+f 12/3 15/6 14/5 # Fourth triangle
 
 ## Use a #! to call console commands immediately after all geometry is
 ## parsed. Here we just log to the console but you could configuring

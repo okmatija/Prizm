@@ -52,17 +52,20 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
     // Temporary storage for normals and texture coordinates read from vn and vt directives
     scratch_vn : [..]Vector3;
-    // scratch_vt : [..]Vector3;
+    scratch_vt : [..]Vector3;
     defer {
         array_free(scratch_vn);
-        // array_free(scratch_vt);
+        array_free(scratch_vt);
     }
 
+    // nocommit rename missing_vn_count and missing_v_count, and for constants too
     missing : bool;
     found_inf_or_nan : bool;
     missing_normals_count : int;
+    missing_vt_count : int;
     missing_vertices_count : int;
     MISSING_NORMAL_FALLBACK :: Vector3.{0,0,0};
+    MISSING_VT_FALLBACK :: MISSING_NORMAL_FALLBACK;
     MISSING_VERTEX_INDEX :: U32_MAX;
 
     // Always add normals attributes, we'll remove the empty ones later
@@ -162,6 +165,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
+                // nocommit Make this message only print once?
                 // @Cleanup This warning text is not very useful and possibly incorrect
                 log_warning("%:%: Skipping comment annotation. Comments on 'vn' directives are @Incomplete", filename, current_line);
                 eat_token(*parser);
@@ -169,23 +173,21 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
         } else if eat_possible_identifier(*parser, "vt") {
 
-#if true {
-            IncompleteSupportMessage();
-} else {
+            // nocommit Read 1,2,3 dimension texture coordinates
             uv, finite := ensure_finite(parse_vector2(*parser));
             if !finite {
                 // @Incomplete
                 // found_inf_or_nan = true;
             }
 
-            // array_add(*scratch_vt, Vector3.{xy=uv});
+            array_add(*scratch_vt, Vector3.{xy=uv});
 
             tok := peek_token(*parser);
             if tok.type == .COMMENT && tok.line_number == current_line {
+                // nocommit Make this message only print once?
                 log_warning("Skipping comment annotation at %:%. Comments on 'vt' directives are @Incomplete", filename, current_line);
                 eat_token(*parser);
             }
-}
 
         } else if eat_possible_identifier(*parser, "p") {
 
@@ -196,7 +198,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
             if nt {
                 if warning_ignored_texture_reference_p == 0 {
                     log_warning("%:%: Ignoring texture reference in p-directive", filename, current_line);
-                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                    // log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
                 }
                 warning_ignored_texture_reference_p += 1;
             }
@@ -248,6 +250,8 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                             missing_normals_count += 1;
                         }
                     }
+
+                    // nocommit Use vt here?
                     
                     // Add the point before the annotation
                     {
@@ -281,7 +285,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
             if nt {
                 if warning_ignored_texture_reference_l == 0 {
                     log_warning("%:%: Ignoring texture reference in l-directive", filename, current_line);
-                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                    // log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
                 }
                 warning_ignored_texture_reference_l += 1;
             }
@@ -338,6 +342,8 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                             }
                         }
                     }
+
+                    // nocommit Add references here
                     
                     // Add the segment before the annotation
                     {
@@ -368,17 +374,19 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
 
             refs_valid, nv, nn, nt := true, refs.indices.count, refs.normal.count, refs.texture.count;
 
+            /*
             if nt {
                 if warning_ignored_texture_reference_f == 0 {
                     log_warning("%:%: Ignoring texture reference in f-directive", filename, current_line);
-                    log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
+                    // log("Note: Obj v-/vn-/vt-directive reference format variants are v, v/vt, v//vn or v/vt/vn, maybe you wanted v//vn rather than v/vt");
                 }
                 warning_ignored_texture_reference_f += 1;
             }
+            */
 
             if nv < 3 {
                 if warning_ignored_invalid_directive_f == 0 {
-                    log_warning("%:%: Ignoring invalid f-directive. Expected at least 3 vertex references, got %\n", filename, current_line, nv);
+                    log_warning("%:%: Ignoring invalid f-directive. Expected at least 3 v-directive references, got %\n", filename, current_line, nv);
                 }
                 warning_ignored_invalid_directive_f += 1;
                 // Do not error here! 
@@ -386,7 +394,13 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
             }
 
             if nn > 0 && nn != nv {
-                log_warning("%:%: Ignoring invalid f-directive. Expected vertex/normal reference count to be identical, got %/%\n", filename, current_line, nv, nn);
+                log_warning("%:%: Ignoring invalid f-directive. Expected v/vn-directive reference counts to be identical, got %/%\n", filename, current_line, nv, nn);
+                // Do not error here! 
+                refs_valid = false;
+            }
+
+            if nt > 0 && nt != nv {
+                log_warning("%:%: Ignoring invalid f-directive. Expected v/vt-directive reference counts to be identical, got %/%\n", filename, current_line, nv, nt);
                 // Do not error here! 
                 refs_valid = false;
             }
@@ -407,15 +421,18 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                 }
 
                 // Loop over the triangles in the triangle fan described by the current f-directive
-                for f : 0..refs.indices.count-2-1 {
+                for f : 0..nv-2-1 {
                     vids : [3]int;
                     vids[0] = 0;
                     vids[1] = f + 1;
                     vids[2] = f + 2;
 
-                    if refs.normal.count {
-                        // If we previously encountered f-directives without normal references so fill these with zero normals
-                        if triangle_normals.values.count != mesh.triangles.count {
+                    // nocommit Clarify the parsing steps at the top of the file
+                    // nocommit FIXMEEEE We need to add a step after parsing the file to add any missing normals/texture coordinates and add a test file for that
+
+                    if nn {
+                        // If we previously encountered f-directives without normal references fill these with zeros
+                        if triangle_normals.values.count != mesh.triangles.count { // Each value is a matrix for 3
                             assert(triangle_normals.values.count < mesh.triangles.count);
                             array_resize(*triangle_normals.values, mesh.triangles.count, initialize=true);
                         }
@@ -426,6 +443,23 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
                             missing, normals.v[i] = obj_value(scratch_vn, refs.normal[vids[i]], MISSING_NORMAL_FALLBACK);
                             if missing {
                                 missing_normals_count += 1;
+                            }
+                        }
+                    }
+
+                    if nt {
+                        // If we previously encountered f-directives without vt-directive references fill these with zeros
+                        if mesh.triangle_uvs.count != mesh.triangles.count * 3 {
+                            assert(mesh.triangle_uvs.count < mesh.triangles.count * 3);
+                            array_resize(*mesh.triangle_uvs, mesh.triangles.count * 3, initialize=true);
+                        }
+
+                        // Add the texture coordinates for the current triangle
+                        for i : 0..2 {
+                            vt : *Vector3 = array_add(*mesh.triangle_uvs);
+                            missing, vt.* = obj_value(scratch_vt, refs.texture[vids[i]], MISSING_VT_FALLBACK);
+                            if missing {
+                                missing_vt_count += 1;
                             }
                         }
                     }
@@ -535,7 +569,7 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
         log_warning("%: Detected inf/nan floats in file. In 'v' directives these are set using components of \"Invalid Point\", elsewhere these are set to zero", filename);
     }
 
-    // Check obj indices
+    // Check obj indices nocommit FIXME Why not print all the warnings? Also, maybe we should indent once while we're logging here?
     if missing_vertices_count {
         log_warning("%: Detected % missing points. These will be positioned at %", filename, missing_vertices_count, app.invalid_point);
 
@@ -560,6 +594,9 @@ load_obj :: (filename : string, data : string, name : string) -> []*Entity {
         array_add(*mesh.positions, app.invalid_point);
         array_add(*mesh.colors, DEFAULT_VERTEX_COLOR);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!
+    } else if missing_vt_count {
+       log_warning("%: Detected % missing vt-directives. These will be set to %.", filename, missing_vt_count, MISSING_VT_FALLBACK);
+       // parser.failed = true; // Do not fail here! better to show a weird looking file!
     } else if missing_normals_count {
         log_warning("%: Detected % missing normals. These will be set to %.", filename, missing_normals_count, MISSING_NORMAL_FALLBACK);
         // parser.failed = true; // Do not fail here! better to show a weird looking file!

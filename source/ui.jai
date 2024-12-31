@@ -2459,6 +2459,13 @@ display_mesh_ui :: (entity : *Entity) {
         }
         show_tooltip("This is a \"world from model\" transform");
 
+        // scale := Vector3.{entity.mesh.world_from_model._11, entity.mesh.world_from_model._22, entity.mesh.world_from_model._33};
+        // prev_scale := scale;
+        // if ImGui.DragFloat3(imgui_label("Scaling", entity), *scale.component, .05) {
+        //     update_entity_transform(entity, scale - prev_scale);
+        // }
+        // show_tooltip("This is a \"world from model\" transform");
+
         // @Volatile :FocusItemBehavior Sync with focus items shortcut
         if ImGui.Button(imgui_label("Focus ", entity)) {
             prev_camera := app.camera;

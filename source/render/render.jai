@@ -113,9 +113,11 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
                 glEnableVertexAttribArray(ATTRIB_POSITION);
                 glEnableVertexAttribArray(ATTRIB_NORMAL);
                 glEnableVertexAttribArray(ATTRIB_COLOR);
+                glEnableVertexAttribArray(ATTRIB_TEXCOORDS);
                 glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
                 glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
                 glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP+NN));
+                glVertexAttribPointer(ATTRIB_TEXCOORDS, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP+NN));
             }
 
             {
@@ -733,5 +735,5 @@ render_entity_geometry :: (entity : *Entity, entity_index : int) {
 // @Cleanup replace this with: postion_loc = glGetAttribLocation()
 ATTRIB_POSITION  :: 0;
 ATTRIB_NORMAL    :: 1;
-// ATTRIB_TEXCOORDS :: 2;
+ATTRIB_TEXCOORDS :: 2;
 ATTRIB_COLOR     :: 3;

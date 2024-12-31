@@ -199,7 +199,7 @@ ImGui_ImplSDL2_Init :: (window : *SDL_Window) -> bool
     // Load mouse cursors
     bd.MouseCursors[ImGui.MouseCursor.Arrow] = SDL_CreateSystemCursor(.ARROW);
     bd.MouseCursors[ImGui.MouseCursor.TextInput] = SDL_CreateSystemCursor(.IBEAM);
-    // bd.MouseCursors[ImGui.MouseCursor.ResizeAll] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+    bd.MouseCursors[ImGui.MouseCursor.ResizeAll] = SDL_CreateSystemCursor(.SIZEALL);
     bd.MouseCursors[ImGui.MouseCursor.ResizeNS] = SDL_CreateSystemCursor(.SIZENS);
     bd.MouseCursors[ImGui.MouseCursor.ResizeEW] = SDL_CreateSystemCursor(.SIZEWE);
     bd.MouseCursors[ImGui.MouseCursor.ResizeNESW] = SDL_CreateSystemCursor(.SIZENESW);

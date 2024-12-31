@@ -1,3 +1,17 @@
+Color8 :: struct {
+    r : u8;
+    g : u8;
+    b : u8;
+    a : u8;
+}
+
+Color :: struct {
+    r : float;
+    g : float;
+    b : float;
+    a : float;
+}
+
 Prizm_Color_Theme :: enum #specified {
     DARK ::  0;
     LIGHT :: 1;
