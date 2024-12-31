@@ -732,7 +732,7 @@ set_edge_color_to_face_color :: () {
 // Update the camera to focus on the given segment. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the segment centroid.
 //
-// `item_indxe`     The index of the item containing the desired segment
+// `item_index`     The index of the item containing the desired segment
 // `segment_index`  The segment that should be focussed
 // `clip_radius`    If  < 0 then the items clipping ball is unchanged (default)
 //                  If == 0 then the items clipping ball is set with a radius equal to 2x the bounding radius of the segment
