@@ -52,6 +52,8 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * mp4 videos on the wiki
     * Fix spotlight labels being visible when they are occuluded
     * Pin labels while rotating/panning the camera
+
+    * TODO Use the new features in modules/Keymap where Keymap_Set can be used to change the Keymap depending on the program mode (see jai/CHANGELOG.txt)
 DONE};
 
 PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE

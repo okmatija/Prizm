@@ -206,16 +206,16 @@ build_gui :: (
 
 imgui_context : *ImGui.ImGuiContext;
 
-_imgui_alloc_context: Context;
+_imgui_alloc_context: #Context;
 
 c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
-    push_context (cast(*Context)userdata).* {
+    push_context (cast(*#Context)userdata).* {
         return alloc(cast(s64)sz);
     }
 }
 
 c_free :: (ptr: *void, userdata: *void) -> void #c_call {
-    push_context (cast(*Context)userdata).* {
+    push_context (cast(*#Context)userdata).* {
         free(ptr);
     }
 }

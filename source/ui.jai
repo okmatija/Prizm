@@ -2680,7 +2680,7 @@ DONE;
                             ImGui.Text(tprint("%", index));
 
                             ImGui.TableNextColumn();
-                            new_context : Context;
+                            new_context : #Context;
                             new_context.print_style.default_format_float = app.label_format.format_float;
                             new_context.print_style.default_format_struct = app.label_format.format_struct;
                             push_context new_context {
