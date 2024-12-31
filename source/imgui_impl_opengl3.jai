@@ -349,8 +349,7 @@ ImGui_ImplOpenGL3_RenderDrawData :: (draw_data : *ImGui.ImDrawData)
     clip_off := draw_data.DisplayPos;         // (0,0) unless using multi-viewports
     clip_scale := draw_data.FramebufferScale; // (1,1) unless using retina display which are often (2,2)
 
-    new_context : #Context;
-    push_context new_context {
+    push_context {
     // Render command lists
     for n : 0..draw_data.CmdListsCount - 1 {
         cmd_list := draw_data.CmdLists[n];

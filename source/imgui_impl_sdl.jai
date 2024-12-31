@@ -80,16 +80,16 @@ ImGui_ImplSDL2_GetClipboardText :: (data : *void) -> *u8 #c_call
     //     SDL_free(bd.ClipboardTextData);
     // bd.ClipboardTextData = SDL_GetClipboardText();
     // return bd.ClipboardTextData;
-    new_context: #Context; // TODO: hide the context in the userdata pointer passed to us
-    push_context new_context {
+    // TODO: hide the context in the userdata pointer passed to us
+    push_context {
         return SDL_GetClipboardText();
     }
 }
 
 ImGui_ImplSDL2_SetClipboardText :: (data : *void, text : *u8) #c_call
 {
-    new_context: #Context; // TODO: hide the context in the userdata pointer passed to us
-    push_context new_context {
+    // TODO: hide the context in the userdata pointer passed to us
+    push_context {
         SDL_SetClipboardText(text);
     }
 }

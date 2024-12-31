@@ -1,6 +1,6 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.1.096, built on 26 November 2024";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.001, built on 20 December 2024";
 
 HELP_STRING :: #string DONE
 

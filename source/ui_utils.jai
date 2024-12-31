@@ -312,8 +312,7 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
     };
 
     InputTextCallback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
-        new_context : #Context;
-        push_context new_context {
+        push_context {
             user_data := cast(*InputTextCallback_UserData)data.UserData;
             if data.EventFlag == .CallbackResize {
                 // Resize string callback

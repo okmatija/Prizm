@@ -592,8 +592,7 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
 
 window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> SDL_HitTestResult #c_call {
 
-    new_context : #Context;
-    push_context new_context {
+    push_context {
 
         // @Volatile :EasyResizeModeKeybind
         easy_resize_mode := io().KeyAlt;
