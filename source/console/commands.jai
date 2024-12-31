@@ -17,7 +17,10 @@
 
 // @Think Check if @RegisterCommand procedures are using this function, and not valid_geometry_index
 check_geometry_index :: (index : int) -> bool #must {
-    if index < 0 || index >= app.entities.count {
+    if app.entities.count == 0 {
+        log_error("Prizm has no geometry to reference, load an obj file or otherwise create some geometry");
+        return false;
+    } else if index < 0 || index >= app.entities.count {
         log_error("Invalid/Out-of-range geometry index, expected integer in range [0, %]", app.entities.count - 1);
         return false;
     }
