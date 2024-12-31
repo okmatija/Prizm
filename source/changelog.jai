@@ -69,6 +69,24 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
     1. Fix important bugs and release!!
     2. Then move on to implementing Depth Peeling!
 
+* TODO Support grouping/part naming
+    * o and g directives both append to groups
+    * g can specify more than one group name at a time
+    * o can only specify one name at at time
+
+* TODO Support texture coordinates
+    * Can be visualized as colors
+    * Annotations will not be supported... they don't make much sense in this situation
+    * Future work will be to support texturing and .mtl files
+
+* TODO Remove all the mesh attribute stuff
+* TODO Fix the console history not persisting across sessions...
+* TODO Add vertex colors/groups to the C++/Python APIs
+* TODO Fix normals appearing on Demo.obj
+* TODO Move Clipping into Mesh as a foldable section? This is a property of the mesh
+* TODO Rename positions to vertices in the properties table
+* TODO Vertex index labels seem to be 0-based, that should be made clearer... and there should be a 1-based option as well
+
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 
 * Refactored rendering to support SSAO and Depth Peeling
@@ -99,23 +117,7 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_11_1 :: Version.{"0.11.1", "WIP", #string DONE
-* TODO Support grouping/part naming
-    * o and g directives both append to groups
-    * g can specify more than one group name at a time
-    * o can only specify one name at at time
-
-* TODO Support texture coordinates
-    * Can be visualized as colors
-    * Annotations will not be supported... they don't make much sense in this situation
-    * Future work will be to support texturing and .mtl files
-
-* TODO Remove all the mesh attribute stuff
-* TODO Fix the console history not persisting across sessions...
-* TODO Add vertex colors/groups to the C++/Python APIs
-* TODO Fix normals appearing on Demo.obj
-* TODO Move Clipping into Mesh as a foldable section? This is a property of the mesh
-* TODO Rename positions to vertices in the properties table
-* TODO Vertex index labels seem to be 0-based, that should be made clearer... and there should be a 1-based option as well
+* TODO Updated the compiler version used
 
 * Improvements to Prizm.h
 
