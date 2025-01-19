@@ -402,7 +402,7 @@ item_flip_normals :: (item_index : int) {
     for i : 0..entity.mesh.triangles.count-1 {
         using entity.mesh;
         tuple : *Tuple3(u32) = *triangles[i];
-        tuple.y, tuple.z = swap(tuple.y, tuple.z);
+        tuple.y, tuple.z = tuple.z, tuple.y;
     }
 
     entity.render_info.is_dirty = true;

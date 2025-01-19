@@ -167,7 +167,7 @@ build_gui :: (
                     for command, command_index : chosen_console_commands.* {
                         if enable_console_command[command_index] == false {
                             enable_console_command[command_index], enable_console_command[chosen_console_commands.count-1]
-                            = swap(enable_console_command[command_index], enable_console_command[chosen_console_commands.count-1]);
+                            = enable_console_command[chosen_console_commands.count-1], enable_console_command[command_index];
                             remove command;
                         }
                     }
