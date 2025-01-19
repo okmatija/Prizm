@@ -119,6 +119,8 @@ inspect :: (name: *u8, data: *void, info:*Type_Info, depth : int) {
             }
 
         case .POLYMORPHIC_VARIABLE; #through;
+        case .UNTYPED_LITERAL;      #through;
+        case .UNTYPED_ENUM;         #through;
         case .OVERLOAD_SET;         #through;
         case .PROCEDURE;            #through;
         case .POINTER;              #through;

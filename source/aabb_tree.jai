@@ -377,7 +377,7 @@ build :: (using tree : *AABB_Tree, depth : int, parent : int) {
             if lower >= upper {
                 break;
             } else {
-                element_info_range[lower], element_info_range[upper] = swap(element_info_range[lower], element_info_range[upper]);
+                element_info_range[lower], element_info_range[upper] =  element_info_range[upper], element_info_range[lower];
             }
         }
 
