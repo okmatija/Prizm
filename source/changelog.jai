@@ -9,6 +9,17 @@ Version :: struct {
 
 PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
 
+* Implement Heirarchical item list. Folders can have a transform. Read Managing Transformations in Hierarchy by Bartosz Chodorowski and Wojciech Sterna for implementation details 
+See also https://gabormakesgames.com/transforms.html and 
+
+* Prizm.h backlog:
+
+    * TODO Implement using Vector4<uint8_t> and Vector4<float>?
+    * TODO Add LinearColor with floats
+    * TOOD No point providing alpha to most color functions
+    * TODO Add a function to randomly assign triangle colors, splitting each triangle
+    * TODO Add a function to duplicate: item_copy?
+
 * https://github.com/okmatija/Prizm/compare/v0.9.3...main
 
 * New Feature: Attributes TODO Add a feature flag for enabling this
@@ -52,11 +63,31 @@ PRIZM_VERSION_BACKLOGGED :: Version.{"WIP", "WIP", #string DONE
     * mp4 videos on the wiki
     * Fix spotlight labels being visible when they are occuluded
     * Pin labels while rotating/panning the camera
+
+    * TODO Use the new features in modules/Keymap where Keymap_Set can be used to change the Keymap depending on the program mode (see jai/CHANGELOG.txt)
 DONE};
 
 PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
     1. Fix important bugs and release!!
     2. Then move on to implementing Depth Peeling!
+
+* TODO Support grouping/part naming
+    * o and g directives both append to groups
+    * g can specify more than one group name at a time
+    * o can only specify one name at at time
+
+* TODO Support texture coordinates
+    * Can be visualized as colors
+    * Annotations will not be supported... they don't make much sense in this situation
+    * Future work will be to support texturing and .mtl files
+
+* TODO Remove all the mesh attribute stuff
+* TODO Fix the console history not persisting across sessions...
+* TODO Add vertex colors/groups to the C++/Python APIs
+* TODO Fix normals appearing on Demo.obj
+* TODO Move Clipping into Mesh as a foldable section? This is a property of the mesh
+* TODO Rename positions to vertices in the properties table
+* TODO Vertex index labels seem to be 0-based, that should be made clearer... and there should be a 1-based option as well
 
 * Removed the solid color option for triangle rendering, it will be replaced with gbuffer albedo visualization
 * Updated the wiki to include a description of the supported obj features 
@@ -88,10 +119,13 @@ PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
 DONE};
 
 PRIZM_VERSION_0_11_1 :: Version.{"0.11.1", "WIP", #string DONE
-* TODO Support grouping/part naming
-* TODO Fix the console history not persisting across sessions...
-* TODO Add vertex colors/groups to the C++/Python APIs
-* TODO Fix normals appearing on Demo.obj
+* TODO Updated the compiler version used
+
+* Improvements to Prizm.h
+
+    * Removed alpha channel in the Color struct, Prizm does not currently opacity that varies across an element
+    * Added overloads for vertex2, vertex3, point2, point3, segment2, segment3, triangle2, triangle3 which accept a Color argument. Note no analagous change was made to the python API (yet..)
+    * TODO Add api/cpp/build.bat to build the test executable
 DONE};
 
 PRIZM_VERSION_0_11_0 :: Version.{"0.11.0", "26 August 2024", #string DONE

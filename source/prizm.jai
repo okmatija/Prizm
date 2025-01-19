@@ -20,7 +20,7 @@ main :: () {
         args := get_command_line_arguments();
         defer array_free(args);
         for 1..args.count-1 {
-            arg : string = to_lower_copy_new(args[it],, temp);
+            arg : string = to_lower_copy(args[it],, temp);
 
             if arg.count >= 2 && arg[0] == #char "-" && arg[1] == #char "-" {
                 // @Volatile Sync with :PRIZM_ICON_COLORS
@@ -592,8 +592,7 @@ get_window_type :: (window : *SDL_Window) -> Window_Type {
 
 window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> SDL_HitTestResult #c_call {
 
-    new_context : Context;
-    push_context new_context {
+    push_context {
 
         // @Volatile :EasyResizeModeKeybind
         easy_resize_mode := io().KeyAlt;
@@ -668,16 +667,16 @@ imgui_init_fonts :: () {
 
 imgui_context : *ImGui.ImGuiContext;
 
-_imgui_alloc_context: Context;
+_imgui_alloc_context: #Context;
 
 c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
-    push_context (cast(*Context)userdata).* {
+    push_context (cast(*#Context)userdata).* {
         return alloc(cast(s64)sz);
     }
 }
 
 c_free :: (ptr: *void, userdata: *void) -> void #c_call {
-    push_context (cast(*Context)userdata).* {
+    push_context (cast(*#Context)userdata).* {
         free(ptr);
     }
 }

@@ -167,7 +167,7 @@ build_gui :: (
                     for command, command_index : chosen_console_commands.* {
                         if enable_console_command[command_index] == false {
                             enable_console_command[command_index], enable_console_command[chosen_console_commands.count-1]
-                            = swap(enable_console_command[command_index], enable_console_command[chosen_console_commands.count-1]);
+                            = enable_console_command[chosen_console_commands.count-1], enable_console_command[command_index];
                             remove command;
                         }
                     }
@@ -206,16 +206,16 @@ build_gui :: (
 
 imgui_context : *ImGui.ImGuiContext;
 
-_imgui_alloc_context: Context;
+_imgui_alloc_context: #Context;
 
 c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
-    push_context (cast(*Context)userdata).* {
+    push_context (cast(*#Context)userdata).* {
         return alloc(cast(s64)sz);
     }
 }
 
 c_free :: (ptr: *void, userdata: *void) -> void #c_call {
-    push_context (cast(*Context)userdata).* {
+    push_context (cast(*#Context)userdata).* {
         free(ptr);
     }
 }

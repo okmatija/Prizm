@@ -201,7 +201,7 @@ remove_elements_by_index :: (elements : *[..]$T, remove_indices : ..int) {
         }
     }
 
-    new_elements, elements.* = swap(new_elements, elements.*);
+    new_elements, elements.* = elements.*, new_elements;
 
     array_free(new_elements);
 }

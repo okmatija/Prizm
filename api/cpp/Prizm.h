@@ -39,7 +39,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec2<T>& 
 // A 3D vector type. Use PRIZM_VEC3_CLASS_EXTRA to define additional constructors and implicit casts to your types
 template <typename T>
 struct Vec3 {
-    union { struct { T x, y, z; }; T xyz[3]; };
+    union { struct { T x, y, z; }; struct {T r, g, b; }; T xyz[3]; T rgb[3]; };
 
     Vec3() : x(0), y(0), z(0) {}
     Vec3(T x, T y, T z) : x(x), y(y), z(z) {}
@@ -78,10 +78,10 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const Vec4<T>& 
 
 // A linear color type. Use PRIZM_COLOR_CLASS_EXTRA to define additional constructors and implicit casts to your types
 struct Color {
-    union { struct { uint8_t r, g, b, a; }; uint8_t rgba[4]; };
+    union { struct { uint8_t r, g, b; }; uint8_t rgba[3]; };
 
-    Color() : r(0), g(0), b(0), a(255) {}
-    Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) {}
+    Color() : r(0), g(0), b(0) {}
+    Color(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {}
 
     friend std::ostream& operator<<(std::ostream& os, const Color& v);
 
@@ -92,7 +92,7 @@ struct Color {
 
 std::ostream& operator<<(std::ostream& os, const Color& v) {
     // Cast to int so we don't write chars
-    os << (int)v.r << ' ' << (int)v.g << ' ' << (int)v.b << ' ' << (int)v.a;
+    os << (int)v.r << ' ' << (int)v.g << ' ' << (int)v.b;
     return os;
 }
 
@@ -108,14 +108,14 @@ using V3 = V3d;
 using V4 = V4d;
 
 // Built-in Colors
-const Color BLACK{0, 0, 0, 255};
-const Color WHITE{255, 255, 255, 255};
-const Color RED{255, 0, 0, 255};
-const Color GREEN{0, 255, 0, 255};
-const Color BLUE{0, 0, 255, 255};
-const Color AQUA{0, 255, 255, 255};
-const Color MAGENTA{255, 0, 255, 255};
-const Color YELLOW{255, 255, 0, 255};
+const Color BLACK{0, 0, 0};
+const Color WHITE{255, 255, 255};
+const Color RED{255, 0, 0};
+const Color GREEN{0, 255, 0};
+const Color BLUE{0, 0, 255};
+const Color AQUA{0, 255, 255};
+const Color MAGENTA{255, 0, 255};
+const Color YELLOW{255, 255, 0};
 
 
 // An example using the API and an explanation of the rationale behind it.
@@ -425,6 +425,18 @@ struct Obj {
         return v().vector3(a);
     }
 
+    // Add a 2D position with color
+    // Note: writes "\nv a.x a.y c.r c.g c.b" to the obj
+    template <typename T> Obj& vertex2(Vec2<T> a, Color c) {
+        return v().vector2(a).vector3(c);
+    }
+
+    // Add a 3D position with color
+    // Note: writes "\nv a.x a.y a.z" to the obj
+    template <typename T> Obj& vertex3(Vec3<T> a, Color c) {
+        return v().vector3(a).vector3(c);
+    }
+
 
 
 
@@ -473,9 +485,19 @@ struct Obj {
         return vertex2(a).point();
     }
 
+    // Add a vertex position with the given color and a point element that references it
+    template <typename T> Obj& point2(Vec2<T> a, Color c) {
+        return vertex2(a, c).point();
+    }
+
     // Add a vertex position and a point element that references it
     template <typename T> Obj& point3(Vec3<T> a) {
         return vertex3(a).point();
+    }
+
+    // Add a vertex position with the given color and a point element that references it
+    template <typename T> Obj& point3(Vec3<T> a, Color c) {
+        return vertex3(a, c).point();
     }
 
     // Add a vertex position, a normal and an oriented point element referencing them
@@ -507,9 +529,19 @@ struct Obj {
         return vertex2(a).vertex2(b).segment();
     }
 
+    // Add 2 vertex positions with the given color and a segment element referencing them
+    template <typename T> Obj& segment2(Vec2<T> a, Vec2<T> b, Color c) {
+        return vertex2(a, c).vertex2(b, c).segment();
+    }
+
     // Add 2 vertex positions and a segment element referencing them
     template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b) {
         return vertex3(a).vertex3(b).segment();
+    }
+
+    // Add 2 vertex positions with the given color and a segment element referencing them
+    template <typename T> Obj& segment3(Vec3<T> a, Vec3<T> b, Color c) {
+        return vertex3(a, c).vertex3(b, c).segment();
     }
 
     // Add 2 vertex positions, 2 vertex normals and an oriented segment element referencing them
@@ -577,9 +609,19 @@ struct Obj {
         return vertex2(va).vertex2(vb).vertex2(vc).triangle();
     }
 
+    // Add 3 vertex positions with the given color and a triangle element referencing them
+    template <typename T> Obj& triangle2(Vec2<T> va, Vec2<T> vb, Vec2<T> vc, Color c) {
+        return vertex2(va, c).vertex2(vb, c).vertex2(vc, c).triangle();
+    }
+
     // Add 3 vertex positions and a triangle element referencing them
     template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc) {
         return vertex3(va).vertex3(vb).vertex3(vc).triangle();
+    }
+
+    // Add 3 vertex positions with the given color and a triangle element referencing them
+    template <typename T> Obj& triangle3(Vec3<T> va, Vec3<T> vb, Vec3<T> vc, Color c) {
+        return vertex3(va, c).vertex3(vb, c).vertex3(vc, c).triangle();
     }
 
     // Add 3 vertex positions, 3 vertex normals and a triangle element referencing them

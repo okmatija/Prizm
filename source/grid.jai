@@ -123,7 +123,7 @@ to_world :: inline (using grid : Grid, local : Grid.Local) -> Grid.World {
 
     Declare_Inner_Products(grid.frame, WORLD_FRAME);
 
-    world_uvw : Grid.World_UVW = xx ((local + origin_offset) * spacing);
+    world_uvw : Grid.World_UVW = xx,force ((local + origin_offset) * spacing);
     u, v, w  := world_uvw.x, world_uvw.y, world_uvw.z;
 
     x := u * U_X + v * V_X + w * W_X;

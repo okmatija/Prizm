@@ -17,7 +17,10 @@
 
 // @Think Check if @RegisterCommand procedures are using this function, and not valid_geometry_index
 check_geometry_index :: (index : int) -> bool #must {
-    if index < 0 || index >= app.entities.count {
+    if app.entities.count == 0 {
+        log_error("Prizm has no geometry to reference, load an obj file or otherwise create some geometry");
+        return false;
+    } else if index < 0 || index >= app.entities.count {
         log_error("Invalid/Out-of-range geometry index, expected integer in range [0, %]", app.entities.count - 1);
         return false;
     }
@@ -399,7 +402,7 @@ item_flip_normals :: (item_index : int) {
     for i : 0..entity.mesh.triangles.count-1 {
         using entity.mesh;
         tuple : *Tuple3(u32) = *triangles[i];
-        tuple.y, tuple.z = swap(tuple.y, tuple.z);
+        tuple.y, tuple.z = tuple.z, tuple.y;
     }
 
     entity.render_info.is_dirty = true;
@@ -729,7 +732,7 @@ set_edge_color_to_face_color :: () {
 // Update the camera to focus on the given segment. The current look direction is preserved and the
 // orbit/look position of the camera is positioned on the segment centroid.
 //
-// `item_indxe`     The index of the item containing the desired segment
+// `item_index`     The index of the item containing the desired segment
 // `segment_index`  The segment that should be focussed
 // `clip_radius`    If  < 0 then the items clipping ball is unchanged (default)
 //                  If == 0 then the items clipping ball is set with a radius equal to 2x the bounding radius of the segment

@@ -353,7 +353,7 @@ print_location :: (loc := #caller_location) {
 
 text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
 
-    new_context : Context;
+    new_context : #Context;
     new_context.logger = console_logger;
     new_context.logger_data = *app.console.log;
     push_context new_context {
