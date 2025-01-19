@@ -267,7 +267,7 @@ remove_directory_if_unwatched :: (directory : string) {
             }
         }
 
-        } else if OS == .LINUX {
+        } else #if OS == .LINUX {
 
         // We can't use table_remove since the path is the value not the key
         for app.file_watcher.watch_paths {
@@ -276,6 +276,10 @@ remove_directory_if_unwatched :: (directory : string) {
                 break;
             }
         }
+
+        } else #if OS == .MACOS {
+
+            //#assert(false);
 
         } else {
 
