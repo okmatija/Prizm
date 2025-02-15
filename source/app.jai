@@ -450,6 +450,9 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #import "Windows_Utf8";
 } else #if OS == .LINUX {
 //#import "X11";
+} else #if OS == .MACOS {
+#import "Objective_C";
+#import "Objective_C/AppKit";
 }
 
 // @Cleanup @CompilerBug This should be a module but it doesn't work when we use it as a module

@@ -539,9 +539,15 @@ show_pending_directories_ui :: () {
                 specs.data = sort_specs.Specs;
                 specs.count = sort_specs.SpecsCount;
                 for spec : specs { // @CompilerBug Should using work on a for loop?
-                    // @Cleanup Use a enum id here, ImGui has support for it
+                    // @CompilerBug The ImGui module names this differently on windows/unix
+                    #if OS == .WINDOWS {
                     direction := spec.SortDirection_;
-                    if spec.SortDirection_ == ImGui.SortDirection.Ascending {
+                    } else {
+                    direction := spec.SortDirection;
+                    }
+
+                    // @Cleanup Use a enum id here, ImGui has support for it
+                    if direction == xx ImGui.SortDirection.Ascending {
                         if spec.ColumnIndex == {
                             case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
                             case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
@@ -2551,8 +2557,16 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                         specs.data = sort_specs.Specs;
                         specs.count = sort_specs.SpecsCount;
                         for spec : specs { // @CompilerBug Should using work on a for loop?
+
+                            // @CompilerBug The ImGui module names this differently on windows/unix
+                            #if OS == .WINDOWS {
+                            direction := spec.SortDirection_;
+                            } else {
+                            direction := spec.SortDirection;
+                            }
+
                             // @Cleanup Use a enum id here, ImGui has support for it
-                            if spec.SortDirection_ == ImGui.SortDirection.Ascending {
+                            if direction == xx ImGui.SortDirection.Ascending {
                                 if spec.ColumnIndex == {
                                     case 1; quick_sort(annotations, (a,b) => (compare_annotation_ids(a,b)));
                                     case 3; quick_sort(annotations, (a,b) => (compare_annotation_values(a, b)));
