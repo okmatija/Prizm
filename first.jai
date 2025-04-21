@@ -1,6 +1,6 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.008, built on 14 January 2025";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.010, built on 4 March 2025";
 
 HELP_STRING :: #string DONE
 
@@ -373,7 +373,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
     // Generate boiler plate for registered console commands so they are callable from console input strings
     for command, command_index : registered_console_commands {
         path   := command.enclosing_load.fully_pathed_filename;
-        plural := plural_suffix(command.arguments.count == 1);
+        plural := plural_suffix(command.arguments.count != 1);
 
         max_arg_count : int = command.arguments.count;
         min_arg_count : int = max_arg_count;
@@ -390,9 +390,9 @@ generate_code_to_register_console_commands :: (w : Workspace) {
         Print("    // Check number of arguments\n");
         Print("    if args.count < % || args.count > % {\n", min_arg_count, max_arg_count);
         if min_arg_count == max_arg_count {
-            Print("        log_error(\"Expected exactly % argument%, got %%.\", args.count);\n", command.arguments.count, plural);
+            Print("        log_error(\"Expected exactly % argument%, got \%.\", args.count);\n", command.arguments.count, plural);
         } else {
-            Print("        log_error(\"Expected between % and % arguments, got %%.\", args.count);\n", min_arg_count, max_arg_count);
+            Print("        log_error(\"Expected between % and % arguments, got \%.\", args.count);\n", min_arg_count, max_arg_count);
         }
         Print("        return;\n");
         Print("    }\n\n");
@@ -432,12 +432,12 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     integer_arg := cast(*Type_Info_Integer)arg.type;
                     if integer_arg.signed == false {
                         Print("%    if a%2 < 0 {\n", indent, arg_index);
-                        Print("%        log_error(\"Argument %2 is unsigned but passed value was %%\", a%2);\n", indent, arg_index);
+                        Print("%        log_error(\"Argument %2 is unsigned but passed value was \%\", a%2);\n", indent, arg_index);
                         Print("%        return;\n", indent);
                         Print("%    }\n", indent);
                     }
                     Print("%} else {\n", indent);
-                    Print("%    log_error(\"Argument %2 is not an int, its a %%\", args[%2].type.type);\n", indent, arg_index);
+                    Print("%    log_error(\"Argument %2 is not an int, its a \%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .FLOAT;
@@ -446,21 +446,21 @@ generate_code_to_register_console_commands :: (w : Workspace) {
                     Print("%} else if args[%].type.type == .INTEGER {\n", indent, arg_index);
                     Print("%    a%2 = xx (cast(*s64)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
-                    Print("%    log_error(\"Argument %2 is not a number, its a %%\", args[%2].type.type);\n", indent, arg_index);
+                    Print("%    log_error(\"Argument %2 is not a number, its a \%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .STRING;
                     Print("%if args[%].type.type == .STRING {\n", indent, arg_index);
                     Print("%    a%2 = xx (cast(*string)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
-                    Print("%    log_error(\"Argument %2 is not an string, its a %%\", args[%2].type.type);\n", indent, arg_index);
+                    Print("%    log_error(\"Argument %2 is not an string, its a \%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
                 case .TYPE;
                     Print("%if args[%].type.type == .TYPE {\n", indent, arg_index);
                     Print("%    a%2 = xx (cast(*Type)(args[%2].value_pointer)).*;\n", indent, arg_index);
                     Print("%} else {\n", indent);
-                    Print("%    log_error(\"Argument %2 is not an Type, its a %%\", args[%2].type.type);\n", indent, arg_index);
+                    Print("%    log_error(\"Argument %2 is not an Type, its a \%\", args[%2].type.type);\n", indent, arg_index);
                     Print("%    return;\n", indent);
                     Print("%}\n", indent);
             }
