@@ -4,7 +4,7 @@ Labelling_Mode :: enum {
 }
 
 // Like check_geometry_index but with no logging
-valid_geometry_index :: (index : int) -> bool #must {
+valid_geometry_index :: (index : int) -> bool {
     if index < 0 || index >= app.entities.count {
         return false;
     }

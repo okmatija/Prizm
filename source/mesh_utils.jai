@@ -47,7 +47,7 @@ to_Polyline_Soup2 :: #bake_arguments to_Polyline_Soup(Point = Vector2);
 to_Polyline_Soup3 :: #bake_arguments to_Polyline_Soup(Point = Vector3);
 
 // @Cleanup @Refactor This should assert some pre-conditions and then never fail, it should not be called (in the obj loading function if the preconditions aren't met)
-to_Polyline_Soup :: (mesh : Simple_Mesh, Point : $Type) -> Polyline_Soup(Point), bool #must {
+to_Polyline_Soup :: (mesh : Simple_Mesh, Point : $Type) -> Polyline_Soup(Point), bool {
     result : Polyline_Soup(Point);
     ok : bool;
 
@@ -55,7 +55,7 @@ to_Polyline_Soup :: (mesh : Simple_Mesh, Point : $Type) -> Polyline_Soup(Point),
         return result, true;
     }
 
-    get_edge :: (mesh : Simple_Mesh, edge_index : int) -> Indexed_Edge3, bool #must {
+    get_edge :: (mesh : Simple_Mesh, edge_index : int) -> Indexed_Edge3, bool {
         edge : Indexed_Edge3;
 
         if edge_index >= mesh.segments.count {

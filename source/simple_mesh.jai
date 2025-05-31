@@ -313,7 +313,7 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
 }
 
 // @FIXME Add a $world_space argument
-bounding_box :: (using mesh : Simple_Mesh) -> AxisBox3 #must {
+bounding_box :: (using mesh : Simple_Mesh) -> AxisBox3 {
     box : AxisBox3;
     for * mesh.positions {
         expand(*box, it);
@@ -322,7 +322,7 @@ bounding_box :: (using mesh : Simple_Mesh) -> AxisBox3 #must {
 }
 
 // @FIXME Add a $world_space argument. WTF is the transform argument??
-bounding_box :: (using mesh : Simple_Mesh, transform : Matrix4) -> AxisBox3 #must {
+bounding_box :: (using mesh : Simple_Mesh, transform : Matrix4) -> AxisBox3 {
     box : AxisBox3;
     for point_model : mesh.positions {
         point_transformed := (transform * Vector4.{xyz=point_model, w=1.}).xyz;

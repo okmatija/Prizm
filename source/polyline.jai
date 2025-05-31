@@ -21,11 +21,11 @@ deinit :: (shape : *$T/Polyline) {
     array_reset(*shape.points);
 }
 
-is_empty :: (polyline : $T/Polyline) -> bool #must {
+is_empty :: (polyline : $T/Polyline) -> bool {
     return polyline.points.count < 2;
 }
 
-bounding_box :: (using polyline : $T/Polyline) -> AxisBox(T.Point) #must {
+bounding_box :: (using polyline : $T/Polyline) -> AxisBox(T.Point) {
     box : AxisBox(T.Point);
     for points {
         expand(*box, it);
@@ -65,7 +65,7 @@ append_copy :: (dest : *$T/Polyline_Soup, to_copy : T) {
     }
 }
 
-is_empty :: (polyline_soup : $T/Polyline_Soup) -> bool #must {
+is_empty :: (polyline_soup : $T/Polyline_Soup) -> bool {
     for polyline_soup.polylines {
         if !is_empty(it) {
             return false;
@@ -74,7 +74,7 @@ is_empty :: (polyline_soup : $T/Polyline_Soup) -> bool #must {
     return true;
 }
 
-bounding_box :: (using polyline_soup : $T/Polyline_Soup) -> AxisBox(T.Point) #must {
+bounding_box :: (using polyline_soup : $T/Polyline_Soup) -> AxisBox(T.Point) {
     box : AxisBox(T.Point);
     for * polylines {
         polyline_box := bounding_box(it);
@@ -132,7 +132,7 @@ Point_Iterator :: (using soup : *$T/Polyline_Soup, body : Code, flags : For_Flag
 }
 
 // @Speed This is horribly inefficient!
-get_segment :: (using polyline_soup : $T/Polyline_Soup, query_index : int) -> found : bool #must, segment : Edge(T.Point) {
+get_segment :: (using polyline_soup : $T/Polyline_Soup, query_index : int) -> found : bool, segment : Edge(T.Point) {
     for :PolylineSegmentIterator segment, segment_index : polyline_soup {
         if segment_index == query_index {
             return true, segment;

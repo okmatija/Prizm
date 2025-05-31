@@ -2,7 +2,7 @@
 
 // The queries consider the spheres to be solids.
 
-test_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> intersect : bool #must {
+test_intersection_sphere3_sphere3 :: (sphere0 : Sphere3, sphere1 : Sphere3) -> intersect : bool {
     diff : Vector3 = sphere1.center - sphere0.center;
     rSum : float = sphere0.radius + sphere1.radius;
     return (Dot(diff, diff) <= rSum * rSum);

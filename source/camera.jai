@@ -418,7 +418,7 @@ camera_clamp_orthographic_view_planes :: ()
 }
 
 // @Cleanup use Math.make_look_at_matrix here
-make_look_at_matrix :: (using camera : Camera) -> Matrix4 #must {
+make_look_at_matrix :: (using camera : Camera) -> Matrix4 {
     f := normalize(look_position - eye_position, fallback=.{z=1});
     s := normalize(cross(f, up_direction), fallback=.{z=1});
     u := cross(s, f);
@@ -442,11 +442,11 @@ make_look_at_matrix :: (using camera : Camera) -> Matrix4 #must {
     return m;
 }
 
-make_orthographic_projection_matrix :: (using camera : Camera) -> Matrix4 #must {
+make_orthographic_projection_matrix :: (using camera : Camera) -> Matrix4 {
     return orthographic_projection_matrix(left, right, bottom, top, near, far);
 }
 
-make_projection_from_world :: (using camera : Camera) -> Matrix4 #must {
+make_projection_from_world :: (using camera : Camera) -> Matrix4 {
     view_from_world := make_look_at_matrix(camera);
     projection_from_view := make_orthographic_projection_matrix(camera);
     return projection_from_view * view_from_world;

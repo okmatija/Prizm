@@ -16,7 +16,7 @@
 // @Cleanup Use a macro to test the item_index arguments and create an item variable
 
 // @Think Check if @RegisterCommand procedures are using this function, and not valid_geometry_index
-check_geometry_index :: (index : int) -> bool #must {
+check_geometry_index :: (index : int) -> bool {
     if app.entities.count == 0 {
         log_error("Prizm has no geometry to reference, load an obj file or otherwise create some geometry");
         return false;
@@ -27,7 +27,7 @@ check_geometry_index :: (index : int) -> bool #must {
     return true;
 }
 
-check_color :: (r : int, g : int, b : int, a : int) -> bool #must {
+check_color :: (r : int, g : int, b : int, a : int) -> bool {
     if r < 0 || r > 255 {
         log_error("# Expected r to be in the range [0, 255], got %", r);
         return false;

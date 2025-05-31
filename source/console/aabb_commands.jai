@@ -182,7 +182,7 @@ debug_delete_spatial_index :: (id : int) {
 
 #scope_file
 
-to_edge_Mesh :: (using box : AxisBox3, world_from_model : Matrix4) -> Simple_Mesh #must {
+to_edge_Mesh :: (using box : AxisBox3, world_from_model : Matrix4) -> Simple_Mesh {
     mesh : Simple_Mesh;
     mesh.world_from_model = world_from_model;
 

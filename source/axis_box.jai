@@ -75,20 +75,20 @@ CornersIterator :: (using box : *$T/AxisBox, body : Code, flags : For_Flags) #ex
 }
 
 // @Cleanup rename to make_AxisBox2
-make_axis_box :: (points : ..Vector2) -> AxisBox2 #must {
+make_axis_box :: (points : ..Vector2) -> AxisBox2 {
     box : AxisBox2;
     for points expand(*box, it);
     return box;
 }
 
 // @Cleanup rename to make_AxisBox3
-make_axis_box3 :: (points : ..Vector3) -> AxisBox3 #must {
+make_axis_box3 :: (points : ..Vector3) -> AxisBox3 {
     box : AxisBox3;
     for points expand(*box, it);
     return box;
 }
 
-to_polyline :: (using box : AxisBox2) -> Polyline2 #must {
+to_polyline :: (using box : AxisBox2) -> Polyline2 {
     polyline : Polyline2;
     array_add(*polyline.points,
               corner(box, .XY_00),
@@ -99,7 +99,7 @@ to_polyline :: (using box : AxisBox2) -> Polyline2 #must {
     return polyline;
 }
 
-to_polyline_soup :: (using box : AxisBox3) -> Polyline_Soup3 #must {
+to_polyline_soup :: (using box : AxisBox3) -> Polyline_Soup3 {
     result : Polyline_Soup3;
 
     Add_Face_Polyline :: (a : Corner3, b : Corner3, c : Corner3, d : Corner3) #expand {
@@ -122,7 +122,7 @@ to_polyline_soup :: (using box : AxisBox3) -> Polyline_Soup3 #must {
     return result;
 }
 
-is_empty :: (using box : $T/AxisBox) -> bool #must {
+is_empty :: (using box : $T/AxisBox) -> bool {
     for d : 0..box.DIM-1 {
         if min_point.component[d] > max_point.component[d] {
             return true;
@@ -152,11 +152,11 @@ transform_axis_box3 :: (transform : Matrix4, using box : AxisBox3) -> AxisBox3 {
     return result;
 }
 
-center_point :: (using box : $T/AxisBox) -> T.Point #must {
+center_point :: (using box : $T/AxisBox) -> T.Point {
     return (max_point + min_point) / 2;
 }
 
-diagonal :: (using box : $T/AxisBox) -> T.Vector #must {
+diagonal :: (using box : $T/AxisBox) -> T.Vector {
     result : T.Vector;
     for d : 0..box.DIM-1 {
         if min_point.component[d] <= max_point.component[d] {
@@ -193,7 +193,7 @@ offset :: (using box : *$T/AxisBox, increment : T.Vector) {
     }
 }
 
-contains :: (using box : $T/AxisBox, point : T.Point) -> bool #must {
+contains :: (using box : $T/AxisBox, point : T.Point) -> bool {
     return (min_point.x <= point.x) && (min_point.y <= point.y) &&
            (max_point.x >= point.x) && (max_point.y >= point.y);
 }

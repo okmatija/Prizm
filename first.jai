@@ -501,7 +501,7 @@ generate_code_to_register_console_commands :: (w : Workspace) {
     add_build_string(builder_to_string(*builder), w);
 }
 
-escape :: (s: string) -> string #must {
+escape :: (s: string) -> string {
     if s == "" {
         return "";
     }
