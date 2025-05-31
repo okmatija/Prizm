@@ -127,7 +127,8 @@ update_camera :: () {
         camera_at_mouse_down = app.camera;
     }
 
-    world_from_projection := inverse(make_projection_from_world(camera));
+    valid, world_from_projection := inverse(make_projection_from_world(camera));
+    if !valid vlog_warning("Could not invert projection_from_world matrix created from camera '%'", camera);
 
     if mouse_reposition_camera() {
 
@@ -141,7 +142,8 @@ update_camera :: () {
             assert(is_empty(sphere) == false); // if got closest.entity_index != -1 we should have a sphere
 
             view_from_world := make_look_at_matrix(app.camera);
-            world_from_view := inverse(view_from_world);
+            valid, world_from_view := inverse(view_from_world);
+            if !valid vlog_warning("Could not inverset view from world matrix '%'", view_from_world);
         
             position_view := transform_point(view_from_world, position_world);
             eye_displacement := transform_vector(world_from_view, Vector3.{position_view.x, position_view.y, 0.});
@@ -193,7 +195,8 @@ update_camera :: () {
         arcball_axis_ndc := cross_product(curr_arcball_vector, prev_arcball_vector);
 
         view_from_world := make_look_at_matrix(camera_at_mouse_down);
-        world_from_view := inverse(view_from_world);
+        valid, world_from_view := inverse(view_from_world);
+        if !valid vlog_warning("Could not invert view_from_world matrix '%'", view_from_world);
         arcball_axis_world := (world_from_view * Vector4.{xyz=arcball_axis_ndc}).xyz;
 
         arcball_angle := angle(curr_arcball_vector, prev_arcball_vector);
@@ -242,7 +245,8 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
 
     camera := *app.camera;
 
-    view_from_clip := inverse(make_orthographic_projection_matrix(camera));
+    valid, view_from_clip := inverse(make_orthographic_projection_matrix(camera));
+    if !valid vlog_warning("Could not invert orthographic projection matrix created from cameara '%'", camera);
 
     previous_clip := to_ndc(previous_pos);
     zoomed_clip := previous_clip / zoom_factor;
@@ -256,7 +260,8 @@ handle_zoom :: (zoom_factor : float, previous_pos : Vector2, follow_cursor : boo
     camera.left   = -camera.right;
 
     if follow_cursor {
-        world_from_view := inverse(make_look_at_matrix(camera));
+        valid=, world_from_view := inverse(make_look_at_matrix(camera));
+        if !valid vlog_warning("Could not invert orthographic projection matrix created from cameara '%'", camera);
         delta_world := zoom_factor *(world_from_view * (zoomed_view - previous_view)).xyz;
         camera.eye_position += delta_world;
         camera.look_position += delta_world;
@@ -472,17 +477,23 @@ to_ndc :: (position_px : Vector2) -> Vector2
 }
 
 // @Cleanup Rename to make it clear this is in world space
+// @Robustness: handle the errors in this function
 make_camera_ray :: () -> Ray3 {
-    view_from_clip := inverse(make_orthographic_projection_matrix(app.camera));
-    world_from_view := inverse(make_look_at_matrix(app.camera));
+    valid, view_from_clip := inverse(make_orthographic_projection_matrix(app.camera));
+    if !valid vlog_warning("Could not invert orthographic projection matrix created from camera '%'", app.camera);
+
+    valid=, world_from_view := inverse(make_look_at_matrix(app.camera));
+    if !valid vlog_warning("Could not invert look at matrix created from camera '%'", app.camera);
+
     transform := world_from_view * view_from_clip;
-    inverse_transpose := transpose(inverse(transform));
+    valid=, transform_inverse := inverse(transform);
+    if !valid vlog_warning("Could not invert matrix '%'", transform);
+    inverse_transpose := transpose(transform_inverse);
 
     ray : Ray3 = ---;
     ray.origin = (transform * Vector4.{xy=to_ndc(make_Vector2(io().MousePos)), z=-1., w=1.}).xyz;
     ray.direction = (inverse_transpose * Vector4.{z=1.}).xyz;
-    check := normalize(*ray.direction, fallback=.{z=1.});
-    //assert(check != 0.); // @Robustness: handle this error
+    normalize(*ray.direction, fallback=.{z=1.});
 
     return ray;
 }

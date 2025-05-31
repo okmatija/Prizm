@@ -754,7 +754,9 @@ find_closest_vertex :: ($entity_filter : Code = visit_visible) -> Closest_Point_
     FilterIterator :: #bake_arguments EntitiesIterator(entity_filter=entity_filter);
     
     for :FilterIterator entity, entity_index : app.entities {
-        inverse_transpose := transpose(inverse(entity.mesh.world_from_model));
+        valid, model_from_world := inverse(entity.mesh.world_from_model);
+        if !valid vlog_warning("Could not invert world_from_model matrix '%'", entity.mesh.world_from_model);
+        inverse_transpose := transpose(model_from_world);
         for :WorldVertexIterator vertex_world, vertex_index : entity.mesh {
 
             if is_clipped(entity.display_info, vertex_world) {
@@ -845,7 +847,9 @@ find_closest_element :: (
             continue;
         }
 
-        ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+        valid, model_from_world := inverse(entity.mesh.world_from_model);
+        if !valid vlog_warning("Could not invert world_from_model matrix '%'", entity.mesh.world_from_model);
+        ray_model : Ray3 = transform_ray(model_from_world, ray_world);
 
         // Keep track of the best candidates (closest to the camera/ray origin) for intersected/hit triangles and missed ones
         best_ray_triangle_hit, best_ray_triangle_miss : Closest_Point_Ray_Triangle;

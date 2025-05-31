@@ -205,7 +205,7 @@ starts_comment :: (s : string, cpp_style_comments : bool, obj_style_comments : b
     return "";
 }
 
-continues_comment :: (s : string, cpp_style_comments : bool, obj_style_comments : bool) -> (end_of_comment : bool #must, increment : int) {
+continues_comment :: (s : string, cpp_style_comments : bool, obj_style_comments : bool) -> (end_of_comment : bool, increment : int) {
     if s.count == 0 {
         // We were passed an empty string
         return true, 0;

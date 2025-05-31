@@ -1,6 +1,6 @@
-// test_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> bool #must
+// test_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> bool
 
-find_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> (intersect_count : s32 = 0 #must, parameter : float = 0) {
+find_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> (intersect_count : s32 = 0, parameter : float = 0) {
     cosine := dot(line.direction, plane.normal);
     signed_distance, _ := signed_distance_point3_plane3(line.origin, plane);
 
@@ -19,7 +19,7 @@ find_intersect_line3_plane3 :: (line : Line3, plane : Hyperplane3) -> (intersect
     }
 }
 
-find_intersect_ray3_plane3 :: (ray : Ray3, plane : Hyperplane3) -> (intersect_count : s32 = 0 #must, parameter : float = 0) {
+find_intersect_ray3_plane3 :: (ray : Ray3, plane : Hyperplane3) -> (intersect_count : s32 = 0, parameter : float = 0) {
     line : Line3;
     line.origin = ray.origin;
     line.direction = ray.direction;

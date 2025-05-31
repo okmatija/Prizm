@@ -101,8 +101,11 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
 
         // Position and annotation label
         {
+            valid, model_from_world := inverse(entity.mesh.world_from_model);
+            if !valid vlog_warning("Could not invert world_from_model matrix '%'", entity.mesh.world_from_model);
+
             position_world := closest_point_world;
-            position_model := transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
+            position_model := transform_point(model_from_world, closest_point_world);
             position_index := closest_world.element_index;
 
             AddVertexAndVertexAnnotationLabels(position_world, position_model, position_index);
@@ -128,8 +131,10 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
 
         // Point position and position annotation labels
         {
+            valid, model_from_world := inverse(entity.mesh.world_from_model);
+
             position_world := closest_point_world;
-            position_model := transform_point(inverse(entity.mesh.world_from_model), closest_point_world);
+            position_model := transform_point(model_from_world, closest_point_world);
             position_index := entity.mesh.points[closest_world.element_index];
 
             AddVertexAndVertexAnnotationLabels(position_world, position_model, position_index);
@@ -362,8 +367,11 @@ render_entity_text_spotlight :: ($entity_filter : Code) {
 
                 } else {
 
+                    valid, model_from_world := inverse(entity.mesh.world_from_model);
+                    if !valid vlog_warning("Could not invert world_from_model matrix '%'", entity.mesh.world_from_model);
+
                     ray_world : Ray3 = make_camera_ray();
-                    ray_model : Ray3 = transform_ray(inverse(entity.mesh.world_from_model), ray_world);
+                    ray_model : Ray3 = transform_ray(model_from_world, ray_world);
                     distance : float = get_model_space_query_radius(entity.render_info.bounding_aabb, app.settings.labelling_radius_px);
 
                     // log_error("Use spatial index");

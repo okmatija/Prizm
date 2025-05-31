@@ -50,7 +50,8 @@ render_axes_triad :: () {
     eye_position = look_position - unit_look_direction;
 
     offset_vs := Vector3.{s, s, 0.} + Vector3.{w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0};
-    world_from_view := inverse(make_look_at_matrix(app.camera));
+    valid, world_from_view := inverse(make_look_at_matrix(app.camera));
+    if !valid vlog_warning("Could not invert look at matrix created from camera '%'", app.camera);
     offset_ws := (world_from_view * Vector4.{xyz=offset_vs}).xyz;
 
     scale := make_scale_matrix4(.8 * Vector3.{s, s, s});

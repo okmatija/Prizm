@@ -221,9 +221,12 @@ merge :: (dst : *Simple_Mesh, src : Simple_Mesh) {
     segments_offset :=  dst.segments.count;
     triangles_offset := dst.triangles.count;
 
-    dst_model_from_world := inverse(dst.world_from_model);
-    dst_model_from_world_vector := transpose(inverse(dst_model_from_world));
-    src_world_from_model_vector := transpose(inverse(src.world_from_model));
+    valid, dst_model_from_world := inverse(dst.world_from_model);
+    if !valid vlog_warning("Could not invert world_from_model matrix '%'", dst.world_from_model);
+    dst_model_from_world_vector := transpose(dst.world_from_model);
+
+    valid=, src_model_from_world := inverse(src.world_from_model);
+    src_world_from_model_vector := transpose(src_model_from_world);
 
     array_resize(*dst.positions, dst.positions.count + src.positions.count);
     for i : 0..src.positions.count-1 {
@@ -343,7 +346,9 @@ transform :: (using mesh : *Simple_Mesh, transform : Matrix4) {
 
     vn : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
     if vn {
-        inverse_transpose := transpose(inverse(transform));
+        valid, inverse_transform := inverse(transform);
+        if !valid vlog_warning("Could not invert transform matrix '%'", transform);
+        inverse_transpose := transpose(inverse_transform);
         for *matrix : vn.values {
             for i : 0..2 {
                 matrix.v[i] = (inverse_transpose * Vector4.{xyz=matrix.v[i]}).xyz;
