@@ -25,6 +25,8 @@ Build_Kind :: enum {
 
 OUTPUT_EXE_NAME :: "Prizm";
 
+// @TODOOO Put console generating code into a plugin and revert to the Default_Metaprogram
+
 // This is used to implement the shipping build option (it creates the .zip for distribution)
 #if OS == .WINDOWS {
 PATH_TO_7z :: "c:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\7z.exe";
@@ -131,12 +133,12 @@ build :: () {
     // array_add(*new_path, "../jai-tracy/tracy");
     // build_options.import_path = new_path;
 
-    plugin_names : [..]string;
-    array_add(*plugin_names, "Check");
+    plugins_to_create: [..] Plugin_To_Create;
+    array_add(*plugins_to_create, .{name="Check"}); // .{name="Check(CHECK_BINDINGS=false)"}
     if tracy_profiling {
-        array_add(*plugin_names, "tracy");
+        array_add(*plugins_to_create, .{name="tracy"});
     }
-    init_plugins(plugin_names, *plugins, w);
+    init_plugins(plugins_to_create, *plugins, w);
 
     set_build_options(build_options, w);
 
