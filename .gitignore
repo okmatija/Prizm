@@ -41,3 +41,6 @@ imgui*.ini
 imgui.ini
 
 debug.log
+
+# Claude Code per-machine local settings (keep the shared .claude/settings.json tracked)
+.claude/settings.local.json
