@@ -509,7 +509,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
     }
 
     label_table : Table(Tuple2i, [..]Label_Info, hash_Tuple2i, compare_Tuple2i);
-    init(*label_table, label_infos.count);
+    table_resize(*label_table, label_infos.count);
     defer deinit(*label_table);
 
     for label_info : label_infos {

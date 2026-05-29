@@ -19,7 +19,7 @@ Parser :: struct {
     failed  := false;
 }
 
-deinit :: (using p : Parser) {
+deinit :: (using p : *Parser) {
     defer array_reset(*tokens);
 }
 
@@ -50,7 +50,7 @@ next_token :: (using p: *Parser) -> Token {
 }
 
 // @Cleanup this should not take a pointer!
-peek_token :: (using p: Parser) -> Token {
+peek_token :: (using p: *Parser) -> Token {
     if current_token >= tokens.count return tokens[tokens.count-1];
     return tokens[current_token];
 }

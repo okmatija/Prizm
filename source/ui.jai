@@ -540,8 +540,7 @@ show_pending_directories_ui :: () {
                 specs.count = sort_specs.SpecsCount;
                 for spec : specs { // @CompilerBug Should using work on a for loop?
                     // @Cleanup Use a enum id here, ImGui has support for it
-                    direction := spec.SortDirection_;
-                    if spec.SortDirection_ == ImGui.SortDirection.Ascending {
+                    if sort_direction_of(spec) == ImGui.SortDirection.Ascending {
                         if spec.ColumnIndex == {
                             case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
                             case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
@@ -718,6 +717,16 @@ icon_coordinates_texture : Texture;
 icon_annotations_texture : Texture;
 
 #scope_file
+
+// The ImGui bindings name/type this field differently per platform: on Windows it is
+// 'SortDirection_' of enum type SortDirection, on Linux it is 'SortDirection' of type u8.
+sort_direction_of :: (spec : ImGui.TableColumnSortSpecs) -> ImGui.SortDirection {
+    #if OS == .WINDOWS {
+        return spec.SortDirection_;
+    } else {
+        return cast(ImGui.SortDirection) spec.SortDirection;
+    }
+}
 
 ACTION_BUTTON_SIZE :: ImGui.ImVec2.{30, 30};
 
@@ -2552,7 +2561,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                         specs.count = sort_specs.SpecsCount;
                         for spec : specs { // @CompilerBug Should using work on a for loop?
                             // @Cleanup Use a enum id here, ImGui has support for it
-                            if spec.SortDirection_ == ImGui.SortDirection.Ascending {
+                            if sort_direction_of(spec) == ImGui.SortDirection.Ascending {
                                 if spec.ColumnIndex == {
                                     case 1; quick_sort(annotations, (a,b) => (compare_annotation_ids(a,b)));
                                     case 3; quick_sort(annotations, (a,b) => (compare_annotation_values(a, b)));
@@ -3119,7 +3128,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     ImGui.TableSetColumnIndex(2);
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
-                    if almost_equal(length(*p.normal), 0.) p.normal = fallback_normal;
+                    if almost_equal(length(p.normal), 0.) p.normal = fallback_normal;
                     range := Vector2.{p.min, p.max};
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {

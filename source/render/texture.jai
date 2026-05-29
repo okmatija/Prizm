@@ -17,8 +17,7 @@ Texture :: struct {
     filter : Texture_Filter;
 
     // @Cleanup Remove this when all KodaJai code is assimilated (NOTE: do not remove! The code will compiled because the things we want it for are commented!)
-    #place gl_handle;
-    buffer : GLuint = ---;
+    #overlay (gl_handle) buffer : GLuint;
 }
 
 texture_init :: (texture : *Texture, width : s32, height : s32, data : *void = null) {

@@ -1,6 +1,6 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.017, built on 5 August 2025";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.029, built on 25 April 2026";
 
 HELP_STRING :: #string DONE
 
@@ -116,14 +116,14 @@ build :: () {
     if #complete build_kind == {
     case .CUSTOM;
         compiler_report("This feature is currently broken, gl_load does not work at compile-time?");
-        build_options_found, build_options = table_find_new(*preset_build_options, "debug"); // Start from debug options
+        build_options_found, build_options = table_find(*preset_build_options, "debug"); // Start from debug options
         build_gui(preset_build_options, chosen_build_options=*build_options);
     case .RELEASE; #through;
     case .SHIPPING;
-        build_options_found, build_options= table_find_new(*preset_build_options, "release");
+        build_options_found, build_options= table_find(*preset_build_options, "release");
     case .DEBUG; #through;
     case .VERY_DEBUG;
-        build_options_found, build_options = table_find_new(*preset_build_options, "debug");
+        build_options_found, build_options = table_find(*preset_build_options, "debug");
     }
     assert(build_options_found);
 

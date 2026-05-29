@@ -6,8 +6,7 @@ Triangle3 :: struct {
     a : Point3;
     b : Point3;
     c : Point3;
-#place a;
-    v : [3]Point3 = ---;
+#overlay (a) v : [3]Point3;
 }
 
 // The plane is represented as Dot(U,X) = d where U is a unit-length normal
@@ -16,8 +15,7 @@ Triangle3 :: struct {
 // @Cleanup Plane3 struct in Math module means we need to use the name Hyperplane3
 Hyperplane3 :: struct {
     a, b, c, d : float;
-#place a;
-    normal : Vector3 = ---;
+#overlay (a) normal : Vector3;
 }
 
 // The line is represented by P+t*D, where P is an origin point, D is a
@@ -47,8 +45,7 @@ Segment :: struct (Point : Type) {
     start : Point;
     end : Point;
 
-#place start;
-    p : [2]Point = ---;
+#overlay (start) p : [2]Point;
 }
 
 Segment2 :: Segment(Point2);
@@ -100,14 +97,12 @@ Segment_Color :: struct {
     start : Vector3 = DEFAULT_VERTEX_COLOR;
     end : Vector3 = DEFAULT_VERTEX_COLOR;
 
-#place start;
-    p : [2]Vector3 = ---;
+#overlay (start) p : [2]Vector3;
 }
 
 Triangle_Color :: struct {
     a : Vector3 = DEFAULT_VERTEX_COLOR;
     b : Vector3 = DEFAULT_VERTEX_COLOR;
     c : Vector3 = DEFAULT_VERTEX_COLOR;
-#place a;
-    v : [3]Point3 = ---;
+#overlay (a) v : [3]Point3;
 }

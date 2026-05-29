@@ -35,8 +35,7 @@ Font_Set :: struct {
     large : *ImGui.ImFont;
     huge : *ImGui.ImFont;
 
-    #place small;
-    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
+    #overlay (small) fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont;
 }
 
 // @Incomplete Currently only 4 different font sizes are supported and this function picks the best match.  Future work will load a font with the desired size.

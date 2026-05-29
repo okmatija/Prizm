@@ -428,7 +428,7 @@ get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
 Debug :: #import "Debug";
 #import "Hash";
 #import "Hash_Table";
-#import "freetype255";
+#import "freetype";
 #import "System";
 #import "stb_image";
 #import "SDL";

@@ -357,7 +357,7 @@ render_mesh_point_normals :: (entity : Entity) {
 
 render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
 
-    app.render_info.shader_aabb.use_shader(*app.render_info.shader_aabb, aabb_model, world_from_model);
+    app.render_info.shader_aabb.use_shader(app.render_info.shader_aabb, aabb_model, world_from_model);
 
     glDrawArrays(GL_LINES, 0, 24);
 }
@@ -371,9 +371,9 @@ render_mesh_positions :: (entity : Entity) {
     use_shader(*app.render_info.shader_points_lines, entity);
 
     used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)vertex_style.size;
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "point_size", used_point_size);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", vertex_style.color.component);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", vertex_style.color_mode);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "point_size", used_point_size);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color", vertex_style.color.component);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color_mode", vertex_style.color_mode);
 
     // @Cleanup refactor to set all the state before issuing the draw calls
     last_polygon_mode: [2]GLuint;
@@ -398,9 +398,9 @@ render_mesh_points :: (entity : Entity) {
     use_shader(*app.render_info.shader_points_lines, entity);
 
     used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)point_style.vertex_style.size;
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "point_size", used_point_size);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", point_style.vertex_style.color.component);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", point_style.vertex_style.color_mode);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "point_size", used_point_size);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color", point_style.vertex_style.color.component);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color_mode", point_style.vertex_style.color_mode);
 
     last_polygon_mode: [2]GLuint;
     glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
@@ -422,8 +422,8 @@ render_mesh_segments :: (entity : Entity) {
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
     use_shader(*app.render_info.shader_points_lines, entity);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", segment_style.color.component);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", segment_style.color_mode);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color", segment_style.color.component);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color_mode", segment_style.color_mode);
 
     used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
     if (used_segments_width > 0) {
@@ -456,7 +456,7 @@ render_mesh_triangles_as_lines :: (entity : Entity) {
     maybe_update_render_info(*entity.render_info, *entity.mesh);
 
     use_shader(*app.render_info.shader_points_lines, entity);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", triangle_style.edge_style.color.component);
+    set_shader_uniform_value(app.render_info.shader_points_lines, "color", triangle_style.edge_style.color.component);
 
     used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
     used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;

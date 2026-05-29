@@ -113,10 +113,10 @@ render_demo_mode :: () {
 #scope_file
 
 countdown :: (value_pointer: *float) {
-    value := << value_pointer;
+    value := value_pointer.*;
     value -= io().DeltaTime;
     if value < 0 value = 0;
-    <<value_pointer = value;
+    value_pointer.* = value;
 }
 
 // This is NOT a general function, it only works for demo mode

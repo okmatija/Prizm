@@ -428,9 +428,9 @@ Matrix3x2 :: struct {
     _11, _12, _13 : float;
     _21, _22, _23 : float;
 
-    #place _11; v:      [2]    Vector3 = ---; // These are row vectors.
-    #place _11; coef:   [2][3] float   = ---;
-    #place _11; floats: [6]    float   = ---;
+    #overlay (_11) v:      [2]    Vector3; // These are row vectors.
+    #overlay (_11) coef:   [2][3] float;
+    #overlay (_11) floats: [6]    float;
 
     Row_Type    :: Vector3;
     Column_Type :: Vector2;

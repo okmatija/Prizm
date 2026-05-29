@@ -647,7 +647,7 @@ IncompleteSupportMessage :: () #expand {
 
     while tok.type != Token.Type.EOF && tok.line_number == `current_line {
         eat_token(*`parser);
-        tok = peek_token(`parser);
+        tok = peek_token(*`parser);
     }
 }
 
