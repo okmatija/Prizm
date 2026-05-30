@@ -1,8 +1,7 @@
-// Module parameter: set to false to use the prebuilt library bundled in linux/bin/x64/
+// Set USE_SYSTEM_LIBRARY=false to use the prebuilt library bundled in linux/bin/x64/
 // instead of requiring a system-wide SDL3 installation.
-// Usage: #import "SDL3"(USE_SYSTEM_LIBRARY=false);
 // Has no effect on Windows or macOS (those always use their bundled libraries).
-USE_SYSTEM_LIBRARY :: true;
+#module_parameters (USE_SYSTEM_LIBRARY := true);
 
 #if OS == .WINDOWS {
     #load "windows/windows.jai";
@@ -12,7 +11,10 @@ USE_SYSTEM_LIBRARY :: true;
     #if USE_SYSTEM_LIBRARY {
         libsdl3 :: #library,system "libSDL3.so.0";
     } else {
-        libsdl3 :: #library "linux/bin/x64/libSDL3.so.0";
+        // "libSDL3" — Jai appends .so, giving libSDL3.so (the linker name).
+        // The SONAME embedded in the file is libSDL3.so.0; first.jai copies it
+        // next to the executable under that name so the dynamic linker finds it.
+        libsdl3 :: #library "linux/bin/x64/libSDL3";
     }
     #load "linux/linux.jai";
 } else #if OS == .MACOS {

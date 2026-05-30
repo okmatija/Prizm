@@ -57,7 +57,7 @@ Install SDL3 system-wide and import normally:
 To install from the bundled binary:
 
 ```sh
-sudo cp linux/bin/x64/libSDL3.so.0 /usr/local/lib/
+sudo cp linux/bin/x64/libSDL3.so /usr/local/lib/libSDL3.so.0
 sudo ldconfig
 ```
 
@@ -76,7 +76,7 @@ No installation step required; the module resolves the library path automaticall
 The bundled binary (SDL 3.4.4, built with `-O3 -DNDEBUG`) is a release build: optimized, no debug info, but **not stripped** (symbol table intact). To reduce size:
 
 ```sh
-strip --strip-unneeded linux/bin/x64/libSDL3.so.0
+strip --strip-unneeded linux/bin/x64/libSDL3.so
 ```
 
 To rebuild it yourself from source (commands assume you are in the jai-sdl3 repo root):
@@ -90,10 +90,10 @@ cmake -S SDL3-3.4.4 -B SDL3-3.4.4/build \
       -DSDL_SHARED=ON -DSDL_STATIC=OFF -DCMAKE_BUILD_TYPE=Release -GNinja \
       -DSDL_UDEV=OFF -DSDL_X11_XTEST=OFF -DSDL_X11_XSCRNSAVER=OFF
 ninja -C SDL3-3.4.4/build SDL3-shared
-cp SDL3-3.4.4/build/libSDL3.so.0.4.4 ../linux/bin/x64/libSDL3.so.0
+cp SDL3-3.4.4/build/libSDL3.so.0.4.4 ../linux/bin/x64/libSDL3.so
 ```
 
-The `OFF` flags disable optional X11/udev features not installed by default on many distros; remove them if you want full feature coverage.  Note that bundled file is named `libSDL3.so.0` — its SONAME. SDL3's `CMakeLists.txt` hardcodes `SDL_SO_VERSION_MAJOR` to `0`, so the SONAME is always `libSDL3.so.0` regardless of the SDL release version, and for SDL 3.4.4 the build process generates `libSDL3.so.0.4.4` which we rename to `libSDL3.so.0`.
+The `OFF` flags disable optional X11/udev features not installed by default on many distros; remove them if you want full feature coverage.  The bundled file is named `libSDL3.so` (the *linker name*). The build process generates `libSDL3.so.0.4.4`; we store it as `libSDL3.so` because that is what Jai's `#library` directive resolves to (it appends `.so` automatically). At runtime the executable looks for the SONAME `libSDL3.so.0`; the build script copies the file next to the executable under that name.
 
 
 ### Windows DLL Note

@@ -431,7 +431,7 @@ Debug :: #import "Debug";
 #import "freetype";
 #import "System";
 #import "stb_image";
-#import "SDL3";
+#import "SDL3"(USE_SYSTEM_LIBRARY=false);
 ImGui :: #import "ImGui";
 
 // SDL3 returns SDL_FunctionPointer from SDL_GL_GetProcAddress; wrap it to *void for gl_load

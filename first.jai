@@ -56,8 +56,8 @@ build :: () {
             sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
             sdl3_dst :: "SDL3.dll";
         } else #if OS == .LINUX {
-            sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so.0";
-            sdl3_dst :: "libSDL3.so.0";
+            sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so";
+            sdl3_dst :: "libSDL3.so.0"; // copied as SONAME so the dynamic linker finds it
         } else #if OS == .MACOS {
             sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
             sdl3_dst :: "libSDL3.0.dylib";

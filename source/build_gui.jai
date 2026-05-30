@@ -236,7 +236,7 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
 #load "inspector.jai";
 
 ImGui :: #import "ImGui";
-#import "SDL3";
+#import "SDL3"(USE_SYSTEM_LIBRARY=false);
 #import "Math";
 
 sdl_gl_get_proc_address :: (name: *u8) -> *void #c_call { return cast(*void) SDL_GL_GetProcAddress(name); }
