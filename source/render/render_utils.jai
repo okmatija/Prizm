@@ -281,7 +281,7 @@ debug_text_at_cursor :: (text : string, color : Vector4 = .{0, 0, 0, 1}, font : 
     if !ImGui.IsAnyMouseDown() return;
 
     if font {
-        ImGui.PushFont(font);
+        ImGui.PushFont(font, 0.0);
     }
 
     // window_position := Vector2.{io().MousePos.x, app.window_size.height - io().MousePos.y};

@@ -64,6 +64,13 @@ make_Vector2 :: inline (v : ImGui.ImVec2) -> Vector2 {
     return result;
 }
 
+// Wrap a GL texture handle (GLuint) into an ImTextureRef for use with ImGui.Image()/ImageButton().
+imgui_tex_ref :: (gl_texture_id : u32) -> ImGui.ImTextureRef {
+    ref : ImGui.ImTextureRef;
+    ref._TexID = cast(ImGui.ImTextureID) gl_texture_id;
+    return ref;
+}
+
 imgui_label :: (label : string, ptr : *void = null) -> *u8 {
     return temp_c_string(tprint("%##%", label, ptr));
 }

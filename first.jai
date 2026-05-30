@@ -147,8 +147,8 @@ build :: () {
     assert(build_options_found);
 
     new_path: [..] string;
+    array_add(*new_path, "modules"); // before stdlib so modules/ImGui shadows the stdlib ImGui
     array_add(*new_path, ..build_options.import_path);
-    array_add(*new_path, "modules");
     build_options.import_path = new_path;
 
     plugins_to_create: [..] Plugin_To_Create;

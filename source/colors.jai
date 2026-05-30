@@ -90,15 +90,41 @@ color_u32_as_vector4 :: (color : ImGui.ImU32, alpha := 1.) -> ImGui.ImVec4 {
     return result;
 }
 
+// Pure Jai implementation so this can be called at compile time via #run without a loaded shared library.
 color_convert_RGB_to_HSV :: (r : float, g : float, b : float, a : float) -> hsv : ImGui.ImVec4 {
-    h, s, v : float;
-    ImGui.ColorConvertRGBtoHSV(r, g, b, *h, *s, *v);
+    max_c := max(r, max(g, b));
+    min_c := min(r, min(g, b));
+    v := max_c;
+    d := max_c - min_c;
+    s := ifx max_c != 0 then d / max_c else 0;
+    h : float;
+    if d != 0 {
+        if max_c == r      h = (g - b) / d + (ifx g < b then 6 else 0);
+        else if max_c == g h = (b - r) / d + 2;
+        else               h = (r - g) / d + 4;
+        h /= 6;
+    }
     return .{h, s, v, a};
 }
 
+// Pure Jai implementation so this can be called at compile time via #run without a loaded shared library.
 color_convert_HSV_to_RGB :: (h : float, s : float, v : float, a : float) -> rgb : ImGui.ImVec4 {
+    if s == 0 return .{v, v, v, a};
+    h6 := h * 6;
+    i := cast(int) h6;
+    f := h6 - cast(float) i;
+    p := v * (1 - s);
+    q := v * (1 - s * f);
+    t := v * (1 - s * (1 - f));
     r, g, b : float;
-    ImGui.ColorConvertHSVtoRGB(h, s, v, *r, *g, *b);
+    if i == {
+    case 0; r, g, b = v, t, p;
+    case 1; r, g, b = q, v, p;
+    case 2; r, g, b = p, v, t;
+    case 3; r, g, b = p, q, v;
+    case 4; r, g, b = t, p, v;
+    case;   r, g, b = v, p, q;
+    }
     return .{r, g, b, a};
 }
 

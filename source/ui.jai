@@ -61,7 +61,7 @@ show_menu_bar_ui :: () {
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        ImGui.Image(cast(ImGui.ImTextureID)icon_prizm_icon_texture[prizm_icon_color_index].gl_handle, icon_size);
+        ImGui.Image(imgui_tex_ref(icon_prizm_icon_texture[prizm_icon_color_index].gl_handle), icon_size);
         click_cycle_prizm_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
             show_tooltip(tprint("Prizm %", changelog[0].name));
@@ -344,7 +344,7 @@ show_menu_bar_ui :: () {
 
             // Invisible dummy button to figure out where to start putting the minimize, maximize/restore, quit buttons
             button_width := -ImGui.GetCursorScreenPos().x;
-            ImGui.ImageButton(cast(ImGui.ImTextureID)icon_window_maximize_texture.gl_handle, icon_size, tint_col=TRANSPARENT);
+            ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=TRANSPARENT);
             button_width +=  ImGui.GetCursorScreenPos().x;
             start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
             ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
@@ -358,16 +358,16 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, ImGui.GetStyle().Colors[ImGui.Col.HeaderActive]);
             defer ImGui.PopStyleColor(2);
 
-            if ImGui.ImageButton("##MinimizeButton", cast(ImGui.ImTextureID)icon_window_minimize_texture.gl_handle, icon_size, tint_col=BLACK) {
+            if ImGui.ImageButton("##MinimizeButton", imgui_tex_ref(icon_window_minimize_texture.gl_handle), icon_size, tint_col=BLACK) {
                 SDL_MinimizeWindow(app.window);
             }
 
             if app.window_maximized {
-                if ImGui.ImageButton("##RestoreButton", cast(ImGui.ImTextureID)icon_window_restore_texture.gl_handle, icon_size, tint_col=BLACK) {
+                if ImGui.ImageButton("##RestoreButton", imgui_tex_ref(icon_window_restore_texture.gl_handle), icon_size, tint_col=BLACK) {
                     SDL_RestoreWindow(app.window);
                 }
             } else {
-                if ImGui.ImageButton("##MaximizeButton", cast(ImGui.ImTextureID)icon_window_maximize_texture.gl_handle, icon_size, tint_col=BLACK) {
+                if ImGui.ImageButton("##MaximizeButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=BLACK) {
                     SDL_MaximizeWindow(app.window);
                 }
             }
@@ -378,7 +378,7 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, RED);
             defer ImGui.PopStyleColor(2);
 
-            if ImGui.ImageButton("##QuitButton", cast(ImGui.ImTextureID)icon_window_close_texture.gl_handle, icon_size, tint_col=BLACK) {
+            if ImGui.ImageButton("##QuitButton", imgui_tex_ref(icon_window_close_texture.gl_handle), icon_size, tint_col=BLACK) {
                 quit_application();
             }
         }
@@ -718,14 +718,8 @@ icon_annotations_texture : Texture;
 
 #scope_file
 
-// The ImGui bindings name/type this field differently per platform: on Windows it is
-// 'SortDirection_' of enum type SortDirection, on Linux it is 'SortDirection' of type u8.
 sort_direction_of :: (spec : ImGui.TableColumnSortSpecs) -> ImGui.SortDirection {
-    #if OS == .WINDOWS {
-        return spec.SortDirection_;
-    } else {
-        return cast(ImGui.SortDirection) spec.SortDirection;
-    }
+    return spec.SortDirection_;
 }
 
 ACTION_BUTTON_SIZE :: ImGui.ImVec2.{30, 30};
@@ -1032,7 +1026,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 
             // Use the default Selectable widget
-            if ImGui.Selectable(label, *entity.is_selected, flags=ImGui.SelectableFlags.SpanAllColumns | .AllowItemOverlap) {
+            if ImGui.Selectable(label, *entity.is_selected, flags=ImGui.SelectableFlags.SpanAllColumns | .AllowOverlap) {
                 if io_mouse_right_down() {
                     entity.is_selected = !entity.is_selected; // @Hack to undo the selection change we get with RMB, but I'm not sure why this was even happening..!
                 } else if !io().KeyCtrl {
@@ -1899,7 +1893,7 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
     ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-    if ImGui.ImageButton(imgui_label("##Action", *action_set), cast(ImGui.ImTextureID)texture.gl_handle, ACTION_BUTTON_SIZE, tint_col=tint) {
+    if ImGui.ImageButton(imgui_label("##Action", *action_set), imgui_tex_ref(texture.gl_handle), ACTION_BUTTON_SIZE, tint_col=tint) {
         if states.count > 0 {
             action_set.proc();
         }

@@ -160,7 +160,7 @@ main :: () {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
-        ImGui.PushFont(app.font_set.normal);
+        ImGui.PushFont(app.font_set.normal, 0.0);
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
