@@ -26,7 +26,7 @@ Rather than requiring users to install SDL3 separately, your `first.jai` (or equ
         sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
         sdl3_dst :: "SDL3.dll";
     } else #if OS == .LINUX {
-        sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so.0";
+        sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so";
         sdl3_dst :: "libSDL3.so.0";
     } else #if OS == .MACOS {
         sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
@@ -48,36 +48,38 @@ SDL3 does not ship prebuilt Linux binaries in its official releases. Two options
 
 **Option A — system library (default)**
 
-Install SDL3 system-wide and import normally:
-
-```jai
-#import "SDL3";
-```
-
-To install from the bundled binary:
+You can install SDL3 system-wide using a package manager, or install from the bundled binary like this:
 
 ```sh
 sudo cp linux/bin/x64/libSDL3.so /usr/local/lib/libSDL3.so.0
 sudo ldconfig
 ```
 
+If you install via a package manager, be aware of what version you're installing and whether it's different from the one whose bindings are provided here.
+
+You will now be able to import SDL3 as follows:
+
+```jai
+#import "SDL3";
+```
+
+If you use this method you don't need to copy the library next to your executable using the "Copying the library..." snippet above.
+
 **Option B — bundled library**
 
-Use the prebuilt x64 binary in `linux/bin/x64/` directly, without a system install:
+If you want to use the prebuilt x64 binary in `linux/bin/x64/` directly, without a system install, add the "Copying the library..." snippet above and then import SDL3 as follows:
 
 ```jai
 #import "SDL3"(USE_SYSTEM_LIBRARY=false);
 ```
-
-No installation step required; the module resolves the library path automatically.
-
----
 
 The bundled binary (SDL 3.4.4, built with `-O3 -DNDEBUG`) is a release build: optimized, no debug info, but **not stripped** (symbol table intact). To reduce size:
 
 ```sh
 strip --strip-unneeded linux/bin/x64/libSDL3.so
 ```
+
+---
 
 To rebuild it yourself from source (commands assume you are in the jai-sdl3 repo root):
 
