@@ -50,6 +50,25 @@ build :: () {
 
     set_working_directory(#filepath);
 
+    // Copy SDL3 runtime library next to the executable if not already present.
+    {
+        #if OS == .WINDOWS {
+            sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
+            sdl3_dst :: "SDL3.dll";
+        } else #if OS == .LINUX {
+            sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so.0";
+            sdl3_dst :: "libSDL3.so.0";
+        } else #if OS == .MACOS {
+            sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
+            sdl3_dst :: "libSDL3.0.dylib";
+        }
+        if !file_exists(sdl3_dst) {
+            if !copy_file(sdl3_src, sdl3_dst) {
+                compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
+            }
+        }
+    }
+
     HasArgument :: (arg : string) -> bool #expand {
         return array_find(command_line_arguments, arg);
     }
@@ -127,11 +146,10 @@ build :: () {
     }
     assert(build_options_found);
 
-    // new_path: [..] string;
-    // array_add(*new_path, ..build_options.import_path);
-    // array_add(*new_path, "source/modules");
-    // array_add(*new_path, "../jai-tracy/tracy");
-    // build_options.import_path = new_path;
+    new_path: [..] string;
+    array_add(*new_path, ..build_options.import_path);
+    array_add(*new_path, "modules");
+    build_options.import_path = new_path;
 
     plugins_to_create: [..] Plugin_To_Create;
     array_add(*plugins_to_create, .{name="Check"}); // .{name="Check(CHECK_BINDINGS=false)"}
@@ -197,7 +215,7 @@ DONE,
                             zip_name := tprint("%-%-Windows-x86_64.zip", OUTPUT_EXE_NAME, changelog[0].name);
 
                             // @Incomplete We should check that this worked
-                            run_command(PATH_TO_7z, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL2.dll", "shapes", "api");
+                            run_command(PATH_TO_7z, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL3.dll", "shapes", "api");
 
                             print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
                             print("[%] To cleanup you can run 'del %'\n", OUTPUT_EXE_NAME, zip_name);

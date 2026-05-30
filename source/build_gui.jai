@@ -16,15 +16,15 @@ build_gui :: (
     } else if chosen_console_commands {
         task = "Configure Console Commands";
     }
-    window := SDL_CreateWindow(temp_c_string(tprint("Prizm Builder: %", task)), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+    window := SDL_CreateWindow(temp_c_string(tprint("Prizm Builder: %", task)), 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if window == null {
         print("Could not create window: %\n", to_string(SDL_GetError()));
         return;
     }
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
     gl_context := SDL_GL_CreateContext(window);
     if !gl_context {
@@ -32,7 +32,7 @@ build_gui :: (
         return;
     }
 
-    gl_load(*gl, SDL_GL_GetProcAddress);
+    gl_load(*gl, sdl_gl_get_proc_address);
     //using gl;
 
     // Setup Dear ImGui context
@@ -69,10 +69,10 @@ build_gui :: (
         while SDL_PollEvent(*event) {
             ImGui_ImplSDL2_ProcessEvent(*event);
 
-            if event.type == SDL_QUIT {
+            if cast(SDL_EventType) event.type == SDL_EventType.QUIT {
                 compiler_report("Compilation manually aborted.");
             }
-            if event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window) {
+            if cast(SDL_EventType) event.type == SDL_EventType.WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window) {
                 done = true;
             }
         }
@@ -199,7 +199,7 @@ build_gui :: (
     ImGui_ImplSDL2_Shutdown();
     ImGui.DestroyContext();
 
-    SDL_GL_DeleteContext(gl_context);
+    SDL_GL_DestroyContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -236,9 +236,10 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
 #load "inspector.jai";
 
 ImGui :: #import "ImGui";
-#import "SDL";
+#import "SDL3";
 #import "Math";
 
+sdl_gl_get_proc_address :: (name: *u8) -> *void #c_call { return cast(*void) SDL_GL_GetProcAddress(name); }
 
 fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
 

@@ -431,14 +431,13 @@ Debug :: #import "Debug";
 #import "freetype";
 #import "System";
 #import "stb_image";
-#import "SDL";
+#import "SDL3";
 ImGui :: #import "ImGui";
+
+// SDL3 returns SDL_FunctionPointer from SDL_GL_GetProcAddress; wrap it to *void for gl_load
+sdl_gl_get_proc_address :: (name: *u8) -> *void #c_call { return cast(*void) SDL_GL_GetProcAddress(name); }
 #load "imgui_impl_sdl.jai"; // SDL platform backend
 #load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
-
-// Extra SDL bindings
-SDL_SetWindowOpacity :: (window: *SDL_Window, opacity: float) -> s32 #foreign SDL2;
-SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #foreign SDL2;
 
 
 #if OS == .WINDOWS {

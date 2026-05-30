@@ -2121,7 +2121,7 @@ show_help_about_content :: () {
     if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
 
-        sdl_version : SDL_version = sdl_get_version();
+        sdl_version : SDL_Version_Info = sdl_get_version();
 
         // BoxSection();
         // ImGui.TableNextColumn();
@@ -3228,11 +3228,11 @@ attr_anno_table_flags :: ImGui.TableFlags
 
 POSITIVE_INF :: 0h7F800000;
 
-sdl_get_version :: () -> SDL_version {
-    wm_info: SDL_SysWMinfo;
-    SDL_VERSION(*wm_info.version);
-    SDL_GetWindowWMInfo(app.window, *wm_info);
-    return wm_info.version;
+SDL_Version_Info :: struct { major: s32; minor: s32; patch: s32; }
+
+sdl_get_version :: () -> SDL_Version_Info {
+    v := SDL_GetVersion();
+    return .{major = v / 1000000, minor = (v / 1000) % 1000, patch = v % 1000};
 }
 
 click_cycle_prizm_color_index :: () {

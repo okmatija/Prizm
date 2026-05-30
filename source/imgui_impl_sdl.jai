@@ -106,42 +106,41 @@ ImGui_ImplSDL2_ProcessEvent :: (event : *SDL_Event) -> bool
     io := ImGui.GetIO();
     bd := ImGui_ImplSDL2_GetBackendData();
 
-    if event.type == {
-    case .SDL_MOUSEWHEEL;
+    if cast(SDL_EventType) event.type == {
+    case SDL_EventType.MOUSE_WHEEL;
             if (event.wheel.x > 0) io.MouseWheelH += 1;
             if (event.wheel.x < 0) io.MouseWheelH -= 1;
             if (event.wheel.y > 0) io.MouseWheel += 1;
             if (event.wheel.y < 0) io.MouseWheel -= 1;
             return true;
-    case .SDL_MOUSEBUTTONDOWN;
+    case SDL_EventType.MOUSE_BUTTON_DOWN;
             if (event.button.button == SDL_BUTTON_LEFT) { bd.MousePressed[0] = true; }
             if (event.button.button == SDL_BUTTON_RIGHT) { bd.MousePressed[1] = true; }
             if (event.button.button == SDL_BUTTON_MIDDLE) { bd.MousePressed[2] = true; }
             return true;
-    case .SDL_TEXTINPUT;
-            io.AddInputCharactersUTF8(io, xx event.text.text.data);
+    case SDL_EventType.TEXT_INPUT;
+            io.AddInputCharactersUTF8(io, xx event.text.text);
             return true;
-    case .SDL_KEYDOWN; #through;
-    case .SDL_KEYUP;
+    case SDL_EventType.KEY_DOWN; #through;
+    case SDL_EventType.KEY_UP;
         {
-            //@@key := event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
-            key := event.key.keysym.sym & (xx ~(1<<30));
-            io.KeysDown[key] = (event.type == SDL_KEYDOWN);
-            io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
-            io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
-            io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
+            key : u32 = event.key.key & ~cast(u32)(1<<30);
+            io.KeysDown[key] = (event.key.type == SDL_EventType.KEY_DOWN);
+            io.KeyShift = ((SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
+            io.KeyCtrl = ((SDL_GetModState() & SDL_KMOD_CTRL) != 0);
+            io.KeyAlt = ((SDL_GetModState() & SDL_KMOD_ALT) != 0);
 #if OS == .WINDOWS {
             io.KeySuper = false;
 } else {
-            io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
+            io.KeySuper = ((SDL_GetModState() & SDL_KMOD_GUI) != 0);
 }
             return true;
         }
-    case .SDL_WINDOWEVENT;
-            if (event.window.event == .SDL_WINDOWEVENT_FOCUS_GAINED)
-                io.AddFocusEvent(io, true);
-            else if (event.window.event == .SDL_WINDOWEVENT_FOCUS_LOST)
-                io.AddFocusEvent(io, false);
+    case SDL_EventType.WINDOW_FOCUS_GAINED;
+            io.AddFocusEvent(io, true);
+            return true;
+    case SDL_EventType.WINDOW_FOCUS_LOST;
+            io.AddFocusEvent(io, false);
             return true;
     }
     return false;
@@ -169,53 +168,45 @@ ImGui_ImplSDL2_Init :: (window : *SDL_Window) -> bool
     bd.MouseCanUseGlobalState = mouse_can_use_global_state;
 
     // Keyboard mapping. Dear ImGui will use those indices to peek into the io.KeysDown[] array.
-    io.KeyMap[ImGui.Key.Tab] = xx SDLK_TAB; // SDL_SCANCODE_TAB;
-    io.KeyMap[ImGui.Key.LeftArrow] = xx SDL_SCANCODE_LEFT;
-    io.KeyMap[ImGui.Key.RightArrow] = xx SDL_SCANCODE_RIGHT;
-    io.KeyMap[ImGui.Key.UpArrow] = xx SDL_SCANCODE_UP;
-    io.KeyMap[ImGui.Key.DownArrow] = xx SDL_SCANCODE_DOWN;
-    io.KeyMap[ImGui.Key.PageUp] = xx SDL_SCANCODE_PAGEUP;
-    io.KeyMap[ImGui.Key.PageDown] = xx SDL_SCANCODE_PAGEDOWN;
-    io.KeyMap[ImGui.Key.Home] = xx SDL_SCANCODE_HOME;
-    io.KeyMap[ImGui.Key.End] = xx SDL_SCANCODE_END;
-    io.KeyMap[ImGui.Key.Insert] = xx SDL_SCANCODE_INSERT;
-    io.KeyMap[ImGui.Key.Delete] = xx SDLK_DELETE; // SDL_SCANCODE_DELETE;
-    io.KeyMap[ImGui.Key.Backspace] = xx SDLK_BACKSPACE; // SDL_SCANCODE_BACKSPACE;
-    io.KeyMap[ImGui.Key.Space] = xx SDL_SCANCODE_SPACE;
-    io.KeyMap[ImGui.Key.Enter] = xx SDLK_RETURN; // SDL_SCANCODE_RETURN;
-    io.KeyMap[ImGui.Key.Escape] = xx SDLK_ESCAPE; // SDL_SCANCODE_ESCAPE;
-    io.KeyMap[ImGui.Key.KeyPadEnter] = xx SDL_SCANCODE_KP_ENTER;
-    io.KeyMap[ImGui.Key.A] = xx SDLK_a; // SDL_SCANCODE_A;
-    io.KeyMap[ImGui.Key.C] = xx SDLK_c; // SDL_SCANCODE_C;
-    io.KeyMap[ImGui.Key.V] = xx SDLK_v; // SDL_SCANCODE_V;
-    io.KeyMap[ImGui.Key.X] = xx SDLK_x; // SDL_SCANCODE_X;
-    io.KeyMap[ImGui.Key.Y] = xx SDLK_y; // SDL_SCANCODE_Y;
-    io.KeyMap[ImGui.Key.Z] = xx SDLK_z; // SDL_SCANCODE_Z;
+    // In SDL3 the SDLK_ values for non-ASCII keys have bit 30 set; strip it to get the scancode index.
+    mask_sdlk :: inline (k: u32) -> s32 { return cast(s32)(k & ~cast(u32)(1<<30)); }
+    io.KeyMap[ImGui.Key.Tab] = xx SDL_Scancode.TAB;
+    io.KeyMap[ImGui.Key.LeftArrow] = xx SDL_Scancode.LEFT;
+    io.KeyMap[ImGui.Key.RightArrow] = xx SDL_Scancode.RIGHT;
+    io.KeyMap[ImGui.Key.UpArrow] = xx SDL_Scancode.UP;
+    io.KeyMap[ImGui.Key.DownArrow] = xx SDL_Scancode.DOWN;
+    io.KeyMap[ImGui.Key.PageUp] = xx SDL_Scancode.PAGEUP;
+    io.KeyMap[ImGui.Key.PageDown] = xx SDL_Scancode.PAGEDOWN;
+    io.KeyMap[ImGui.Key.Home] = xx SDL_Scancode.HOME;
+    io.KeyMap[ImGui.Key.End] = xx SDL_Scancode.END;
+    io.KeyMap[ImGui.Key.Insert] = xx SDL_Scancode.INSERT;
+    io.KeyMap[ImGui.Key.Delete] = mask_sdlk(SDLK_DELETE);
+    io.KeyMap[ImGui.Key.Backspace] = xx SDL_Scancode.BACKSPACE;
+    io.KeyMap[ImGui.Key.Space] = xx SDL_Scancode.SPACE;
+    io.KeyMap[ImGui.Key.Enter] = xx SDL_Scancode.RETURN;
+    io.KeyMap[ImGui.Key.Escape] = xx SDL_Scancode.ESCAPE;
+    io.KeyMap[ImGui.Key.KeyPadEnter] = xx SDL_Scancode.KP_ENTER;
+    io.KeyMap[ImGui.Key.A] = xx SDLK_A;
+    io.KeyMap[ImGui.Key.C] = xx SDLK_C;
+    io.KeyMap[ImGui.Key.V] = xx SDLK_V;
+    io.KeyMap[ImGui.Key.X] = xx SDLK_X;
+    io.KeyMap[ImGui.Key.Y] = xx SDLK_Y;
+    io.KeyMap[ImGui.Key.Z] = xx SDLK_Z;
 
     io.SetClipboardTextFn = ImGui_ImplSDL2_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplSDL2_GetClipboardText;
     io.ClipboardUserData = null;
 
     // Load mouse cursors
-    bd.MouseCursors[ImGui.MouseCursor.Arrow] = SDL_CreateSystemCursor(.ARROW);
-    bd.MouseCursors[ImGui.MouseCursor.TextInput] = SDL_CreateSystemCursor(.IBEAM);
-    // bd.MouseCursors[ImGui.MouseCursor.ResizeAll] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
-    bd.MouseCursors[ImGui.MouseCursor.ResizeNS] = SDL_CreateSystemCursor(.SIZENS);
-    bd.MouseCursors[ImGui.MouseCursor.ResizeEW] = SDL_CreateSystemCursor(.SIZEWE);
-    bd.MouseCursors[ImGui.MouseCursor.ResizeNESW] = SDL_CreateSystemCursor(.SIZENESW);
-    bd.MouseCursors[ImGui.MouseCursor.ResizeNWSE] = SDL_CreateSystemCursor(.SIZENWSE);
-    bd.MouseCursors[ImGui.MouseCursor.Hand] = SDL_CreateSystemCursor(.HAND);
-    // bd.MouseCursors[ImGui.MouseCursor.NotAllowed] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO);
-
-    info : SDL_SysWMinfo;
-    SDL_VERSION(*info.version);
-    if (SDL_GetWindowWMInfo(window, *info)) {
-        #if OS == .WINDOWS {
-            io.ImeWindowHandle = info.info.win.window;
-        } else #if OS == .LINUX {
-            io.ImeWindowHandle = xx info.info.x11.window;
-        }
-    }
+    bd.MouseCursors[ImGui.MouseCursor.Arrow] = SDL_CreateSystemCursor(.DEFAULT);
+    bd.MouseCursors[ImGui.MouseCursor.TextInput] = SDL_CreateSystemCursor(.TEXT);
+    // bd.MouseCursors[ImGui.MouseCursor.ResizeAll] = SDL_CreateSystemCursor(.MOVE);
+    bd.MouseCursors[ImGui.MouseCursor.ResizeNS] = SDL_CreateSystemCursor(.NS_RESIZE);
+    bd.MouseCursors[ImGui.MouseCursor.ResizeEW] = SDL_CreateSystemCursor(.EW_RESIZE);
+    bd.MouseCursors[ImGui.MouseCursor.ResizeNESW] = SDL_CreateSystemCursor(.NESW_RESIZE);
+    bd.MouseCursors[ImGui.MouseCursor.ResizeNWSE] = SDL_CreateSystemCursor(.NWSE_RESIZE);
+    bd.MouseCursors[ImGui.MouseCursor.Hand] = SDL_CreateSystemCursor(.POINTER);
+    // bd.MouseCursors[ImGui.MouseCursor.NotAllowed] = SDL_CreateSystemCursor(.NOT_ALLOWED);
 
     return true;
 }
@@ -256,11 +247,11 @@ ImGui_ImplSDL2_UpdateMousePosAndButtons :: ()
     io.MousePos = ImGui.ImVec2.{-FLOAT32_MAX, -FLOAT32_MAX};
 
     // Update mouse buttons
-    mouse_x_local, mouse_y_local : s32;
+    mouse_x_local, mouse_y_local : float;
     mouse_buttons := SDL_GetMouseState(*mouse_x_local, *mouse_y_local);
-    io.MouseDown[0] = bd.MousePressed[0] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;  // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
-    io.MouseDown[1] = bd.MousePressed[1] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-    io.MouseDown[2] = bd.MousePressed[2] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+    io.MouseDown[0] = bd.MousePressed[0] || (mouse_buttons & (1 << (SDL_BUTTON_LEFT - 1))) != 0;  // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
+    io.MouseDown[1] = bd.MousePressed[1] || (mouse_buttons & (1 << (SDL_BUTTON_RIGHT - 1))) != 0;
+    io.MouseDown[2] = bd.MousePressed[2] || (mouse_buttons & (1 << (SDL_BUTTON_MIDDLE - 1))) != 0;
     bd.MousePressed[0], bd.MousePressed[1], bd.MousePressed[2] = false, false, false;
 
     // Obtain focused and hovered window. We forward mouse input when focused or when hovered (and no other window is capturing)
@@ -272,22 +263,22 @@ ImGui_ImplSDL2_UpdateMousePosAndButtons :: ()
 
     // Set OS mouse position from Dear ImGui if requested (rarely used, only when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
     if io.WantSetMousePos
-        SDL_WarpMouseInWindow(bd.Window, cast(s32)mouse_pos_prev.x, cast(s32)mouse_pos_prev.y);
+        SDL_WarpMouseInWindow(bd.Window, mouse_pos_prev.x, mouse_pos_prev.y);
 
     // Set Dear ImGui mouse position from OS position + get buttons. (this is the common behavior)
     if bd.MouseCanUseGlobalState
     {
         // Single-viewport mode: mouse position in client window coordinates (io.MousePos is (0,0) when the mouse is on the upper-left corner of the app window)
         // Unlike local position obtained earlier this will be valid when straying out of bounds.
-        mouse_x_global, mouse_y_global : s32;
+        mouse_x_global, mouse_y_global : float;
         SDL_GetGlobalMouseState(*mouse_x_global, *mouse_y_global);
         window_x, window_y : s32;
         SDL_GetWindowPosition(mouse_window, *window_x, *window_y);
-        io.MousePos = ImGui.ImVec2.{xx (mouse_x_global - window_x), xx (mouse_y_global - window_y)};
+        io.MousePos = ImGui.ImVec2.{mouse_x_global - cast(float)window_x, mouse_y_global - cast(float)window_y};
     }
     else
     {
-        io.MousePos = ImGui.ImVec2.{xx mouse_x_local, xx mouse_y_local};
+        io.MousePos = ImGui.ImVec2.{mouse_x_local, mouse_y_local};
     }
 }
 
@@ -304,13 +295,13 @@ ImGui_ImplSDL2_UpdateMouseCursor :: ()
     if (io.MouseDrawCursor || imgui_cursor == ImGui.MouseCursor.None)
     {
         // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-        SDL_ShowCursor(xx SDL_FALSE);
+        SDL_HideCursor();
     }
     else
     {
         // Show OS mouse cursor
         SDL_SetCursor(ifx bd.MouseCursors[imgui_cursor] then bd.MouseCursors[imgui_cursor] else bd.MouseCursors[ImGui.MouseCursor.Arrow]);
-        SDL_ShowCursor(xx SDL_TRUE);
+        SDL_ShowCursor();
     }
 }
 
@@ -372,7 +363,7 @@ ImGui_ImplSDL2_NewFrame :: ()
     SDL_GetWindowSize(bd.Window, *w, *h);
     if (SDL_GetWindowFlags(bd.Window) & SDL_WINDOW_MINIMIZED)
         w, h = 0, 0;
-    SDL_GL_GetDrawableSize(bd.Window, *display_w, *display_h);
+    SDL_GetWindowSizeInPixels(bd.Window, *display_w, *display_h);
     io.DisplaySize = ImGui.ImVec2.{xx w, xx h};
     if (w > 0 && h > 0)
         io.DisplayFramebufferScale = ImGui.ImVec2.{cast(float)display_w / w, cast(float)display_h / h};

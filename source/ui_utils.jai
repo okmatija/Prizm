@@ -365,7 +365,7 @@ hold_lmb_and_hover_to_open_tree :: () -> bool {
         warped_px : Vector2;
         warped_px.x = cast(float)app.window_size.width *  (warped_ndc.x + 1) / 2;
         warped_px.y = cast(float)app.window_size.height * (warped_ndc.y + 1) / 2;
-        SDL_WarpMouseInWindow(app.window, xx warped_px.x, xx warped_px.y);
+        SDL_WarpMouseInWindow(app.window, warped_px.x, warped_px.y);
 
         rmb_down_pos = make_Vector2(warped_px);
         camera_at_mouse_down = app.camera;

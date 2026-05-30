@@ -14,6 +14,7 @@ main :: () {
     init_changelog();
 
     sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
+    always_on_top := false;
 
     // Must come before SDL_CreateWindow since it changes sdl_window_flags
     {
@@ -28,6 +29,7 @@ main :: () {
                     print_usage_and_maybe_exit();
                 } else if arg == "--alwaysontop" {
                     sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+                    always_on_top = true;
                 } else if arg == "--blue" {
                     prizm_icon_color_index = 0;
                 } else if arg == "--green" {
@@ -47,7 +49,6 @@ main :: () {
     SDL_Init(SDL_INIT_VIDEO);
 
     app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
-                                  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_SIZE.width, app.INITIAL_WINDOW_SIZE.height,
                                   sdl_window_flags);
 
@@ -58,14 +59,17 @@ main :: () {
         return;
     }
 
+    if always_on_top  SDL_SetWindowAlwaysOnTop(app.window, true);
+    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
+
 
     // Load console history from file
     console_load_history();
 
     // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, cast(s32)(ifx DEBUG_OPENGL then 4 else 3));
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MAJOR_VERSION, cast(s32)(ifx DEBUG_OPENGL then 4 else 3));
+    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
 
     gl_context := SDL_GL_CreateContext(app.window); // alias for *void
     if !gl_context {
@@ -73,7 +77,7 @@ main :: () {
         return;
     }
 
-    gl_load(*gl, SDL_GL_GetProcAddress);
+    gl_load(*gl, sdl_gl_get_proc_address);
 
     if DEBUG_OPENGL {
         gl_version_major, gl_version_minor = gl_get_version();
@@ -117,6 +121,7 @@ main :: () {
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 130");
+    SDL_StartTextInput(app.window);
 
     // Disable writing the .ini and .log files
     io().IniFilename = null;
@@ -220,7 +225,7 @@ main :: () {
 
     // We could release gl handles here, but we delete context anyway
 
-    SDL_GL_DeleteContext(gl_context);
+    SDL_GL_DestroyContext(gl_context);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
 
@@ -293,48 +298,40 @@ handle_events :: () {
     while SDL_PollEvent(*event) {
         ImGui_ImplSDL2_ProcessEvent(*event);
 
-        if event.type == {
-            case SDL_QUIT;
+        if cast(SDL_EventType) event.type == {
+            case SDL_EventType.QUIT;
 
                 app.closing_application = true;
 
-            case SDL_WINDOWEVENT;
+            case SDL_EventType.WINDOW_RESIZED;
 
-                //print("window event: %\n", event.window.event);
+                width_scale  := cast(float) event.window.data1 / app.window_size.width;
+                height_scale := cast(float) event.window.data2 / app.window_size.height;
 
-                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
+                camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
+                camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
+                app.camera.right  -= camera_delta_rl;
+                app.camera.left   += camera_delta_rl;
+                app.camera.top    -= camera_delta_tb;
+                app.camera.bottom += camera_delta_tb;
 
-                    width_scale  := cast(float) event.window.data1 / app.window_size.width;
-                    height_scale := cast(float) event.window.data2 / app.window_size.height;
+                app.window_size.width  = event.window.data1;
+                app.window_size.height = event.window.data2;
+                app.window_maximized = false;
 
-                    camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
-                    camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
-                    app.camera.right  -= camera_delta_rl;
-                    app.camera.left   += camera_delta_rl;
-                    app.camera.top    -= camera_delta_tb;
-                    app.camera.bottom += camera_delta_tb;
+            case SDL_EventType.WINDOW_MAXIMIZED;
 
-                    app.window_size.width  = event.window.data1;
-                    app.window_size.height = event.window.data2;
-                }
+                app.window_maximized = true;
 
-                if event.window.event == SDL_WINDOWEVENT_MAXIMIZED {
-                    app.window_maximized = true;
-                }
+            case SDL_EventType.WINDOW_FOCUS_GAINED;
 
-                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
-                    app.window_maximized = false;
-                }
+                SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
 
-                if event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED {
-                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
-                }
+            case SDL_EventType.WINDOW_FOCUS_LOST;
 
-                if event.window.event == SDL_WINDOWEVENT_FOCUS_LOST {
-                    SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
-                }
+                SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
 
-            case SDL_MOUSEWHEEL;
+            case SDL_EventType.MOUSE_WHEEL;
 
                 using app.demo_mode;
                 if enabled {
@@ -347,18 +344,18 @@ handle_events :: () {
                     }
                 }
 
-            case SDL_KEYDOWN;
+            case SDL_EventType.KEY_DOWN;
 
                 if app.demo_mode.enabled {
-                    array_add_if_unique(*app.demo_mode.keys_down, event.key.keysym.sym);
+                    array_add_if_unique(*app.demo_mode.keys_down, event.key.key);
                 }
 
                 for app.keymap_keydown.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_keydown);
+                    maybe_run_binding(event.key.key, it, app.keymap_keydown);
                 }
 
                 // @Cleanup Make this a proper function!
-                if event.key.keysym.sym == .SDLK_ESCAPE {
+                if event.key.key == SDLK_ESCAPE {
                     app.console.show_ui = false;
 
                     // :WindowOpacityControl
@@ -367,24 +364,24 @@ handle_events :: () {
                     SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
                 }
 
-            case SDL_KEYUP;
+            case SDL_EventType.KEY_UP;
 
                 if app.demo_mode.enabled {
-                    array_ordered_remove_by_value(*app.demo_mode.keys_down, event.key.keysym.sym);
+                    array_ordered_remove_by_value(*app.demo_mode.keys_down, event.key.key);
                 }
 
                 for app.keymap.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap);
+                    maybe_run_binding(event.key.key, it, app.keymap);
                 }
 
                 for app.keymap_actions.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_actions);
+                    maybe_run_binding(event.key.key, it, app.keymap_actions);
                 }
 
-            case SDL_DROPFILE;
+            case SDL_EventType.DROP_FILE;
 
-                // @Leak event.drop.file should be free'd using SDL_free
-                drop_file : string = to_string(event.drop.file);
+                // @Leak event.drop.data should be free'd using SDL_free
+                drop_file : string = to_string(event.drop.data);
                 dropped, success := canonically_formatted_path_string(drop_file,, temp);
                 if !success {
                     log_warning("Failed to read file path '%', maybe it doesn't exist?", drop_file);
@@ -577,15 +574,12 @@ handle_directory :: (path : string) {
 // Get the platform specific window handle from SDL
 get_window_type :: (window : *SDL_Window) -> Window_Type {
     assert(window != null);
-    sdl_wm_info : SDL_SysWMinfo;
-    SDL_VERSION(*sdl_wm_info.version);
-    SDL_GetWindowWMInfo(app.window, *sdl_wm_info);
-    // print_vars(sdl_wm_info);
+    props := SDL_GetWindowProperties(window);
+    window_type : Window_Type;
     #if OS == .WINDOWS {
-        #import "Windows";
-        window_type := sdl_wm_info.info.win.window;
+        window_type = cast(Window_Type) SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER.data, null);
     } else #if OS == .LINUX {
-        window_type := sdl_wm_info.info.x11.window;
+        window_type = cast(Window_Type) SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER.data, 0);
     }
     return window_type;
 }
