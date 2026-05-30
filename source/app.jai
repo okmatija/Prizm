@@ -15,6 +15,12 @@ App :: struct {
 
     font_set : Font_Set;
 
+    // Base size, in pixels, of the main UI font. Driven by the "UI Scale" slider in preferences.
+    // Defaults to Font_Size.NORMAL (so the default global scale is 1). Each frame this is converted
+    // to a global font scale (style.FontScaleMain = ui_font_size_px / Font_Size.NORMAL) so all fonts
+    // scale together; see prizm.jai. Rounded to a whole pixel when the dynamic atlas bakes.
+    ui_font_size_px : float = cast(float) Font_Size.NORMAL;
+
     theme : Prizm_Theme;
 
     Folder :: struct {

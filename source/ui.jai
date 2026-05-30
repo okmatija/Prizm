@@ -1112,7 +1112,11 @@ show_preferences :: () {
             set_prizm_theme(app.theme.theme);
         }
 
-        ImGui.DragFloat("UI Scale", *io().FontGlobalScale, .001, format="%.3f");
+        // "UI Scale" sets the base pixel size of the main (NORMAL) font; this is turned into a global
+        // font scale (see prizm.jai) so every font scales together. imgui 1.92's dynamic atlas
+        // rasterises on demand, so sizes step when they cross a whole pixel rather than scaling
+        // continuously. @TODO :SmoothFontSizing once the 4 fixed Font_Size bakes are replaced.
+        ImGui.DragFloat("UI Scale", *app.ui_font_size_px, .1, 6.0, 72.0, format="%.0f px");
 
         {
             combo_box("Background", *app.background_style, type_info(app.Background_Style));

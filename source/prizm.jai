@@ -160,7 +160,12 @@ main :: () {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui.NewFrame();
-        ImGui.PushFont(app.font_set.normal, 0.0);
+        // "UI Scale": app.ui_font_size_px is the desired base size of the main (NORMAL) font. Turn it
+        // into a global font scale so every font -- main UI, 3D labels, demo overlay -- scales
+        // together, matching the pre-1.92 io.FontGlobalScale behaviour. Each font is then pushed at
+        // its own LegacySize and this factor is applied on top (final_px = LegacySize * FontScaleMain).
+        ImGui.GetStyle().FontScaleMain = app.ui_font_size_px / cast(float) Font_Size.NORMAL;
+        push_font(app.font_set.normal);
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;

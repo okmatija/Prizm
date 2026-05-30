@@ -21,7 +21,7 @@ render_demo_mode :: () {
         return;
     }
 
-    ImGui.PushFont(app.font_set.huge, 0.0);
+    push_font(app.font_set.huge);
     defer ImGui.PopFont();
 
     label_window_flags :: ImGui.WindowFlags.NoTitleBar|.NoResize|.NoMove|.NoScrollbar|.NoSavedSettings|.NoInputs;

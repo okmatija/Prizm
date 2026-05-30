@@ -530,7 +530,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
         text_size : ImGui.ImVec2;
         for overlapping_labels {
             font, color := get_label_font(entity, it.kind);
-            ImGui.PushFont(font, 0.0);
+            push_font(font);
             defer ImGui.PopFont();
             size := ImGui.CalcTextSize(it.label);
             text_size.x = max(text_size.x, size.x);
@@ -543,7 +543,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
 
         for overlapping_labels {
             font, color := get_label_font(entity, it.kind);
-            ImGui.PushFont(font, 0.0);
+            push_font(font);
             ImGui.TextColored(color, "%", it.label);
             ImGui.PopFont();
         }

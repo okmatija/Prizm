@@ -19,6 +19,11 @@ valid_geometry_index :: (index : int) -> bool {
 io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
 // @Volatile :FontSizesShouldMatchFontAtlas
+// @TODO :SmoothFontSizing Replace these four fixed bakes with on-demand sizing. Since imgui 1.92's
+// dynamic font atlas rasterizes a font face at any requested pixel size, we no longer need to bake
+// SMALL/NORMAL/LARGE/HUGE up front -- a single font loaded once could be pushed at any size via
+// PushFont(font, size_px). That would let label sizes and the "UI Scale" slider vary continuously
+// (still rounded to whole pixels for crisp glyphs) instead of snapping to these four steps.
 Font_Size :: enum u8 {
     SMALL :: 12;
     NORMAL :: 18;
@@ -69,6 +74,14 @@ imgui_tex_ref :: (gl_texture_id : u32) -> ImGui.ImTextureRef {
     ref : ImGui.ImTextureRef;
     ref._TexID = cast(ImGui.ImTextureID) gl_texture_id;
     return ref;
+}
+
+// Push a font at the size it was created with (the size passed to AddFontFromMemoryTTF).
+// In imgui 1.92 PushFont(font) was replaced by PushFont(font, size); passing 0.0 means "keep the
+// current size" (which defaults to the first-loaded font's size), so we must pass font.LegacySize
+// to replicate the pre-1.92 behaviour. Global scale factors (style.FontScaleMain) still apply on top.
+push_font :: inline (font : *ImGui.ImFont) {
+    ImGui.PushFont(font, font.LegacySize);
 }
 
 imgui_label :: (label : string, ptr : *void = null) -> *u8 {
