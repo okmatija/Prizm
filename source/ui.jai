@@ -348,6 +348,7 @@ show_menu_bar_ui :: () {
             button_width +=  ImGui.GetCursorScreenPos().x;
             start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
             ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
+            ImGui.Dummy(.{0, 0}); // Required by imgui 1.92: extend boundary after SetCursorScreenPos
 
             app.window_draggable_rect_max = .{start_x, ImGui.GetWindowSize().y};
             // ImGui.ImDrawList.AddRect(fg_draw_list, app.window_draggable_rect_min, app.window_draggable_rect_max, ImGui.GetColorU32(RED)); // Debug
