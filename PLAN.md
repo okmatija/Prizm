@@ -554,12 +554,12 @@ the first compile of new code usually needs explicit numeric casts — expected)
   `add_build_file`; bytecode embedded via `#run read_entire_file`. `source/render/sdlgpu_hello.jai`
   creates a pipeline from the SPIR-V and draws a hardcoded RGB triangle before ImGui each frame.
   Requires `glslang-tools` (`sudo apt install glslang-tools`).
-- **Phase 3 — Buffers + the points/lines + triangles pipelines.** Port
-  `maybe_update_render_info` to transfer/GPU buffers; port `pso_triangles` (with barycentric
-  wireframe + CPU face normals, §5.1a) and `pso_points`/`pso_lines`. Wire `Transform_UBO` +
-  `Clip_UBO` + style UBOs. **Exit:** triangles, segments, points render with shading,
-  colors, **clipping sphere/slabs** (RT-4 verify), and solid wireframe. Points/lines at 1px
-  initially (RT-2/RT-3 noted).
+- **Phase 3 — Buffers + points/lines + triangles pipelines.** ✅ `source/render/sdlgpu_render.jai`:
+  SDL GPU buffer upload (transfer→GPU via copy passes, separated from render pass); four pipelines
+  (triangles fill/line, linelist, pointlist); GLSL 450 shaders with Transform/Clip/Style UBOs.
+  Face normals CPU-computed; barycentric wireframe via fwidth. `maybe_update_render_info` gutted
+  to bounding-sphere only (GL VBO code dead). All sample OBJ shapes run. RT-4 (clipping) plumbed;
+  RT-5 (depth range / Y flip) not yet fixed — geometry position TBD until tested on a display.
 - **Phase 4 — Normals (flagged feature, §5.1b), AABB, background, axes triad, demo mode.**
   **Exit:** forward renderer at parity except the known line/point-width regressions.
 - **Phase 5 — Width fidelity.** Implement quad-expanded thick lines + sized point quads
