@@ -22,9 +22,6 @@ void main() {
 
     vec2 uv = gl_FragCoord.xy / iResolution.xy;
 
-    // Vulkan gl_FragCoord.y is measured from the top, so flip for Shadertoy convention.
-    uv.y = 1.0 - uv.y;
-
     float f = 0.25;
     vec3 col = 0.5 + 0.5 * cos(f * (iTime + uv.xyx + vec3(0, 2, 4)));
 

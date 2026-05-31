@@ -12,18 +12,23 @@
 
 SCREENSHOT_DELAY_S :: 5.0;
 
-g_screenshot_mode  := false;
-g_screenshot_path  : string;
-g_screenshot_done  := false;
-g_screenshot_ticks : u64;   // SDL_GetTicks() at init time
+g_screenshot_mode       := false;
+g_screenshot_path       : string;
+g_screenshot_done       := false;
+g_screenshot_ticks      : u64;   // SDL_GetTicks() at init time
+g_screenshot_skip_index := -1;   // index of the filename token after --screenshot (skip in load_from_command_line)
 
 screenshot_check_args :: (args : []string) {
     for i : 0..args.count-1 {
         arg := args[i];
         if arg == "--screenshot" {
             g_screenshot_mode = true;
-            g_screenshot_path = ifx (i+1 < args.count && !starts_with(args[i+1], "--"))
-                                then args[i+1] else "screenshot.bmp";
+            if i+1 < args.count && !starts_with(args[i+1], "--") {
+                g_screenshot_path       = args[i+1];
+                g_screenshot_skip_index = i+1;
+            } else {
+                g_screenshot_path = "screenshot.bmp";
+            }
         } else if starts_with(arg, "--screenshot=") {
             g_screenshot_mode = true;
             g_screenshot_path = slice(arg, "--screenshot=".count, arg.count);

@@ -318,9 +318,8 @@ load_from_command_line :: () {
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
-        if starts_with(args[it], "--") {
-            continue; // Skip program argument
-        }
+        if it == g_screenshot_skip_index  continue; // skip screenshot output filename
+        if starts_with(args[it], "--")    continue; // skip flag arguments
         handle_load_string(args[it]);
     }
     fit_scene_on_screen();
