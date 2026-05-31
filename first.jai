@@ -633,6 +633,10 @@ compile_shaders :: () {
     shader_sources := string.[
         "source/render/hello_triangle.vert",
         "source/render/hello_triangle.frag",
+        "source/render/sdlgpu_triangles.vert",
+        "source/render/sdlgpu_triangles.frag",
+        "source/render/sdlgpu_points_lines.vert",
+        "source/render/sdlgpu_points_lines.frag",
     ];
 
     for src : shader_sources {

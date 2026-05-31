@@ -500,7 +500,8 @@ ImTextureData :: ImGui.ImTextureData;
 #load "render/shader_lighting.jai";
 #load "render/render.jai";
 #load "render/render_utils.jai";
-#load "render/sdlgpu_hello.jai"; // @Phase2 hello triangle; delete when Phase 3 geometry lands
+#load "render/sdlgpu_hello.jai"; // @Phase2 hello triangle — delete when Phase 3 is confirmed working
+#load "render/sdlgpu_render.jai";
 #load "render/render_text.jai";
 #load "render/render_pass.jai";
 #load "render/texture.jai";

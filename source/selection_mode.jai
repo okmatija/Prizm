@@ -230,7 +230,8 @@ do_geometry_selection_mode :: () {
 
     } // if app.select_tool.target_element ==
 
-    render_info.is_dirty = true;
+    render_info.is_dirty     = true;
+    render_info_gpu.is_dirty = true;
 }
 
 do_item_selection_mode :: () {

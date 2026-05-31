@@ -32,24 +32,18 @@ Render_Info :: struct {
 
 
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
-    if mesh.positions.count == 0 {
-        // Nothing to do in this case @Think is this correct??
-        return;
-    }
-
+    // Now used only for bounding sphere/AABB computation (called by fit_scene_on_screen).
+    // GL VBO upload is removed — the SDL GPU renderer handles that in sdlgpu_render.jai.
+    if mesh.positions.count == 0  return;
     assert(mesh.positions.count == mesh.colors.count);
 
     if info.is_dirty {
         defer info.is_dirty = false;
 
-        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types her
-        // point_type : Type = get_type(type_info(mesh.points).element_type);
+        info.bounding_sphere = bounding_sphere_ritter(mesh.positions);
+        info.bounding_aabb   = make_axis_box3(..mesh.positions);
 
-        // Note: We do _not_ apply the mesh.world_from_model transform here, that is
-        // stored separately to the raw position data so it can be changed efficiently
-        // i.e., bounding geometry is defined in the mesh model space
-        info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
-        info.bounding_aabb = make_axis_box3(..mesh.positions);
+        if false { // dead code retained for reference — GL VBO upload moved to sdlgpu_render.jai
 
         if mesh.triangles.count {
             // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
@@ -284,6 +278,7 @@ maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
             }
         }
 
+        } // end if false (dead GL code)
     } // end if info.is_dirty
 }
 
@@ -671,8 +666,7 @@ OGL: message = Program/shader state performance warning: Fragment shader in prog
 }
 
 
-#scope_file
-
+// Exported so sdlgpu_render.jai can use them too.
 entity_in_clip_radius_mode :: (entity_index : int) -> bool {
     return mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index >= 0 &&
     (
@@ -681,8 +675,15 @@ entity_in_clip_radius_mode :: (entity_index : int) -> bool {
     );
 }
 
+not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
+not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
+not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
 
+VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
+VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
+VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
 
+#scope_file
 
 set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
     {
@@ -702,14 +703,6 @@ set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matr
         glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
     }
 }
-
-not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
-not_visible_transparent :: #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w != 1.);
-not_visible_hovered ::     #code !(is_visible(it) &&  it.is_hovered);
-
-VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible_opaque);
-VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
-VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
 
 render_entity_geometry :: (entity : *Entity, entity_index : int) {
 

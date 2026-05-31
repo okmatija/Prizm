@@ -82,8 +82,8 @@ main :: () {
     TRIAD_AXIS_LENGTH :: 1;
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
-    // @Phase1 init_rendering() and init_icons() use GL; ported in Phase 2+
-    init_hello_triangle(); // @Phase2 — delete when Phase 3 geometry lands
+    init_rendering_gpu();
+    init_hello_triangle(); // @Phase2 — delete when confirmed working
     init_camera();
     init_commands();
     init_keymap();
@@ -130,9 +130,7 @@ main :: () {
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
     imgui_init_fonts();
-
     set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
-
     load_from_command_line();
 
     // Main loop
@@ -194,8 +192,6 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-        // @Phase1 3D render calls skipped; ported in Phase 3+
-
         ImGui.PopFont();
         ImGui.Render();
 
@@ -207,6 +203,7 @@ main :: () {
             SDL_AcquireGPUSwapchainTexture(cmd, app.window, *swapchain_tex, null, null);
 
             if swapchain_tex {
+                upload_entity_buffers_gpu(cmd);              // copy passes — before render pass
                 ImplSDLGPU3_PrepareDrawData(draw_data, cmd); // must be before BeginRenderPass
 
                 color_target := SDL_GPUColorTargetInfo.{
@@ -215,8 +212,17 @@ main :: () {
                     load_op     = .CLEAR,
                     store_op    = .STORE,
                 };
-                pass := SDL_BeginGPURenderPass(cmd, *color_target, 1, null);
-                render_hello_triangle(pass); // @Phase2 — delete when Phase 3 geometry lands
+                depth_target := SDL_GPUDepthStencilTargetInfo.{
+                    texture              = depth_texture,
+                    load_op              = .CLEAR,
+                    store_op             = .DONT_CARE,
+                    clear_depth          = 1.0,
+                    cycle                = true,
+                };
+                pass := SDL_BeginGPURenderPass(cmd, *color_target, 1, *depth_target);
+                render_hello_triangle(pass); // @Phase2 — delete when Phase 3 confirmed working
+                render_selections_gpu(pass, cmd);
+                render_entities_gpu(pass, cmd);
                 ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass);
                 SDL_EndGPURenderPass(pass);
             }
@@ -232,6 +238,7 @@ main :: () {
     // Cleanup
     SDL_WaitForGPUIdle(app.gpu_device);
     deinit_hello_triangle(); // @Phase2
+    deinit_rendering_gpu();
     ImplSDL3_Shutdown();
     ImplSDLGPU3_Shutdown();
     ImGui.DestroyContext();
@@ -330,6 +337,7 @@ handle_events :: () {
                 app.window_size.width  = event.window.data1;
                 app.window_size.height = event.window.data2;
                 app.window_maximized = false;
+                init_depth_texture(); // recreate to match new window size
 
             case SDL_EventType.WINDOW_MAXIMIZED;
 

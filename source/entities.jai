@@ -20,8 +20,9 @@ Entity :: struct {
     is_selected := false;
     is_hovered := false;
 
-    render_info : Render_Info;
-    display_info : Display_Info;
+    render_info     : Render_Info;
+    render_info_gpu : Render_Info_GPU; // SDL3 GPU buffers — see sdlgpu_render.jai
+    display_info    : Display_Info;
 
     // Note the transform stored in this mesh also applies to:
     // - Shape geometry in the specialized types

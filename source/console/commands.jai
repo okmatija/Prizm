@@ -405,7 +405,7 @@ item_flip_normals :: (item_index : int) {
         tuple.y, tuple.z = tuple.z, tuple.y;
     }
 
-    entity.render_info.is_dirty = true;
+    entity.render_info.is_dirty = true; entity.render_info_gpu.is_dirty = true;
 } @RegisterCommand
 
 
@@ -1027,7 +1027,7 @@ item_find_open_edges :: (item_index : int, new_item : int = 1) {
 
         merge(mesh, new_mesh);
 
-        entity.render_info.is_dirty = true;
+        entity.render_info.is_dirty = true; entity.render_info_gpu.is_dirty = true;
         entity.display_info.segment_style.visible = true;
 
         log("# Added % edge% to the target item '%'",
@@ -1087,7 +1087,7 @@ item_find_unreferenced_positions :: (item_index : int, new_item : int = 0) {
 
     if unreferenced_positions.count {
         log("# Found % unreferenced positions, which were added to the meshes point element array", unreferenced_positions.count);
-        entity.render_info.is_dirty = true;
+        entity.render_info.is_dirty = true; entity.render_info_gpu.is_dirty = true;
         entity.display_info.point_style.visible = true;
     } else {
         log("# No unreferenced positions found");
@@ -1181,7 +1181,7 @@ item_perturb_positions :: (item_index : int, radius : float = .001) {
     // the implementation should perturb the mesh and then recompute the shapes.
 
     entity := app.entities[item_index];
-    entity.render_info.is_dirty = true;
+    entity.render_info.is_dirty = true; entity.render_info_gpu.is_dirty = true;
     for * point : entity.mesh.positions {
         Perturb3(point);
     }
