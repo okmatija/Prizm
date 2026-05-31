@@ -103,6 +103,17 @@ Normals_Vert_UBO :: struct {
 } // 208 bytes
 #assert(size_of(Normals_Vert_UBO) == 208);
 
+Sized_Prim_Vert_UBO :: struct {
+    clip_from_view   : Matrix4;  // 64
+    view_from_world  : Matrix4;  // 64
+    world_from_model : Matrix4;  // 64
+    prim_size_px     : float;    // 4  — line width or point size in pixels
+    viewport_w       : float;    // 4
+    viewport_h       : float;    // 4
+    _pad             : float;    // 4
+} // 208 bytes
+#assert(size_of(Sized_Prim_Vert_UBO) == 208);
+
 Normals_Frag_UBO :: struct {
     color        : [4]float; // 16
     clip_sphere  : [4]float; // 16
@@ -124,6 +135,10 @@ SDLGPU_Render_State :: struct {
     pso_background     : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, no depth, no blend
     pso_aabb           : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, no blend
     pso_normals        : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, alpha blend
+    pso_thick_lines    : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, instance drawing, alpha blend
+    pso_sized_points   : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, instance drawing, alpha blend
+    unit_quad_line_buf : *SDL_GPUBuffer; // 6-vertex unit quad for thick lines: (t, side)
+    unit_quad_pt_buf   : *SDL_GPUBuffer; // 6-vertex unit square for sized points: (x, y)
 }
 
 g_sdlgpu : SDLGPU_Render_State;
@@ -139,6 +154,8 @@ SDLGPU_VERT_AABB, _V7 :: #run read_entire_file(".build/shaders/sdlgpu_aabb.vert.
 SDLGPU_FRAG_AABB, _V8 :: #run read_entire_file(".build/shaders/sdlgpu_aabb.frag.spv");          #assert(_V8);
 SDLGPU_VERT_NRM,  _V9 :: #run read_entire_file(".build/shaders/sdlgpu_normals.vert.spv");       #assert(_V9);
 SDLGPU_FRAG_NRM,  _VA :: #run read_entire_file(".build/shaders/sdlgpu_normals.frag.spv");       #assert(_VA);
+SDLGPU_VERT_TL,   _VB :: #run read_entire_file(".build/shaders/sdlgpu_thick_lines.vert.spv");   #assert(_VB);
+SDLGPU_VERT_SP,   _VC :: #run read_entire_file(".build/shaders/sdlgpu_sized_points.vert.spv");  #assert(_VC);
 
 //
 // ---- Helpers ----
@@ -349,6 +366,65 @@ init_rendering_gpu :: () {
         SDL_ReleaseGPUShader(gpu, vert);
         SDL_ReleaseGPUShader(gpu, frag);
     }
+
+    // ---- Thick lines: (t,side) VERTEX + (A,B,colorA,colorB) INSTANCE ----
+    {
+        tl_buf_descs := SDL_GPUVertexBufferDescription.[
+            .{slot=0, pitch=8,  input_rate=.VERTEX},   // (t, side)
+            .{slot=1, pitch=24, input_rate=.INSTANCE}, // in_pos_a (12) + in_pos_b (12)
+            .{slot=2, pitch=24, input_rate=.INSTANCE}, // in_color_a (12) + in_color_b (12)
+        ];
+        tl_attrs := SDL_GPUVertexAttribute.[
+            .{location=0, buffer_slot=0, format=.FLOAT2, offset=0},  // corner (t,side)
+            .{location=1, buffer_slot=1, format=.FLOAT3, offset=0},  // in_pos_a
+            .{location=2, buffer_slot=1, format=.FLOAT3, offset=12}, // in_pos_b
+            .{location=3, buffer_slot=2, format=.FLOAT3, offset=0},  // in_color_a
+            .{location=4, buffer_slot=2, format=.FLOAT3, offset=12}, // in_color_b
+        ];
+        vert := make_gpu_shader(gpu, SDLGPU_VERT_TL, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, SDLGPU_FRAG_PL, .FRAGMENT, 2); // reuse points/lines frag
+        g_sdlgpu.pso_thick_lines = make_pipeline(gpu, vert, frag, fmt, .TRIANGLELIST, .FILL, blend=true, tl_buf_descs, tl_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Sized points: (x,y) VERTEX + (center,color) INSTANCE ----
+    {
+        sp_buf_descs := SDL_GPUVertexBufferDescription.[
+            .{slot=0, pitch=8,  input_rate=.VERTEX},   // corner (x,y)
+            .{slot=1, pitch=12, input_rate=.INSTANCE}, // in_center
+            .{slot=2, pitch=12, input_rate=.INSTANCE}, // in_color
+        ];
+        sp_attrs := SDL_GPUVertexAttribute.[
+            .{location=0, buffer_slot=0, format=.FLOAT2, offset=0}, // corner
+            .{location=1, buffer_slot=1, format=.FLOAT3, offset=0}, // in_center
+            .{location=2, buffer_slot=2, format=.FLOAT3, offset=0}, // in_color
+        ];
+        vert := make_gpu_shader(gpu, SDLGPU_VERT_SP, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, SDLGPU_FRAG_PL, .FRAGMENT, 2);
+        g_sdlgpu.pso_sized_points = make_pipeline(gpu, vert, frag, fmt, .TRIANGLELIST, .FILL, blend=true, sp_buf_descs, sp_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Static unit-quad buffers uploaded once ----
+    {
+        // Thick-line quad: (t, side) — 6 vertices
+        LINE_QUAD : [12]float : .[
+            0, -1,  0, +1,  1, +1,   // tri 1
+            0, -1,  1, +1,  1, -1,   // tri 2
+        ];
+        cmd := SDL_AcquireGPUCommandBuffer(gpu);
+        g_sdlgpu.unit_quad_line_buf = upload_to_gpu_buffer(cmd, LINE_QUAD.data, size_of(type_of(LINE_QUAD)));
+
+        // Sized-point quad: (x, y) corner — 6 vertices
+        PT_QUAD : [12]float : .[
+            -1, -1,  +1, -1,  +1, +1,  // tri 1
+            -1, -1,  +1, +1,  -1, +1,  // tri 2
+        ];
+        g_sdlgpu.unit_quad_pt_buf = upload_to_gpu_buffer(cmd, PT_QUAD.data, size_of(type_of(PT_QUAD)));
+        SDL_SubmitGPUCommandBuffer(cmd);
+    }
 }
 
 deinit_rendering_gpu :: () {
@@ -360,6 +436,10 @@ deinit_rendering_gpu :: () {
     if g_sdlgpu.pso_background      SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_background);
     if g_sdlgpu.pso_aabb            SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_aabb);
     if g_sdlgpu.pso_normals         SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_normals);
+    if g_sdlgpu.pso_thick_lines     SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_thick_lines);
+    if g_sdlgpu.pso_sized_points    SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_sized_points);
+    if g_sdlgpu.unit_quad_line_buf  SDL_ReleaseGPUBuffer(gpu, g_sdlgpu.unit_quad_line_buf);
+    if g_sdlgpu.unit_quad_pt_buf    SDL_ReleaseGPUBuffer(gpu, g_sdlgpu.unit_quad_pt_buf);
     if depth_texture                SDL_ReleaseGPUTexture(gpu, depth_texture);
 }
 
@@ -1052,18 +1132,119 @@ upload_entity_buffers_gpu :: (cmd : *SDL_GPUCommandBuffer) {
     }
 }
 
+// ---- Thick-line and sized-point render helpers (Phase 5) ----
+
+fill_sized_prim_vert_ubo :: (world_from_model : Matrix4, size_px : float) -> Sized_Prim_Vert_UBO {
+    ubo : Sized_Prim_Vert_UBO;
+    ubo.clip_from_view   = orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true);
+    ubo.view_from_world  = make_look_at_matrix(app.camera);
+    ubo.world_from_model = world_from_model;
+    ubo.prim_size_px     = size_px;
+    ubo.viewport_w       = cast(float) app.window_size.width;
+    ubo.viewport_h       = cast(float) app.window_size.height;
+    return ubo;
+}
+
+sdlgpu_render_mesh_segments_thick :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.segments.count return;
+    if !segment_style.visible && !clip_radius_mode return;
+    if !entity.render_info_gpu.segments_buf return;
+
+    wave         := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    used_clip    := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+    seg_count    := entity.mesh.segments.count;
+    NVS          := entity.render_info_gpu.segments_NVS;           // = 2 * seg_count
+    NP_bytes     := NVS * cast(u32) size_of(Vector3);              // byte size of positions half
+    width        := ifx clip_radius_mode then 1. else segment_style.width;
+
+    vert_ubo := fill_sized_prim_vert_ubo(entity.mesh.world_from_model, width);
+    clip_ubo := fill_clip_ubo(entity.display_info);
+    style    := fill_pl_style_ubo(segment_style.color, segment_style.color_mode, used_clip, wave);
+
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=g_sdlgpu.unit_quad_line_buf,           offset=0},        // slot 0: (t,side)
+        .{buffer=entity.render_info_gpu.segments_buf,   offset=0},        // slot 1: positions A+B (stride=24)
+        .{buffer=entity.render_info_gpu.segments_buf,   offset=NP_bytes}, // slot 2: colors A+B (stride=24)
+    ];
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_thick_lines);
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 3);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Sized_Prim_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip_ubo, size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style,    size_of(PL_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, 6, cast(u32) seg_count, 0, 0);
+}
+
+sdlgpu_render_mesh_points_sized :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.points.count return;
+    if !point_style.visible && !clip_radius_mode_show_wireframe return;
+    if !entity.render_info_gpu.points_buf return;
+
+    wave         := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    used_clip    := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+    pt_count     := entity.mesh.points.count;
+    NP_bytes     := entity.render_info_gpu.points_NVP * cast(u32) size_of(Vector3);
+    size_px      := cast(float) (ifx clip_radius_mode_show_wireframe then 2 else point_style.vertex_style.size);
+
+    vert_ubo := fill_sized_prim_vert_ubo(entity.mesh.world_from_model, size_px);
+    clip_ubo := fill_clip_ubo(entity.display_info);
+    style    := fill_pl_style_ubo(point_style.vertex_style.color, point_style.vertex_style.color_mode, used_clip, wave);
+
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=g_sdlgpu.unit_quad_pt_buf,           offset=0},        // slot 0: corner (x,y)
+        .{buffer=entity.render_info_gpu.points_buf,   offset=0},        // slot 1: centers
+        .{buffer=entity.render_info_gpu.points_buf,   offset=NP_bytes}, // slot 2: colors
+    ];
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_sized_points);
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 3);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Sized_Prim_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip_ubo, size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style,    size_of(PL_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, 6, cast(u32) pt_count, 0, 0);
+}
+
+sdlgpu_render_mesh_positions_sized :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.positions.count return;
+    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
+    if !entity.render_info_gpu.positions_buf return;
+
+    wave         := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    used_clip    := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+    pos_count    := entity.mesh.positions.count;
+    NP_bytes     := entity.render_info_gpu.positions_NVV * cast(u32) size_of(Vector3);
+    size_px      := cast(float) (ifx clip_radius_mode_show_wireframe then 2 else vertex_style.size);
+
+    vert_ubo := fill_sized_prim_vert_ubo(entity.mesh.world_from_model, size_px);
+    clip_ubo := fill_clip_ubo(entity.display_info);
+    style    := fill_pl_style_ubo(vertex_style.color, vertex_style.color_mode, used_clip, wave);
+
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=g_sdlgpu.unit_quad_pt_buf,             offset=0},
+        .{buffer=entity.render_info_gpu.positions_buf,  offset=0},
+        .{buffer=entity.render_info_gpu.positions_buf,  offset=NP_bytes},
+    ];
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_sized_points);
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 3);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Sized_Prim_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip_ubo, size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style,    size_of(PL_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, 6, cast(u32) pos_count, 0, 0);
+}
+
 // Phase B: draw calls inside a render pass.  No copy passes here.
 sdlgpu_draw_entity :: (entity : *Entity, entity_index : int, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
     entity.display_info.clip_radius_mode                = entity_in_clip_radius_mode(entity_index);
     entity.display_info.clip_radius_mode_show_wireframe = mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
-    sdlgpu_render_mesh_triangles      (entity, pass, cmd);
+    sdlgpu_render_mesh_triangles       (entity, pass, cmd);
     sdlgpu_render_mesh_triangle_normals(entity, pass, cmd);
-    sdlgpu_render_mesh_segments       (entity, pass, cmd);
-    sdlgpu_render_mesh_segment_normals(entity, pass, cmd);
-    sdlgpu_render_mesh_points         (entity, pass, cmd);
-    sdlgpu_render_mesh_point_normals  (entity, pass, cmd);
-    sdlgpu_render_mesh_positions      (entity, pass, cmd);
+    sdlgpu_render_mesh_segments_thick  (entity, pass, cmd); // Phase 5: thick via quads
+    sdlgpu_render_mesh_segment_normals (entity, pass, cmd);
+    sdlgpu_render_mesh_points_sized    (entity, pass, cmd); // Phase 5: sized via quads
+    sdlgpu_render_mesh_point_normals   (entity, pass, cmd);
+    sdlgpu_render_mesh_positions_sized (entity, pass, cmd); // Phase 5: sized via quads
     if entity.display_info.aabb_visible {
         sdlgpu_render_aabb(entity.render_info.bounding_aabb, entity.mesh.world_from_model, pass, cmd);
     }
@@ -1085,11 +1266,11 @@ render_selections_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer
     entity.display_info.clip_radius_mode                = false;
     entity.display_info.clip_radius_mode_show_wireframe = false;
 
-    sdlgpu_render_mesh_positions      (entity, pass, cmd);
-    sdlgpu_render_mesh_points         (entity, pass, cmd);
-    sdlgpu_render_mesh_point_normals  (entity, pass, cmd);
-    sdlgpu_render_mesh_segments       (entity, pass, cmd);
-    sdlgpu_render_mesh_segment_normals(entity, pass, cmd);
-    sdlgpu_render_mesh_triangles      (entity, pass, cmd);
+    sdlgpu_render_mesh_positions_sized (entity, pass, cmd);
+    sdlgpu_render_mesh_points_sized    (entity, pass, cmd);
+    sdlgpu_render_mesh_point_normals   (entity, pass, cmd);
+    sdlgpu_render_mesh_segments_thick  (entity, pass, cmd);
+    sdlgpu_render_mesh_segment_normals (entity, pass, cmd);
+    sdlgpu_render_mesh_triangles       (entity, pass, cmd);
     sdlgpu_render_mesh_triangle_normals(entity, pass, cmd);
 }

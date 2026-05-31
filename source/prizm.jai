@@ -83,7 +83,6 @@ main :: () {
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_rendering_gpu();
-    init_hello_triangle(); // @Phase2 — delete when confirmed working
     init_camera();
     init_commands();
     init_keymap();
@@ -262,7 +261,6 @@ main :: () {
 
     // Cleanup
     SDL_WaitForGPUIdle(app.gpu_device);
-    deinit_hello_triangle(); // @Phase2
     deinit_rendering_gpu();
     ImplSDL3_Shutdown();
     ImplSDLGPU3_Shutdown();

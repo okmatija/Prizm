@@ -566,8 +566,11 @@ the first compile of new code usually needs explicit numeric casts — expected)
   Normal buffers (base_pos, normal) built in `maybe_update_render_info_gpu` for tri/seg/pt.
   Two-pass frame: Pass A = background + geometry; Pass B = axes triad + ImGui. render_text GL
   clear removed. All sample shapes pass.
-- **Phase 5 — Width fidelity.** Implement quad-expanded thick lines + sized point quads
-  (§5.2A/§5.3A) to close RT-2/RT-3. **Exit:** visual parity with the GL renderer.
+- **Phase 5 — Width fidelity.** ✅ Instance-based quad expansion for thick lines and sized
+  points. Static 6-vertex unit-quad buffers created once at init. Segments bind the existing
+  position+color buffer via INSTANCE input rate (pitch=24 strides over A/B pairs). Points and
+  vertex positions similarly instanced (pitch=12). Width/size stay in a per-draw UBO so no
+  buffer rebuild on UI slider changes. Removed Phase 0–2 hello-triangle scaffolding.
 - ~~**Phase 6 — Deferred path.**~~ **Dropped.** The deferred renderer is experimental and off by
   default; it will be deleted rather than ported.
 - **Phase 7 — macOS + Windows bring-up**, then **WASM** as a separate milestone (§8).

@@ -631,8 +631,6 @@ compile_shaders :: () {
     // Each entry: source path relative to repo root.
     // Output: .build/shaders/<filename>.spv  (e.g. hello_triangle.vert.spv)
     shader_sources := string.[
-        "source/render/hello_triangle.vert",
-        "source/render/hello_triangle.frag",
         "source/render/sdlgpu_triangles.vert",
         "source/render/sdlgpu_triangles.frag",
         "source/render/sdlgpu_points_lines.vert",
@@ -643,6 +641,8 @@ compile_shaders :: () {
         "source/render/sdlgpu_aabb.frag",
         "source/render/sdlgpu_normals.vert",
         "source/render/sdlgpu_normals.frag",
+        "source/render/sdlgpu_thick_lines.vert",
+        "source/render/sdlgpu_sized_points.vert",
     ];
 
     for src : shader_sources {
