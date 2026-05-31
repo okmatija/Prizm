@@ -20,6 +20,7 @@ main :: () {
     {
         args := get_command_line_arguments();
         defer array_free(args);
+        screenshot_check_args(args);  // parse --screenshot before other args
         for 1..args.count-1 {
             arg : string = to_lower_copy(args[it],, temp);
 
@@ -38,6 +39,8 @@ main :: () {
                     prizm_icon_color_index = 2;
                 } else if arg == "--black" {
                     prizm_icon_color_index = 3;
+                } else if starts_with(arg, "--screenshot") {
+                    // handled by screenshot_check_args above
                 } else {
                     error := tprint("Unrecognized program argument '%' at position %\n", args[it], it);
                     print_usage_and_maybe_exit(error);
@@ -83,6 +86,7 @@ main :: () {
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_rendering_gpu();
+    screenshot_init();
     init_camera();
     init_commands();
     init_keymap();
@@ -199,6 +203,10 @@ main :: () {
 
         {
             draw_data := ImGui.GetDrawData();
+
+            // Screenshot: render offscreen, save, and exit.
+            if screenshot_maybe_capture(draw_data)  continue;
+
             cmd := SDL_AcquireGPUCommandBuffer(app.gpu_device);
 
             swapchain_tex : *SDL_GPUTexture;
