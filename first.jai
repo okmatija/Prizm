@@ -626,10 +626,11 @@ plugins: [..] *Metaprogram_Plugin;
 #load "source/build_gui.jai";
 
 compile_shaders :: () {
-    make_directory_if_it_does_not_exist(".build/shaders");
+    // SPIR-V binaries are vendored in shaders/ so contributors without glslangValidator can build.
+    // When glslangValidator IS available the sources are recompiled and the vendored files updated.
+    // Output always lands in shaders/ so #run read_entire_file can embed them at compile time.
+    make_directory_if_it_does_not_exist("shaders");
 
-    // Each entry: source path relative to repo root.
-    // Output: .build/shaders/<filename>.spv  (e.g. hello_triangle.vert.spv)
     shader_sources := string.[
         "source/render/sdlgpu_triangles.vert",
         "source/render/sdlgpu_triangles.frag",
@@ -645,8 +646,26 @@ compile_shaders :: () {
         "source/render/sdlgpu_sized_points.vert",
     ];
 
+    // Probe for glslangValidator (or glslangValidator.exe on Windows).
+    probe := run_command("glslangValidator", "--version", capture_and_return_output=true);
+    has_glslang := (probe.type == .EXITED && probe.exit_code == 0);
+
+    if !has_glslang {
+        print("[shaders] glslangValidator not found — using vendored .spv files in shaders/.\n");
+        // Verify every vendored file exists; abort if any is missing.
+        for src : shader_sources {
+            spv := tprint("shaders/%.spv", path_filename(src));
+            if !file_exists(spv) {
+                compiler_report(tprint(
+                    "Missing vendored shader '%'. Either install glslangValidator and rebuild, or restore the file from git.",
+                    spv), mode = .ERROR_CONTINUABLE);
+            }
+        }
+        return;
+    }
+
     for src : shader_sources {
-        spv := tprint(".build/shaders/%.spv", path_filename(src));
+        spv := tprint("shaders/%.spv", path_filename(src));
         result := run_command("glslangValidator", "-V", src, "-o", spv);
         if result.type != .EXITED || result.exit_code != 0 {
             compiler_report(tprint(

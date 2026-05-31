@@ -144,18 +144,18 @@ SDLGPU_Render_State :: struct {
 g_sdlgpu : SDLGPU_Render_State;
 
 // Compiled SPIR-V (embedded at build time)
-SDLGPU_VERT_TRI,  _V1 :: #run read_entire_file(".build/shaders/sdlgpu_triangles.vert.spv");     #assert(_V1);
-SDLGPU_FRAG_TRI,  _V2 :: #run read_entire_file(".build/shaders/sdlgpu_triangles.frag.spv");     #assert(_V2);
-SDLGPU_VERT_PL,   _V3 :: #run read_entire_file(".build/shaders/sdlgpu_points_lines.vert.spv");  #assert(_V3);
-SDLGPU_FRAG_PL,   _V4 :: #run read_entire_file(".build/shaders/sdlgpu_points_lines.frag.spv");  #assert(_V4);
-SDLGPU_VERT_BG,   _V5 :: #run read_entire_file(".build/shaders/sdlgpu_background.vert.spv");    #assert(_V5);
-SDLGPU_FRAG_BG,   _V6 :: #run read_entire_file(".build/shaders/sdlgpu_background.frag.spv");    #assert(_V6);
-SDLGPU_VERT_AABB, _V7 :: #run read_entire_file(".build/shaders/sdlgpu_aabb.vert.spv");          #assert(_V7);
-SDLGPU_FRAG_AABB, _V8 :: #run read_entire_file(".build/shaders/sdlgpu_aabb.frag.spv");          #assert(_V8);
-SDLGPU_VERT_NRM,  _V9 :: #run read_entire_file(".build/shaders/sdlgpu_normals.vert.spv");       #assert(_V9);
-SDLGPU_FRAG_NRM,  _VA :: #run read_entire_file(".build/shaders/sdlgpu_normals.frag.spv");       #assert(_VA);
-SDLGPU_VERT_TL,   _VB :: #run read_entire_file(".build/shaders/sdlgpu_thick_lines.vert.spv");   #assert(_VB);
-SDLGPU_VERT_SP,   _VC :: #run read_entire_file(".build/shaders/sdlgpu_sized_points.vert.spv");  #assert(_VC);
+SDLGPU_VERT_TRI,  _V1 :: #run read_entire_file("shaders/sdlgpu_triangles.vert.spv");     #assert(_V1);
+SDLGPU_FRAG_TRI,  _V2 :: #run read_entire_file("shaders/sdlgpu_triangles.frag.spv");     #assert(_V2);
+SDLGPU_VERT_PL,   _V3 :: #run read_entire_file("shaders/sdlgpu_points_lines.vert.spv");  #assert(_V3);
+SDLGPU_FRAG_PL,   _V4 :: #run read_entire_file("shaders/sdlgpu_points_lines.frag.spv");  #assert(_V4);
+SDLGPU_VERT_BG,   _V5 :: #run read_entire_file("shaders/sdlgpu_background.vert.spv");    #assert(_V5);
+SDLGPU_FRAG_BG,   _V6 :: #run read_entire_file("shaders/sdlgpu_background.frag.spv");    #assert(_V6);
+SDLGPU_VERT_AABB, _V7 :: #run read_entire_file("shaders/sdlgpu_aabb.vert.spv");          #assert(_V7);
+SDLGPU_FRAG_AABB, _V8 :: #run read_entire_file("shaders/sdlgpu_aabb.frag.spv");          #assert(_V8);
+SDLGPU_VERT_NRM,  _V9 :: #run read_entire_file("shaders/sdlgpu_normals.vert.spv");       #assert(_V9);
+SDLGPU_FRAG_NRM,  _VA :: #run read_entire_file("shaders/sdlgpu_normals.frag.spv");       #assert(_VA);
+SDLGPU_VERT_TL,   _VB :: #run read_entire_file("shaders/sdlgpu_thick_lines.vert.spv");   #assert(_VB);
+SDLGPU_VERT_SP,   _VC :: #run read_entire_file("shaders/sdlgpu_sized_points.vert.spv");  #assert(_VC);
 
 //
 // ---- Helpers ----

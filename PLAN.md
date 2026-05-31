@@ -573,7 +573,11 @@ the first compile of new code usually needs explicit numeric casts — expected)
   buffer rebuild on UI slider changes. Removed Phase 0–2 hello-triangle scaffolding.
 - ~~**Phase 6 — Deferred path.**~~ **Dropped.** The deferred renderer is experimental and off by
   default; it will be deleted rather than ported.
-- **Phase 7 — macOS + Windows bring-up**, then **WASM** as a separate milestone (§8).
+- **Phase 7 — macOS + Windows bring-up.** Shader bytecode vendored in `shaders/` (SPIR-V
+  only; ~50 KB). first.jai detects glslangValidator at build time: if present, recompiles and
+  updates `shaders/`; if absent, uses the vendored files. Windows via Vulkan (SPIRV) should work
+  as-is; D3D12 (DXIL) and macOS Metal (METALLIB/MSL) require SDL_shadercross for runtime
+  cross-compilation — not yet integrated. Needs a native Windows/macOS test build to confirm.
 
 ---
 
@@ -593,9 +597,9 @@ the first compile of new code usually needs explicit numeric casts — expected)
 
 ## 11. Decisions (resolved 2026-05-31)
 
-1. **Shader bytecode in the repo:** **Vendor prebuilt** `.spv`/`.dxil`/`.msl` via LFS (mirrors
-   how SDL3/ImGui binaries are already handled). Contributors without `glslc`/SDL_shadercross can
-   still build; bytecode is regenerated when shaders change.
+1. **Shader bytecode in the repo:** ✅ Vendored SPIR-V (`.spv`) in `shaders/` (~50 KB, no LFS
+   needed at this size). `first.jai` detects `glslangValidator` at build time; if absent, uses
+   the vendored files. DXIL/MSL cross-compilation deferred to SDL_shadercross integration.
 2. **ImGui platform backend:** **Delete both `source/imgui_impl_sdl.jai` and
    `source/imgui_impl_opengl3.jai`**. Use the official `ImplSDL3_*` + `ImplSDLGPU3_*` pair from
    `modules/ImGui/backends/`. Platform event reading in `handle_events` is unaffected.
