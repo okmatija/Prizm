@@ -1,6 +1,5 @@
 render_text :: () {
-    // Render the text labels and flash hovered item over everything else
-    glClear(GL_DEPTH_BUFFER_BIT);
+    // Labels are ImGui windows rendered after all geometry; no depth-clear needed with SDL GPU.
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 

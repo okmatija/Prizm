@@ -192,6 +192,9 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
+        render_text();      // builds ImGui label windows (no GL calls now)
+        render_demo_mode(); // builds ImGui demo-mode overlay
+
         ImGui.PopFont();
         ImGui.Render();
 
@@ -206,25 +209,47 @@ main :: () {
                 upload_entity_buffers_gpu(cmd);              // copy passes — before render pass
                 ImplSDLGPU3_PrepareDrawData(draw_data, cmd); // must be before BeginRenderPass
 
-                color_target := SDL_GPUColorTargetInfo.{
+                // Determine the background clear color (used when solid-color mode is set)
+                bg := app.background_solid_color;
+                bg_clear := SDL_FColor.{r=bg.x, g=bg.y, b=bg.z, a=1};
+
+                // Pass A: background + all geometry (depth cleared)
+                color_a := SDL_GPUColorTargetInfo.{
                     texture     = swapchain_tex,
-                    clear_color = SDL_FColor.{r=0.1, g=0.1, b=0.15, a=1},
+                    clear_color = bg_clear,
                     load_op     = .CLEAR,
                     store_op    = .STORE,
                 };
-                depth_target := SDL_GPUDepthStencilTargetInfo.{
-                    texture              = depth_texture,
-                    load_op              = .CLEAR,
-                    store_op             = .DONT_CARE,
-                    clear_depth          = 1.0,
-                    cycle                = true,
+                depth_a := SDL_GPUDepthStencilTargetInfo.{
+                    texture     = depth_texture,
+                    load_op     = .CLEAR,
+                    store_op    = .DONT_CARE,
+                    clear_depth = 1.0,
+                    cycle       = true,
                 };
-                pass := SDL_BeginGPURenderPass(cmd, *color_target, 1, *depth_target);
-                render_hello_triangle(pass); // @Phase2 — delete when Phase 3 confirmed working
-                render_selections_gpu(pass, cmd);
-                render_entities_gpu(pass, cmd);
-                ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass);
-                SDL_EndGPURenderPass(pass);
+                pass_a := SDL_BeginGPURenderPass(cmd, *color_a, 1, *depth_a);
+                sdlgpu_render_background(pass_a, cmd);
+                render_selections_gpu(pass_a, cmd);
+                render_entities_gpu(pass_a, cmd);
+                SDL_EndGPURenderPass(pass_a);
+
+                // Pass B: axes triad + ImGui (depth cleared, colour preserved)
+                color_b := SDL_GPUColorTargetInfo.{
+                    texture  = swapchain_tex,
+                    load_op  = .LOAD,
+                    store_op = .STORE,
+                };
+                depth_b := SDL_GPUDepthStencilTargetInfo.{
+                    texture     = depth_texture,
+                    load_op     = .CLEAR,
+                    store_op    = .DONT_CARE,
+                    clear_depth = 1.0,
+                    cycle       = true,
+                };
+                pass_b := SDL_BeginGPURenderPass(cmd, *color_b, 1, *depth_b);
+                render_axes_triad_gpu(pass_b, cmd);
+                ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass_b);
+                SDL_EndGPURenderPass(pass_b);
             }
 
             SDL_SubmitGPUCommandBuffer(cmd);

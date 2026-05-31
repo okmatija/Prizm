@@ -560,8 +560,12 @@ the first compile of new code usually needs explicit numeric casts — expected)
   Face normals CPU-computed; barycentric wireframe via fwidth. `maybe_update_render_info` gutted
   to bounding-sphere only (GL VBO code dead). All sample OBJ shapes run. RT-4 (clipping) plumbed;
   RT-5 (depth range / Y flip) not yet fixed — geometry position TBD until tested on a display.
-- **Phase 4 — Normals (flagged feature, §5.1b), AABB, background, axes triad, demo mode.**
-  **Exit:** forward renderer at parity except the known line/point-width regressions.
+- **Phase 4 — Normals, AABB, background, axes triad, demo mode.** ✅ Six new GLSL 450 shaders
+  (background full-screen triangle with Shadertoy gradient + iTime UBO; AABB 24-vertex LINELIST
+  from gl_VertexIndex + AABB_UBO; normals LINELIST with endpoint derived from gl_VertexIndex%2).
+  Normal buffers (base_pos, normal) built in `maybe_update_render_info_gpu` for tri/seg/pt.
+  Two-pass frame: Pass A = background + geometry; Pass B = axes triad + ImGui. render_text GL
+  clear removed. All sample shapes pass.
 - **Phase 5 — Width fidelity.** Implement quad-expanded thick lines + sized point quads
   (§5.2A/§5.3A) to close RT-2/RT-3. **Exit:** visual parity with the GL renderer.
 - ~~**Phase 6 — Deferred path.**~~ **Dropped.** The deferred renderer is experimental and off by

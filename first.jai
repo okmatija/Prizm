@@ -637,6 +637,12 @@ compile_shaders :: () {
         "source/render/sdlgpu_triangles.frag",
         "source/render/sdlgpu_points_lines.vert",
         "source/render/sdlgpu_points_lines.frag",
+        "source/render/sdlgpu_background.vert",
+        "source/render/sdlgpu_background.frag",
+        "source/render/sdlgpu_aabb.vert",
+        "source/render/sdlgpu_aabb.frag",
+        "source/render/sdlgpu_normals.vert",
+        "source/render/sdlgpu_normals.frag",
     ];
 
     for src : shader_sources {

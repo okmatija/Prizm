@@ -30,6 +30,15 @@ Render_Info_GPU :: struct {
 
     positions_buf : *SDL_GPUBuffer;
     positions_NVV : u32;          // = position count
+
+    // Normal vector LINELIST buffers (base_pos: vec3, normal: vec3) × 2 per normal.
+    // Endpoint flag is derived from gl_VertexIndex % 2 in the shader.
+    tri_normals_buf : *SDL_GPUBuffer; // 6 verts per triangle (3 normals × 2)
+    tri_normals_NV  : u32;
+    seg_normals_buf : *SDL_GPUBuffer; // 4 verts per segment  (2 normals × 2)
+    seg_normals_NV  : u32;
+    pt_normals_buf  : *SDL_GPUBuffer; // 2 verts per point    (1 normal  × 2)
+    pt_normals_NV   : u32;
 }
 
 //
@@ -68,15 +77,53 @@ PL_Style_UBO :: struct {
 } // 48 bytes
 #assert(size_of(PL_Style_UBO) == 48);
 
+AABB_UBO :: struct {
+    clip_from_view   : Matrix4;  // 64
+    view_from_world  : Matrix4;  // 64
+    world_from_model : Matrix4;  // 64
+    aabb_min         : [4]float; // 16
+    aabb_max         : [4]float; // 16
+    color            : [4]float; // 16
+} // 240 bytes
+#assert(size_of(AABB_UBO) == 240);
+
+Background_UBO :: struct {
+    resolution_time : [4]float; // xyz=resolution, w=iTime (16 bytes)
+}
+#assert(size_of(Background_UBO) == 16);
+
+Normals_Vert_UBO :: struct {
+    clip_from_view   : Matrix4;  // 64
+    view_from_world  : Matrix4;  // 64
+    world_from_model : Matrix4;  // 64
+    normal_scale     : float;    // 4
+    do_normalize     : u32;      // 4
+    _pad0            : float;    // 4
+    _pad1            : float;    // 4
+} // 208 bytes
+#assert(size_of(Normals_Vert_UBO) == 208);
+
+Normals_Frag_UBO :: struct {
+    color        : [4]float; // 16
+    clip_sphere  : [4]float; // 16
+    clip_flags   : [4]u32;   // 16
+    range_normal : [3][4]float; // 48
+    range_min_max: [3][4]float; // 48
+} // 144 bytes
+#assert(size_of(Normals_Frag_UBO) == 144);
+
 //
 // ---- Pipeline inventory ----
 //
 
 SDLGPU_Render_State :: struct {
     pso_triangles      : *SDL_GPUGraphicsPipeline; // FILL, depth on/write on, alpha blend
-    pso_triangles_line : *SDL_GPUGraphicsPipeline; // LINE fill, depth on, no blend (degenerate tri edges)
+    pso_triangles_line : *SDL_GPUGraphicsPipeline; // LINE fill, depth on, no blend
     pso_lines          : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, alpha blend
     pso_points         : *SDL_GPUGraphicsPipeline; // POINTLIST, depth on, alpha blend
+    pso_background     : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, no depth, no blend
+    pso_aabb           : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, no blend
+    pso_normals        : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, alpha blend
 }
 
 g_sdlgpu : SDLGPU_Render_State;
@@ -86,6 +133,12 @@ SDLGPU_VERT_TRI,  _V1 :: #run read_entire_file(".build/shaders/sdlgpu_triangles.
 SDLGPU_FRAG_TRI,  _V2 :: #run read_entire_file(".build/shaders/sdlgpu_triangles.frag.spv");     #assert(_V2);
 SDLGPU_VERT_PL,   _V3 :: #run read_entire_file(".build/shaders/sdlgpu_points_lines.vert.spv");  #assert(_V3);
 SDLGPU_FRAG_PL,   _V4 :: #run read_entire_file(".build/shaders/sdlgpu_points_lines.frag.spv");  #assert(_V4);
+SDLGPU_VERT_BG,   _V5 :: #run read_entire_file(".build/shaders/sdlgpu_background.vert.spv");    #assert(_V5);
+SDLGPU_FRAG_BG,   _V6 :: #run read_entire_file(".build/shaders/sdlgpu_background.frag.spv");    #assert(_V6);
+SDLGPU_VERT_AABB, _V7 :: #run read_entire_file(".build/shaders/sdlgpu_aabb.vert.spv");          #assert(_V7);
+SDLGPU_FRAG_AABB, _V8 :: #run read_entire_file(".build/shaders/sdlgpu_aabb.frag.spv");          #assert(_V8);
+SDLGPU_VERT_NRM,  _V9 :: #run read_entire_file(".build/shaders/sdlgpu_normals.vert.spv");       #assert(_V9);
+SDLGPU_FRAG_NRM,  _VA :: #run read_entire_file(".build/shaders/sdlgpu_normals.frag.spv");       #assert(_VA);
 
 //
 // ---- Helpers ----
@@ -243,6 +296,59 @@ init_rendering_gpu :: () {
     SDL_ReleaseGPUShader(gpu, frag_tri);
     SDL_ReleaseGPUShader(gpu, vert_pl);
     SDL_ReleaseGPUShader(gpu, frag_pl);
+
+    // ---- Background: no vertex buffers, no depth ----
+    {
+        vert := make_gpu_shader(gpu, SDLGPU_VERT_BG, .VERTEX,   0);
+        frag := make_gpu_shader(gpu, SDLGPU_FRAG_BG, .FRAGMENT, 1);
+        empty_buf_descs : []SDL_GPUVertexBufferDescription;
+        empty_attrs     : []SDL_GPUVertexAttribute;
+        color_desc := SDL_GPUColorTargetDescription.{ format = fmt };
+        info := SDL_GPUGraphicsPipelineCreateInfo.{
+            vertex_shader   = vert,
+            fragment_shader = frag,
+            primitive_type  = .TRIANGLELIST,
+            rasterizer_state = .{ fill_mode = .FILL, cull_mode = .NONE },
+            target_info = .{
+                color_target_descriptions = *color_desc,
+                num_color_targets         = 1,
+                depth_stencil_format      = depth_format,
+                has_depth_stencil_target  = true, // pass uses depth target, but no depth test here
+            },
+        };
+        g_sdlgpu.pso_background = SDL_CreateGPUGraphicsPipeline(gpu, *info);
+        assert(g_sdlgpu.pso_background != null, "background pipeline failed: %", to_string(SDL_GetError()));
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- AABB: no vertex buffers, vertex UBO only ----
+    {
+        vert := make_gpu_shader(gpu, SDLGPU_VERT_AABB, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, SDLGPU_FRAG_AABB, .FRAGMENT, 0);
+        empty_buf_descs : []SDL_GPUVertexBufferDescription;
+        empty_attrs     : []SDL_GPUVertexAttribute;
+        g_sdlgpu.pso_aabb = make_pipeline(gpu, vert, frag, fmt, .LINELIST, .FILL, blend=false, empty_buf_descs, empty_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Normals: (base_pos, normal) vertex layout, 2 vertex buffers ----
+    {
+        nrm_buf_descs := SDL_GPUVertexBufferDescription.[
+            .{slot=0, pitch=12, input_rate=.VERTEX}, // in_base
+            .{slot=1, pitch=12, input_rate=.VERTEX}, // in_normal
+        ];
+        nrm_attrs := SDL_GPUVertexAttribute.[
+            .{location=0, buffer_slot=0, format=.FLOAT3, offset=0},
+            .{location=1, buffer_slot=1, format=.FLOAT3, offset=0},
+        ];
+        vert := make_gpu_shader(gpu, SDLGPU_VERT_NRM, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, SDLGPU_FRAG_NRM, .FRAGMENT, 1);
+        g_sdlgpu.pso_normals = make_pipeline(gpu, vert, frag, fmt, .LINELIST, .FILL, blend=true, nrm_buf_descs, nrm_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
 }
 
 deinit_rendering_gpu :: () {
@@ -251,6 +357,9 @@ deinit_rendering_gpu :: () {
     if g_sdlgpu.pso_triangles_line  SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_triangles_line);
     if g_sdlgpu.pso_lines           SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_lines);
     if g_sdlgpu.pso_points          SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_points);
+    if g_sdlgpu.pso_background      SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_background);
+    if g_sdlgpu.pso_aabb            SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_aabb);
+    if g_sdlgpu.pso_normals         SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_normals);
     if depth_texture                SDL_ReleaseGPUTexture(gpu, depth_texture);
 }
 
@@ -430,6 +539,104 @@ maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Ren
         if gpu_info.points_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.points_buf);
         gpu_info.points_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
         gpu_info.points_NVP = cast(u32) N;
+    }
+
+    // ---- Triangle normal vectors (6 verts per triangle: 3 normals × 2 endpoints) ----
+    if mesh.triangles.count {
+        normals_attr : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+        if normals_attr && normals_attr.values.count == mesh.triangles.count {
+            N  := 6 * mesh.triangles.count;
+            NP := cast(u32)(N * size_of(Vector3));
+
+            bases   : [..]Vector3 = temp_array(Vector3); array_reserve(*bases,   N);
+            normals : [..]Vector3 = temp_array(Vector3); array_reserve(*normals, N);
+
+            for tri_index : 0..mesh.triangles.count-1 {
+                vids := mesh_triangle_tuple(mesh, tri_index);
+                a := mesh.positions[vids.i];
+                b := mesh.positions[vids.j];
+                c := mesh.positions[vids.k];
+                nm := normals_attr.values[tri_index];
+                nv := Vector3.[.{nm._11, nm._12, nm._13}, .{nm._21, nm._22, nm._23}, .{nm._31, nm._32, nm._33}];
+                pts := Vector3.[a, b, c];
+                for i : 0..2 {
+                    array_add(*bases,   pts[i]);
+                    array_add(*bases,   pts[i]);
+                    array_add(*normals, nv[i]);
+                    array_add(*normals, nv[i]);
+                }
+            }
+
+            flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+            base := cast(*u8) flat_buf;
+            memcpy(base,    bases.data,   NP);
+            memcpy(base+NP, normals.data, NP);
+
+            if gpu_info.tri_normals_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.tri_normals_buf);
+            gpu_info.tri_normals_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+            gpu_info.tri_normals_NV  = cast(u32) N;
+        }
+    }
+
+    // ---- Segment normal vectors (4 verts per segment: 2 endpoints × 2) ----
+    if mesh.segments.count {
+        seg_nrm : *Simple_Mesh_Segment_Normals = find_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+        if seg_nrm && seg_nrm.values.count == mesh.segments.count {
+            N  := 4 * mesh.segments.count;
+            NP := cast(u32)(N * size_of(Vector3));
+
+            bases   : [..]Vector3 = temp_array(Vector3); array_reserve(*bases,   N);
+            normals : [..]Vector3 = temp_array(Vector3); array_reserve(*normals, N);
+
+            for seg_index : 0..mesh.segments.count-1 {
+                vids := mesh_segment_tuple(mesh, seg_index);
+                pts := Vector3.[mesh.positions[vids.i], mesh.positions[vids.j]];
+                nm  := seg_nrm.values[seg_index];
+                nv  := Vector3.[.{nm._11, nm._12, nm._13}, .{nm._21, nm._22, nm._23}];
+                for i : 0..1 {
+                    array_add(*bases,   pts[i]);
+                    array_add(*bases,   pts[i]);
+                    array_add(*normals, nv[i]);
+                    array_add(*normals, nv[i]);
+                }
+            }
+
+            flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+            base := cast(*u8) flat_buf;
+            memcpy(base,    bases.data,   NP);
+            memcpy(base+NP, normals.data, NP);
+
+            if gpu_info.seg_normals_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.seg_normals_buf);
+            gpu_info.seg_normals_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+            gpu_info.seg_normals_NV  = cast(u32) N;
+        }
+    }
+
+    // ---- Point normal vectors (2 verts per point) ----
+    if mesh.points.count {
+        pt_nrm : *Simple_Mesh_Point_Normals = find_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+        if pt_nrm && pt_nrm.values.count == mesh.points.count {
+            N  := 2 * mesh.points.count;
+            NP := cast(u32)(N * size_of(Vector3));
+
+            bases   : [..]Vector3 = temp_array(Vector3); array_reserve(*bases,   N);
+            normals : [..]Vector3 = temp_array(Vector3); array_reserve(*normals, N);
+
+            for :ModelPointIterator mesh {
+                n := pt_nrm.values[it_index];
+                array_add(*bases,   it); array_add(*bases,   it);
+                array_add(*normals, n);  array_add(*normals, n);
+            }
+
+            flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+            base := cast(*u8) flat_buf;
+            memcpy(base,    bases.data,   NP);
+            memcpy(base+NP, normals.data, NP);
+
+            if gpu_info.pt_normals_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.pt_normals_buf);
+            gpu_info.pt_normals_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+            gpu_info.pt_normals_NV  = cast(u32) N;
+        }
     }
 
     // ---- Unreferenced vertex positions ----
@@ -658,6 +865,173 @@ sdlgpu_render_mesh_positions :: (entity : *Entity, pass : *SDL_GPURenderPass, cm
 // Split into two phases: upload (copy passes, before render pass) and draw (inside render pass).
 //
 
+// ---- Normal vector render helpers ----
+
+fill_normals_vert_ubo :: (world_from_model : Matrix4, ns : Normal_Style) -> Normals_Vert_UBO {
+    ubo : Normals_Vert_UBO;
+    ubo.clip_from_view   = orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true);
+    ubo.view_from_world  = make_look_at_matrix(app.camera);
+    ubo.world_from_model = world_from_model;
+    ubo.normal_scale     = ns.scale;
+    ubo.do_normalize     = cast(u32) ns.normalized;
+    return ubo;
+}
+
+fill_normals_frag_ubo :: (ns : Normal_Style, clip_sphere : Clip_Sphere, clip_ranges : [3]Clip_Range) -> Normals_Frag_UBO {
+    ubo : Normals_Frag_UBO;
+    ubo.color       = .[ns.color.x, ns.color.y, ns.color.z, ns.color.w];
+    ubo.clip_sphere = .[clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z, clip_sphere.radius];
+    ubo.clip_flags  = .[cast(u32) clip_sphere.is_active, 0, 0, 0];
+    for i : 0..2 {
+        r := clip_ranges[i];
+        ubo.range_normal[i]  = .[r.normal.x, r.normal.y, r.normal.z, 0];
+        ubo.range_min_max[i] = .[r.min, r.max, cast(float) cast(u32) r.is_active, 0];
+    }
+    return ubo;
+}
+
+bind_normals_buffers :: (pass : *SDL_GPURenderPass, buf : *SDL_GPUBuffer, NP : u32) {
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=buf, offset=0},   // slot 0: base positions
+        .{buffer=buf, offset=NP},  // slot 1: normals
+    ];
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 2);
+}
+
+sdlgpu_render_mesh_triangle_normals :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.triangles.count return;
+    if !triangle_style.normal_style.visible return;
+    if !entity.render_info_gpu.tri_normals_buf return;
+
+    NV := entity.render_info_gpu.tri_normals_NV;
+    NP := NV * cast(u32) size_of(Vector3);
+    vert_ubo := fill_normals_vert_ubo(entity.mesh.world_from_model, triangle_style.normal_style);
+    frag_ubo := fill_normals_frag_ubo(triangle_style.normal_style, clip_sphere, clip_ranges);
+
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_normals);
+    bind_normals_buffers(pass, entity.render_info_gpu.tri_normals_buf, NP);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Normals_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *frag_ubo, size_of(Normals_Frag_UBO));
+    SDL_DrawGPUPrimitives(pass, NV, 1, 0, 0);
+}
+
+sdlgpu_render_mesh_segment_normals :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.segments.count return;
+    if !segment_style.normal_style.visible return;
+    if !entity.render_info_gpu.seg_normals_buf return;
+
+    NV := entity.render_info_gpu.seg_normals_NV;
+    NP := NV * cast(u32) size_of(Vector3);
+    vert_ubo := fill_normals_vert_ubo(entity.mesh.world_from_model, segment_style.normal_style);
+    frag_ubo := fill_normals_frag_ubo(segment_style.normal_style, clip_sphere, clip_ranges);
+
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_normals);
+    bind_normals_buffers(pass, entity.render_info_gpu.seg_normals_buf, NP);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Normals_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *frag_ubo, size_of(Normals_Frag_UBO));
+    SDL_DrawGPUPrimitives(pass, NV, 1, 0, 0);
+}
+
+sdlgpu_render_mesh_point_normals :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.points.count return;
+    if !point_style.normal_style.visible return;
+    if !entity.render_info_gpu.pt_normals_buf return;
+
+    NV := entity.render_info_gpu.pt_normals_NV;
+    NP := NV * cast(u32) size_of(Vector3);
+    vert_ubo := fill_normals_vert_ubo(entity.mesh.world_from_model, point_style.normal_style);
+    frag_ubo := fill_normals_frag_ubo(point_style.normal_style, clip_sphere, clip_ranges);
+
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_normals);
+    bind_normals_buffers(pass, entity.render_info_gpu.pt_normals_buf, NP);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Normals_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *frag_ubo, size_of(Normals_Frag_UBO));
+    SDL_DrawGPUPrimitives(pass, NV, 1, 0, 0);
+}
+
+// ---- AABB render ----
+
+sdlgpu_render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    ubo : AABB_UBO;
+    ubo.clip_from_view   = orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true);
+    ubo.view_from_world  = make_look_at_matrix(app.camera);
+    ubo.world_from_model = world_from_model;
+    ubo.aabb_min = .[aabb_model.min_point.x, aabb_model.min_point.y, aabb_model.min_point.z, 0];
+    ubo.aabb_max = .[aabb_model.max_point.x, aabb_model.max_point.y, aabb_model.max_point.z, 0];
+    ubo.color    = .[BLUE.x, BLUE.y, BLUE.z, BLUE.w];
+
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_aabb);
+    SDL_PushGPUVertexUniformData(cmd, 0, *ubo, size_of(AABB_UBO));
+    SDL_DrawGPUPrimitives(pass, 24, 1, 0, 0);
+}
+
+// ---- Background render ----
+
+sdlgpu_render_background :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    if app.background_style == .SOLID_COLOR {
+        // Solid colour is handled by the render-pass clear colour — nothing extra to draw.
+        return;
+    }
+
+    iTime := cast(float) SDL_GetTicks() / 1000.0;
+    ubo := Background_UBO.{ resolution_time = .[
+        cast(float) app.window_size.width,
+        cast(float) app.window_size.height,
+        1.0,
+        iTime,
+    ]};
+
+    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_background);
+    SDL_PushGPUFragmentUniformData(cmd, 0, *ubo, size_of(Background_UBO));
+    SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+}
+
+// ---- Axes triad render ----
+
+render_axes_triad_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    if !app.triad.visible return;
+
+    old_camera := app.camera;
+    defer app.camera = old_camera;
+
+    using *app.camera;
+    w := cast(float) app.window_size.width;
+    h := cast(float) app.window_size.height;
+    s : float = 80.;
+
+    near, far   = -s, s;
+    bottom, top = 0., h;
+    left, right = 0., w;
+    unit_look := normalize(current_look_direction());
+    look_position = Vector3.{};
+    eye_position  = look_position - unit_look;
+
+    offset_vs := Vector3.{s, s, 0.} + Vector3.{w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0};
+    valid, world_from_view := inverse(make_look_at_matrix(app.camera));
+    if !valid vlog_warning("render_axes_triad_gpu: could not invert look-at matrix");
+    offset_ws := (world_from_view * Vector4.{xyz=offset_vs}).xyz;
+
+    scale := make_scale_matrix4(.8 * Vector3.{s, s, s});
+    shift := make_translation_matrix4(offset_ws);
+    xform := shift * scale;
+
+    app.triad.origin.mesh.world_from_model = xform;
+    app.triad.x_axis.mesh.world_from_model = xform;
+    app.triad.y_axis.mesh.world_from_model = xform;
+    app.triad.z_axis.mesh.world_from_model = xform;
+
+    sdlgpu_render_mesh_triangles(*app.triad.origin, pass, cmd);
+    sdlgpu_render_mesh_triangles(*app.triad.x_axis, pass, cmd);
+    sdlgpu_render_mesh_triangles(*app.triad.y_axis, pass, cmd);
+    sdlgpu_render_mesh_triangles(*app.triad.z_axis, pass, cmd);
+}
+
+// ---- Top-level render calls ----
+// Split into two phases: upload (copy passes, before render pass) and draw (inside render pass).
+
 // Phase A: upload all dirty entity buffers via copy passes.
 // Must be called BEFORE SDL_BeginGPURenderPass.
 upload_entity_buffers_gpu :: (cmd : *SDL_GPUCommandBuffer) {
@@ -669,6 +1043,13 @@ upload_entity_buffers_gpu :: (cmd : *SDL_GPUCommandBuffer) {
         e := *app.select_tool.entity;
         maybe_update_render_info_gpu(*e.render_info_gpu, *e.render_info, *e.mesh, cmd);
     }
+    // Axes triad entities (not in app.entities)
+    if app.triad.visible {
+        maybe_update_render_info_gpu(*app.triad.origin.render_info_gpu, *app.triad.origin.render_info, *app.triad.origin.mesh, cmd);
+        maybe_update_render_info_gpu(*app.triad.x_axis.render_info_gpu, *app.triad.x_axis.render_info, *app.triad.x_axis.mesh, cmd);
+        maybe_update_render_info_gpu(*app.triad.y_axis.render_info_gpu, *app.triad.y_axis.render_info, *app.triad.y_axis.mesh, cmd);
+        maybe_update_render_info_gpu(*app.triad.z_axis.render_info_gpu, *app.triad.z_axis.render_info, *app.triad.z_axis.mesh, cmd);
+    }
 }
 
 // Phase B: draw calls inside a render pass.  No copy passes here.
@@ -676,16 +1057,24 @@ sdlgpu_draw_entity :: (entity : *Entity, entity_index : int, pass : *SDL_GPURend
     entity.display_info.clip_radius_mode                = entity_in_clip_radius_mode(entity_index);
     entity.display_info.clip_radius_mode_show_wireframe = mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
 
-    sdlgpu_render_mesh_triangles(entity, pass, cmd);
-    sdlgpu_render_mesh_segments (entity, pass, cmd);
-    sdlgpu_render_mesh_points   (entity, pass, cmd);
-    sdlgpu_render_mesh_positions(entity, pass, cmd);
-    // Normals and AABB: Phase 4
+    sdlgpu_render_mesh_triangles      (entity, pass, cmd);
+    sdlgpu_render_mesh_triangle_normals(entity, pass, cmd);
+    sdlgpu_render_mesh_segments       (entity, pass, cmd);
+    sdlgpu_render_mesh_segment_normals(entity, pass, cmd);
+    sdlgpu_render_mesh_points         (entity, pass, cmd);
+    sdlgpu_render_mesh_point_normals  (entity, pass, cmd);
+    sdlgpu_render_mesh_positions      (entity, pass, cmd);
+    if entity.display_info.aabb_visible {
+        sdlgpu_render_aabb(entity.render_info.bounding_aabb, entity.mesh.world_from_model, pass, cmd);
+    }
 }
 
 render_entities_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
     for :VisibleOpaque      app.entities  sdlgpu_draw_entity(it, it_index, pass, cmd);
     for :VisibleTransparent app.entities  sdlgpu_draw_entity(it, it_index, pass, cmd);
+    if app.template_display_info.aabb_visible {
+        sdlgpu_render_aabb(app.template_aabb_world, Matrix4_Identity, pass, cmd);
+    }
     for :VisibleHovered     app.entities  sdlgpu_draw_entity(it, it_index, pass, cmd);
 }
 
@@ -696,8 +1085,11 @@ render_selections_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer
     entity.display_info.clip_radius_mode                = false;
     entity.display_info.clip_radius_mode_show_wireframe = false;
 
-    sdlgpu_render_mesh_positions(entity, pass, cmd);
-    sdlgpu_render_mesh_points   (entity, pass, cmd);
-    sdlgpu_render_mesh_segments (entity, pass, cmd);
-    sdlgpu_render_mesh_triangles(entity, pass, cmd);
+    sdlgpu_render_mesh_positions      (entity, pass, cmd);
+    sdlgpu_render_mesh_points         (entity, pass, cmd);
+    sdlgpu_render_mesh_point_normals  (entity, pass, cmd);
+    sdlgpu_render_mesh_segments       (entity, pass, cmd);
+    sdlgpu_render_mesh_segment_normals(entity, pass, cmd);
+    sdlgpu_render_mesh_triangles      (entity, pass, cmd);
+    sdlgpu_render_mesh_triangle_normals(entity, pass, cmd);
 }
