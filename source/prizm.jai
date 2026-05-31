@@ -86,6 +86,7 @@ main :: () {
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
     init_rendering_gpu();
+    init_icons_gpu();
     screenshot_init();
     init_camera();
     init_commands();

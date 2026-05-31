@@ -5,47 +5,67 @@ DEFAULT_COLOR_EDIT_FLAGS :: ImGui.ColorEditFlags.NoInputs | .NoTooltip;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
-init_icons :: () {
-    PRIZM_ICON_DATA0,     OK0 :: #run read_entire_file("data/icon_blue.png",  zero_terminated=true);  #assert(OK0);
-    PRIZM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
-    PRIZM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
-    PRIZM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
+// Image data embedded at compile time (shared between GL and SDL GPU paths)
+ICON_BLUE_DATA,         _IC0 :: #run read_entire_file("data/icon_blue.png",    zero_terminated=true); #assert(_IC0);
+ICON_GREEN_DATA,        _IC1 :: #run read_entire_file("data/icon_green.png",   zero_terminated=true); #assert(_IC1);
+ICON_RED_DATA,          _IC2 :: #run read_entire_file("data/icon_red.png",     zero_terminated=true); #assert(_IC2);
+ICON_BLACK_DATA,        _IC3 :: #run read_entire_file("data/icon_black.png",   zero_terminated=true); #assert(_IC3);
+ICON_CLOSE_DATA,        _IC4 :: #run read_entire_file("data/close.png",        zero_terminated=true); #assert(_IC4);
+ICON_MAXIMIZE_DATA,     _IC5 :: #run read_entire_file("data/maximize.png",     zero_terminated=true); #assert(_IC5);
+ICON_MINIMIZE_DATA,     _IC6 :: #run read_entire_file("data/minimize.png",     zero_terminated=true); #assert(_IC6);
+ICON_RESTORE_DATA,      _IC7 :: #run read_entire_file("data/restore.png",      zero_terminated=true); #assert(_IC7);
+ICON_BACKFACE_DATA,     _IC8 :: #run read_entire_file("data/backface.png",     zero_terminated=true); #assert(_IC8);
+ICON_OPACITY_DATA,      _IC9 :: #run read_entire_file("data/opacity.png",      zero_terminated=true); #assert(_IC9);
+ICON_CLIPPING_DATA,     _ICa :: #run read_entire_file("data/clipping.png",     zero_terminated=true); #assert(_ICa);
+ICON_NORMALS_DATA,      _ICb :: #run read_entire_file("data/normals.png",      zero_terminated=true); #assert(_ICb);
+ICON_THICKNESS_DATA,    _ICc :: #run read_entire_file("data/thickness.png",    zero_terminated=true); #assert(_ICc);
+ICON_RADIUS_DATA,       _ICd :: #run read_entire_file("data/radius.png",       zero_terminated=true); #assert(_ICd);
+ICON_INDICES_DATA,      _ICe :: #run read_entire_file("data/indices.png",      zero_terminated=true); #assert(_ICe);
+ICON_COORDINATES_DATA,  _ICf :: #run read_entire_file("data/coordinates.png",  zero_terminated=true); #assert(_ICf);
+ICON_ANNOTATIONS_DATA,  _ICg :: #run read_entire_file("data/annotations.png",  zero_terminated=true); #assert(_ICg);
 
-    WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
-    WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
-    WINDOW_MINIMIZE_DATA, OK7 :: #run read_entire_file("data/minimize.png",   zero_terminated=true);  #assert(OK7);
-    WINDOW_RESTORE_DATA,  OK8 :: #run read_entire_file("data/restore.png",    zero_terminated=true);  #assert(OK8);
-
-    BACKFACE_DATA,        OK9 :: #run read_entire_file("data/backface.png",    zero_terminated=true); #assert(OK9);
-    OPACITY_DATA,         OKa :: #run read_entire_file("data/opacity.png",     zero_terminated=true); #assert(OKa);
-    CLIPPING_DATA,        OKb :: #run read_entire_file("data/clipping.png",    zero_terminated=true); #assert(OKb);
-    NORMALS_DATA,         OKc :: #run read_entire_file("data/normals.png",     zero_terminated=true); #assert(OKc);
-    THICKNESS_DATA,       OKd :: #run read_entire_file("data/thickness.png",   zero_terminated=true); #assert(OKd);
-    RADIUS_DATA,          OKe :: #run read_entire_file("data/radius.png",      zero_terminated=true); #assert(OKe);
-    INDICES_DATA,         OKf :: #run read_entire_file("data/indices.png",     zero_terminated=true); #assert(OKf);
-    COORDINATES_DATA,     OKg :: #run read_entire_file("data/coordinates.png", zero_terminated=true); #assert(OKg);
-    ANNOTATIONS_DATA,     OKh :: #run read_entire_file("data/annotations.png", zero_terminated=true); #assert(OKh);
-
+// SDL GPU icon loading — called at startup after the GPU device is created.
+init_icons_gpu :: () {
     ok : bool;
-    icon_prizm_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA0);     assert(ok);
-    icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA1);     assert(ok);
-    icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA2);     assert(ok);
-    icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA3);     assert(ok);
+    icon_prizm_icon_texture[0],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_BLUE_DATA);        assert(ok);
+    icon_prizm_icon_texture[1],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_GREEN_DATA);       assert(ok);
+    icon_prizm_icon_texture[2],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_RED_DATA);         assert(ok);
+    icon_prizm_icon_texture[3],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_BLACK_DATA);       assert(ok);
+    icon_window_close_texture,    ok = load_texture_from_memory_gpu(cast([]u8)ICON_CLOSE_DATA);       assert(ok);
+    icon_window_maximize_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_MAXIMIZE_DATA);    assert(ok);
+    icon_window_minimize_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_MINIMIZE_DATA);    assert(ok);
+    icon_window_restore_texture,  ok = load_texture_from_memory_gpu(cast([]u8)ICON_RESTORE_DATA);     assert(ok);
+    icon_backface_texture,    ok = load_texture_from_memory_gpu(cast([]u8)ICON_BACKFACE_DATA);    assert(ok);
+    icon_opacity_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_OPACITY_DATA);     assert(ok);
+    icon_clipping_texture,    ok = load_texture_from_memory_gpu(cast([]u8)ICON_CLIPPING_DATA);    assert(ok);
+    icon_normals_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_NORMALS_DATA);     assert(ok);
+    icon_thickness_texture,   ok = load_texture_from_memory_gpu(cast([]u8)ICON_THICKNESS_DATA);   assert(ok);
+    icon_radius_texture,      ok = load_texture_from_memory_gpu(cast([]u8)ICON_RADIUS_DATA);      assert(ok);
+    icon_indices_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_INDICES_DATA);     assert(ok);
+    icon_coordinates_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_COORDINATES_DATA); assert(ok);
+    icon_annotations_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_ANNOTATIONS_DATA); assert(ok);
+}
 
-    icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
-    icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
-    icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MINIMIZE_DATA); assert(ok);
-    icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)WINDOW_RESTORE_DATA);  assert(ok);
-
-    icon_backface_texture,    ok = load_texture_from_memory(cast([]u8)BACKFACE_DATA);    assert(ok);
-    icon_opacity_texture,     ok = load_texture_from_memory(cast([]u8)OPACITY_DATA);     assert(ok);
-    icon_clipping_texture,    ok = load_texture_from_memory(cast([]u8)CLIPPING_DATA);    assert(ok);
-    icon_normals_texture,     ok = load_texture_from_memory(cast([]u8)NORMALS_DATA);     assert(ok);
-    icon_thickness_texture,   ok = load_texture_from_memory(cast([]u8)THICKNESS_DATA);   assert(ok);
-    icon_radius_texture,      ok = load_texture_from_memory(cast([]u8)RADIUS_DATA);      assert(ok);
-    icon_indices_texture,     ok = load_texture_from_memory(cast([]u8)INDICES_DATA);     assert(ok);
-    icon_coordinates_texture, ok = load_texture_from_memory(cast([]u8)COORDINATES_DATA); assert(ok);
-    icon_annotations_texture, ok = load_texture_from_memory(cast([]u8)ANNOTATIONS_DATA); assert(ok);
+// Legacy GL path kept for reference but not called.
+init_icons :: () {
+    ok : bool;
+    icon_prizm_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)ICON_BLUE_DATA);        assert(ok);
+    icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)ICON_GREEN_DATA);       assert(ok);
+    icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)ICON_RED_DATA);         assert(ok);
+    icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)ICON_BLACK_DATA);       assert(ok);
+    icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)ICON_CLOSE_DATA);       assert(ok);
+    icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)ICON_MAXIMIZE_DATA);    assert(ok);
+    icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)ICON_MINIMIZE_DATA);    assert(ok);
+    icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)ICON_RESTORE_DATA);     assert(ok);
+    icon_backface_texture,    ok = load_texture_from_memory(cast([]u8)ICON_BACKFACE_DATA);    assert(ok);
+    icon_opacity_texture,     ok = load_texture_from_memory(cast([]u8)ICON_OPACITY_DATA);     assert(ok);
+    icon_clipping_texture,    ok = load_texture_from_memory(cast([]u8)ICON_CLIPPING_DATA);    assert(ok);
+    icon_normals_texture,     ok = load_texture_from_memory(cast([]u8)ICON_NORMALS_DATA);     assert(ok);
+    icon_thickness_texture,   ok = load_texture_from_memory(cast([]u8)ICON_THICKNESS_DATA);   assert(ok);
+    icon_radius_texture,      ok = load_texture_from_memory(cast([]u8)ICON_RADIUS_DATA);      assert(ok);
+    icon_indices_texture,     ok = load_texture_from_memory(cast([]u8)ICON_INDICES_DATA);     assert(ok);
+    icon_coordinates_texture, ok = load_texture_from_memory(cast([]u8)ICON_COORDINATES_DATA); assert(ok);
+    icon_annotations_texture, ok = load_texture_from_memory(cast([]u8)ICON_ANNOTATIONS_DATA); assert(ok);
 }
 
 show_menu_bar_ui :: () {
@@ -61,7 +81,7 @@ show_menu_bar_ui :: () {
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        if icon_prizm_icon_texture[prizm_icon_color_index].gl_handle  ImGui.Image(imgui_tex_ref(icon_prizm_icon_texture[prizm_icon_color_index].gl_handle), icon_size);
+        if icon_prizm_icon_texture[prizm_icon_color_index].gpu_handle  ImGui.Image(imgui_tex_ref(icon_prizm_icon_texture[prizm_icon_color_index]), icon_size);
         click_cycle_prizm_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
             show_tooltip(tprint("Prizm %", changelog[0].name));
@@ -344,7 +364,7 @@ show_menu_bar_ui :: () {
 
             // Invisible dummy button to figure out where to start putting the minimize, maximize/restore, quit buttons
             button_width := -ImGui.GetCursorScreenPos().x;
-            if icon_window_maximize_texture.gl_handle  ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=TRANSPARENT);
+            if icon_window_maximize_texture.gpu_handle  ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture), icon_size, tint_col=TRANSPARENT);
             button_width +=  ImGui.GetCursorScreenPos().x;
             start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
             ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
@@ -359,16 +379,16 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, ImGui.GetStyle().Colors[ImGui.Col.HeaderActive]);
             defer ImGui.PopStyleColor(2);
 
-            if icon_window_minimize_texture.gl_handle && ImGui.ImageButton("##MinimizeButton", imgui_tex_ref(icon_window_minimize_texture.gl_handle), icon_size, tint_col=BLACK) {
+            if icon_window_minimize_texture.gpu_handle && ImGui.ImageButton("##MinimizeButton", imgui_tex_ref(icon_window_minimize_texture), icon_size, tint_col=BLACK) {
                 SDL_MinimizeWindow(app.window);
             }
 
             if app.window_maximized {
-                if icon_window_restore_texture.gl_handle && ImGui.ImageButton("##RestoreButton", imgui_tex_ref(icon_window_restore_texture.gl_handle), icon_size, tint_col=BLACK) {
+                if icon_window_restore_texture.gpu_handle && ImGui.ImageButton("##RestoreButton", imgui_tex_ref(icon_window_restore_texture), icon_size, tint_col=BLACK) {
                     SDL_RestoreWindow(app.window);
                 }
             } else {
-                if icon_window_maximize_texture.gl_handle && ImGui.ImageButton("##MaximizeButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=BLACK) {
+                if icon_window_maximize_texture.gpu_handle && ImGui.ImageButton("##MaximizeButton", imgui_tex_ref(icon_window_maximize_texture), icon_size, tint_col=BLACK) {
                     SDL_MaximizeWindow(app.window);
                 }
             }
@@ -379,7 +399,7 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, RED);
             defer ImGui.PopStyleColor(2);
 
-            if icon_window_close_texture.gl_handle && ImGui.ImageButton("##QuitButton", imgui_tex_ref(icon_window_close_texture.gl_handle), icon_size, tint_col=BLACK) {
+            if icon_window_close_texture.gpu_handle && ImGui.ImageButton("##QuitButton", imgui_tex_ref(icon_window_close_texture), icon_size, tint_col=BLACK) {
                 quit_application();
             }
         }
@@ -1846,7 +1866,7 @@ ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, 
 
 ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
 
-    if texture.gl_handle == 0  return; // @Phase1 icons not yet ported to SDL_GPU
+    if !texture.gpu_handle  return;
 
     // To avoid having to #poke_name the operator==, which was causing intermittent failure to compile @CompilerBug
     // Note that using #poke_name was kinda ugly because it wasn't clear what operator== is being poked? maybe need to use procedure_of_call instead?
@@ -1898,7 +1918,7 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
     ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-    if ImGui.ImageButton(imgui_label("##Action", *action_set), imgui_tex_ref(texture.gl_handle), ACTION_BUTTON_SIZE, tint_col=tint) {
+    if ImGui.ImageButton(imgui_label("##Action", *action_set), imgui_tex_ref(texture), ACTION_BUTTON_SIZE, tint_col=tint) {
         if states.count > 0 {
             action_set.proc();
         }
