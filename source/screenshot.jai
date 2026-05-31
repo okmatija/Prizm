@@ -3,7 +3,7 @@
 //
 // Call sites in the rest of the program:
 //   app.jai           : #load "screenshot.jai"
-//   prizm.jai (init)  : screenshot_init()
+//   prizm.jai (init)  : init_screenshot()
 //   prizm.jai (loop)  : screenshot_maybe_capture(draw_data)
 //
 // The render passes are fully self-contained here; no other render code
@@ -36,7 +36,7 @@ screenshot_check_args :: (args : []string) {
     }
 }
 
-screenshot_init :: () {
+init_screenshot :: () {
     g_screenshot_ticks = SDL_GetTicks();
 }
 

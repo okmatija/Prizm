@@ -87,7 +87,7 @@ main :: () {
 
     init_rendering_gpu();
     init_icons_gpu();
-    screenshot_init();
+    init_screenshot();
     init_camera();
     init_commands();
     init_keymap();
