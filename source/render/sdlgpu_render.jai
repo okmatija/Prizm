@@ -743,9 +743,9 @@ fill_transform_ubo :: (world_from_model : Matrix4) -> Transform_UBO {
     ubo : Transform_UBO;
     // Flip top/bottom and use [0,1] depth range to match Vulkan NDC (Y-down, Z [0,1])
     cam := app.camera;
-    ubo.clip_from_view   = orthographic_projection_matrix(cam.left, cam.right, cam.top, cam.bottom, cam.near, cam.far, depth_range_01=true);
-    ubo.view_from_world  = make_look_at_matrix(app.camera);
-    ubo.world_from_model = world_from_model;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(cam.left, cam.right, cam.top, cam.bottom, cam.near, cam.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
     return ubo;
 }
 
@@ -949,9 +949,9 @@ sdlgpu_render_mesh_positions :: (entity : *Entity, pass : *SDL_GPURenderPass, cm
 
 fill_normals_vert_ubo :: (world_from_model : Matrix4, ns : Normal_Style) -> Normals_Vert_UBO {
     ubo : Normals_Vert_UBO;
-    ubo.clip_from_view   = orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true);
-    ubo.view_from_world  = make_look_at_matrix(app.camera);
-    ubo.world_from_model = world_from_model;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
     ubo.normal_scale     = ns.scale;
     ubo.do_normalize     = cast(u32) ns.normalized;
     return ubo;
@@ -1036,9 +1036,9 @@ sdlgpu_render_mesh_point_normals :: (entity : *Entity, pass : *SDL_GPURenderPass
 
 sdlgpu_render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
     ubo : AABB_UBO;
-    ubo.clip_from_view   = orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true);
-    ubo.view_from_world  = make_look_at_matrix(app.camera);
-    ubo.world_from_model = world_from_model;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
     ubo.aabb_min = .[aabb_model.min_point.x, aabb_model.min_point.y, aabb_model.min_point.z, 0];
     ubo.aabb_max = .[aabb_model.max_point.x, aabb_model.max_point.y, aabb_model.max_point.z, 0];
     ubo.color    = .[BLUE.x, BLUE.y, BLUE.z, BLUE.w];
@@ -1136,9 +1136,9 @@ upload_entity_buffers_gpu :: (cmd : *SDL_GPUCommandBuffer) {
 
 fill_sized_prim_vert_ubo :: (world_from_model : Matrix4, size_px : float) -> Sized_Prim_Vert_UBO {
     ubo : Sized_Prim_Vert_UBO;
-    ubo.clip_from_view   = orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true);
-    ubo.view_from_world  = make_look_at_matrix(app.camera);
-    ubo.world_from_model = world_from_model;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.top, app.camera.bottom, app.camera.near, app.camera.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
     ubo.prim_size_px     = size_px;
     ubo.viewport_w       = cast(float) app.window_size.width;
     ubo.viewport_h       = cast(float) app.window_size.height;
