@@ -16,34 +16,33 @@ build_gui :: (
     } else if chosen_console_commands {
         task = "Configure Console Commands";
     }
-    window := SDL_CreateWindow(temp_c_string(tprint("Prizm Builder: %", task)), 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+    window := SDL_CreateWindow(temp_c_string(tprint("Prizm Builder: %", task)), 1280, 720, SDL_WINDOW_RESIZABLE);
     if window == null {
         print("Could not create window: %\n", to_string(SDL_GetError()));
         return;
     }
 
-    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
-
-    gl_context := SDL_GL_CreateContext(window);
-    if !gl_context {
-        print( "Could not create OpenGL context: %\n", to_string(SDL_GetError()));
+    gpu_device := SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB, false, null);
+    if !gpu_device {
+        print("Could not create GPU device: %\n", to_string(SDL_GetError()));
         return;
     }
-
-    gl_load(*gl, sdl_gl_get_proc_address);
-    //using gl;
+    SDL_ClaimWindowForGPUDevice(gpu_device, window);
+    SDL_SetGPUSwapchainParameters(gpu_device, window, .SDR, .VSYNC);
 
     // Setup Dear ImGui context
-    // IMGUI_CHECKVERSION();
     ImGui_Impl_CreateContext();
     assert(imgui_context != null, "must call create context");
     ImGui.SetCurrentContext(imgui_context);
 
     // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ImplSDL3_InitForSDLGPU(window);
+    gpu_init_info := ImplSDLGPU3_InitInfo.{
+        Device            = gpu_device,
+        ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpu_device, window),
+        MSAASamples       = .SDL_GPU_SAMPLECOUNT_1,
+    };
+    ImplSDLGPU3_Init(*gpu_init_info);
 
     // Setup style
     ImGui.StyleColorsDark();
@@ -67,7 +66,7 @@ build_gui :: (
     while !done {
         event: SDL_Event;
         while SDL_PollEvent(*event) {
-            ImGui_ImplSDL2_ProcessEvent(*event);
+            ImplSDL3_ProcessEvent(*event);
 
             if cast(SDL_EventType) event.type == SDL_EventType.QUIT {
                 compiler_report("Compilation manually aborted.");
@@ -78,8 +77,8 @@ build_gui :: (
         }
 
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImplSDLGPU3_NewFrame();
+        ImplSDL3_NewFrame();
         ImGui.NewFrame();
 
         {
@@ -183,23 +182,37 @@ build_gui :: (
 
         // Rendering
         ImGui.Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
-
-        glViewport(0, 0, xx io.DisplaySize.x, xx io.DisplaySize.y);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        SDL_GL_SwapWindow(window);
+        {
+            draw_data := ImGui.GetDrawData();
+            cmd := SDL_AcquireGPUCommandBuffer(gpu_device);
+            swapchain_tex : *SDL_GPUTexture;
+            SDL_AcquireGPUSwapchainTexture(cmd, window, *swapchain_tex, null, null);
+            if swapchain_tex {
+                ImplSDLGPU3_PrepareDrawData(draw_data, cmd);
+                color_target := SDL_GPUColorTargetInfo.{
+                    texture     = swapchain_tex,
+                    clear_color = SDL_FColor.{clear_color.x, clear_color.y, clear_color.z, clear_color.w},
+                    load_op     = .CLEAR,
+                    store_op    = .STORE,
+                };
+                pass := SDL_BeginGPURenderPass(cmd, *color_target, 1, null);
+                ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass);
+                SDL_EndGPURenderPass(pass);
+            }
+            SDL_SubmitGPUCommandBuffer(cmd);
+        }
 
         reset_temporary_storage();
     }
 
     // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    SDL_WaitForGPUIdle(gpu_device);
+    ImplSDL3_Shutdown();
+    ImplSDLGPU3_Shutdown();
     ImGui.DestroyContext();
 
-    SDL_GL_DestroyContext(gl_context);
+    SDL_ReleaseWindowFromGPUDevice(gpu_device, window);
+    SDL_DestroyGPUDevice(gpu_device);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -231,15 +244,14 @@ ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
 
 
 // @Volatile! Do not share code with runtime Prizm app, since that code often uses the App global which does not exist in this build gui
-#load "imgui_impl_sdl.jai"; // SDL platform backend
-#load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
+ImDrawData    :: ImGui.ImDrawData;
+ImTextureData :: ImGui.ImTextureData;
+#load "../modules/ImGui/backends/sdl3_gpu3.jai"; // SDL_GPU platform + renderer backends
 #load "inspector.jai";
 
 ImGui :: #import "ImGui";
 #import "SDL3"(USE_SYSTEM_LIBRARY=false);
 #import "Math";
-
-sdl_gl_get_proc_address :: (name: *u8) -> *void #c_call { return cast(*void) SDL_GL_GetProcAddress(name); }
 
 fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
 

@@ -160,6 +160,8 @@ build :: () {
 
     set_build_options(build_options, w);
 
+    compile_shaders(); // Must run before add_build_file so #run read_entire_file finds the .spv files.
+
     {
         intercept_flags : Intercept_Flags;
         for plugins if it.before_intercept it.before_intercept(it, *intercept_flags);
@@ -622,3 +624,24 @@ plugins: [..] *Metaprogram_Plugin;
 #load "source/changelog.jai"; // to get the latest version name when making a zip
 #load "source/carpet.jai"; // for plural_suffix
 #load "source/build_gui.jai";
+
+compile_shaders :: () {
+    make_directory_if_it_does_not_exist(".build/shaders");
+
+    // Each entry: source path relative to repo root.
+    // Output: .build/shaders/<filename>.spv  (e.g. hello_triangle.vert.spv)
+    shader_sources := string.[
+        "source/render/hello_triangle.vert",
+        "source/render/hello_triangle.frag",
+    ];
+
+    for src : shader_sources {
+        spv := tprint(".build/shaders/%.spv", path_filename(src));
+        result := run_command("glslangValidator", "-V", src, "-o", spv);
+        if result.type != .EXITED || result.exit_code != 0 {
+            compiler_report(tprint(
+                "Shader compilation failed for '%'.\n  Install glslang: sudo apt install glslang-tools  (or equivalent for your OS).",
+                src), mode = .ERROR_CONTINUABLE);
+        }
+    }
+}

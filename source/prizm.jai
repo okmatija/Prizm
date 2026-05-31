@@ -13,7 +13,7 @@ main :: () {
     // Gets the version info, used by print_usage_and_maybe_exit
     init_changelog();
 
-    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
+    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
     always_on_top := false;
 
     // Must come before SDL_CreateWindow since it changes sdl_window_flags
@@ -66,36 +66,27 @@ main :: () {
     // Load console history from file
     console_load_history();
 
-    // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
-    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MAJOR_VERSION, cast(s32)(ifx DEBUG_OPENGL then 4 else 3));
-    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(.SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
-
-    gl_context := SDL_GL_CreateContext(app.window); // alias for *void
-    if !gl_context {
-        print("Could not create OpenGL context: %\n", to_string(SDL_GetError()));
+    app.gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB, DEBUG_OPENGL, null);
+    if !app.gpu_device {
+        print("Could not create GPU device: %\n", to_string(SDL_GetError()));
         return;
     }
 
-    gl_load(*gl, sdl_gl_get_proc_address);
-
-    if DEBUG_OPENGL {
-        gl_version_major, gl_version_minor = gl_get_version();
-        print("Using OpenGL %.%\n", gl_version_major, gl_version_minor);
-        // @Note DEBUG_OPENGL enables RenderDoc annotations
-        log_error("DEBUG_OPENGL enabled!");
-        // gl_enable_debug_output(true);
-        // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+    if !SDL_ClaimWindowForGPUDevice(app.gpu_device, app.window) {
+        print("Could not claim window for GPU device: %\n", to_string(SDL_GetError()));
+        return;
     }
+
+    SDL_SetGPUSwapchainParameters(app.gpu_device, app.window, .SDR, .VSYNC);
 
     TRIAD_AXIS_LENGTH :: 1;
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
-    init_rendering();
+    // @Phase1 init_rendering() and init_icons() use GL; ported in Phase 2+
+    init_hello_triangle(); // @Phase2 — delete when Phase 3 geometry lands
     init_camera();
     init_commands();
     init_keymap();
-    init_icons();
 
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
@@ -118,9 +109,14 @@ main :: () {
     assert(imgui_context != null, "must call create context");
     ImGui.SetCurrentContext(imgui_context);
 
-    // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    // Setup Platform/Renderer backends (SDL_GPU)
+    ImplSDL3_InitForSDLGPU(app.window);
+    gpu_init_info := ImplSDLGPU3_InitInfo.{
+        Device            = app.gpu_device,
+        ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(app.gpu_device, app.window),
+        MSAASamples       = .SDL_GPU_SAMPLECOUNT_1,
+    };
+    ImplSDLGPU3_Init(*gpu_init_info);
     SDL_StartTextInput(app.window);
 
     // Disable writing the .ini and .log files
@@ -156,9 +152,16 @@ main :: () {
 
         update_camera();
 
+        // Skip rendering when minimized
+        if SDL_GetWindowFlags(app.window) & SDL_WINDOW_MINIMIZED {
+            sleep_milliseconds(16);
+            reset_temporary_storage();
+            continue;
+        }
+
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImplSDLGPU3_NewFrame();
+        ImplSDL3_NewFrame();
         ImGui.NewFrame();
         // "UI Scale": app.ui_font_size_px is the desired base size of the main (NORMAL) font. Turn it
         // into a global font scale so every font -- main UI, 3D labels, demo overlay -- scales
@@ -169,10 +172,6 @@ main :: () {
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
-
-        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         show_menu_bar_ui();
@@ -195,28 +194,35 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-        if app.settings.feature_flags.use_deferred_renderer {
-            // deferred rendering (WIP)
-            render_entities_gbuffer();
-        } else {
-            // forward rendering
-            render_background();
-            render_selections();
-            render_entities();
-        }
-
-        render_text();
-        render_axes_triad();
-        render_demo_mode();
+        // @Phase1 3D render calls skipped; ported in Phase 3+
 
         ImGui.PopFont();
-        {
-            DebugScopeGLGroup("ImGui Rendering");
-            ImGui.Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
-        }
+        ImGui.Render();
 
-        SDL_GL_SwapWindow(app.window);
+        {
+            draw_data := ImGui.GetDrawData();
+            cmd := SDL_AcquireGPUCommandBuffer(app.gpu_device);
+
+            swapchain_tex : *SDL_GPUTexture;
+            SDL_AcquireGPUSwapchainTexture(cmd, app.window, *swapchain_tex, null, null);
+
+            if swapchain_tex {
+                ImplSDLGPU3_PrepareDrawData(draw_data, cmd); // must be before BeginRenderPass
+
+                color_target := SDL_GPUColorTargetInfo.{
+                    texture     = swapchain_tex,
+                    clear_color = SDL_FColor.{r=0.1, g=0.1, b=0.15, a=1},
+                    load_op     = .CLEAR,
+                    store_op    = .STORE,
+                };
+                pass := SDL_BeginGPURenderPass(cmd, *color_target, 1, null);
+                render_hello_triangle(pass); // @Phase2 — delete when Phase 3 geometry lands
+                ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass);
+                SDL_EndGPURenderPass(pass);
+            }
+
+            SDL_SubmitGPUCommandBuffer(cmd);
+        }
 
         reset_temporary_storage();
         app.debug_frame = false;
@@ -224,13 +230,14 @@ main :: () {
     }
 
     // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    SDL_WaitForGPUIdle(app.gpu_device);
+    deinit_hello_triangle(); // @Phase2
+    ImplSDL3_Shutdown();
+    ImplSDLGPU3_Shutdown();
     ImGui.DestroyContext();
 
-    // We could release gl handles here, but we delete context anyway
-
-    SDL_GL_DestroyContext(gl_context);
+    SDL_ReleaseWindowFromGPUDevice(app.gpu_device, app.window);
+    SDL_DestroyGPUDevice(app.gpu_device);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
 
@@ -301,7 +308,7 @@ handle_events :: () {
 
     event: SDL_Event;
     while SDL_PollEvent(*event) {
-        ImGui_ImplSDL2_ProcessEvent(*event);
+        ImplSDL3_ProcessEvent(*event);
 
         if cast(SDL_EventType) event.type == {
             case SDL_EventType.QUIT;

@@ -61,7 +61,7 @@ show_menu_bar_ui :: () {
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        ImGui.Image(imgui_tex_ref(icon_prizm_icon_texture[prizm_icon_color_index].gl_handle), icon_size);
+        if icon_prizm_icon_texture[prizm_icon_color_index].gl_handle  ImGui.Image(imgui_tex_ref(icon_prizm_icon_texture[prizm_icon_color_index].gl_handle), icon_size);
         click_cycle_prizm_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
             show_tooltip(tprint("Prizm %", changelog[0].name));
@@ -344,7 +344,7 @@ show_menu_bar_ui :: () {
 
             // Invisible dummy button to figure out where to start putting the minimize, maximize/restore, quit buttons
             button_width := -ImGui.GetCursorScreenPos().x;
-            ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=TRANSPARENT);
+            if icon_window_maximize_texture.gl_handle  ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=TRANSPARENT);
             button_width +=  ImGui.GetCursorScreenPos().x;
             start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
             ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
@@ -358,16 +358,16 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, ImGui.GetStyle().Colors[ImGui.Col.HeaderActive]);
             defer ImGui.PopStyleColor(2);
 
-            if ImGui.ImageButton("##MinimizeButton", imgui_tex_ref(icon_window_minimize_texture.gl_handle), icon_size, tint_col=BLACK) {
+            if icon_window_minimize_texture.gl_handle && ImGui.ImageButton("##MinimizeButton", imgui_tex_ref(icon_window_minimize_texture.gl_handle), icon_size, tint_col=BLACK) {
                 SDL_MinimizeWindow(app.window);
             }
 
             if app.window_maximized {
-                if ImGui.ImageButton("##RestoreButton", imgui_tex_ref(icon_window_restore_texture.gl_handle), icon_size, tint_col=BLACK) {
+                if icon_window_restore_texture.gl_handle && ImGui.ImageButton("##RestoreButton", imgui_tex_ref(icon_window_restore_texture.gl_handle), icon_size, tint_col=BLACK) {
                     SDL_RestoreWindow(app.window);
                 }
             } else {
-                if ImGui.ImageButton("##MaximizeButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=BLACK) {
+                if icon_window_maximize_texture.gl_handle && ImGui.ImageButton("##MaximizeButton", imgui_tex_ref(icon_window_maximize_texture.gl_handle), icon_size, tint_col=BLACK) {
                     SDL_MaximizeWindow(app.window);
                 }
             }
@@ -378,7 +378,7 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, RED);
             defer ImGui.PopStyleColor(2);
 
-            if ImGui.ImageButton("##QuitButton", imgui_tex_ref(icon_window_close_texture.gl_handle), icon_size, tint_col=BLACK) {
+            if icon_window_close_texture.gl_handle && ImGui.ImageButton("##QuitButton", imgui_tex_ref(icon_window_close_texture.gl_handle), icon_size, tint_col=BLACK) {
                 quit_application();
             }
         }
@@ -1845,7 +1845,7 @@ ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, 
 
 ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
 
-    assert(texture.gl_handle != 0);
+    if texture.gl_handle == 0  return; // @Phase1 icons not yet ported to SDL_GPU
 
     // To avoid having to #poke_name the operator==, which was causing intermittent failure to compile @CompilerBug
     // Note that using #poke_name was kinda ugly because it wasn't clear what operator== is being poked? maybe need to use procedure_of_call instead?

@@ -542,17 +542,18 @@ SDL3/ImGui binaries are already vendored + LFS'd.)
 Each phase should compile and run (use `/mnt/c/Dev/jai/bin/jai-linux first.jai -` to typecheck;
 the first compile of new code usually needs explicit numeric casts — expected).
 
-- **Phase 0 — Spike (no Prizm changes).** Get `modules/ImGui/tests/test.jai` building/running
-  against `modules/SDL3` (3.4.4) on Linux to prove the version-mismatch reasoning (§4) in
-  practice and learn the API. **Exit:** a window with ImGui rendered through `sdl3_gpu3`.
-- **Phase 1 — Device + ImGui only.** In Prizm, replace GL context creation with
-  `SDL_CreateGPUDevice`/`SDL_ClaimWindowForGPUDevice`, swap ImGui to `ImplSDL3_*` +
-  `ImplSDLGPU3_*`, and render **only the UI** (skip all 3D draws). Delete
-  `imgui_impl_opengl3.jai`; decide on `imgui_impl_sdl.jai` (§6). **Exit:** full Prizm UI works,
-  viewport is blank. This de-risks the biggest integration surface first.
-- **Phase 2 — Shader build pipeline (§7).** Stand up GLSL→SPIR-V(+MSL+DXIL) in `first.jai` with
-  one trivial triangle shader. **Exit:** a hard-coded triangle renders via a Prizm-created
-  pipeline.
+- **Phase 0 — Spike (no Prizm changes).** ✅ `spike/spike.jai` + `spike/build.jai`: window with
+  ImGui demo rendered through `sdl3_gpu3`, built against SDL 3.4.4. Confirmed RT-0 safe.
+- **Phase 1 — Device + ImGui only.** ✅ Replaced GL context with `SDL_CreateGPUDevice` +
+  `SDL_ClaimWindowForGPUDevice`; swapped ImGui to `ImplSDL3_*` + `ImplSDLGPU3_*`; deleted both
+  `imgui_impl_opengl3.jai` and `imgui_impl_sdl.jai`. Skipped `init_rendering()` + `init_icons()`
+  (GL-dependent; Phase 2+). Icon image calls guarded with `if gl_handle` for Phase 1. UI runs,
+  viewport is blank (dark background from SDL_GPU clear).
+- **Phase 2 — Shader build pipeline (§7).** ✅ `compile_shaders()` in `first.jai` runs
+  `glslangValidator -V` for each GLSL source → `.build/shaders/<name>.spv` before
+  `add_build_file`; bytecode embedded via `#run read_entire_file`. `source/render/sdlgpu_hello.jai`
+  creates a pipeline from the SPIR-V and draws a hardcoded RGB triangle before ImGui each frame.
+  Requires `glslang-tools` (`sudo apt install glslang-tools`).
 - **Phase 3 — Buffers + the points/lines + triangles pipelines.** Port
   `maybe_update_render_info` to transfer/GPU buffers; port `pso_triangles` (with barycentric
   wireframe + CPU face normals, §5.1a) and `pso_points`/`pso_lines`. Wire `Transform_UBO` +
@@ -563,9 +564,8 @@ the first compile of new code usually needs explicit numeric casts — expected)
   **Exit:** forward renderer at parity except the known line/point-width regressions.
 - **Phase 5 — Width fidelity.** Implement quad-expanded thick lines + sized point quads
   (§5.2A/§5.3A) to close RT-2/RT-3. **Exit:** visual parity with the GL renderer.
-- **Phase 6 — Deferred path (optional/last).** Port G-buffer/SSAO/lighting/blit. It's off by
-  default (`use_deferred_renderer=false`) and experimental, so it can lag or be dropped if not
-  worth it — confirm with user.
+- ~~**Phase 6 — Deferred path.**~~ **Dropped.** The deferred renderer is experimental and off by
+  default; it will be deleted rather than ported.
 - **Phase 7 — macOS + Windows bring-up**, then **WASM** as a separate milestone (§8).
 
 ---
@@ -574,27 +574,25 @@ the first compile of new code usually needs explicit numeric casts — expected)
 
 | ID | Area | Status | Description / decision |
 | --- | --- | --- | --- |
-| RT-0 | SDL version | Info | ImGui `sdl3_gpu3` backend built vs SDL 3.2.14, run against 3.4.4. Safe per §4 (ABI stable, single module/runtime). No action unless we regenerate the backend. |
+| RT-0 | SDL version | **Verified** | ImGui `sdl3_gpu3` backend built vs SDL 3.2.14, run against 3.4.4. Confirmed safe in `spike/spike.jai` (Phase 0). |
 | RT-1 | Solid wireframe AA | Open | `triangles.geom` screen-space edge-distance AA → barycentric + `fwidth`. Visually near-identical for ortho camera; not bit-exact. Verify against `shapes/*`. |
 | RT-2 | Point/vertex size | Open | `gl_PointSize` unsupported. Phase 3 ships 1px stopgap; Phase 5 restores via sized quads. |
 | RT-3 | Line width | Open | `glLineWidth` unsupported (segments, edges-as-lines, normals). Phase 3/4 ship 1px; Phase 5 restores via quad expansion. Solid wireframe-on-faces unaffected. |
 | RT-4 | Clipping sphere/slabs | Open (low risk) | Pure `discard`, ported as-is via `Clip_UBO`. Track only to confirm visual parity incl. `clip_radius_mode` darken. |
-| RT-5 | Clip-space/unproject | Open (high risk) | `[-1,1]`→`[0,1]` depth + offscreen Y flip. Audit `make_camera_ray`, `to_screen_position`, pan/orbit `z=-1` assumptions (`camera.jai`). Picking/labels/clipping depend on this. |
-| RT-6 | Deferred renderer | Open | May be deferred/dropped (experimental, off by default). Confirm scope with user. |
+| RT-5 | Clip-space/unproject | Open (high risk) | `[-1,1]`→`[0,1]` depth globally: pass `depth_range_01=true` to `orthographic_projection_matrix`; fix all `z=-1` near-plane assumptions in `make_camera_ray`, `to_screen_position`, pan/orbit code (`camera.jai`). Picking/labels/clipping depend on this. |
+| RT-6 | Deferred renderer | **Dropped** | Deleted, not ported. Experimental and off by default. |
 
 ---
 
-## 11. Open questions for the user
+## 11. Decisions (resolved 2026-05-31)
 
-1. **Shader bytecode in the repo?** Vendor prebuilt `.spv`/`.dxil`/`.msl` (like the SDL3/ImGui
-   binaries already vendored via LFS) so contributors without `glslc`/SDL_shadercross can build,
-   regenerating on shader change? Or require the toolchain on PATH for everyone?
-2. **ImGui platform backend:** delete our `source/imgui_impl_sdl.jai` and use the official
-   `ImplSDL3_*` from the backend lib (recommended, §6), or keep our port?
-3. **Deferred renderer (RT-6):** port it, or drop it during this work since it's experimental
-   and off by default?
-4. **Authoring language:** stay in GLSL 450 and cross-compile (recommended, lowest friction for
-   the team), or move shader sources to HLSL (SDL's "native" GPU language)?
-5. **Clip-space strategy (RT-5):** switch the projection to `depth_range_01` globally and fix the
-   handful of `z=-1` unproject call-sites, or keep a GL-convention matrix for CPU-side
-   pick/label math and use `[0,1]` only for the GPU uniform?
+1. **Shader bytecode in the repo:** **Vendor prebuilt** `.spv`/`.dxil`/`.msl` via LFS (mirrors
+   how SDL3/ImGui binaries are already handled). Contributors without `glslc`/SDL_shadercross can
+   still build; bytecode is regenerated when shaders change.
+2. **ImGui platform backend:** **Delete both `source/imgui_impl_sdl.jai` and
+   `source/imgui_impl_opengl3.jai`**. Use the official `ImplSDL3_*` + `ImplSDLGPU3_*` pair from
+   `modules/ImGui/backends/`. Platform event reading in `handle_events` is unaffected.
+3. **Deferred renderer:** **Dropped** — deleted, not ported (RT-6).
+4. **Shader authoring language:** **GLSL 450** → SPIR-V (+ MSL/DXIL via SDL_shadercross).
+5. **Clip-space strategy:** **Global fix** — pass `depth_range_01=true` to
+   `orthographic_projection_matrix` and fix all `z=-1` unproject call-sites (RT-5).

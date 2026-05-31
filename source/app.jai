@@ -6,6 +6,7 @@ app : App;
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
+    gpu_device : *SDL_GPUDevice = null;
     window_type : Window_Type;
     window_maximized := false;
     window_draggable_rect_min : ImGui.ImVec2;
@@ -440,10 +441,10 @@ Debug :: #import "Debug";
 #import "SDL3"(USE_SYSTEM_LIBRARY=false);
 ImGui :: #import "ImGui";
 
-// SDL3 returns SDL_FunctionPointer from SDL_GL_GetProcAddress; wrap it to *void for gl_load
-sdl_gl_get_proc_address :: (name: *u8) -> *void #c_call { return cast(*void) SDL_GL_GetProcAddress(name); }
-#load "imgui_impl_sdl.jai"; // SDL platform backend
-#load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
+// Type aliases so sdl3_gpu3.jai resolves ImGui types without the ImGui:: prefix.
+ImDrawData    :: ImGui.ImDrawData;
+ImTextureData :: ImGui.ImTextureData;
+#load "../modules/ImGui/backends/sdl3_gpu3.jai"; // SDL_GPU platform + renderer backends
 
 
 #if OS == .WINDOWS {
@@ -499,6 +500,7 @@ sdl_gl_get_proc_address :: (name: *u8) -> *void #c_call { return cast(*void) SDL
 #load "render/shader_lighting.jai";
 #load "render/render.jai";
 #load "render/render_utils.jai";
+#load "render/sdlgpu_hello.jai"; // @Phase2 hello triangle; delete when Phase 3 geometry lands
 #load "render/render_text.jai";
 #load "render/render_pass.jai";
 #load "render/texture.jai";
