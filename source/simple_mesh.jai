@@ -406,7 +406,7 @@ Simple_Mesh_Attribute_Base :: struct {
 
     // Rendering of attributes is @Incomplete study the implementation in Polyscope/GraphiteThree?
     Attribute_Render_Info :: struct {
-        buffer : GLuint;
+        buffer : u32; // @TODO remove (GL handle, unused)
     }
 
     name : string;

@@ -27,55 +27,7 @@ make_axes_triad :: (axis_length : float) -> Axes_Triad
     return result;
 }
 
-render_axes_triad :: () {
-    if app.triad.visible == false {
-        return;
-    }
 
-    // @Refactor This is a confusing function with bad variable names
-
-    using *app.camera;
-    old_camera := app.camera;
-    defer app.camera = old_camera;
-
-    w, h : float = cast(float)app.window_size.width, cast(float)app.window_size.height;
-    s := 80.;
-    a := current_window_aspect_ratio_width_over_height();
-
-    near, far = -s, s;
-    bottom, top = 0., h;
-    left, right = 0., w;
-    unit_look_direction := normalize(current_look_direction());
-    look_position = Vector3.{};
-    eye_position = look_position - unit_look_direction;
-
-    offset_vs := Vector3.{s, s, 0.} + Vector3.{w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0};
-    valid, world_from_view := inverse(make_look_at_matrix(app.camera));
-    if !valid vlog_warning("Could not invert look at matrix created from camera '%'", app.camera);
-    offset_ws := (world_from_view * Vector4.{xyz=offset_vs}).xyz;
-
-    scale := make_scale_matrix4(.8 * Vector3.{s, s, s});
-    shift := make_translation_matrix4(offset_ws);
-    xform := shift * scale;
-
-    app.triad.origin.mesh.world_from_model = xform;
-    app.triad.x_axis.mesh.world_from_model = xform;
-    app.triad.y_axis.mesh.world_from_model = xform;
-    app.triad.z_axis.mesh.world_from_model = xform;
-
-    ScopeGlState();
-
-    render_mesh_triangles(app.triad.origin);
-    render_mesh_triangles(app.triad.x_axis);
-    render_mesh_triangles(app.triad.y_axis);
-    render_mesh_triangles(app.triad.z_axis);
-
-    // Bug Screws up the background shader!!?
-    // render_mesh_triangles_as_lines(*app.triad.origin.mesh, *app.triad.origin.render_info, app.triad.origin.display_info);
-    // render_mesh_triangles_as_lines(*app.triad.x_axis.mesh, *app.triad.x_axis.render_info, app.triad.x_axis.display_info);
-    // render_mesh_triangles_as_lines(*app.triad.y_axis.mesh, *app.triad.y_axis.render_info, app.triad.y_axis.display_info);
-    // render_mesh_triangles_as_lines(*app.triad.z_axis.mesh, *app.triad.z_axis.render_info, app.triad.z_axis.display_info);
-}
 
 #if 0 #run {
     using triad := make_triad(1);

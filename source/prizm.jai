@@ -214,7 +214,7 @@ main :: () {
             SDL_AcquireGPUSwapchainTexture(cmd, app.window, *swapchain_tex, null, null);
 
             if swapchain_tex {
-                upload_entity_buffers_gpu(cmd);              // copy passes — before render pass
+                upload_entity_buffers_gpu(cmd);              // copy passes -- before render pass
                 ImplSDLGPU3_PrepareDrawData(draw_data, cmd); // must be before BeginRenderPass
 
                 // Determine the background clear color (used when solid-color mode is set)

@@ -21,7 +21,7 @@ Entity :: struct {
     is_hovered := false;
 
     render_info     : Render_Info;
-    render_info_gpu : Render_Info_GPU; // SDL3 GPU buffers — see sdlgpu_render.jai
+    render_info_gpu : Render_Info_GPU; // SDL3 GPU buffers -- see sdlgpu_render.jai
     display_info    : Display_Info;
 
     // Note the transform stored in this mesh also applies to:
@@ -144,21 +144,6 @@ deinit :: (using entity : *Entity) {
             source := isa(entity.source, Entity_Source_Command);
             free(source.console_command);
     }
-
-    if render_info.positions_vbo         glDeleteBuffers(1, *render_info.positions_vbo);
-    if render_info.positions_vao         glDeleteVertexArrays(1, *render_info.positions_vao);
-
-    if render_info.points_vbo            glDeleteBuffers(1, *render_info.points_vbo);
-    if render_info.points_vao            glDeleteVertexArrays(1, *render_info.points_vao);
-
-    if render_info.segments_vbo          glDeleteBuffers(1, *render_info.segments_vbo);
-    if render_info.segments_vao          glDeleteVertexArrays(1, *render_info.segments_vao);
-    if render_info.segments_normals_vao  glDeleteVertexArrays(1, *render_info.segments_normals_vao);
-
-    if render_info.triangles_vbo         glDeleteBuffers(1, *render_info.triangles_vbo);
-    if render_info.triangles_vao         glDeleteVertexArrays(1, *render_info.triangles_vao);
-    if render_info.triangles_edges_vao   glDeleteVertexArrays(1, *render_info.triangles_edges_vao);
-    if render_info.triangles_normals_vao glDeleteVertexArrays(1, *render_info.triangles_normals_vao);
 
     render_info = .{};
 }

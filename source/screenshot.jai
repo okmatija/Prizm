@@ -175,7 +175,7 @@ screenshot_maybe_capture :: (draw_data : *ImDrawData) -> bool {
     rgba.count = cast(int) total_bytes;
     ok := bmp_write_rgba(g_screenshot_path, cast(s32) w, cast(s32) h, rgba);
     SDL_UnmapGPUTransferBuffer(gpu, tbuf);
-    if ok  print("[screenshot] saved '%'  (%×%)\n", g_screenshot_path, w, h);
+    if ok  print("[screenshot] saved '%'  (%*%)\n", g_screenshot_path, w, h);
     else   print("[screenshot] ERROR: could not write '%'\n",   g_screenshot_path);
 
     // ---- Cleanup ----
@@ -232,9 +232,9 @@ bmp_write_rgba :: (path : string, w : s32, h : s32, rgba : []u8) -> bool {
     put_u32(buf, 34, cast(u32) pixel_bytes);
     put_s32(buf, 38, 2835);        // 72 DPI
     put_s32(buf, 42, 2835);
-    // bytes 46–53 are zero (colours used / important)
+    // bytes 46-53 are zero (colours used / important)
 
-    // Pixel data: RGBA source → BGR destination
+    // Pixel data: RGBA source -> BGR destination
     for y : 0..h-1 {
         for x : 0..w-1 {
             s := (y * w + x) * 4;      // RGBA source index

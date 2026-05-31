@@ -57,3 +57,6 @@ support/
 
 # Claude Code per-machine local settings (keep the shared .claude/settings.json tracked)
 .claude/settings.local.json
+spike/libSDL3.so.0
+spike/spike
+spike/.build/

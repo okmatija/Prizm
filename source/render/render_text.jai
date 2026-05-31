@@ -57,13 +57,7 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
         return;
     }
 
-    glEnable(GL_BLEND);
-    defer glDisable(GL_BLEND);
     // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
-    // glDisable(GL_CULL_FACE);
-    // defer glEnable(GL_CULL_FACE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
@@ -209,13 +203,7 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
 }
 
 render_entity_text_spotlight :: ($entity_filter : Code) {
-    glEnable(GL_BLEND);
-    defer glDisable(GL_BLEND);
     // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
-    // glDisable(GL_CULL_FACE);
-    // defer glEnable(GL_CULL_FACE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 

@@ -94,3 +94,11 @@ Non-dogmatic, but match these conventions (full list in the wiki's "Coding Style
 - When adding a non-obvious user-facing feature, comment its motivation at the implementation site (start with `Feature documentation:`).
 - Prizm must not push users to write OBJ files that fail to load in other viewers — keep extensions inside OBJ comments.
 - Task priority convention is borrowed from [fixmee](https://github.com/rolandwalker/fixmee). Priority is encoded by **repeating the final character of the keyword** — more repetitions = more urgent. This applies across all our keyword markers, e.g. `@TODO`/`@TODOOOO` and `@FIXME`/`@FIXMEEEE`. A tool can list and sort markers in descending urgency order. Use the plain (un-repeated) form unless something is genuinely urgent, don't exceed 3 additional characters.
+## Git workflow
+
+**Never run `git push` unless the user explicitly says to push.** Committing locally is fine without being asked; pushing to the remote requires an explicit instruction.
+
+## Source code style notes
+
+- **ASCII only**: use only ASCII characters in source code. Replace Unicode symbols with ASCII equivalents (e.g. `in` instead of `∈`, `*` instead of `×`, `>=` instead of `≥`).
+- **`:=` spacing**: always write `name := value` — one space between the name and `:=`, no extra spaces between them. Alignment spaces go after `:=` (on the value side), never before it.

@@ -24,7 +24,7 @@ ICON_INDICES_DATA,      _ICe :: #run read_entire_file("data/indices.png",      z
 ICON_COORDINATES_DATA,  _ICf :: #run read_entire_file("data/coordinates.png",  zero_terminated=true); #assert(_ICf);
 ICON_ANNOTATIONS_DATA,  _ICg :: #run read_entire_file("data/annotations.png",  zero_terminated=true); #assert(_ICg);
 
-// SDL GPU icon loading — called at startup after the GPU device is created.
+// SDL GPU icon loading -- called at startup after the GPU device is created.
 init_icons_gpu :: () {
     ok : bool;
     icon_prizm_icon_texture[0],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_BLUE_DATA);        assert(ok);
@@ -44,28 +44,6 @@ init_icons_gpu :: () {
     icon_indices_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_INDICES_DATA);     assert(ok);
     icon_coordinates_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_COORDINATES_DATA); assert(ok);
     icon_annotations_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_ANNOTATIONS_DATA); assert(ok);
-}
-
-// Legacy GL path kept for reference but not called.
-init_icons :: () {
-    ok : bool;
-    icon_prizm_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)ICON_BLUE_DATA);        assert(ok);
-    icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)ICON_GREEN_DATA);       assert(ok);
-    icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)ICON_RED_DATA);         assert(ok);
-    icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)ICON_BLACK_DATA);       assert(ok);
-    icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)ICON_CLOSE_DATA);       assert(ok);
-    icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)ICON_MAXIMIZE_DATA);    assert(ok);
-    icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)ICON_MINIMIZE_DATA);    assert(ok);
-    icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)ICON_RESTORE_DATA);     assert(ok);
-    icon_backface_texture,    ok = load_texture_from_memory(cast([]u8)ICON_BACKFACE_DATA);    assert(ok);
-    icon_opacity_texture,     ok = load_texture_from_memory(cast([]u8)ICON_OPACITY_DATA);     assert(ok);
-    icon_clipping_texture,    ok = load_texture_from_memory(cast([]u8)ICON_CLIPPING_DATA);    assert(ok);
-    icon_normals_texture,     ok = load_texture_from_memory(cast([]u8)ICON_NORMALS_DATA);     assert(ok);
-    icon_thickness_texture,   ok = load_texture_from_memory(cast([]u8)ICON_THICKNESS_DATA);   assert(ok);
-    icon_radius_texture,      ok = load_texture_from_memory(cast([]u8)ICON_RADIUS_DATA);      assert(ok);
-    icon_indices_texture,     ok = load_texture_from_memory(cast([]u8)ICON_INDICES_DATA);     assert(ok);
-    icon_coordinates_texture, ok = load_texture_from_memory(cast([]u8)ICON_COORDINATES_DATA); assert(ok);
-    icon_annotations_texture, ok = load_texture_from_memory(cast([]u8)ICON_ANNOTATIONS_DATA); assert(ok);
 }
 
 show_menu_bar_ui :: () {
@@ -1182,36 +1160,6 @@ DONE, Labelling_Mode.RAY_CAST));
     //if ImGui.BeginMenu("Camera") {
     //    defer ImGui.EndMenu();
     //}
-
-    if app.settings.feature_flags.use_deferred_renderer && ImGui.BeginMenu("Rendering") {
-        defer ImGui.EndMenu();
-
-        ImGui.PushItemWidth(item_width);
-        defer ImGui.PopItemWidth();
-
-        {
-            TOOLTIPS : [#run get_enum_count(Shader_Ssao.Ssao_Kernel_Kind)]string : .[
-                "Disable SSAO. For untextured models SSAO improves clarity.",
-                "Darkens concave/'inner' edges and lightens convex edges (default).",
-                "Darkens concave/'inner' edges, convex edges/flat planes unmodified.",
-            ];
-            combo_box("SSAO Kernel", *app.render_info.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind), TOOLTIPS);
-        }
-
-        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
-            ImGui.BeginDisabled();
-        }
-
-        ImGui.DragFloat("SSAO bias", *app.render_info.shader_ssao.bias, .001, 0., .2, format="%.3f");
-        ImGui.DragFloat("SSAO kernel radius", *app.render_info.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
-        ImGui.DragInt("SSAO sample count", *app.render_info.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
-
-        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
-            ImGui.EndDisabled();
-        }
-
-        combo_box("Show Channel", *app.render_info.blit_channel, type_info(Blit_Channel));
-    }
 
     if ImGui.BeginMenu("Labelling") {
         defer ImGui.EndMenu();

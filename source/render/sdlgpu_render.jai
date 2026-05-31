@@ -1,4 +1,8 @@
-// SDL3 GPU renderer — replaces the OpenGL render system.
+// Minimum wireframe widths carried over from the GL renderer.
+MIN_EDGES_WIDTH_GL_FILL :: 1.2;
+MIN_EDGES_WIDTH_GL_LINE :: 1.0;
+
+// SDL3 GPU renderer -- replaces the OpenGL render system.
 // init_rendering_gpu() is called once at startup; render_entities_gpu() each frame.
 // The GL-based Render_Info, shader_*.jai, and render_*.jai remain in the codebase but are unused.
 
@@ -11,13 +15,13 @@ Render_Info_GPU :: struct {
 
     // One SDL_GPUBuffer per geometry type.
     // Triangles buffer layout (non-interleaved, all arrays have NVT = 3*tri_count verts):
-    //   [positions: NVT×12][smooth_normals: NVT×12][face_normals: NVT×12][barycentrics: NVT×12][colors: NVT×12]
+    //   [positions: NVT*12][smooth_normals: NVT*12][face_normals: NVT*12][barycentrics: NVT*12][colors: NVT*12]
     // Points buffer layout (NVP = point_count):
-    //   [positions: NVP×12][colors: NVP×12]
+    //   [positions: NVP*12][colors: NVP*12]
     // Segments buffer layout (NVS = 2*seg_count):
-    //   [positions: NVS×12][colors: NVS×12]
+    //   [positions: NVS*12][colors: NVS*12]
     // Positions buffer (unreferenced vertices, NVV = mesh.positions.count):
-    //   [positions: NVV×12][colors: NVV×12]
+    //   [positions: NVV*12][colors: NVV*12]
 
     triangles_buf : *SDL_GPUBuffer;
     triangles_NVT : u32;          // vertex count for triangles (= 3 * tri_count)
@@ -31,13 +35,13 @@ Render_Info_GPU :: struct {
     positions_buf : *SDL_GPUBuffer;
     positions_NVV : u32;          // = position count
 
-    // Normal vector LINELIST buffers (base_pos: vec3, normal: vec3) × 2 per normal.
+    // Normal vector LINELIST buffers (base_pos: vec3, normal: vec3) * 2 per normal.
     // Endpoint flag is derived from gl_VertexIndex % 2 in the shader.
-    tri_normals_buf : *SDL_GPUBuffer; // 6 verts per triangle (3 normals × 2)
+    tri_normals_buf : *SDL_GPUBuffer; // 6 verts per triangle (3 normals * 2)
     tri_normals_NV  : u32;
-    seg_normals_buf : *SDL_GPUBuffer; // 4 verts per segment  (2 normals × 2)
+    seg_normals_buf : *SDL_GPUBuffer; // 4 verts per segment  (2 normals * 2)
     seg_normals_NV  : u32;
-    pt_normals_buf  : *SDL_GPUBuffer; // 2 verts per point    (1 normal  × 2)
+    pt_normals_buf  : *SDL_GPUBuffer; // 2 verts per point    (1 normal  * 2)
     pt_normals_NV   : u32;
 }
 
@@ -46,81 +50,81 @@ Render_Info_GPU :: struct {
 //
 
 Transform_UBO :: struct {
-    clip_from_view   : Matrix4; // 64 bytes
-    view_from_world  : Matrix4; // 64 bytes
-    world_from_model : Matrix4; // 64 bytes
-} // 192 bytes
+    clip_from_view   : Matrix4;
+    view_from_world  : Matrix4;
+    world_from_model : Matrix4;
+}
 #assert(size_of(Transform_UBO) == 192);
 
 Clip_UBO :: struct {
-    clip_sphere           : [4]float; // xyz=center, w=radius          (16 bytes)
-    clip_sphere_prev      : [4]float; // xyz=center, w=radius          (16 bytes)
-    clip_flags            : [4]u32;   // x=sphere_active, y=clip_radius_mode (16 bytes)
-    range_normal          : [3][4]float; // xyz=normal, w=0             (48 bytes)
-    range_min_max         : [3][4]float; // x=min, y=max, z=active_f   (48 bytes)
-} // 144 bytes
+    clip_sphere           : [4]float; // xyz=center, w=radius
+    clip_sphere_prev      : [4]float; // xyz=center, w=radius
+    clip_flags            : [4]u32;   // x=sphere_active, y=clip_radius_mode
+    range_normal          : [3][4]float; // xyz=normal, w=0
+    range_min_max         : [3][4]float; // x=min, y=max, z=active_f
+}
 #assert(size_of(Clip_UBO) == 144);
 
 Triangle_Style_UBO :: struct {
-    color                : [4]float; // rgba                            (16 bytes)
-    edges_color          : [4]float; // rgba                            (16 bytes)
-    backface_color_wave  : [4]float; // xyz=backface_rgb, w=wave        (16 bytes)
-    look_dir_edges_width : [4]float; // xyz=look_dir, w=edges_width     (16 bytes)
-    style_flags          : [4]u32;   // x=frontface_mode, y=backface_mode, z=flat_shading, w=backface_visible (16 bytes)
-} // 80 bytes
+    color                : [4]float; // rgba
+    edges_color          : [4]float; // rgba
+    backface_color_wave  : [4]float; // xyz=backface_rgb, w=wave
+    look_dir_edges_width : [4]float; // xyz=look_dir, w=edges_width
+    style_flags          : [4]u32;   // x=frontface_mode, y=backface_mode, z=flat_shading, w=backface_visible
+}
 #assert(size_of(Triangle_Style_UBO) == 80);
 
 PL_Style_UBO :: struct {
-    color       : [4]float; // rgba   (16 bytes)
-    style_flags : [4]u32;   // x=color_mode, y=clip_mode (16 bytes)
-    wave_pad    : [4]float; // x=wave (16 bytes)
-} // 48 bytes
+    color       : [4]float; // rgba
+    style_flags : [4]u32;   // x=color_mode, y=clip_mode
+    wave_pad    : [4]float; // x=wave
+}
 #assert(size_of(PL_Style_UBO) == 48);
 
 AABB_UBO :: struct {
-    clip_from_view   : Matrix4;  // 64
-    view_from_world  : Matrix4;  // 64
-    world_from_model : Matrix4;  // 64
-    aabb_min         : [4]float; // 16
-    aabb_max         : [4]float; // 16
-    color            : [4]float; // 16
-} // 240 bytes
+    clip_from_view   : Matrix4; 
+    view_from_world  : Matrix4; 
+    world_from_model : Matrix4; 
+    aabb_min         : [4]float;
+    aabb_max         : [4]float;
+    color            : [4]float;
+}
 #assert(size_of(AABB_UBO) == 240);
 
 Background_UBO :: struct {
-    resolution_time : [4]float; // xyz=resolution, w=iTime (16 bytes)
+    resolution_time : [4]float; // xyz=resolution, w=iTime
 }
 #assert(size_of(Background_UBO) == 16);
 
 Normals_Vert_UBO :: struct {
-    clip_from_view   : Matrix4;  // 64
-    view_from_world  : Matrix4;  // 64
-    world_from_model : Matrix4;  // 64
-    normal_scale     : float;    // 4
-    do_normalize     : u32;      // 4
-    _pad0            : float;    // 4
-    _pad1            : float;    // 4
-} // 208 bytes
+    clip_from_view   : Matrix4; 
+    view_from_world  : Matrix4; 
+    world_from_model : Matrix4; 
+    normal_scale     : float;   
+    do_normalize     : u32;     
+    _pad0            : float;   
+    _pad1            : float;   
+}
 #assert(size_of(Normals_Vert_UBO) == 208);
 
 Sized_Prim_Vert_UBO :: struct {
-    clip_from_view   : Matrix4;  // 64
-    view_from_world  : Matrix4;  // 64
-    world_from_model : Matrix4;  // 64
-    prim_size_px     : float;    // 4  — line width or point size in pixels
-    viewport_w       : float;    // 4
-    viewport_h       : float;    // 4
-    _pad             : float;    // 4
-} // 208 bytes
+    clip_from_view   : Matrix4; 
+    view_from_world  : Matrix4; 
+    world_from_model : Matrix4; 
+    prim_size_px     : float;    // 4  -- line width or point size in pixels
+    viewport_w       : float;   
+    viewport_h       : float;   
+    _pad             : float;   
+}
 #assert(size_of(Sized_Prim_Vert_UBO) == 208);
 
 Normals_Frag_UBO :: struct {
-    color        : [4]float; // 16
-    clip_sphere  : [4]float; // 16
-    clip_flags   : [4]u32;   // 16
-    range_normal : [3][4]float; // 48
-    range_min_max: [3][4]float; // 48
-} // 144 bytes
+    color        : [4]float;
+    clip_sphere  : [4]float;
+    clip_flags   : [4]u32;  
+    range_normal : [3][4]float;
+    range_min_max: [3][4]float;
+}
 #assert(size_of(Normals_Frag_UBO) == 144);
 
 //
@@ -409,7 +413,7 @@ init_rendering_gpu :: () {
 
     // ---- Static unit-quad buffers uploaded once ----
     {
-        // Thick-line quad: (t, side) — 6 vertices
+        // Thick-line quad: (t, side) -- 6 vertices
         LINE_QUAD : [12]float : .[
             0, -1,  0, +1,  1, +1,   // tri 1
             0, -1,  1, +1,  1, -1,   // tri 2
@@ -417,7 +421,7 @@ init_rendering_gpu :: () {
         cmd := SDL_AcquireGPUCommandBuffer(gpu);
         g_sdlgpu.unit_quad_line_buf = upload_to_gpu_buffer(cmd, LINE_QUAD.data, size_of(type_of(LINE_QUAD)));
 
-        // Sized-point quad: (x, y) corner — 6 vertices
+        // Sized-point quad: (x, y) corner -- 6 vertices
         PT_QUAD : [12]float : .[
             -1, -1,  +1, -1,  +1, +1,  // tri 1
             -1, -1,  +1, +1,  -1, +1,  // tri 2
@@ -621,7 +625,7 @@ maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Ren
         gpu_info.points_NVP = cast(u32) N;
     }
 
-    // ---- Triangle normal vectors (6 verts per triangle: 3 normals × 2 endpoints) ----
+    // ---- Triangle normal vectors (6 verts per triangle: 3 normals * 2 endpoints) ----
     if mesh.triangles.count {
         normals_attr : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
         if normals_attr && normals_attr.values.count == mesh.triangles.count {
@@ -658,7 +662,7 @@ maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Ren
         }
     }
 
-    // ---- Segment normal vectors (4 verts per segment: 2 endpoints × 2) ----
+    // ---- Segment normal vectors (4 verts per segment: 2 endpoints * 2) ----
     if mesh.segments.count {
         seg_nrm : *Simple_Mesh_Segment_Normals = find_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
         if seg_nrm && seg_nrm.values.count == mesh.segments.count {
@@ -843,7 +847,7 @@ sdlgpu_render_mesh_triangles :: (entity : *Entity, pass : *SDL_GPURenderPass, cm
     SDL_PushGPUFragmentUniformData(cmd, 1, *style, size_of(Triangle_Style_UBO));
     SDL_DrawGPUPrimitives(pass, NVT, 1, 0, 0);
 
-    // Degenerate triangle edges (LINE fill mode) — shows collapsed triangles
+    // Degenerate triangle edges (LINE fill mode) -- shows collapsed triangles
     if triangle_style.edge_style.visible || clip_radius_mode_show_wireframe {
         edge_style := fill_triangle_style_ubo(entity.display_info);
         // edges_width=0 in LINE mode suppresses the solid-wireframe overlay (it's pure GL_LINE here)
@@ -1052,7 +1056,7 @@ sdlgpu_render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4, pass :
 
 sdlgpu_render_background :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
     if app.background_style == .SOLID_COLOR {
-        // Solid colour is handled by the render-pass clear colour — nothing extra to draw.
+        // Solid colour is handled by the render-pass clear colour -- nothing extra to draw.
         return;
     }
 
@@ -1240,11 +1244,11 @@ sdlgpu_draw_entity :: (entity : *Entity, entity_index : int, pass : *SDL_GPURend
 
     sdlgpu_render_mesh_triangles       (entity, pass, cmd);
     sdlgpu_render_mesh_triangle_normals(entity, pass, cmd);
-    sdlgpu_render_mesh_segments_thick  (entity, pass, cmd); // Phase 5: thick via quads
+    sdlgpu_render_mesh_segments_thick  (entity, pass, cmd);
     sdlgpu_render_mesh_segment_normals (entity, pass, cmd);
-    sdlgpu_render_mesh_points_sized    (entity, pass, cmd); // Phase 5: sized via quads
+    sdlgpu_render_mesh_points_sized    (entity, pass, cmd);
     sdlgpu_render_mesh_point_normals   (entity, pass, cmd);
-    sdlgpu_render_mesh_positions_sized (entity, pass, cmd); // Phase 5: sized via quads
+    sdlgpu_render_mesh_positions_sized (entity, pass, cmd);
     if entity.display_info.aabb_visible {
         sdlgpu_render_aabb(entity.render_info.bounding_aabb, entity.mesh.world_from_model, pass, cmd);
     }
