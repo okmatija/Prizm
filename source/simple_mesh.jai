@@ -404,15 +404,9 @@ Simple_Mesh_Attribute_Base :: struct {
         theme : Attribute_Theme;
     }
 
-    // Rendering of attributes is @Incomplete study the implementation in Polyscope/GraphiteThree?
-    Attribute_Render_Info :: struct {
-        buffer : u32; // @TODO remove (GL handle, unused)
-    }
-
     name : string;
     type : Type;
     display_info : Attribute_Display_Info;
-    render_info : Attribute_Render_Info;
 }
 
 /// Maybe we need a Simple_Mesh_Attribute_Element which only has point,segment, triangle members, to constrain what can have an annotation
