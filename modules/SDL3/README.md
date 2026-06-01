@@ -9,7 +9,7 @@ These bindings are 'pure', we don't add or change the interface to SDL3.
 Copy this into your modules folder, then:
 
 - **Windows**: Put the proper (x64/arm64) DLL next to your executable and make sure it's called `SDL3.dll`. Prebuilt DLLs [here](https://github.com/overlord-systems/jai-sdl3/releases/tag/v1.5_3.4.4).
-- **Linux**: By default links against the system `libSDL3.so.0`. Pass `USE_SYSTEM_LIBRARY=false` to use the prebuilt x64 binary bundled in `linux/bin/x64/` instead. See the [Linux note](#linux-note) below for details on both options.
+- **Linux**: By default uses the prebuilt x64 binary bundled in `linux/bin/x64/`. Pass `USE_SYSTEM_LIBRARY=true` to link against the system `libSDL3.so.0` instead. See the [Linux note](#linux-note) below for details on both options.
 - **MacOS**: Place the `x86/arm64` universal dynamic library (download from [here](https://github.com/overlord-systems/jai-sdl3/releases/tag/v1.5_3.4.4)) next to your executable and make sure its called `libSDL3.0.dylib` (thanks to @4iwen).
 
 SDL supports a ton of platforms, so adding support for things like Android/iOS/etc should be possible.
@@ -46,7 +46,17 @@ Rather than requiring users to install SDL3 separately, your `first.jai` (or equ
 
 SDL3 does not ship prebuilt Linux binaries in its official releases. Two options are available:
 
-**Option A — system library (default)**
+**Option A — bundled library (default)**
+
+Add the "Copying the library..." snippet above to your build script, then import SDL3 as follows:
+
+```jai
+#import "SDL3";
+```
+
+The bundled binary is copied next to your executable at build time; the Jai linker sets `-rpath='$ORIGIN'` so the dynamic linker finds it at runtime without a system install.
+
+**Option B — system library**
 
 You can install SDL3 system-wide using a package manager, or install from the bundled binary like this:
 
@@ -57,21 +67,13 @@ sudo ldconfig
 
 If you install via a package manager, be aware of what version you're installing and whether it's different from the one whose bindings are provided here.
 
-You will now be able to import SDL3 as follows:
+Import SDL3 as follows:
 
 ```jai
-#import "SDL3";
+#import "SDL3"(USE_SYSTEM_LIBRARY=true);
 ```
 
 If you use this method you don't need to copy the library next to your executable using the "Copying the library..." snippet above.
-
-**Option B — bundled library**
-
-If you want to use the prebuilt x64 binary in `linux/bin/x64/` directly, without a system install, add the "Copying the library..." snippet above and then import SDL3 as follows:
-
-```jai
-#import "SDL3"(USE_SYSTEM_LIBRARY=false);
-```
 
 The bundled binary (SDL 3.4.4, built with `-O3 -DNDEBUG`) is a release build: optimized, no debug info, but **not stripped** (symbol table intact). To reduce size:
 

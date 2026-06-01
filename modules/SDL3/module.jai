@@ -1,7 +1,7 @@
-// Set USE_SYSTEM_LIBRARY=false to use the prebuilt library bundled in linux/bin/x64/
-// instead of requiring a system-wide SDL3 installation.
+// Set USE_SYSTEM_LIBRARY=true to link against the system libSDL3.so.0 instead of
+// the prebuilt library bundled in linux/bin/x64/.
 // Has no effect on Windows or macOS (those always use their bundled libraries).
-#module_parameters (USE_SYSTEM_LIBRARY := true);
+#module_parameters (USE_SYSTEM_LIBRARY := false);
 
 #if OS == .WINDOWS {
     #load "windows/windows.jai";
