@@ -410,7 +410,7 @@ Debug :: #import "Debug";
 #import "freetype";
 #import "System";
 #import "stb_image";
-#import "SDL3"(USE_SYSTEM_LIBRARY=false);
+#import "SDL3";
 ImGui :: #import "ImGui";
 
 // Type aliases so sdl3_gpu3.jai resolves ImGui types without the ImGui:: prefix.

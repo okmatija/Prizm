@@ -250,7 +250,7 @@ ImTextureData :: ImGui.ImTextureData;
 #load "inspector.jai";
 
 ImGui :: #import "ImGui";
-#import "SDL3"(USE_SYSTEM_LIBRARY=false);
+#import "SDL3";
 #import "Math";
 
 fit_scene_on_screen :: () {} // @Hack needed for checkbox sweeping... sigh
