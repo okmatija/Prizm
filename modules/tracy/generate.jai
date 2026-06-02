@@ -45,7 +45,7 @@ generate_bindings :: (args: [] string) -> bool {
         #if OS == .WINDOWS {
             extra_args := string.["/DTRACY_ENABLE", "/DTRACY_EXPORTS"];
         } else {
-            extra_args := string.["-DTRACY_ENABLE", "-DTRACY_EXPORTS", "-DTRACY_ON_DEMAND", "-std=c++20", "-l:libgcc_eh.a", "-Wno-deprecated-declarations"];
+            extra_args := string.["-DTRACY_ENABLE", "-DTRACY_EXPORTS", "-DTRACY_ON_DEMAND", "-DTRACY_NO_SYSPROFILE", "-std=c++20", "-l:libgcc_eh.a", "-Wno-deprecated-declarations"];
         }
 
         make_directory_if_it_does_not_exist(lib_directory, recursive = true);

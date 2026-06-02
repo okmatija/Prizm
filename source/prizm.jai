@@ -1,4 +1,7 @@
 #load "app.jai";
+#if USE_TRACY {
+    #load "tracy_frame_image.jai";
+}
 
 main :: () {
 
@@ -88,6 +91,7 @@ main :: () {
     init_rendering_gpu();
     init_icons_gpu();
     init_screenshot();
+    #if USE_TRACY  init_tracy_frame_image();
     init_camera();
     init_commands();
     init_keymap();
@@ -139,10 +143,6 @@ main :: () {
 
     // Main loop
     while !app.closing_application {
-
-        #if USE_TRACY {
-            context._Tracy.FrameMark();
-        }
 
         // Cache the state we need this frame and reset it for the next frame
         g_this_frame_state = g_next_frame_state; // This should be read-only for this frame
@@ -215,6 +215,9 @@ main :: () {
             SDL_AcquireGPUSwapchainTexture(cmd, app.window, *swapchain_tex, null, null);
 
             if swapchain_tex {
+                render_target : *SDL_GPUTexture = swapchain_tex;
+                #if USE_TRACY  render_target = tracy_ensure_offscreen(cast(u32) app.window_size.width, cast(u32) app.window_size.height);
+
                 upload_entity_buffers_gpu(cmd);              // copy passes -- before render pass
                 ImplSDLGPU3_PrepareDrawData(draw_data, cmd); // must be before BeginRenderPass
 
@@ -224,7 +227,7 @@ main :: () {
 
                 // Pass A: background + all geometry (depth cleared)
                 color_a := SDL_GPUColorTargetInfo.{
-                    texture     = swapchain_tex,
+                    texture     = render_target,
                     clear_color = bg_clear,
                     load_op     = .CLEAR,
                     store_op    = .STORE,
@@ -244,7 +247,7 @@ main :: () {
 
                 // Pass B: axes triad + ImGui (depth cleared, colour preserved)
                 color_b := SDL_GPUColorTargetInfo.{
-                    texture  = swapchain_tex,
+                    texture  = render_target,
                     load_op  = .LOAD,
                     store_op = .STORE,
                 };
@@ -259,9 +262,16 @@ main :: () {
                 render_axes_triad_gpu(pass_b, cmd);
                 ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass_b);
                 SDL_EndGPURenderPass(pass_b);
+
+                #if USE_TRACY  tracy_blit_and_enqueue_download(cmd, swapchain_tex);
             }
 
             SDL_SubmitGPUCommandBuffer(cmd);
+
+            #if USE_TRACY {
+                if swapchain_tex  tracy_emit_frame_image();
+                context._Tracy.FrameMark();
+            }
         }
 
         reset_temporary_storage();
@@ -271,6 +281,7 @@ main :: () {
 
     // Cleanup
     SDL_WaitForGPUIdle(app.gpu_device);
+    #if USE_TRACY  deinit_tracy_frame_image();
     deinit_rendering_gpu();
     ImplSDL3_Shutdown();
     ImplSDLGPU3_Shutdown();

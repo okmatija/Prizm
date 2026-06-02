@@ -24,7 +24,6 @@ get_plugin :: () -> *Metaprogram_Plugin {
     for 0..s.count-1
         if s[it] == #char "\\" { s[it] = #char "/"; }
 
-    p.prepend_zone_node = compiler_get_nodes(PREPEND_ZONE_CODE);
     return p;
 }
 
@@ -94,7 +93,7 @@ message :: (p: *Metaprogram_Plugin, message: *Message) {
         new_statements : [..] *Code_Node;
 
         array_reserve(*new_statements, body.block.statements.count + 1);
-        array_add(*new_statements, plugin.prepend_zone_node);
+        array_add(*new_statements, compiler_get_nodes(PREPEND_ZONE_CODE));  // fresh node per procedure so #procedure_name(#this) resolves correctly
         array_add(*new_statements, ..body.block.statements);
 
         body.block.statements = new_statements;
@@ -155,8 +154,4 @@ My_Plugin :: struct {
     min_size := MINIMUM_SIZE_DEFAULT;
     instrument_modules := false;
 
-    //
-    // The user should not mess with these:
-    //
-    prepend_zone_node:   *Code_Node;
 }

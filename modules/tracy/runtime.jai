@@ -19,6 +19,10 @@
 		___tracy_emit_frame_mark_end(name);
 	}
 
+	FrameImage :: (image: *void, w: u16, h: u16, offset: u8 = 0, flip: s32 = 0) #expand #no_debug {
+		___tracy_emit_frame_image(image, w, h, offset, flip);
+	}
+
 	// Call this at the start of the scope you want to profile.
 	ZoneScoped :: ($name := "", text := "", color: u32 = 0, value: u64 = 0) #expand #no_debug {
         location :: #location(#this);
