@@ -158,7 +158,7 @@ build :: () {
     // libtracy.dll is built from source with the local MSVC toolchain via rebuild_windows.bat
     // to avoid symbol-resolution breakage from inlined _Thrd_sleep_for in MSVC 14.36+.
     #if OS == .LINUX {
-        if tracy_profiling && !file_exists("libtracy.so") {
+        if tracy_profiling {
             if !copy_file("modules/tracy/linux/libtracy.so", "libtracy.so") {
                 compiler_report("Could not copy libtracy.so.", mode=.ERROR_CONTINUABLE);
             }

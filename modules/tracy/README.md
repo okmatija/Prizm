@@ -15,12 +15,13 @@ Tracy has two parts: a **plugin** (injected into the compiler, instruments the t
 Add this to `build()` in your metaprogram, after `set_working_directory`, before compilation:
 
 ```jai
+// Always copy (no file_exists guard) so a rebuilt library is picked up immediately.
 #if OS == .LINUX {
-    if tracy_enabled && !file_exists("libtracy.so") {
+    if tracy_enabled {
         copy_file("modules/tracy/linux/libtracy.so", "libtracy.so");
     }
 } else #if OS == .WINDOWS {
-    if tracy_enabled {  // always copy so a rebuild is picked up immediately
+    if tracy_enabled {
         copy_file("modules/tracy/windows/libtracy.dll", "libtracy.dll");
     }
 }
