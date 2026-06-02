@@ -14,10 +14,5 @@
 
     #load "instrument.jai";
     #load "options.jai";
-} else {
-    // When imported by the client, we provide the actual profiling code,
-    // and code for reporting the profile results (either batch-wise
-    // or interactively). This is the bulk of the actual code in this module.
-
-    #load "runtime.jai";
 }
+#load "runtime.jai";

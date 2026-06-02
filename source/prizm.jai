@@ -203,6 +203,7 @@ main :: () {
         ImGui.Render();
 
         {
+            #if USE_TRACY  context._Tracy.ZoneScoped("gpu_submit", color=0xC04020);
             draw_data := ImGui.GetDrawData();
 
             // Screenshot: render offscreen, save, and exit.
@@ -694,7 +695,7 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
 
         return .SDL_HITTEST_NORMAL;
     }
-}
+} @NoProfile
 
 imgui_init_fonts :: () {
     // TODO Option to pass font and size on the command line?
@@ -718,13 +719,13 @@ c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
     push_context (cast(*#Context)userdata).* {
         return alloc(cast(s64)sz);
     }
-}
+} @NoProfile
 
 c_free :: (ptr: *void, userdata: *void) -> void #c_call {
     push_context (cast(*#Context)userdata).* {
         free(ptr);
     }
-}
+} @NoProfile
 
 ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     #if set_default_allocators {

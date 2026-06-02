@@ -7,6 +7,7 @@ HELP_STRING :: #string DONE
 Build Options:
   help       print this help message
   debug_gl   build with opengl in debug mode, and use GL 4.3 so RenderDoc annotations work
+  tracy      build with Tracy profiling instrumentation (auto-annotates all procedures)
   Choose one of:
     verydebug  build debug mode with the memory debugger enabled
     debug      build debug mode (default)
@@ -150,6 +151,17 @@ build :: () {
     array_add(*new_path, "modules"); // before stdlib so modules/ImGui shadows the stdlib ImGui
     array_add(*new_path, ..build_options.import_path);
     build_options.import_path = new_path;
+
+    // When building with Tracy on Linux, copy libtracy.so next to the executable so the
+    // dynamic linker finds it via -rpath='$ORIGIN'. (Tracy is built as a shared lib to avoid
+    // needing an explicit libstdc++ link in the Jai linker invocation.)
+    #if OS == .LINUX {
+        if tracy_profiling && !file_exists("libtracy.so") {
+            if !copy_file("modules/tracy/linux/libtracy.so", "libtracy.so") {
+                compiler_report("Could not copy libtracy.so.", mode=.ERROR_CONTINUABLE);
+            }
+        }
+    }
 
     plugins_to_create: [..] Plugin_To_Create;
     array_add(*plugins_to_create, .{name="Check"}); // .{name="Check(CHECK_BINDINGS=false)"}

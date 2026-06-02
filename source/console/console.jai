@@ -500,7 +500,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
     }
 
     return 0;
-}
+} @NoProfile
 
 #scope_file
 

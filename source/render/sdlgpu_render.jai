@@ -509,6 +509,7 @@ maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Ren
 
     // ---- Triangles ----
     if mesh.triangles.count {
+        #if USE_TRACY  context._Tracy.ZoneScoped("mesh_triangles", color=0x2060C0);
         N := 3 * mesh.triangles.count; // vertices in soup
 
         normals_attr : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
@@ -578,6 +579,7 @@ maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Ren
 
     // ---- Segments ----
     if mesh.segments.count {
+        #if USE_TRACY  context._Tracy.ZoneScoped("mesh_segments", color=0x20A060);
         N := 2 * mesh.segments.count;
         NP := cast(u32)(N * size_of(Vector3));
 
@@ -604,6 +606,7 @@ maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Ren
 
     // ---- Points ----
     if mesh.points.count {
+        #if USE_TRACY  context._Tracy.ZoneScoped("mesh_points", color=0xA06020);
         N  := mesh.points.count;
         NP := cast(u32)(N * size_of(Vector3));
 

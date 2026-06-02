@@ -17,8 +17,6 @@ get_plugin :: () -> *Metaprogram_Plugin {
 
     p.log_help         = log_help;
 
-    p.handle_one_option = handle_one_option;
-
     BUFFER_SIZE :: 4096;
     buffer: [BUFFER_SIZE] u8;
     s := get_working_directory();  // @Cleanup: Just make this take a [] u8.
@@ -88,8 +86,8 @@ message :: (p: *Metaprogram_Plugin, message: *Message) {
 
         for h.notes {
             if it.text == "NoProfile" {
-                log("[Tracy] Skipping \"%\" due to NoProfile note.\n", h.name);
-                continue;
+                //log("[Tracy] Skipping \"%\" due to NoProfile note.\n", h.name);
+                continue tc;
             }
         }
 
@@ -128,7 +126,7 @@ __Tracy :: #import "tracy"(IMPORT_MODE=.CLIENT);
 #add_context _Tracy :: __Tracy;
 DONE
 
-PREPEND_ZONE_CODE :: #code Context._Tracy.ZoneScoped();
+PREPEND_ZONE_CODE :: #code context._Tracy.ZoneScoped();
 
 #scope_module
 #import "Basic";
@@ -136,7 +134,7 @@ PREPEND_ZONE_CODE :: #code Context._Tracy.ZoneScoped();
 #import "File";
 #import "String";
 
-MINIMUM_SIZE_DEFAULT :: 30;
+MINIMUM_SIZE_DEFAULT :: 100;
 
 My_Plugin :: struct {
     #as using base: Metaprogram_Plugin;

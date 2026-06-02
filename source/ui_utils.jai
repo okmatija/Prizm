@@ -350,7 +350,7 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
 
             return 0;
         }
-    }
+    } @NoProfile
 
     assert((flags & .CallbackResize) == 0);
     flags |= .CallbackResize;

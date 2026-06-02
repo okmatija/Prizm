@@ -225,13 +225,13 @@ c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
     push_context (cast(*#Context)userdata).* {
         return alloc(cast(s64)sz);
     }
-}
+} @NoProfile
 
 c_free :: (ptr: *void, userdata: *void) -> void #c_call {
     push_context (cast(*#Context)userdata).* {
         free(ptr);
     }
-}
+} @NoProfile
 
 ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     #if set_default_allocators {
