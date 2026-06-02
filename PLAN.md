@@ -909,3 +909,34 @@ Implement after the SDL GPU port stabilises (post-§9 Phase 7).
 4. **Shader authoring language:** **GLSL 450** → SPIR-V (+ MSL/DXIL via SDL_shadercross).
 5. **Clip-space strategy:** **Global fix** — pass `depth_range_01=true` to
    `orthographic_projection_matrix` and fix all `z=-1` unproject call-sites (RT-5).
+
+---
+
+## 14. Continuation notes (2026-06-02) — Tracy next steps
+
+> **Pick up here**: paste this section into a new chat to continue Tracy work.
+
+### What's done
+
+Tracy 0.12.2 is integrated on Linux (`jai first.jai - tracy`). Auto-instrumentation works (all
+non-trivial procedures get ZoneScoped automatically). Manual zones added in key paths. See §13.
+
+### What's next
+
+**Immediate (Windows):**
+- Test `jai first.jai - tracy` on Windows. The `windows/libtracy.dll` is vendored from roeyb1.
+  `first.jai` does NOT yet have a copy step for `libtracy.dll` next to the exe on Windows — add
+  one (same pattern as `SDL3.dll`). Try: add `#if OS == .WINDOWS { copy libtracy.dll }` in
+  `first.jai` just after the Linux copy block, then test the build.
+
+**Short term:**
+- Verify that `./Prizm shapes/*.obj` runs correctly and Tracy can connect when built with `tracy`.
+  The executable needs both `libSDL3.so.0` and `libtracy.so` next to it; both should be copied by
+  `first.jai`.
+- Download Tracy 0.12.x GUI and actually profile a session to confirm data appears.
+
+**Medium term:**
+- GPU profiling: see §13.5. The current SDL3 GPU renderer doesn't expose Vulkan handles, so full
+  GPU zones aren't possible yet. Option A (approximate: CPU-side timestamps around GPU submit)
+  would be valuable and doable now — add `context._Tracy.ZoneScoped("gpu_pass_a")` blocks around
+  `SDL_BeginGPURenderPass`/`SDL_EndGPURenderPass` calls in `prizm.jai`.
