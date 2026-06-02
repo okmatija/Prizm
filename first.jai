@@ -152,13 +152,22 @@ build :: () {
     array_add(*new_path, ..build_options.import_path);
     build_options.import_path = new_path;
 
-    // When building with Tracy on Linux, copy libtracy.so next to the executable so the
-    // dynamic linker finds it via -rpath='$ORIGIN'. (Tracy is built as a shared lib to avoid
-    // needing an explicit libstdc++ link in the Jai linker invocation.)
+    // When building with Tracy, copy the shared library next to the executable so the
+    // dynamic linker finds it. On Linux, libtracy.so is built as a shared lib to avoid an
+    // explicit libstdc++ link (pulled in transitively via the .so's NEEDED list). On Windows,
+    // libtracy.dll is built from source with the local MSVC toolchain via rebuild_windows.bat
+    // to avoid symbol-resolution breakage from inlined _Thrd_sleep_for in MSVC 14.36+.
     #if OS == .LINUX {
         if tracy_profiling && !file_exists("libtracy.so") {
             if !copy_file("modules/tracy/linux/libtracy.so", "libtracy.so") {
                 compiler_report("Could not copy libtracy.so.", mode=.ERROR_CONTINUABLE);
+            }
+        }
+    } else #if OS == .WINDOWS {
+        // Always copy (no !file_exists guard) so a rebuilt libtracy.dll is picked up immediately.
+        if tracy_profiling {
+            if !copy_file("modules/tracy/windows/libtracy.dll", "libtracy.dll") {
+                compiler_report("Could not copy libtracy.dll. Run modules/tracy/rebuild_windows.bat from a VS Developer Command Prompt first.", mode=.ERROR_CONTINUABLE);
             }
         }
     }

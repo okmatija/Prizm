@@ -850,7 +850,7 @@ Run the `tracy` (Linux) or `Tracy.exe` (Windows) executable.
 
 ### 13.4 Rebuilding the Tracy library from source
 
-Only needed if the pre-built `.so` doesn't work on the target system (e.g. glibc version mismatch).
+Only needed if the pre-built library doesn't link on the target system.
 
 **Linux (g++, Ubuntu 22.04+):**
 
@@ -863,17 +863,26 @@ g++ -std=c++20 -DTRACY_ENABLE -DTRACY_EXPORTS -DTRACY_ON_DEMAND \
 # Do NOT commit libtracy.a — the dynamic .so is what first.jai copies to the output directory.
 ```
 
-The roeyb1 `jai generate.jai` approach also works but requires the Jai `Bindings_Generator` module
-(which needs libclang) and will also regenerate `bindings.jai`. Use the manual `g++` command above
-if you only need to rebuild the library for a new glibc.
+**Windows (VS 2019 or later, from an x64 Native Tools Developer Command Prompt):**
 
-**Windows (from a Visual Studio Developer Command Prompt):**
-
-```
+```bat
 cd modules\tracy
-jai generate.jai
-# Outputs: windows\libtracy.dll, windows\libtracy.lib
+rebuild_windows.bat
 ```
+
+`rebuild_windows.bat` compiles `TracyClient.cpp` with the local MSVC and produces:
+- `windows\libtracy.dll` — DLL (copied next to `Prizm.exe` by `first.jai`)
+- `windows\libtracy.lib` — import library for the DLL (used at link time)
+
+**Why the pre-built static lib fails on VS 2022 17.6+ (MSVC 14.36+):**
+The vendored `libtracy.lib` was compiled as a static library against an older MSVC where
+`_Thrd_sleep_for` was exported from `msvcp140.dll`. In MSVC 14.36+, the MSVC STL inlined this
+function in headers, so it no longer appears in `msvcp140.dll`. Linking a static lib that has an
+external reference to `_Thrd_sleep_for` therefore fails with `LNK2019`. Rebuilding with the local
+MSVC produces a lib that uses the inlined version and has no such external reference.
+
+The `jai generate.jai` approach also works but requires `Bindings_Generator` (needs libclang) and
+regenerates `bindings.jai`. Use `rebuild_windows.bat` if you only need to rebuild the library.
 
 **macOS (stretch goal — not yet tested):**
 
@@ -924,10 +933,12 @@ non-trivial procedures get ZoneScoped automatically). Manual zones added in key 
 ### What's next
 
 **Immediate (Windows):**
-- Test `jai first.jai - tracy` on Windows. The `windows/libtracy.dll` is vendored from roeyb1.
-  `first.jai` does NOT yet have a copy step for `libtracy.dll` next to the exe on Windows — add
-  one (same pattern as `SDL3.dll`). Try: add `#if OS == .WINDOWS { copy libtracy.dll }` in
-  `first.jai` just after the Linux copy block, then test the build.
+- `first.jai` now has the `libtracy.dll` copy step for Windows (added 2026-06-02).
+- The pre-built `windows/libtracy.lib` (static) fails to link on VS 2022 17.6+ (MSVC 14.36+)
+  with `LNK2019: _Thrd_sleep_for` unresolved — MSVC inlined this function; see §13.4 for root
+  cause. **Fix:** run `modules\tracy\rebuild_windows.bat` from a VS Developer Command Prompt to
+  rebuild `libtracy.dll` + `libtracy.lib` (import library) with the local MSVC toolchain, then
+  re-run `jai.exe first.jai - tracy`.
 
 **Short term:**
 - Verify that `./Prizm shapes/*.obj` runs correctly and Tracy can connect when built with `tracy`.
@@ -940,3 +951,34 @@ non-trivial procedures get ZoneScoped automatically). Manual zones added in key 
   GPU zones aren't possible yet. Option A (approximate: CPU-side timestamps around GPU submit)
   would be valuable and doable now — add `context._Tracy.ZoneScoped("gpu_pass_a")` blocks around
   `SDL_BeginGPURenderPass`/`SDL_EndGPURenderPass` calls in `prizm.jai`.
+
+### Known issues (2026-06-02) — unresolved, left for later
+
+**[unknown] zones in the Prizm thread:**
+Profiling with `tracy-profiler.exe` connected to Prizm on WSL shows the Prizm thread populated
+entirely with `[unknown]` boxes rather than named zones. Two things were investigated and neither
+fully fixed it:
+
+1. **SysTrace ghost frames** — Tracy's OS-level call-stack sampler (SysTrace) runs even when
+   `TRACY_CALLSTACK` is 0. On WSL it can sample addresses but cannot resolve most Prizm function
+   symbols (Jai's debug info format isn't in a shape Tracy's symbol resolver handles), so ghost
+   frames flood the thread row as `[unknown] + address`. Attempted fix: rebuilt `libtracy.so`
+   with `-DTRACY_NO_SYSPROFILE` added to `generate.jai`'s Linux extra_args. Confirmed the library
+   compiled and Prizm linked, but the `[unknown]` boxes persisted in a subsequent trace.
+
+2. **Auto-instrumented zone names** — `instrument.jai` injects the same pre-parsed
+   `PREPEND_ZONE_CODE` node into every procedure. Inside `ZoneScoped`, `#procedure_name(#this)`
+   relies on `#this` resolving to the containing procedure at typecheck time. When the shared node
+   is used, `#this` may resolve to instrument.jai's module scope (no procedure name → empty
+   string → Tracy shows `[unknown]`). Attempted fix: changed instrument.jai to call
+   `compiler_get_nodes(PREPEND_ZONE_CODE)` fresh per procedure instead of reusing a stored node.
+   Whether this actually fixes `#this` resolution for injected code is uncertain — the behaviour
+   depends on Jai compiler internals that aren't documented.
+
+**Next steps to try:**
+- Verify whether manual `ZoneScoped("name")` zones (e.g. "gpu_submit") appear correctly named
+  in the profiler. If yes, the issue is auto-instrumentation only; if no, it is more fundamental.
+- Ask on the Jai Discord whether `#procedure_name(#this)` is expected to work inside compiler-
+  plugin-injected code nodes.
+- As a workaround, disable auto-instrumentation entirely (set `min_size` very large in
+  `first.jai` after getting the plugin handle) and rely only on manually placed zones.

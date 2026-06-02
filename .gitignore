@@ -3,11 +3,18 @@
 # *.lib
 # *.dll
 
-# SDL3 runtime libraries copied next to the executable by first.jai (sourced from modules/SDL3/)
-# Leading slash anchors to repo root so modules/SDL3/*/bin/ files are not excluded
+# Runtime libraries copied next to the executable by first.jai
+# Leading slash anchors to repo root so modules/ source files are not excluded
 /SDL3.dll
 /libSDL3.so.0
 /libSDL3.0.dylib
+/libtracy.dll
+/libtracy.so
+
+# Tracy LTCG / incremental link artifacts produced by rebuild_windows.bat
+modules/tracy/windows/*.exp
+modules/tracy/windows/*.iobj
+modules/tracy/windows/*.ipdb
 
 # Old SDL2 binaries no longer used
 /SDL2.dll
