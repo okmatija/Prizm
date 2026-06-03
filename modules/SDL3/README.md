@@ -20,6 +20,15 @@ Rather than requiring users to install SDL3 separately, your `first.jai` (or equ
 
 ```jai
 // Add near the top of build(), after set_working_directory(), before compilation.
+// copy_if_newer copies src to dst only when dst is absent or src is newer.
+copy_if_newer :: (src: string, dst: string) -> bool {
+    src_time, _, src_ok := file_modtime_and_size(src);
+    if !src_ok  return false;
+    dst_time, _, dst_ok := file_modtime_and_size(dst);
+    if dst_ok && dst_time >= src_time  return true;
+    return copy_file(src, dst);
+}
+
 {
     #if OS == .WINDOWS {
         sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
@@ -31,13 +40,13 @@ Rather than requiring users to install SDL3 separately, your `first.jai` (or equ
         sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
         sdl3_dst :: "libSDL3.0.dylib";
     }
-    if !copy_file(sdl3_src, sdl3_dst) {
+    if !copy_if_newer(sdl3_src, sdl3_dst) {
         compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
     }
 }
 ```
 
-`file_exists` and `copy_file` are both from Jai's `File_Utilities` module. Add `SDL3.dll`, `libSDL3.so.0`, and `libSDL3.0.dylib` to your `.gitignore` since they are derived outputs.
+`file_modtime_and_size`, `copy_file` are from Jai's `File_Utilities` module. Add `SDL3.dll`, `libSDL3.so.0`, and `libSDL3.0.dylib` to your `.gitignore` since they are derived outputs.
 
 ### Linux Note
 

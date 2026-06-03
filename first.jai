@@ -51,7 +51,7 @@ build :: () {
 
     set_working_directory(#filepath);
 
-    // Copy SDL3 runtime library next to the executable if not already present.
+    // Copy SDL3 runtime library next to the executable if the source is newer.
     {
         #if OS == .WINDOWS {
             sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
@@ -63,10 +63,8 @@ build :: () {
             sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
             sdl3_dst :: "libSDL3.0.dylib";
         }
-        if !file_exists(sdl3_dst) {
-            if !copy_file(sdl3_src, sdl3_dst) {
-                compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
-            }
+        if !copy_if_newer(sdl3_src, sdl3_dst) {
+            compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
         }
     }
 
@@ -152,22 +150,20 @@ build :: () {
     array_add(*new_path, ..build_options.import_path);
     build_options.import_path = new_path;
 
-    // When building with Tracy, copy the shared library next to the executable so the
-    // dynamic linker finds it. On Linux, libtracy.so is a shared lib so libstdc++ is pulled in
-    // transitively via the .so's NEEDED list (no explicit link needed). On Windows, if the
-    // pre-built libtracy.dll fails to link (LNK2019: _Thrd_sleep_for), run
-    // modules/tracy/rebuild_windows.bat from a VS x64 Developer Command Prompt to rebuild it
-    // for the local MSVC — that symbol was inlined in MSVC 14.36+ STL headers.
+    // When building with Tracy, copy the shared library next to the executable if the source
+    // is newer. On Linux, libtracy.so is a shared lib so libstdc++ is pulled in transitively
+    // via the .so's NEEDED list (no explicit link needed). On Windows, if the pre-built
+    // libtracy.dll fails to link (LNK2019: _Thrd_sleep_for), run rebuild_windows.bat from a
+    // VS x64 Developer Command Prompt — that symbol was inlined in MSVC 14.36+ STL headers.
     #if OS == .LINUX {
         if tracy_profiling {
-            if !copy_file("modules/tracy/linux/libtracy.so", "libtracy.so") {
+            if !copy_if_newer("modules/tracy/linux/libtracy.so", "libtracy.so") {
                 compiler_report("Could not copy libtracy.so.", mode=.ERROR_CONTINUABLE);
             }
         }
     } else #if OS == .WINDOWS {
-        // Always copy (no !file_exists guard) so a rebuilt libtracy.dll is picked up immediately.
         if tracy_profiling {
-            if !copy_file("modules/tracy/windows/libtracy.dll", "libtracy.dll") {
+            if !copy_if_newer("modules/tracy/windows/libtracy.dll", "libtracy.dll") {
                 compiler_report("Could not copy libtracy.dll. Run modules/tracy/rebuild_windows.bat from a VS Developer Command Prompt first.", mode=.ERROR_CONTINUABLE);
             }
         }
@@ -646,6 +642,15 @@ plugins: [..] *Metaprogram_Plugin;
 #load "source/changelog.jai"; // to get the latest version name when making a zip
 #load "source/carpet.jai"; // for plural_suffix
 #load "source/build_gui.jai";
+
+// Copies src to dst only when dst is absent or src is newer. Returns false on I/O error.
+copy_if_newer :: (src: string, dst: string) -> bool {
+    src_time, _, src_ok := file_modtime_and_size(src);
+    if !src_ok  return false;
+    dst_time, _, dst_ok := file_modtime_and_size(dst);
+    if dst_ok && dst_time >= src_time  return true;
+    return copy_file(src, dst);
+}
 
 compile_shaders :: () {
     // SPIR-V binaries are vendored in shaders/ so contributors without glslangValidator can build.

@@ -15,15 +15,12 @@ Tracy has two parts: a **plugin** (injected into the compiler, instruments the t
 Add this to `build()` in your metaprogram, after `set_working_directory`, before compilation:
 
 ```jai
-// Always copy (no file_exists guard) so a rebuilt library is picked up immediately.
+// copy_if_newer copies src to dst only when dst is absent or src is newer.
+// (Define this helper once in your metaprogram; see SDL3 README for the implementation.)
 #if OS == .LINUX {
-    if tracy_enabled {
-        copy_file("modules/tracy/linux/libtracy.so", "libtracy.so");
-    }
+    if tracy_enabled  copy_if_newer("modules/tracy/linux/libtracy.so", "libtracy.so");
 } else #if OS == .WINDOWS {
-    if tracy_enabled {
-        copy_file("modules/tracy/windows/libtracy.dll", "libtracy.dll");
-    }
+    if tracy_enabled  copy_if_newer("modules/tracy/windows/libtracy.dll", "libtracy.dll");
 }
 ```
 
