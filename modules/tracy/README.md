@@ -15,8 +15,15 @@ Tracy has two parts: a **plugin** (injected into the compiler, instruments the t
 Add this to `build()` in your metaprogram, after `set_working_directory`, before compilation:
 
 ```jai
-// copy_if_newer copies src to dst only when dst is absent or src is newer.
-// (Define this helper once in your metaprogram; see SDL3 README for the implementation.)
+// Copies src to dst only when dst is absent or src is newer (make semantics).
+copy_if_newer :: (src: string, dst: string) -> bool {
+    src_time, _, src_ok := file_modtime_and_size(src);
+    if !src_ok  return false;
+    dst_time, _, dst_ok := file_modtime_and_size(dst);
+    if dst_ok && dst_time >= src_time  return true;
+    return copy_file(src, dst);
+}
+
 #if OS == .LINUX {
     if tracy_enabled  copy_if_newer("modules/tracy/linux/libtracy.so", "libtracy.so");
 } else #if OS == .WINDOWS {
