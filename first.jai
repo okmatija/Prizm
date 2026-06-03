@@ -645,7 +645,7 @@ plugins: [..] *Metaprogram_Plugin;
 
 // Copies src to dst only when dst is absent or src is newer. Returns false on I/O error.
 copy_if_newer :: (src: string, dst: string) -> bool {
-    src_time, _, src_exists := file_modtime_and_size(src);
+    src_time, _, _ := file_modtime_and_size(src); // source is a known repo file
     if !src_exists  return false;
     dst_time, _, dst_exists := file_modtime_and_size(dst);
     if dst_exists && dst_time >= src_time  return true;
@@ -693,7 +693,7 @@ compile_shaders :: () {
 
     for src : shader_sources {
         spv := tprint("shaders/%.spv", path_filename(src));
-        src_time, _, src_exists := file_modtime_and_size(src);
+        src_time, _, _ := file_modtime_and_size(src); // source is a known repo file
         spv_time, _, spv_exists := file_modtime_and_size(spv);
         if spv_exists && spv_time >= src_time  continue; // spv is up to date
 
