@@ -15,18 +15,21 @@ Tracy has two parts: a **plugin** (injected into the compiler, instruments the t
 Add this to `build()` in your metaprogram, after `set_working_directory`, before compilation:
 
 ```jai
-// Copies src to dst only when dst is absent or src is newer (make semantics).
-copy_if_newer :: (src: string, dst: string) -> bool {
-    src_time, _, _ := file_modtime_and_size(src);
-    dst_time, _, dst_exists := file_modtime_and_size(dst);
-    if dst_exists && dst_time >= src_time  return true;
-    return copy_file(src, dst);
-}
-
-#if OS == .LINUX {
-    if tracy_enabled  copy_if_newer("modules/tracy/linux/libtracy.so", "libtracy.so");
-} else #if OS == .WINDOWS {
-    if tracy_enabled  copy_if_newer("modules/tracy/windows/libtracy.dll", "libtracy.dll");
+if tracy_enabled {
+    #if OS == .LINUX {
+        tracy_src :: "modules/tracy/linux/libtracy.so";
+        tracy_dst :: "libtracy.so";
+    } else #if OS == .WINDOWS {
+        tracy_src :: "modules/tracy/windows/libtracy.dll";
+        tracy_dst :: "libtracy.dll";
+    }
+    src_time, _, _ := file_modtime_and_size(tracy_src);
+    dst_time, _, dst_exists := file_modtime_and_size(tracy_dst);
+    if !dst_exists || src_time > dst_time {
+        if !copy_file(tracy_src, tracy_dst) {
+            compiler_report(tprint("Could not copy Tracy library from '%' to '%'.", tracy_src, tracy_dst), mode=.ERROR_CONTINUABLE);
+        }
+    }
 }
 ```
 
