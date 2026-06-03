@@ -659,18 +659,18 @@ compile_shaders :: () {
     make_directory_if_it_does_not_exist("shaders");
 
     shader_sources := string.[
-        "source/render/sdlgpu_triangles.vert",
-        "source/render/sdlgpu_triangles.frag",
-        "source/render/sdlgpu_points_lines.vert",
-        "source/render/sdlgpu_points_lines.frag",
-        "source/render/sdlgpu_background.vert",
-        "source/render/sdlgpu_background.frag",
-        "source/render/sdlgpu_aabb.vert",
-        "source/render/sdlgpu_aabb.frag",
-        "source/render/sdlgpu_normals.vert",
-        "source/render/sdlgpu_normals.frag",
-        "source/render/sdlgpu_thick_lines.vert",
-        "source/render/sdlgpu_sized_points.vert",
+        "source/render/triangles.vert",
+        "source/render/triangles.frag",
+        "source/render/points_lines.vert",
+        "source/render/points_lines.frag",
+        "source/render/background.vert",
+        "source/render/background.frag",
+        "source/render/aabb.vert",
+        "source/render/aabb.frag",
+        "source/render/normals.vert",
+        "source/render/normals.frag",
+        "source/render/thick_lines.vert",
+        "source/render/sized_points.vert",
     ];
 
     // Probe for glslangValidator (or glslangValidator.exe on Windows).

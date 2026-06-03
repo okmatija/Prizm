@@ -21,7 +21,7 @@ Entity :: struct {
     is_hovered := false;
 
     render_info     : Render_Info;
-    render_info_gpu : Render_Info_GPU; // SDL3 GPU buffers -- see sdlgpu_render.jai
+    render_info_gpu : Render_Info_GPU; // SDL3 GPU buffers -- see render.jai
     display_info    : Display_Info;
 
     // Note the transform stored in this mesh also applies to:

@@ -1,0 +1,643 @@
+Performing C SOURCE FILE Test HAVE_GCC_WDOCUMENTATION failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_c86ad && [1/2] Building C object CMakeFiles/cmTC_c86ad.dir/src.c.o
+FAILED: CMakeFiles/cmTC_c86ad.dir/src.c.o 
+/usr/bin/cc -DHAVE_GCC_WDOCUMENTATION  -D_GNU_SOURCE=1   -Wdocumentation -o CMakeFiles/cmTC_c86ad.dir/src.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option '-Wdocumentation'
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main(void) { return 0; }
+Performing C SOURCE FILE Test HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_4c477 && [1/2] Building C object CMakeFiles/cmTC_4c477.dir/src.c.o
+FAILED: CMakeFiles/cmTC_4c477.dir/src.c.o 
+/usr/bin/cc -DHAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND  -D_GNU_SOURCE=1   -Wdocumentation-unknown-command -o CMakeFiles/cmTC_4c477.dir/src.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option '-Wdocumentation-unknown-command'
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main(void) { return 0; }
+Performing C SOURCE FILE Test HAVE_GCC_COMMENT_BLOCK_COMMANDS failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_4eb21 && [1/2] Building C object CMakeFiles/cmTC_4eb21.dir/src.c.o
+FAILED: CMakeFiles/cmTC_4eb21.dir/src.c.o 
+/usr/bin/cc -DHAVE_GCC_COMMENT_BLOCK_COMMANDS  -D_GNU_SOURCE=1   -fcomment-block-commands=threadsafety -o CMakeFiles/cmTC_4eb21.dir/src.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option '-fcomment-block-commands=threadsafety'
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main(void) { return 0; }
+Performing C SOURCE FILE Test HAVE_CLANG_COMMENT_BLOCK_COMMANDS failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_1bd5e && [1/2] Building C object CMakeFiles/cmTC_1bd5e.dir/src.c.o
+FAILED: CMakeFiles/cmTC_1bd5e.dir/src.c.o 
+/usr/bin/cc -DHAVE_CLANG_COMMENT_BLOCK_COMMANDS  -D_GNU_SOURCE=1   /clang:-fcomment-block-commands=threadsafety -o CMakeFiles/cmTC_1bd5e.dir/src.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c
+cc: warning: /clang:-fcomment-block-commands=threadsafety: linker input file unused because linking not done
+cc: error: /clang:-fcomment-block-commands=threadsafety: linker input file not found: No such file or directory
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main(void) { return 0; }
+Determining if the _i64toa exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_a1bf6 && [1/2] Building C object CMakeFiles/cmTC_a1bf6.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_a1bf6.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_a1bf6.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘_i64toa’ undeclared (first use in this function)
+   26 |   return ((int*)(&_i64toa))[argc];
+      |                   ^~~~~~~
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef _i64toa
+  return ((int*)(&_i64toa))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the itoa exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_7dafb && [1/2] Building C object CMakeFiles/cmTC_7dafb.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_7dafb.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_7dafb.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘itoa’ undeclared (first use in this function)
+   26 |   return ((int*)(&itoa))[argc];
+      |                   ^~~~
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef itoa
+  return ((int*)(&itoa))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the _ltoa exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_eccb4 && [1/2] Building C object CMakeFiles/cmTC_eccb4.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_eccb4.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_eccb4.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘_ltoa’ undeclared (first use in this function)
+   26 |   return ((int*)(&_ltoa))[argc];
+      |                   ^~~~~
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef _ltoa
+  return ((int*)(&_ltoa))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the sqr exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_7af6f && [1/2] Building C object CMakeFiles/cmTC_7af6f.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_7af6f.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_7af6f.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘sqr’ undeclared (first use in this function); did you mean ‘sqrt’?
+   26 |   return ((int*)(&sqr))[argc];
+      |                   ^~~
+      |                   sqrt
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef sqr
+  return ((int*)(&sqr))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the strlcat exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_0f56a && [1/2] Building C object CMakeFiles/cmTC_0f56a.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_0f56a.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_0f56a.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘strlcat’ undeclared (first use in this function); did you mean ‘strncat’?
+   26 |   return ((int*)(&strlcat))[argc];
+      |                   ^~~~~~~
+      |                   strncat
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef strlcat
+  return ((int*)(&strlcat))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the strlcpy exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_c92d1 && [1/2] Building C object CMakeFiles/cmTC_c92d1.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_c92d1.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_c92d1.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘strlcpy’ undeclared (first use in this function); did you mean ‘strncpy’?
+   26 |   return ((int*)(&strlcpy))[argc];
+      |                   ^~~~~~~
+      |                   strncpy
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef strlcpy
+  return ((int*)(&strlcpy))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the strnstr exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_11447 && [1/2] Building C object CMakeFiles/cmTC_11447.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_11447.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_11447.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘strnstr’ undeclared (first use in this function); did you mean ‘strstr’?
+   26 |   return ((int*)(&strnstr))[argc];
+      |                   ^~~~~~~
+      |                   strstr
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef strnstr
+  return ((int*)(&strnstr))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the wcslcat exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_95319 && [1/2] Building C object CMakeFiles/cmTC_95319.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_95319.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_95319.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘wcslcat’ undeclared (first use in this function); did you mean ‘wcsncat’?
+   26 |   return ((int*)(&wcslcat))[argc];
+      |                   ^~~~~~~
+      |                   wcsncat
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef wcslcat
+  return ((int*)(&wcslcat))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the wcslcpy exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_acf93 && [1/2] Building C object CMakeFiles/cmTC_acf93.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_acf93.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_acf93.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: error: ‘wcslcpy’ undeclared (first use in this function); did you mean ‘wcsncpy’?
+   26 |   return ((int*)(&wcslcpy))[argc];
+      |                   ^~~~~~~
+      |                   wcsncpy
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:26:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <float.h>
+#include <iconv.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <time.h>
+#include <wchar.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef wcslcpy
+  return ((int*)(&wcslcpy))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the sysctlbyname exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_d177b && [1/2] Building C object CMakeFiles/cmTC_d177b.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_d177b.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_d177b.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:3:10: fatal error: sys/sysctl.h: No such file or directory
+    3 | #include <sys/sysctl.h>
+      |          ^~~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <sys/types.h>
+#include <sys/sysctl.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef sysctlbyname
+  return ((int*)(&sysctlbyname))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the elf_aux_info exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_aaa64 && [1/2] Building C object CMakeFiles/cmTC_aaa64.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_aaa64.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_aaa64.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: error: ‘elf_aux_info’ undeclared (first use in this function)
+    8 |   return ((int*)(&elf_aux_info))[argc];
+      |                   ^~~~~~~~~~~~
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <sys/auxv.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef elf_aux_info
+  return ((int*)(&elf_aux_info))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Determining if the posix_spawn_file_actions_addchdir exist failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_a0d98 && [1/2] Building C object CMakeFiles/cmTC_a0d98.dir/CheckSymbolExists.c.o
+FAILED: CMakeFiles/cmTC_a0d98.dir/CheckSymbolExists.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_a0d98.dir/CheckSymbolExists.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: error: ‘posix_spawn_file_actions_addchdir’ undeclared (first use in this function); did you mean ‘posix_spawn_file_actions_addchdir_np’?
+    8 |   return ((int*)(&posix_spawn_file_actions_addchdir))[argc];
+      |                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                   posix_spawn_file_actions_addchdir_np
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: note: each undeclared identifier is reported only once for each function it appears in
+ninja: build stopped: subcommand failed.
+
+
+File /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <spawn.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef posix_spawn_file_actions_addchdir
+  return ((int*)(&posix_spawn_file_actions_addchdir))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+Performing C SOURCE FILE Test ICONV_IN_LIBICONV failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_3bf7d && [1/2] Building C object CMakeFiles/cmTC_3bf7d.dir/src.c.o
+[2/2] Linking C executable cmTC_3bf7d
+FAILED: cmTC_3bf7d 
+: && /usr/bin/cc -D_GNU_SOURCE=1  CMakeFiles/cmTC_3bf7d.dir/src.c.o -o cmTC_3bf7d  -liconv && :
+/usr/bin/ld: cannot find -liconv: No such file or directory
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+
+        #include <stddef.h>
+        #include <iconv.h>
+        int main(int argc, char **argv) {
+            return !iconv_open(NULL,NULL);
+        }
+Performing C SOURCE FILE Test LIBC_HAS_WORKING_LIBUNWIND failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_86f54 && [1/2] Building C object CMakeFiles/cmTC_86f54.dir/src.c.o
+FAILED: CMakeFiles/cmTC_86f54.dir/src.c.o 
+/usr/bin/cc -DLIBC_HAS_WORKING_LIBUNWIND  -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_86f54.dir/src.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c:1:16: fatal error: libunwind.h: No such file or directory
+    1 |       #include <libunwind.h>
+      |                ^~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+      #include <libunwind.h>
+      int main(int argc, char *argv[]) {
+        (void)argc; (void)argv;
+        unw_context_t context;
+        unw_cursor_t cursor;
+        unw_word_t pc;
+        char sym[256];
+        unw_word_t offset;
+        unw_getcontext(&context);
+        unw_step(&cursor);
+        unw_get_reg(&cursor, UNW_REG_IP, &pc);
+        unw_get_proc_name(&cursor, sym, sizeof(sym), &offset);
+        return 0;
+      }
+Performing C SOURCE FILE Test LIBUNWIND_HAS_WORKINGLIBUNWIND failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_2a572 && [1/2] Building C object CMakeFiles/cmTC_2a572.dir/src.c.o
+FAILED: CMakeFiles/cmTC_2a572.dir/src.c.o 
+/usr/bin/cc -DLIBUNWIND_HAS_WORKINGLIBUNWIND  -D_GNU_SOURCE=1 -o CMakeFiles/cmTC_2a572.dir/src.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/src.c:1:16: fatal error: libunwind.h: No such file or directory
+    1 |       #include <libunwind.h>
+      |                ^~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+      #include <libunwind.h>
+      int main(int argc, char *argv[]) {
+        (void)argc; (void)argv;
+        unw_context_t context;
+        unw_cursor_t cursor;
+        unw_word_t pc;
+        char sym[256];
+        unw_word_t offset;
+        unw_getcontext(&context);
+        unw_step(&cursor);
+        unw_get_reg(&cursor, UNW_REG_IP, &pc);
+        unw_get_proc_name(&cursor, sym, sizeof(sym), &offset);
+        return 0;
+      }
+Determining if the include file pthread_np.h exists failed with the following output:
+Change Dir: /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_13d60 && [1/2] Building C object CMakeFiles/cmTC_13d60.dir/CheckIncludeFile.c.o
+FAILED: CMakeFiles/cmTC_13d60.dir/CheckIncludeFile.c.o 
+/usr/bin/cc   -D_GNU_SOURCE=1 -D_REENTRANT -pthread -o CMakeFiles/cmTC_13d60.dir/CheckIncludeFile.c.o -c /mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/mnt/c/Dev/Prizm/support/SDL3-3.4.4/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:10: fatal error: pthread_np.h: No such file or directory
+    1 | #include <pthread_np.h>
+      |          ^~~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.
+
+
+

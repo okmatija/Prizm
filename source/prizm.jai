@@ -240,7 +240,7 @@ main :: () {
                     cycle       = true,
                 };
                 pass_a := SDL_BeginGPURenderPass(cmd, *color_a, 1, *depth_a);
-                sdlgpu_render_background(pass_a, cmd);
+                render_background(pass_a, cmd);
                 render_selections_gpu(pass_a, cmd);
                 render_entities_gpu(pass_a, cmd);
                 SDL_EndGPURenderPass(pass_a);

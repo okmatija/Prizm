@@ -461,9 +461,9 @@ ImTextureData :: ImGui.ImTextureData;
 #load "demo_mode.jai";
 #load "updates.jai";
 
-#load "render/render.jai";
+
 #load "render/render_utils.jai";
-#load "render/sdlgpu_render.jai";
+#load "render/render.jai";
 #load "screenshot.jai";
 #load "render/render_text.jai";
 #load "render/texture.jai";
