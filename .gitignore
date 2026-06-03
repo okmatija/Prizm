@@ -55,5 +55,8 @@ imgui.ini
 
 debug.log
 
+# SDL3 source build artifacts
+support/
+
 # Claude Code per-machine local settings (keep the shared .claude/settings.json tracked)
 .claude/settings.local.json
