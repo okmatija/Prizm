@@ -153,10 +153,11 @@ build :: () {
     build_options.import_path = new_path;
 
     // When building with Tracy, copy the shared library next to the executable so the
-    // dynamic linker finds it. On Linux, libtracy.so is built as a shared lib to avoid an
-    // explicit libstdc++ link (pulled in transitively via the .so's NEEDED list). On Windows,
-    // libtracy.dll is built from source with the local MSVC toolchain via rebuild_windows.bat
-    // to avoid symbol-resolution breakage from inlined _Thrd_sleep_for in MSVC 14.36+.
+    // dynamic linker finds it. On Linux, libtracy.so is a shared lib so libstdc++ is pulled in
+    // transitively via the .so's NEEDED list (no explicit link needed). On Windows, if the
+    // pre-built libtracy.dll fails to link (LNK2019: _Thrd_sleep_for), run
+    // modules/tracy/rebuild_windows.bat from a VS x64 Developer Command Prompt to rebuild it
+    // for the local MSVC — that symbol was inlined in MSVC 14.36+ STL headers.
     #if OS == .LINUX {
         if tracy_profiling {
             if !copy_file("modules/tracy/linux/libtracy.so", "libtracy.so") {

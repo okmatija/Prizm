@@ -33,24 +33,28 @@ Add `/libtracy.dll` and `/libtracy.so` to your `.gitignore`.
 
 ### 2. Load and register the plugin
 
-```jai
-#import "Metaprogram_Plugins";
+Add the plugin by name to your `Plugin_To_Create` list and pass it to `init_plugins`
+(from Jai's `Metaprogram_Plugins` module). `init_plugins` calls `get_plugin()` internally.
 
+```jai
+plugins_to_create: [..] Plugin_To_Create;
 plugins: [..] *Metaprogram_Plugin;
 
 // In build(), before compiler_begin_intercept:
 if tracy_enabled {
-    // IMPORT_MODE=METAPROGRAM (default) loads the instrumentation plugin.
-    // -min_size 100 skips tiny procedures (< 100 sub-expressions) to reduce overhead.
-    plugin := get_plugin(.(name = "tracy", args = .["-min_size", "100"]));
-    array_add(*plugins, plugin);
+    array_add(*plugins_to_create, .{name="tracy"});
 }
-init_plugins(plugins, w);
+init_plugins(plugins_to_create, *plugins, w);
 
-// Pass messages to plugins in the intercept loop:
+// Before compiler_begin_intercept, pass intercept flags to plugins:
+intercept_flags: Intercept_Flags;
+for plugins  if it.before_intercept  it.before_intercept(it, *intercept_flags);
+compiler_begin_intercept(w, intercept_flags);
+
+// In the message loop:
 for plugins  if it.message  it.message(it, message);
 
-// After the intercept loop:
+// After the loop:
 for plugins  if it.finish    it.finish(it);
 for plugins  if it.shutdown  it.shutdown(it);
 ```
@@ -65,13 +69,7 @@ add_build_string("USE_TRACY :: true;", w);  // or false for non-profiling builds
 
 ## Using Tracy in your program
 
-Import Tracy in the target program (not the metaprogram):
-
-```jai
-#if USE_TRACY {
-    using,except(ZoneScoped) context._Tracy;  // brings FrameMark, FrameMarkStart/End etc. into scope
-}
-```
+The plugin adds Tracy to the program's context automatically via `#add_context _Tracy`. Access it as `context._Tracy`:
 
 **The plugin auto-instruments every procedure** with `ZoneScoped()` — you get full call-tree coverage without any manual annotation. Add manual zones only where you want explicit names or colours:
 
@@ -109,14 +107,21 @@ Tag a procedure with `@NoProfile` to exclude it from auto-instrumentation.
 
 Because the library uses `ON_DEMAND`, the program runs at full speed until the GUI connects.
 
+> **Frame image note**: if your program emits Tracy frame images (like Prizm does), be aware that generating them requires a `SDL_WaitForGPUIdle` stall every frame to download the thumbnail. Frame timings in a Tracy session with frame images will be slower than real-world performance.
+
 ---
 
-## Plugin options
+## Auto-instrumentation options
 
-| Option | Effect |
-|---|---|
-| `-min_size N` | Skip auto-instrumentation for procedures with fewer than N sub-expressions. Default: 100. |
-| `-modules` | Also instrument imported modules (not just the main program). |
+These are fields on `My_Plugin` (see `instrument.jai`) that you can set after calling `get_plugin()` if you need to tune instrumentation programmatically:
+
+| Field | Default | Effect |
+|---|---|---|
+| `min_size` | 100 | Skip procedures with fewer than N sub-expressions. Raise to reduce profiling overhead. |
+| `instrument_modules` | false | Also instrument imported modules (not just the main program). |
+| `should_instrument` | null | Optional callback `(body: *Code_Procedure_Body) -> bool` for custom per-procedure filtering. |
+
+Note: `init_plugins` does not expose a way to set these fields. If you need non-default values, call `get_plugin()` directly, adjust fields, then manage the plugin manually rather than going through `init_plugins`.
 
 ---
 
