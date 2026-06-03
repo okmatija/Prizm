@@ -1,4 +1,5 @@
 *.exe
+/Prizm
 *.pdb
 # *.lib
 # *.dll

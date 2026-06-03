@@ -22,8 +22,7 @@ Rather than requiring users to install SDL3 separately, your `first.jai` (or equ
 // Add near the top of build(), after set_working_directory(), before compilation.
 // copy_if_newer copies src to dst only when dst is absent or src is newer.
 copy_if_newer :: (src: string, dst: string) -> bool {
-    src_time, _, src_exists := file_modtime_and_size(src);
-    if !src_exists  return false;
+    src_time, _, _ := file_modtime_and_size(src);
     dst_time, _, dst_exists := file_modtime_and_size(dst);
     if dst_exists && dst_time >= src_time  return true;
     return copy_file(src, dst);
