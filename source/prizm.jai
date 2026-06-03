@@ -152,8 +152,6 @@ main :: () {
 
         handle_events();
 
-        update_camera();
-
         // Skip rendering when minimized
         if SDL_GetWindowFlags(app.window) & SDL_WINDOW_MINIMIZED {
             sleep_milliseconds(16);
@@ -165,6 +163,10 @@ main :: () {
         ImplSDLGPU3_NewFrame();
         ImplSDL3_NewFrame();
         ImGui.NewFrame();
+
+        // update_camera reads io().MouseWheel and io().WantCaptureMouse, both of which are
+        // populated by ImGui.NewFrame() from the event queue -- must run after NewFrame().
+        update_camera();
         // "UI Scale": app.ui_font_size_px is the desired base size of the main (NORMAL) font. Turn it
         // into a global font scale so every font -- main UI, 3D labels, demo overlay -- scales
         // together, matching the pre-1.92 io.FontGlobalScale behaviour. Each font is then pushed at

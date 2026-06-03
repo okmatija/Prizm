@@ -344,7 +344,7 @@ show_menu_bar_ui :: () {
             button_width := -ImGui.GetCursorScreenPos().x;
             if icon_window_maximize_texture.gpu_handle  ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture), icon_size, tint_col=TRANSPARENT);
             button_width +=  ImGui.GetCursorScreenPos().x;
-            start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
+            start_x := ImGui.GetWindowSize().x - 3. * button_width;
             ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
             ImGui.Dummy(.{0, 0}); // Required by imgui 1.92: extend boundary after SetCursorScreenPos
 
