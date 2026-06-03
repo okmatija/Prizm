@@ -693,6 +693,10 @@ compile_shaders :: () {
 
     for src : shader_sources {
         spv := tprint("shaders/%.spv", path_filename(src));
+        src_time, _, src_exists := file_modtime_and_size(src);
+        spv_time, _, spv_exists := file_modtime_and_size(spv);
+        if spv_exists && spv_time >= src_time  continue; // spv is up to date
+
         result := run_command("glslangValidator", "-V", src, "-o", spv);
         if result.type != .EXITED || result.exit_code != 0 {
             compiler_report(tprint(
