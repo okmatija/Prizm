@@ -134,8 +134,6 @@ Normals_Frag_UBO :: struct {
 SDLGPU_Render_State :: struct {
     pso_triangles      : *SDL_GPUGraphicsPipeline; // FILL, depth on/write on, alpha blend
     pso_triangles_line : *SDL_GPUGraphicsPipeline; // LINE fill, depth on, no blend
-    pso_lines          : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, alpha blend
-    pso_points         : *SDL_GPUGraphicsPipeline; // POINTLIST, depth on, alpha blend
     pso_background     : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, no depth, no blend
     pso_aabb           : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, no blend
     pso_normals        : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, alpha blend
@@ -301,22 +299,14 @@ init_rendering_gpu :: () {
 
     vert_tri := make_gpu_shader(gpu, SDLGPU_VERT_TRI, .VERTEX,   1);
     frag_tri := make_gpu_shader(gpu, SDLGPU_FRAG_TRI, .FRAGMENT, 2);
-    vert_pl  := make_gpu_shader(gpu, SDLGPU_VERT_PL,  .VERTEX,   1);
-    frag_pl  := make_gpu_shader(gpu, SDLGPU_FRAG_PL,  .FRAGMENT, 2);
 
     g_sdlgpu.pso_triangles = make_pipeline(
         gpu, vert_tri, frag_tri, fmt, .TRIANGLELIST, .FILL, blend=true, tri_buf_descs, tri_attrs);
     g_sdlgpu.pso_triangles_line = make_pipeline(
         gpu, vert_tri, frag_tri, fmt, .TRIANGLELIST, .LINE, blend=false, tri_buf_descs, tri_attrs);
-    g_sdlgpu.pso_lines = make_pipeline(
-        gpu, vert_pl,  frag_pl,  fmt, .LINELIST,     .FILL, blend=true, pl_buf_descs, pl_attrs);
-    g_sdlgpu.pso_points = make_pipeline(
-        gpu, vert_pl,  frag_pl,  fmt, .POINTLIST,    .FILL, blend=true, pl_buf_descs, pl_attrs);
 
     SDL_ReleaseGPUShader(gpu, vert_tri);
     SDL_ReleaseGPUShader(gpu, frag_tri);
-    SDL_ReleaseGPUShader(gpu, vert_pl);
-    SDL_ReleaseGPUShader(gpu, frag_pl);
 
     // ---- Background: no vertex buffers, no depth ----
     {
@@ -435,8 +425,6 @@ deinit_rendering_gpu :: () {
     gpu := app.gpu_device;
     if g_sdlgpu.pso_triangles       SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_triangles);
     if g_sdlgpu.pso_triangles_line  SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_triangles_line);
-    if g_sdlgpu.pso_lines           SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_lines);
-    if g_sdlgpu.pso_points          SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_points);
     if g_sdlgpu.pso_background      SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_background);
     if g_sdlgpu.pso_aabb            SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_aabb);
     if g_sdlgpu.pso_normals         SDL_ReleaseGPUGraphicsPipeline(gpu, g_sdlgpu.pso_normals);
@@ -808,14 +796,6 @@ fill_pl_style_ubo :: (color : Vector4, color_mode : Color_Mode, clip_mode : Clip
     return ubo;
 }
 
-bind_pl_buffers :: (pass : *SDL_GPURenderPass, buf : *SDL_GPUBuffer, NP : u32) {
-    bindings := SDL_GPUBufferBinding.[
-        .{buffer=buf, offset=0},    // slot 0: positions
-        .{buffer=buf, offset=NP},   // slot 1: colors
-    ];
-    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 2);
-}
-
 //
 // ---- Per-entity render functions ----
 //
@@ -873,78 +853,6 @@ sdlgpu_render_mesh_triangles :: (entity : *Entity, pass : *SDL_GPURenderPass, cm
         SDL_PushGPUFragmentUniformData(cmd, 1, *edge_style, size_of(Triangle_Style_UBO));
         SDL_DrawGPUPrimitives(pass, NVT, 1, 0, 0);
     }
-}
-
-sdlgpu_render_mesh_segments :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
-    using entity.display_info;
-    if !entity.mesh.segments.count return;
-    if !segment_style.visible && !clip_radius_mode return;
-    if !entity.render_info_gpu.segments_buf return;
-
-    wave := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
-    used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
-
-    transform := fill_transform_ubo(entity.mesh.world_from_model);
-    clip      := fill_clip_ubo(entity.display_info);
-    style     := fill_pl_style_ubo(segment_style.color, segment_style.color_mode, used_clip_mode, wave);
-
-    NVS := entity.render_info_gpu.segments_NVS;
-    NP  := NVS * cast(u32) size_of(Vector3);
-
-    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_lines);
-    bind_pl_buffers(pass, entity.render_info_gpu.segments_buf, NP);
-    SDL_PushGPUVertexUniformData(cmd, 0, *transform, size_of(Transform_UBO));
-    SDL_PushGPUFragmentUniformData(cmd, 0, *clip,  size_of(Clip_UBO));
-    SDL_PushGPUFragmentUniformData(cmd, 1, *style, size_of(PL_Style_UBO));
-    SDL_DrawGPUPrimitives(pass, NVS, 1, 0, 0);
-}
-
-sdlgpu_render_mesh_points :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
-    using entity.display_info;
-    if !entity.mesh.points.count return;
-    if !point_style.visible && !clip_radius_mode_show_wireframe return;
-    if !entity.render_info_gpu.points_buf return;
-
-    wave := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
-    used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
-
-    transform := fill_transform_ubo(entity.mesh.world_from_model);
-    clip      := fill_clip_ubo(entity.display_info);
-    style     := fill_pl_style_ubo(point_style.vertex_style.color, point_style.vertex_style.color_mode, used_clip_mode, wave);
-
-    NVP := entity.render_info_gpu.points_NVP;
-    NP  := NVP * cast(u32) size_of(Vector3);
-
-    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_points);
-    bind_pl_buffers(pass, entity.render_info_gpu.points_buf, NP);
-    SDL_PushGPUVertexUniformData(cmd, 0, *transform, size_of(Transform_UBO));
-    SDL_PushGPUFragmentUniformData(cmd, 0, *clip,  size_of(Clip_UBO));
-    SDL_PushGPUFragmentUniformData(cmd, 1, *style, size_of(PL_Style_UBO));
-    SDL_DrawGPUPrimitives(pass, NVP, 1, 0, 0);
-}
-
-sdlgpu_render_mesh_positions :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
-    using entity.display_info;
-    if !entity.mesh.positions.count return;
-    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
-    if !entity.render_info_gpu.positions_buf return;
-
-    wave := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
-    used_clip_mode := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
-
-    transform := fill_transform_ubo(entity.mesh.world_from_model);
-    clip      := fill_clip_ubo(entity.display_info);
-    style     := fill_pl_style_ubo(vertex_style.color, vertex_style.color_mode, used_clip_mode, wave);
-
-    NVV := entity.render_info_gpu.positions_NVV;
-    NP  := NVV * cast(u32) size_of(Vector3);
-
-    SDL_BindGPUGraphicsPipeline(pass, g_sdlgpu.pso_points);
-    bind_pl_buffers(pass, entity.render_info_gpu.positions_buf, NP);
-    SDL_PushGPUVertexUniformData(cmd, 0, *transform, size_of(Transform_UBO));
-    SDL_PushGPUFragmentUniformData(cmd, 0, *clip,  size_of(Clip_UBO));
-    SDL_PushGPUFragmentUniformData(cmd, 1, *style, size_of(PL_Style_UBO));
-    SDL_DrawGPUPrimitives(pass, NVV, 1, 0, 0);
 }
 
 //

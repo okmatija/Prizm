@@ -20,22 +20,19 @@ Rather than requiring users to install SDL3 separately, your `first.jai` (or equ
 
 ```jai
 // Add near the top of build(), after set_working_directory(), before compilation.
-// Copies the SDL3 runtime library from the module into the project root if not present.
 {
     #if OS == .WINDOWS {
         sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
         sdl3_dst :: "SDL3.dll";
     } else #if OS == .LINUX {
         sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so";
-        sdl3_dst :: "libSDL3.so.0";
+        sdl3_dst :: "libSDL3.so.0"; // copied as the SONAME so the dynamic linker finds it at runtime
     } else #if OS == .MACOS {
         sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
         sdl3_dst :: "libSDL3.0.dylib";
     }
-    if !file_exists(sdl3_dst) {
-        if !copy_file(sdl3_src, sdl3_dst) {
-            compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
-        }
+    if !copy_file(sdl3_src, sdl3_dst) {
+        compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
     }
 }
 ```
