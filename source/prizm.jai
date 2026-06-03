@@ -72,7 +72,7 @@ main :: () {
     // Load console history from file
     console_load_history();
 
-    app.gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB, DEBUG_OPENGL, null);
+    app.gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, DEBUG_OPENGL, null);
     if !app.gpu_device {
         print("Could not create GPU device: %\n", to_string(SDL_GetError()));
         return;
