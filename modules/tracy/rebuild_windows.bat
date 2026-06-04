@@ -30,7 +30,7 @@ echo        (not the plain "Developer Command Prompt", which defaults to x86)
 exit /b 1
 :arch_ok
 
-echo Building Tracy 0.12.2 for Windows (x64)...
+echo Building Tracy 0.13.1 for Windows (x64)...
 
 cl /nologo /c /MD /O2 /GR- ^
    /DTRACY_ENABLE /DTRACY_EXPORTS /DTRACY_ON_DEMAND ^

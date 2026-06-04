@@ -1,6 +1,6 @@
 # jai-tracy
 
-Jai bindings for [Tracy 0.12.2](https://github.com/wolfpld/tracy) from [roeyb1/jai-tracy](https://github.com/roeyb1/jai-tracy).
+Jai bindings for [Tracy 0.13.1](https://github.com/wolfpld/tracy) from [roeyb1/jai-tracy](https://github.com/roeyb1/jai-tracy).
 
 Built with `-DTRACY_ON_DEMAND`: zero overhead when no Tracy GUI is connected, so the profiling build can be your normal development binary.
 
@@ -107,7 +107,7 @@ Tag a procedure with `@NoProfile` to exclude it from auto-instrumentation.
 ## Running a profiling session
 
 1. Build your program with Tracy enabled.
-2. Download the Tracy 0.12.x GUI from the [releases page](https://github.com/wolfpld/tracy/releases) — the GUI version **must match** the library version (0.12.x).
+2. Download the Tracy 0.13.x GUI from the [releases page](https://github.com/wolfpld/tracy/releases) — the GUI version **must match** the library version (0.13.x).
 3. Start the Tracy GUI, then start your program.
 4. Click **Connect** — Tracy auto-detects the process on `localhost:8086`.
 

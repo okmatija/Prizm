@@ -129,6 +129,10 @@ ___tracy_emit_gpu_time_sync_serial :: (unknown0: ___tracy_gpu_time_sync_data) ->
 
 ___tracy_connected :: () -> s32 #foreign libtracy;
 
+// Note: TracyC.h 0.13.1 declares these as "profiler" (typo) but the macro and .so use "profiling"
+___tracy_begin_sampling_profiling :: () -> s32 #foreign libtracy;
+___tracy_end_sampling_profiling :: () -> void #foreign libtracy;
+
 ___tracy_emit_memory_alloc :: (ptr: *void, size: u64, secure: s32) -> void #foreign libtracy;
 ___tracy_emit_memory_alloc_callstack :: (ptr: *void, size: u64, depth: s32, secure: s32) -> void #foreign libtracy;
 ___tracy_emit_memory_free :: (ptr: *void, secure: s32) -> void #foreign libtracy;

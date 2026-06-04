@@ -608,7 +608,7 @@ Two community jai-tracy bindings exist. Both were cloned to `/tmp` and reviewed 
 
 #### roeyb1/jai-tracy (https://github.com/roeyb1/jai-tracy)
 
-- **Tracy version:** 0.12.2 (latest as of 2026-06-01).
+- **Tracy version:** 0.13.1 (latest as of 2026-06-03).
 - **Tracy source:** full subtree inside the repo (no git submodule). Pre-built `linux/libtracy.a`
   + `linux/libtracy.so` and `windows/libtracy.dll` + `windows/libtracy.lib` are committed, so
   contributors need zero extra steps to link — just add to modules path.
@@ -653,7 +653,7 @@ Two community jai-tracy bindings exist. Both were cloned to `/tmp` and reviewed 
 
 Prefer **roeyb1/jai-tracy** for Prizm:
 
-1. Newer Tracy (0.12.2 vs 0.11.1) — viewer and library must match; being up to date avoids
+1. Newer Tracy (0.13.1 vs 0.11.1) — viewer and library must match; being up to date avoids
    version skew with downloaded Tracy GUI builds.
 2. Pre-built binaries committed — zero build-from-source requirement (matches how SDL3 and ImGui
    are vendored in `modules/`).
@@ -754,7 +754,7 @@ side requires manual `GpuZone` calls):
 - Does `libc++` conflict with anything in the existing SDL3/ImGui link? The SDL3 `.so` is
   pre-linked; ImGui is a static `.a`. Check with a test link before committing the subtree.
 - Tracy viewer binary: the user runs the Tracy GUI app separately (Windows or Linux). Confirm
-  the Tracy 0.12.2 GUI is available as a pre-built download from
+  the Tracy 0.13.1 GUI is available as a pre-built download from
   `https://github.com/wolfpld/tracy/releases`.
 - Should `tracy` be a git subtree (like SDL3/ImGui) or a git submodule? Subtree preferred:
   no extra `git submodule update` step for contributors; matches existing conventions.
@@ -763,14 +763,14 @@ side requires manual `GpuZone` calls):
 
 ## 13. Tracy integration (2026-06-02)
 
-Status: **DONE (CPU profiling)** — `modules/tracy` replaced with roeyb1/jai-tracy (Tracy 0.12.2);
+Status: **DONE (CPU profiling)** — `modules/tracy` replaced with roeyb1/jai-tracy (Tracy 0.13.1);
 auto-instrumentation wired in `first.jai`; manual zones added in key paths; GPU profiling deferred.
 
 ### 13.1 What was done
 
 - **Replaced `modules/tracy`** with roeyb1/jai-tracy (subtree pattern, matching SDL3/ImGui).
   Removed the old vrcamillo v0.9.1 module (no Linux binaries, Windows-only, outdated API).
-  New module: Tracy 0.12.2, pre-built `linux/libtracy.a` + `linux/libtracy.so` and
+  New module: Tracy 0.13.1, pre-built `linux/libtracy.a` + `linux/libtracy.so` and
   `windows/libtracy.dll` + `windows/libtracy.lib`, full Tracy C++ source in `tracy/` for rebuilds.
 
 - **Auto-instrumentation**: `first.jai` already wired the plugin (`array_add(*plugins_to_create,
@@ -816,11 +816,11 @@ built with `-DTRACY_ON_DEMAND`, it has zero overhead when no Tracy GUI is connec
 
 **Step 2 — Download the Tracy GUI:**
 
-Get the Tracy 0.12.x viewer from the releases page (Tracy version must match the library):
+Get the Tracy 0.13.x viewer from the releases page (Tracy version must match the library):
 `https://github.com/wolfpld/tracy/releases`
 
-- Linux: download `tracy-0.12.x-linux-x86_64.tar.gz` and extract
-- Windows: download `Tracy-0.12.x.7z`
+- Linux: download `tracy-0.13.x-linux-x86_64.tar.gz` and extract
+- Windows: download `Tracy-0.13.x.7z`
 
 Run the `tracy` (Linux) or `Tracy.exe` (Windows) executable.
 
@@ -927,24 +927,21 @@ Implement after the SDL GPU port stabilises (post-§9 Phase 7).
 
 ### What's done
 
-Tracy 0.12.2 is integrated on Linux (`jai first.jai - tracy`). Auto-instrumentation works (all
+Tracy 0.13.1 is integrated on Linux (`jai first.jai - tracy`). Auto-instrumentation works (all
 non-trivial procedures get ZoneScoped automatically). Manual zones added in key paths. See §13.
 
 ### What's next
 
-**Immediate (Windows):**
-- `first.jai` now has the `libtracy.dll` copy step for Windows (added 2026-06-02).
-- The pre-built `windows/libtracy.lib` (static) fails to link on VS 2022 17.6+ (MSVC 14.36+)
-  with `LNK2019: _Thrd_sleep_for` unresolved — MSVC inlined this function; see §13.4 for root
-  cause. **Fix:** run `modules\tracy\rebuild_windows.bat` from a VS Developer Command Prompt to
-  rebuild `libtracy.dll` + `libtracy.lib` (import library) with the local MSVC toolchain, then
-  re-run `jai.exe first.jai - tracy`.
+**Immediate (Windows): ✅ Done (2026-06-04)**
+- `first.jai` has the `libtracy.dll` copy step for Windows (added 2026-06-02).
+- `windows/libtracy.dll` + `windows/libtracy.lib` rebuilt with local MSVC on 2026-06-04.
+  `LNK2019: _Thrd_sleep_for` issue resolved — see §13.4 for root cause and rebuild steps.
 
 **Short term:**
 - Verify that `./Prizm shapes/*.obj` runs correctly and Tracy can connect when built with `tracy`.
   The executable needs both `libSDL3.so.0` and `libtracy.so` next to it; both should be copied by
   `first.jai`.
-- Download Tracy 0.12.x GUI and actually profile a session to confirm data appears.
+- Download Tracy 0.13.x GUI and actually profile a session to confirm data appears.
 
 **Medium term:**
 - GPU profiling: see §13.5. The current SDL3 GPU renderer doesn't expose Vulkan handles, so full
