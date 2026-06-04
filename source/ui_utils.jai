@@ -41,6 +41,14 @@ Font_Set :: struct {
     huge : *ImGui.ImFont;
 
     #overlay (small) fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont;
+
+    // FontAwesome Regular (outline) — push/pop around widgets that need outline icons.
+    fa_regular_small  : *ImGui.ImFont;
+    fa_regular_normal : *ImGui.ImFont;
+    fa_regular_large  : *ImGui.ImFont;
+    fa_regular_huge   : *ImGui.ImFont;
+
+    #overlay (fa_regular_small) fa_regular : [#run get_enum_count(Font_Size)]*ImGui.ImFont;
 }
 
 // @Incomplete Currently only 4 different font sizes are supported and this function picks the best match.  Future work will load a font with the desired size.

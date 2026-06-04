@@ -450,6 +450,7 @@ ImTextureData :: ImGui.ImTextureData;
 #load "display_info.jai";
 #load "ui.jai";
 #load "ui_utils.jai";
+#load "font_awesome.jai";
 #load "shapes.jai";
 #load "keymap.jai";
 #load "target_items.jai";

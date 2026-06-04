@@ -712,14 +712,32 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
 
 imgui_init_fonts :: () {
     // TODO Option to pass font and size on the command line?
-    FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+    FONT,         FONT_OK         :: #run read_entire_file("data/Inconsolata-SemiBold.ttf");              #assert(FONT_OK);
+    FA_SOLID,     FA_SOLID_OK     :: #run read_entire_file("modules/font_awesome/fa-solid-900.otf");    #assert(FA_SOLID_OK);
+    FA_REGULAR,   FA_REGULAR_OK   :: #run read_entire_file("modules/font_awesome/fa-regular-400.otf"); #assert(FA_REGULAR_OK);
     //FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT2_OK);
 
     font_config : ImGui.ImFontConfig;
     ImGui.ImFontConfig.Constructor(*font_config);
     font_config.FontDataOwnedByAtlas = false;
+
+    // Solid: merged into each main font size so icons are available inline with no push/pop.
+    fa_solid_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*fa_solid_config);
+    fa_solid_config.FontDataOwnedByAtlas = false;
+    fa_solid_config.MergeMode            = true;
+    fa_solid_config.PixelSnapH           = true;
+
+    // Regular: standalone font per size; push/pop to use outline icons.
+    fa_regular_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*fa_regular_config);
+    fa_regular_config.FontDataOwnedByAtlas = false;
+    fa_regular_config.PixelSnapH           = true;
+
     for enum_values_as_s64(Font_Size) {
         app.font_set.fonts[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, cast(float)it, *font_config);
+        ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FA_SOLID.data, FA_SOLID.count, cast(float)it, *fa_solid_config, FONT_AWESOME_GLYPH_RANGES.data);
+        app.font_set.fa_regular[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FA_REGULAR.data, FA_REGULAR.count, cast(float)it, *fa_regular_config, FONT_AWESOME_GLYPH_RANGES.data);
     }
 }
 

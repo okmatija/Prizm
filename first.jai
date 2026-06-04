@@ -178,7 +178,8 @@ build :: () {
 
     set_build_options(build_options, w);
 
-    compile_shaders(); // Must run before add_build_file so #run read_entire_file finds the .spv files.
+    generate_font_awesome(); // Must run before add_build_file so #run read_entire_file finds source/font_awesome.jai.
+    compile_shaders();       // Must run before add_build_file so #run read_entire_file finds the .spv files.
 
     {
         intercept_flags : Intercept_Flags;
@@ -649,6 +650,40 @@ copy_if_newer :: (src: string, dst: string) -> bool {
     dst_time, _, dst_exists := file_modtime_and_size(dst);
     if dst_exists && dst_time >= src_time  return true;
     return copy_file(src, dst);
+}
+
+generate_font_awesome :: () {
+    // source/font_awesome.jai is vendored so contributors without Python can still build.
+    // When Python IS available and either icons.json or the OTF is newer than the generated
+    // file, source/font_awesome.jai is regenerated.
+    icons_json  := "modules/font_awesome/icons.json";
+    otf_solid   := "modules/font_awesome/fa-solid-900.otf";
+    otf_regular := "modules/font_awesome/fa-regular-400.otf";
+    output_jai  := "source/font_awesome.jai";
+
+    icons_time,   _, icons_exists   := file_modtime_and_size(icons_json);
+    solid_time,   _, solid_exists   := file_modtime_and_size(otf_solid);
+    regular_time, _, regular_exists := file_modtime_and_size(otf_regular);
+    output_time,  _, output_exists  := file_modtime_and_size(output_jai);
+
+    src_time   := max(icons_time, max(solid_time, regular_time));
+    src_exists := icons_exists || solid_exists || regular_exists;
+    if !src_exists || (output_exists && output_time >= src_time)  return; // up to date or no source
+
+    python_cmd := ifx OS == .WINDOWS then "python" else "python3";
+    probe := run_command(python_cmd, "--version", capture_and_return_output=true);
+    if probe.type != .EXITED || probe.exit_code != 0 {
+        print("[font_awesome] Python not found — using vendored source/font_awesome.jai.\n");
+        if !output_exists {
+            compiler_report("Missing vendored source/font_awesome.jai and Python unavailable to regenerate it.", mode = .ERROR_CONTINUABLE);
+        }
+        return;
+    }
+
+    result := run_command(python_cmd, "modules/font_awesome/generate.py", icons_json, output_jai);
+    if result.type != .EXITED || result.exit_code != 0 {
+        compiler_report("FontAwesome generation failed. Check modules/font_awesome/generate.py.", mode = .ERROR_CONTINUABLE);
+    }
 }
 
 compile_shaders :: () {
