@@ -1,12 +1,13 @@
 #run,stallable build(); // If plugins have assertions, they may stall.
 
-EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.017, built on 5 August 2025";
+EXPECTED_COMPILER_VERSION_INFO :: "beta 0.2.029, built on 25 April 2026";
 
 HELP_STRING :: #string DONE
 
 Build Options:
   help       print this help message
   debug_gl   build with opengl in debug mode, and use GL 4.3 so RenderDoc annotations work
+  tracy      build with Tracy profiling instrumentation (auto-annotates all procedures)
   Choose one of:
     verydebug  build debug mode with the memory debugger enabled
     debug      build debug mode (default)
@@ -49,6 +50,23 @@ build :: () {
     set_build_options_dc(.{do_output=false});
 
     set_working_directory(#filepath);
+
+    // Copy SDL3 runtime library next to the executable if the source is newer.
+    {
+        #if OS == .WINDOWS {
+            sdl3_src :: "modules/SDL3/windows/bin/x64/SDL3.dll";
+            sdl3_dst :: "SDL3.dll";
+        } else #if OS == .LINUX {
+            sdl3_src :: "modules/SDL3/linux/bin/x64/libSDL3.so";
+            sdl3_dst :: "libSDL3.so.0"; // copied as SONAME so the dynamic linker finds it
+        } else #if OS == .MACOS {
+            sdl3_src :: "modules/SDL3/macos/bin/arm64/libSDL3.0_dynamic.dylib";
+            sdl3_dst :: "libSDL3.0.dylib";
+        }
+        if !copy_if_newer(sdl3_src, sdl3_dst) {
+            compiler_report(tprint("Could not copy SDL3 library from '%' to '%'.", sdl3_src, sdl3_dst), mode=.ERROR_CONTINUABLE);
+        }
+    }
 
     HasArgument :: (arg : string) -> bool #expand {
         return array_find(command_line_arguments, arg);
@@ -116,22 +134,40 @@ build :: () {
     if #complete build_kind == {
     case .CUSTOM;
         compiler_report("This feature is currently broken, gl_load does not work at compile-time?");
-        build_options_found, build_options = table_find_new(*preset_build_options, "debug"); // Start from debug options
+        build_options_found, build_options = table_find(*preset_build_options, "debug"); // Start from debug options
         build_gui(preset_build_options, chosen_build_options=*build_options);
     case .RELEASE; #through;
     case .SHIPPING;
-        build_options_found, build_options= table_find_new(*preset_build_options, "release");
+        build_options_found, build_options= table_find(*preset_build_options, "release");
     case .DEBUG; #through;
     case .VERY_DEBUG;
-        build_options_found, build_options = table_find_new(*preset_build_options, "debug");
+        build_options_found, build_options = table_find(*preset_build_options, "debug");
     }
     assert(build_options_found);
 
-    // new_path: [..] string;
-    // array_add(*new_path, ..build_options.import_path);
-    // array_add(*new_path, "source/modules");
-    // array_add(*new_path, "../jai-tracy/tracy");
-    // build_options.import_path = new_path;
+    new_path: [..] string;
+    array_add(*new_path, "modules"); // before stdlib so modules/ImGui shadows the stdlib ImGui
+    array_add(*new_path, ..build_options.import_path);
+    build_options.import_path = new_path;
+
+    // When building with Tracy, copy the shared library next to the executable if the source
+    // is newer. On Linux, libtracy.so is a shared lib so libstdc++ is pulled in transitively
+    // via the .so's NEEDED list (no explicit link needed). On Windows, if the pre-built
+    // libtracy.dll fails to link (LNK2019: _Thrd_sleep_for), run rebuild_windows.bat from a
+    // VS x64 Developer Command Prompt — that symbol was inlined in MSVC 14.36+ STL headers.
+    #if OS == .LINUX {
+        if tracy_profiling {
+            if !copy_if_newer("modules/tracy/linux/libtracy.so", "libtracy.so") {
+                compiler_report("Could not copy libtracy.so.", mode=.ERROR_CONTINUABLE);
+            }
+        }
+    } else #if OS == .WINDOWS {
+        if tracy_profiling {
+            if !copy_if_newer("modules/tracy/windows/libtracy.dll", "libtracy.dll") {
+                compiler_report("Could not copy libtracy.dll. Run modules/tracy/rebuild_windows.bat from a VS Developer Command Prompt first.", mode=.ERROR_CONTINUABLE);
+            }
+        }
+    }
 
     plugins_to_create: [..] Plugin_To_Create;
     array_add(*plugins_to_create, .{name="Check"}); // .{name="Check(CHECK_BINDINGS=false)"}
@@ -141,6 +177,9 @@ build :: () {
     init_plugins(plugins_to_create, *plugins, w);
 
     set_build_options(build_options, w);
+
+    generate_font_awesome(); // Must run before add_build_file so #run read_entire_file finds source/font_awesome.jai.
+    compile_shaders();       // Must run before add_build_file so #run read_entire_file finds the .spv files.
 
     {
         intercept_flags : Intercept_Flags;
@@ -197,7 +236,7 @@ DONE,
                             zip_name := tprint("%-%-Windows-x86_64.zip", OUTPUT_EXE_NAME, changelog[0].name);
 
                             // @Incomplete We should check that this worked
-                            run_command(PATH_TO_7z, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL2.dll", "shapes", "api");
+                            run_command(PATH_TO_7z, "a", zip_name, tprint("%.exe", OUTPUT_EXE_NAME), "SDL3.dll", "shapes", "api");
 
                             print("[%] Wrote '%' (hopefully!)\n", OUTPUT_EXE_NAME, zip_name);
                             print("[%] To cleanup you can run 'del %'\n", OUTPUT_EXE_NAME, zip_name);
@@ -604,3 +643,99 @@ plugins: [..] *Metaprogram_Plugin;
 #load "source/changelog.jai"; // to get the latest version name when making a zip
 #load "source/carpet.jai"; // for plural_suffix
 #load "source/build_gui.jai";
+
+// Copies src to dst only when dst is absent or src is newer. Returns false on I/O error.
+copy_if_newer :: (src: string, dst: string) -> bool {
+    src_time, _, _ := file_modtime_and_size(src);
+    dst_time, _, dst_exists := file_modtime_and_size(dst);
+    if dst_exists && dst_time >= src_time  return true;
+    return copy_file(src, dst);
+}
+
+generate_font_awesome :: () {
+    // source/font_awesome.jai is vendored so contributors without Python can still build.
+    // When Python IS available and either icons.json or the OTF is newer than the generated
+    // file, source/font_awesome.jai is regenerated.
+    icons_json  := "modules/font_awesome/icons.json";
+    otf_solid   := "modules/font_awesome/fa-solid-900.otf";
+    otf_regular := "modules/font_awesome/fa-regular-400.otf";
+    output_jai  := "source/font_awesome.jai";
+
+    icons_time,   _, icons_exists   := file_modtime_and_size(icons_json);
+    solid_time,   _, solid_exists   := file_modtime_and_size(otf_solid);
+    regular_time, _, regular_exists := file_modtime_and_size(otf_regular);
+    output_time,  _, output_exists  := file_modtime_and_size(output_jai);
+
+    src_time   := max(icons_time, max(solid_time, regular_time));
+    src_exists := icons_exists || solid_exists || regular_exists;
+    if !src_exists || (output_exists && output_time >= src_time)  return; // up to date or no source
+
+    python_cmd := ifx OS == .WINDOWS then "python" else "python3";
+    probe := run_command(python_cmd, "--version", capture_and_return_output=true);
+    if probe.type != .EXITED || probe.exit_code != 0 {
+        print("[font_awesome] Python not found — using vendored source/font_awesome.jai.\n");
+        if !output_exists {
+            compiler_report("Missing vendored source/font_awesome.jai and Python unavailable to regenerate it.", mode = .ERROR_CONTINUABLE);
+        }
+        return;
+    }
+
+    result := run_command(python_cmd, "modules/font_awesome/generate.py", icons_json, output_jai);
+    if result.type != .EXITED || result.exit_code != 0 {
+        compiler_report("FontAwesome generation failed. Check modules/font_awesome/generate.py.", mode = .ERROR_CONTINUABLE);
+    }
+}
+
+compile_shaders :: () {
+    // SPIR-V binaries are vendored in shaders/ so contributors without glslangValidator can build.
+    // When glslangValidator IS available the sources are recompiled and the vendored files updated.
+    // Output always lands in shaders/ so #run read_entire_file can embed them at compile time.
+    make_directory_if_it_does_not_exist("shaders");
+
+    shader_sources := string.[
+        "source/render/triangles.vert",
+        "source/render/triangles.frag",
+        "source/render/points_lines.vert",
+        "source/render/points_lines.frag",
+        "source/render/background.vert",
+        "source/render/background.frag",
+        "source/render/aabb.vert",
+        "source/render/aabb.frag",
+        "source/render/normals.vert",
+        "source/render/normals.frag",
+        "source/render/thick_lines.vert",
+        "source/render/sized_points.vert",
+    ];
+
+    // Probe for glslangValidator (or glslangValidator.exe on Windows).
+    probe := run_command("glslangValidator", "--version", capture_and_return_output=true);
+    has_glslang := (probe.type == .EXITED && probe.exit_code == 0);
+
+    if !has_glslang {
+        print("[shaders] glslangValidator not found — using vendored .spv files in shaders/.\n");
+        // Verify every vendored file exists; abort if any is missing.
+        for src : shader_sources {
+            spv := tprint("shaders/%.spv", path_filename(src));
+            if !file_exists(spv) {
+                compiler_report(tprint(
+                    "Missing vendored shader '%'. Either install glslangValidator and rebuild, or restore the file from git.",
+                    spv), mode = .ERROR_CONTINUABLE);
+            }
+        }
+        return;
+    }
+
+    for src : shader_sources {
+        spv := tprint("shaders/%.spv", path_filename(src));
+        src_time, _, _ := file_modtime_and_size(src); // source is a known repo file
+        spv_time, _, spv_exists := file_modtime_and_size(spv);
+        if spv_exists && spv_time >= src_time  continue; // spv is up to date
+
+        result := run_command("glslangValidator", "-V", src, "-o", spv);
+        if result.type != .EXITED || result.exit_code != 0 {
+            compiler_report(tprint(
+                "Shader compilation failed for '%'.\n  Install glslang: sudo apt install glslang-tools  (or equivalent for your OS).",
+                src), mode = .ERROR_CONTINUABLE);
+        }
+    }
+}

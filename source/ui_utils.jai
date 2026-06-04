@@ -19,6 +19,11 @@ valid_geometry_index :: (index : int) -> bool {
 io :: () -> *ImGui.IO {return ImGui.GetIO(); }
 
 // @Volatile :FontSizesShouldMatchFontAtlas
+// @TODO :SmoothFontSizing Replace these four fixed bakes with on-demand sizing. Since imgui 1.92's
+// dynamic font atlas rasterizes a font face at any requested pixel size, we no longer need to bake
+// SMALL/NORMAL/LARGE/HUGE up front -- a single font loaded once could be pushed at any size via
+// PushFont(font, size_px). That would let label sizes and the "UI Scale" slider vary continuously
+// (still rounded to whole pixels for crisp glyphs) instead of snapping to these four steps.
 Font_Size :: enum u8 {
     SMALL :: 12;
     NORMAL :: 18;
@@ -35,8 +40,15 @@ Font_Set :: struct {
     large : *ImGui.ImFont;
     huge : *ImGui.ImFont;
 
-    #place small;
-    fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont = ---;
+    #overlay (small) fonts : [#run get_enum_count(Font_Size)]*ImGui.ImFont;
+
+    // FontAwesome Regular (outline) — push/pop around widgets that need outline icons.
+    fa_regular_small  : *ImGui.ImFont;
+    fa_regular_normal : *ImGui.ImFont;
+    fa_regular_large  : *ImGui.ImFont;
+    fa_regular_huge   : *ImGui.ImFont;
+
+    #overlay (fa_regular_small) fa_regular : [#run get_enum_count(Font_Size)]*ImGui.ImFont;
 }
 
 // @Incomplete Currently only 4 different font sizes are supported and this function picks the best match.  Future work will load a font with the desired size.
@@ -63,6 +75,21 @@ make_Vector2 :: inline (v : ImGui.ImVec2) -> Vector2 {
     result.x = v.x;
     result.y = v.y;
     return result;
+}
+
+// Wrap a GL texture handle (GLuint) into an ImTextureRef for use with ImGui.Image()/ImageButton().
+imgui_tex_ref :: (texture : Texture) -> ImGui.ImTextureRef {
+    ref : ImGui.ImTextureRef;
+    ref._TexID = cast(ImGui.ImTextureID) texture.gpu_handle;
+    return ref;
+}
+
+// Push a font at the size it was created with (the size passed to AddFontFromMemoryTTF).
+// In imgui 1.92 PushFont(font) was replaced by PushFont(font, size); passing 0.0 means "keep the
+// current size" (which defaults to the first-loaded font's size), so we must pass font.LegacySize
+// to replicate the pre-1.92 behaviour. Global scale factors (style.FontScaleMain) still apply on top.
+push_font :: inline (font : *ImGui.ImFont) {
+    ImGui.PushFont(font, font.LegacySize);
 }
 
 imgui_label :: (label : string, ptr : *void = null) -> *u8 {
@@ -331,7 +358,7 @@ InputText :: (label: string, str : *string, flags: ImGui.InputTextFlags = .None,
 
             return 0;
         }
-    }
+    } @NoProfile
 
     assert((flags & .CallbackResize) == 0);
     flags |= .CallbackResize;
@@ -366,7 +393,7 @@ hold_lmb_and_hover_to_open_tree :: () -> bool {
         warped_px : Vector2;
         warped_px.x = cast(float)app.window_size.width *  (warped_ndc.x + 1) / 2;
         warped_px.y = cast(float)app.window_size.height * (warped_ndc.y + 1) / 2;
-        SDL_WarpMouseInWindow(app.window, xx warped_px.x, xx warped_px.y);
+        SDL_WarpMouseInWindow(app.window, warped_px.x, warped_px.y);
 
         rmb_down_pos = make_Vector2(warped_px);
         camera_at_mouse_down = app.camera;

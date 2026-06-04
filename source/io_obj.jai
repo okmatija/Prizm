@@ -3,6 +3,7 @@
 
 // The returned array is in temporary storage, the array elements are allocated with context.allocator
 load_obj :: (filename : string, data : string, name : string) -> []*Entity {
+    #if USE_TRACY  context._Tracy.ZoneScoped("load_obj", color=0x40A0C0);
 
     results : [..]*Entity;
     results.allocator = temp;
@@ -647,7 +648,7 @@ IncompleteSupportMessage :: () #expand {
 
     while tok.type != Token.Type.EOF && tok.line_number == `current_line {
         eat_token(*`parser);
-        tok = peek_token(`parser);
+        tok = peek_token(*`parser);
     }
 }
 

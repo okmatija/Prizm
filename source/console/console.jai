@@ -310,7 +310,7 @@ show_console_ui :: () {
             scrolling_region_flags |= .NoScrollbar; // Save some screenspace since we wont be interacting with the console log anyway
         }
 
-        ImGui.BeginChild("ScrollingRegion", border=false, flags=scrolling_region_flags);
+        ImGui.BeginChild("ScrollingRegion", child_flags=.None, window_flags=scrolling_region_flags);
         ImGui.PushStyleVar(.ItemSpacing, ImGui.ImVec2.{4,1}); // Tighten spacing
 
         for :ListClipperIterator item : app.console.log {
@@ -500,7 +500,7 @@ text_edit_callback :: (data : *ImGui.InputTextCallbackData) -> s32 #c_call {
     }
 
     return 0;
-}
+} @NoProfile
 
 #scope_file
 

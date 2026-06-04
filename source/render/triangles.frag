@@ -1,306 +1,194 @@
-#version 330 core
+#version 450
 
-struct Camera {
-    vec3 look_direction;
+// Frontface modes — must match Frontface_Style.Color_Mode in display_info.jai
+const uint FM_PICKED = 0;
+const uint FM_VERTEX = 1;
+const uint FM_NORMAL = 2;
+
+// Backface modes — must match Backface_Style.Color_Mode in display_info.jai
+const uint BM_PICKED = 0;
+const uint BM_COPIED = 1;
+const uint BM_DARKEN = 2;
+const uint BM_DITHER = 3;
+
+// Fragment uniform buffer slot 0 (set = 3 per SDL3 GPU SPIR-V convention)
+layout(set = 3, binding = 0) uniform Clip_UBO {
+    vec4  clip_sphere;           // xyz=center, w=radius
+    vec4  clip_sphere_prev;      // xyz=center, w=radius
+    uvec4 clip_flags;            // x=sphere_active, y=clip_radius_mode
+    vec4  range_normal[3];       // xyz=normal, w=unused
+    vec4  range_min_max[3];      // x=min, y=max, z=1.0 if active else 0.0, w=unused
 };
 
-struct Clip_Range {
-    vec3 normal;
-    bool is_active;
-    float min;
-    float max;
+// Fragment uniform buffer slot 1
+layout(set = 3, binding = 1) uniform Triangle_Style_UBO {
+    vec4  color;                          // rgba
+    vec4  edges_color;                    // rgba
+    vec4  backface_color_wave;            // xyz=backface_rgb, w=wave
+    vec4  look_dir_edges_width;           // xyz=look_direction, w=edges_width
+    uvec4 style_flags;   // x=frontface_mode, y=backface_mode, z=flat_shading, w=backface_visible
 };
 
-struct Clip_Sphere {
-    vec3 center;
-    float radius;
-    bool is_active;
-};
+layout(location = 0) in vec3 frag_position_ws;
+layout(location = 1) in vec3 frag_smooth_normal_ws;
+layout(location = 2) in vec3 frag_face_normal_ws;
+layout(location = 3) noperspective in vec3 frag_barycentric;
+layout(location = 4) in vec3 frag_color;
 
-// @Cleanup Use these structs rather than having data floating around
-//struct Edge_Style {
-//    vec4 color;
-//    float width;
-//};
-//
-//struct Triangle_Style {
-//    vec4 color;
-//    int display_mode;
-//    int backface_mode;
-//    bool flat_shading;
-//    Edge_Style edge_style;
-//};
-
-const int Frontface_Mode_PICKED = 0;
-const int Frontface_Mode_VERTEX = 1;
-const int Frontface_Mode_NORMAL = 2;
-
-const int Backface_Mode_PICKED = 0;
-const int Backface_Mode_COPIED = 1;
-const int Backface_Mode_DARKEN = 2;
-const int Backface_Mode_DITHER = 3;
-
-uniform float wave; // time varying value in range [-1,1]
-uniform Camera camera;
-
-uniform int frontface_mode = Frontface_Mode_NORMAL;
-uniform int backface_mode = Backface_Mode_PICKED;
-uniform bool backface_visible = true;
-uniform vec3 backface_color; // rgb
-uniform bool flat_shading = true;
-uniform vec4 color; // rgba
-uniform vec4 edges_color; // rgba
-uniform float edges_width;
-
-uniform Clip_Range clip_range[3];
-uniform Clip_Sphere clip_sphere;
-uniform Clip_Sphere clip_sphere_prev; // .is_active is not used!
-uniform bool clip_radius_mode = false;
-
-in vec3 vertex_normal_ws;
-in vec3 vertex_color;
-in vec3 triangle_normal_ws;
-in vec3 fragment_position_ws;
-noperspective in vec3 dist;
-
-out vec4 out_color;
+layout(location = 0) out vec4 out_color;
 
 const float EPSILON = 1e-10;
 
-vec3 ambient_color   = vec3(0.0);
-vec3 diffuse_color   = color.xyz;
-vec3 specular_color  = vec3(1.0);
-float shininess      = 16.;
-float gamma          = 2.2;
+// ---- colour helpers (same as original triangles.frag) ----
 
-vec3 blinn_phong_brdf(vec3 N, vec3 V, vec3 L, vec3 light_color, float light_power) {
-    float n_dot_l = clamp(dot(N, L), 0., 1.);
-
-    float specular = 0;
-    if (n_dot_l > 0.) {
-        vec3 H = normalize(V + L);
-        float n_dot_h = clamp(dot(N, H), 0., 1.);
-        specular = pow(n_dot_h, shininess);
-    }
-
-    return light_color * light_power * (diffuse_color * n_dot_l + specular_color * specular);
+vec3 HUEtoRGB(float hue) {
+    vec3 rgb = abs(hue * 6.0 - vec3(3.0, 2.0, 4.0)) * vec3(1.0, -1.0, -1.0) + vec3(-1.0, 2.0, 2.0);
+    return clamp(rgb, 0.0, 1.0);
 }
 
-vec3 get_normal() {
-    vec3 N = vertex_normal_ws;
-    if (flat_shading) {
-        N = triangle_normal_ws;
-    }
-    if (!gl_FrontFacing) {
-        N *= -1;
-    }
-    return N;
-}
-
-vec3 HUEtoRGB(in float hue)
-{
-    // Hue [0..1] to RGB [0..1]
-    // See http://www.chilliant.com/rgb2hsv.html
-    vec3 rgb = abs(hue * 6. - vec3(3, 2, 4)) * vec3(1, -1, -1) + vec3(-1, 2, 2);
-    return clamp(rgb, 0., 1.);
-}
-
-vec3 RGBtoHCV(in vec3 rgb)
-{
-    // RGB [0..1] to Hue-Chroma-Value [0..1]
-    // Based on work by Sam Hocevar and Emil Persson
-    vec4 p = (rgb.g < rgb.b) ? vec4(rgb.bg, -1., 2. / 3.) : vec4(rgb.gb, 0., -1. / 3.);
-    vec4 q = (rgb.r < p.x) ? vec4(p.xyw, rgb.r) : vec4(rgb.r, p.yzx);
+vec3 RGBtoHCV(vec3 rgb) {
+    vec4 p = (rgb.g < rgb.b) ? vec4(rgb.bg, -1.0, 2.0/3.0) : vec4(rgb.gb, 0.0, -1.0/3.0);
+    vec4 q = (rgb.r < p.x)  ? vec4(p.xyw, rgb.r)          : vec4(rgb.r, p.yzx);
     float c = q.x - min(q.w, q.y);
-    float h = abs((q.w - q.y) / (6. * c + EPSILON) + q.z);
+    float h = abs((q.w - q.y) / (6.0 * c + EPSILON) + q.z);
     return vec3(h, c, q.x);
 }
 
-vec3 HSVtoRGB(in vec3 hsv)
-{
-    // Hue-Saturation-Value [0..1] to RGB [0..1]
-    vec3 rgb = HUEtoRGB(hsv.x);
-    return ((rgb - 1.) * hsv.y + 1.) * hsv.z;
+vec3 HSVtoRGB(vec3 hsv) {
+    return ((HUEtoRGB(hsv.x) - 1.0) * hsv.y + 1.0) * hsv.z;
 }
 
-vec3 RGBtoHSV(in vec3 rgb)
-{
-    // RGB [0..1] to Hue-Saturation-Value [0..1]
+vec3 RGBtoHSV(vec3 rgb) {
     vec3 hcv = RGBtoHCV(rgb);
-    float s = hcv.y / (hcv.z + EPSILON);
-    return vec3(hcv.x, s, hcv.z);
+    return vec3(hcv.x, hcv.y / (hcv.z + EPSILON), hcv.z);
 }
 
-vec3 darken(in vec3 color, float darken_factor)
-{
-    vec3 hsv = RGBtoHSV(color);
-    hsv.z *= darken_factor;
+vec3 darken(vec3 col, float factor) {
+    vec3 hsv = RGBtoHSV(col);
+    hsv.z *= factor;
     return HSVtoRGB(hsv);
 }
 
-void main() {
+// ---- lighting ----
 
-    if (!gl_FrontFacing && !backface_visible) {
-        discard;
+vec3 blinn_phong(vec3 N, vec3 V, vec3 L, vec3 diff_col) {
+    const vec3  light_color = vec3(1.0);
+    const float light_power = 1.0;
+    const vec3  spec_color  = vec3(1.0);
+    const float shininess   = 16.0;
+
+    float n_dot_l = clamp(dot(N, L), 0.0, 1.0);
+    float spec    = 0.0;
+    if (n_dot_l > 0.0) {
+        float n_dot_h = clamp(dot(N, normalize(V + L)), 0.0, 1.0);
+        spec = pow(n_dot_h, shininess);
     }
+    return light_color * light_power * (diff_col * n_dot_l + spec_color * spec);
+}
 
+void main() {
+    float wave            = backface_color_wave.w;
+    vec3  look_direction  = look_dir_edges_width.xyz;
+    float edges_width     = look_dir_edges_width.w;
+    uint  frontface_mode  = style_flags.x;
+    uint  backface_mode   = style_flags.y;
+    bool  flat_shading    = style_flags.z != 0u;
+    bool  backface_visible = style_flags.w != 0u;
+    bool  sphere_active   = clip_flags.x != 0u;
+    bool  clip_radius_mode = clip_flags.y != 0u;
+
+    // ---- backface culling ----
+    if (!gl_FrontFacing && !backface_visible) discard;
+
+    // ---- clip ranges ----
     for (int i = 0; i < 3; ++i) {
-        if (clip_range[i].is_active) {
-            float dist = dot(clip_range[i].normal, fragment_position_ws);
-            float min = clip_range[i].min;
-            float max = clip_range[i].max;
-            if (dist <= min || dist >= max) {
-                discard;
-            }
+        if (range_min_max[i].z > 0.5) {
+            float d = dot(range_normal[i].xyz, frag_position_ws);
+            if (d <= range_min_max[i].x || d >= range_min_max[i].y) discard;
         }
     }
 
-    float clip_mode_darken_factor = 1.;
-
-    if (clip_sphere.is_active) {
-        float dist = distance(clip_sphere.center, fragment_position_ws);
-        bool outside_clip_sphere = dist > clip_sphere.radius;
-
-        float dist_prev = distance(clip_sphere_prev.center, fragment_position_ws);
-        bool outside_clip_sphere_prev = dist_prev > clip_sphere_prev.radius;
-
-        if (outside_clip_sphere) {
+    // ---- clip sphere ----
+    float clip_darken = 1.0;
+    if (sphere_active) {
+        float d     = distance(clip_sphere.xyz,      frag_position_ws);
+        float d_prev = distance(clip_sphere_prev.xyz, frag_position_ws);
+        bool outside      = d      > clip_sphere.w;
+        bool outside_prev = d_prev > clip_sphere_prev.w;
+        if (outside) {
             if (clip_radius_mode) {
-                if (outside_clip_sphere_prev) {
-                    discard;
-                } else {
-                    clip_mode_darken_factor = .4;
-                }
+                if (outside_prev) discard;
+                else clip_darken = 0.4;
             } else {
                 discard;
             }
         }
     }
 
+    // ---- shading ----
+    vec3 N = flat_shading ? frag_face_normal_ws : frag_smooth_normal_ws;
+    if (!gl_FrontFacing) N = -N;
 
     vec4 fill_color = color;
 
-    switch (frontface_mode) {
+    vec3 V = normalize(look_direction);
+    vec3 L = normalize(-look_direction);
+    const float gamma = 2.2;
 
-        case Frontface_Mode_NORMAL: {
+    if (frontface_mode == FM_PICKED) {
+        vec3 diff = fill_color.xyz;
+        if (!gl_FrontFacing && backface_mode == BM_PICKED) {
+            diff = backface_color_wave.xyz;
+            fill_color = vec4(diff, 1.0);
+        }
+        vec3 lit = blinn_phong(N, V, L, diff);
+        vec4 gamma_corrected = vec4(pow(lit, vec3(1.0/gamma)), 1.0);
+        fill_color = mix(gamma_corrected, vec4(0.8), wave * 0.5 + 0.5);
 
-            if (!gl_FrontFacing && backface_mode == Backface_Mode_PICKED) {
-                // @Volatile @CopyPasta from PICKED
-                vec3 N = get_normal();
-                vec3 V = normalize(camera.look_direction);
-                vec3 L = normalize(-camera.look_direction);
-                vec3 light_color = vec3(1);
-                float light_power = 1.;
+    } else if (frontface_mode == FM_VERTEX) {
+        vec3 diff = frag_color;
+        if (!gl_FrontFacing && backface_mode == BM_PICKED) {
+            diff = backface_color_wave.xyz;
+            fill_color = vec4(diff, 1.0);
+        }
+        vec3 lit = blinn_phong(N, V, L, diff);
+        vec4 gamma_corrected = vec4(pow(lit, vec3(1.0/gamma)), 1.0);
+        fill_color = mix(gamma_corrected, vec4(0.8), wave * 0.5 + 0.5);
 
-                if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
-                    fill_color = vec4(backface_color, 1);
-                }
-                diffuse_color = fill_color.xyz;
-                vec4 color_linear = vec4(0, 0, 0, 1);
-                color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power);
-                vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
-
-                fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
-            } else {
-                vec3 N = get_normal();
-                fill_color = mix(vec4(N, 1.f) * .5f + .5f, vec4(1.f), wave * .5f + .5f);
-                if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
-                    fill_color = vec4(backface_color, 1);
-                }
-            }
-
-        } break;
-
-        case Frontface_Mode_PICKED: {
-
-            // @Volatile @CopyPasta from NORMAL
-            vec3 N = get_normal();
-            vec3 V = normalize(camera.look_direction);
-            vec3 L = normalize(-camera.look_direction);
-            vec3 light_color = vec3(1);
-            float light_power = 1.;
-
-            if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
-                fill_color = vec4(backface_color, 1);
-            }
-            diffuse_color = fill_color.xyz;
-            vec4 color_linear = vec4(0, 0, 0, 1);
-            color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power);
-            vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
-
-            fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
-
-        } break;
-
-        case Frontface_Mode_VERTEX: {
-
-            // @Volatile @CopyPasta from NORMAL
-            vec3 N = get_normal();
-            vec3 V = normalize(camera.look_direction);
-            vec3 L = normalize(-camera.look_direction);
-            vec3 light_color = vec3(1);
-            float light_power = 1.;
-
-            fill_color = vec4(vertex_color, 1);
-            if (!gl_FrontFacing && (backface_mode == Backface_Mode_PICKED)) {
-                fill_color = vec4(backface_color, 1);
-            }
-
-            diffuse_color = fill_color.xyz;
-            vec4 color_linear = vec4(0, 0, 0, 1);
-            color_linear.xyz += blinn_phong_brdf(N, V, L, light_color, light_power);
-            vec4 color_gamma_corrected = vec4(pow(ambient_color + color_linear.xyz, vec3(1 / gamma)), 1);
-
-            fill_color = mix(color_gamma_corrected, vec4(.8,.8,.8,1), wave * .5f + .5f);
-
-        } break;
-
-    }
-
-    if (!gl_FrontFacing) {
-        float darken_factor = (frontface_mode == Frontface_Mode_PICKED ? .5 : .6);
-
-        switch (backface_mode) {
-
-            // Darken frontface color
-            case Backface_Mode_DARKEN: {
-                fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                break;
-            }
-
-            case Backface_Mode_DITHER: {
-
-                // // Darken frontface color and screentone dark
-                // fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                // if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                //     fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                // }
-                // break;
-
-                // Darken frontface color and screentone light
-                fill_color.xyz = darken(fill_color.xyz, darken_factor);
-                if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0) {
-                    fill_color.xyz = darken(fill_color.xyz, 1/darken_factor);
-                }
-                break;
-            }
-
+    } else { // FM_NORMAL
+        if (!gl_FrontFacing && backface_mode == BM_PICKED) {
+            vec3 diff = backface_color_wave.xyz;
+            vec3 lit  = blinn_phong(N, V, L, diff);
+            vec4 gc   = vec4(pow(lit, vec3(1.0/gamma)), 1.0);
+            fill_color = mix(gc, vec4(0.8), wave * 0.5 + 0.5);
+        } else {
+            fill_color = mix(vec4(N * 0.5 + 0.5, 1.0), vec4(1.0), wave * 0.5 + 0.5);
         }
     }
 
-    if (edges_width > 0.) {
-        float d = min(dist[0], min(dist[1], dist[2]));
-        d /= max(1., edges_width);
-        float I = exp2(-2*d*d);
-        vec4 line_color = mix(edges_color, vec4(1.f), wave * .5f + .5f);
-        out_color = I*line_color + (1. - I)*fill_color;
-    } else {
-        out_color = fill_color;
+    // ---- backface modifiers ----
+    if (!gl_FrontFacing) {
+        float darken_factor = (frontface_mode == FM_PICKED) ? 0.5 : 0.6;
+        if (backface_mode == BM_DARKEN) {
+            fill_color.xyz = darken(fill_color.xyz, darken_factor);
+        } else if (backface_mode == BM_DITHER) {
+            fill_color.xyz = darken(fill_color.xyz, darken_factor);
+            if (int(gl_FragCoord.x) % 3 == 0 && int(gl_FragCoord.y) % 3 == 0)
+                fill_color.xyz = darken(fill_color.xyz, 1.0 / darken_factor);
+        }
     }
 
-    // Maybe Darken
-    out_color.xyz = darken(out_color.xyz, clip_mode_darken_factor);
+    // ---- solid wireframe via barycentric fwidth ----
+    if (edges_width > 0.0) {
+        float min_bary = min(frag_barycentric.x, min(frag_barycentric.y, frag_barycentric.z));
+        float fw = fwidth(min_bary);
+        float d  = min_bary / (fw * max(1.0, edges_width));
+        float I  = exp2(-2.0 * d * d);
+        vec4 line_color = mix(edges_color, vec4(1.0), wave * 0.5 + 0.5);
+        fill_color = I * line_color + (1.0 - I) * fill_color;
+    }
 
-    // Respect blending of input color
-    out_color.w = color.w;
+    out_color   = fill_color;
+    out_color.xyz = darken(out_color.xyz, clip_darken);
+    out_color.w = color.w; // respect input alpha for blending
 }

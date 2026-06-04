@@ -5,47 +5,45 @@ DEFAULT_COLOR_EDIT_FLAGS :: ImGui.ColorEditFlags.NoInputs | .NoTooltip;
 
 // @Cleanup Remove usages of helper functions BeginPopupContextItem when there is a function boundary between the imgui widget which is rmb clicked and the function rendering the UI
 
-init_icons :: () {
-    PRIZM_ICON_DATA0,     OK0 :: #run read_entire_file("data/icon_blue.png",  zero_terminated=true);  #assert(OK0);
-    PRIZM_ICON_DATA1,     OK1 :: #run read_entire_file("data/icon_green.png", zero_terminated=true);  #assert(OK1);
-    PRIZM_ICON_DATA2,     OK2 :: #run read_entire_file("data/icon_red.png",   zero_terminated=true);  #assert(OK2);
-    PRIZM_ICON_DATA3,     OK3 :: #run read_entire_file("data/icon_black.png", zero_terminated=true);  #assert(OK3);
+// Image data embedded at compile time (shared between GL and SDL GPU paths)
+ICON_BLUE_DATA,         _IC0 :: #run read_entire_file("data/icon_blue.png",    zero_terminated=true); #assert(_IC0);
+ICON_GREEN_DATA,        _IC1 :: #run read_entire_file("data/icon_green.png",   zero_terminated=true); #assert(_IC1);
+ICON_RED_DATA,          _IC2 :: #run read_entire_file("data/icon_red.png",     zero_terminated=true); #assert(_IC2);
+ICON_BLACK_DATA,        _IC3 :: #run read_entire_file("data/icon_black.png",   zero_terminated=true); #assert(_IC3);
+ICON_CLOSE_DATA,        _IC4 :: #run read_entire_file("data/close.png",        zero_terminated=true); #assert(_IC4);
+ICON_MAXIMIZE_DATA,     _IC5 :: #run read_entire_file("data/maximize.png",     zero_terminated=true); #assert(_IC5);
+ICON_MINIMIZE_DATA,     _IC6 :: #run read_entire_file("data/minimize.png",     zero_terminated=true); #assert(_IC6);
+ICON_RESTORE_DATA,      _IC7 :: #run read_entire_file("data/restore.png",      zero_terminated=true); #assert(_IC7);
+ICON_BACKFACE_DATA,     _IC8 :: #run read_entire_file("data/backface.png",     zero_terminated=true); #assert(_IC8);
+ICON_OPACITY_DATA,      _IC9 :: #run read_entire_file("data/opacity.png",      zero_terminated=true); #assert(_IC9);
+ICON_CLIPPING_DATA,     _ICa :: #run read_entire_file("data/clipping.png",     zero_terminated=true); #assert(_ICa);
+ICON_NORMALS_DATA,      _ICb :: #run read_entire_file("data/normals.png",      zero_terminated=true); #assert(_ICb);
+ICON_THICKNESS_DATA,    _ICc :: #run read_entire_file("data/thickness.png",    zero_terminated=true); #assert(_ICc);
+ICON_RADIUS_DATA,       _ICd :: #run read_entire_file("data/radius.png",       zero_terminated=true); #assert(_ICd);
+ICON_INDICES_DATA,      _ICe :: #run read_entire_file("data/indices.png",      zero_terminated=true); #assert(_ICe);
+ICON_COORDINATES_DATA,  _ICf :: #run read_entire_file("data/coordinates.png",  zero_terminated=true); #assert(_ICf);
+ICON_ANNOTATIONS_DATA,  _ICg :: #run read_entire_file("data/annotations.png",  zero_terminated=true); #assert(_ICg);
 
-    WINDOW_CLOSE_DATA,    OK5 :: #run read_entire_file("data/close.png",      zero_terminated=true);  #assert(OK5);
-    WINDOW_MAXIMIZE_DATA, OK6 :: #run read_entire_file("data/maximize.png",   zero_terminated=true);  #assert(OK6);
-    WINDOW_MINIMIZE_DATA, OK7 :: #run read_entire_file("data/minimize.png",   zero_terminated=true);  #assert(OK7);
-    WINDOW_RESTORE_DATA,  OK8 :: #run read_entire_file("data/restore.png",    zero_terminated=true);  #assert(OK8);
-
-    BACKFACE_DATA,        OK9 :: #run read_entire_file("data/backface.png",    zero_terminated=true); #assert(OK9);
-    OPACITY_DATA,         OKa :: #run read_entire_file("data/opacity.png",     zero_terminated=true); #assert(OKa);
-    CLIPPING_DATA,        OKb :: #run read_entire_file("data/clipping.png",    zero_terminated=true); #assert(OKb);
-    NORMALS_DATA,         OKc :: #run read_entire_file("data/normals.png",     zero_terminated=true); #assert(OKc);
-    THICKNESS_DATA,       OKd :: #run read_entire_file("data/thickness.png",   zero_terminated=true); #assert(OKd);
-    RADIUS_DATA,          OKe :: #run read_entire_file("data/radius.png",      zero_terminated=true); #assert(OKe);
-    INDICES_DATA,         OKf :: #run read_entire_file("data/indices.png",     zero_terminated=true); #assert(OKf);
-    COORDINATES_DATA,     OKg :: #run read_entire_file("data/coordinates.png", zero_terminated=true); #assert(OKg);
-    ANNOTATIONS_DATA,     OKh :: #run read_entire_file("data/annotations.png", zero_terminated=true); #assert(OKh);
-
+// SDL GPU icon loading -- called at startup after the GPU device is created.
+init_icons_gpu :: () {
     ok : bool;
-    icon_prizm_icon_texture[0],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA0);     assert(ok);
-    icon_prizm_icon_texture[1],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA1);     assert(ok);
-    icon_prizm_icon_texture[2],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA2);     assert(ok);
-    icon_prizm_icon_texture[3],   ok = load_texture_from_memory(cast([]u8)PRIZM_ICON_DATA3);     assert(ok);
-
-    icon_window_close_texture,    ok = load_texture_from_memory(cast([]u8)WINDOW_CLOSE_DATA);    assert(ok);
-    icon_window_maximize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MAXIMIZE_DATA); assert(ok);
-    icon_window_minimize_texture, ok = load_texture_from_memory(cast([]u8)WINDOW_MINIMIZE_DATA); assert(ok);
-    icon_window_restore_texture,  ok = load_texture_from_memory(cast([]u8)WINDOW_RESTORE_DATA);  assert(ok);
-
-    icon_backface_texture,    ok = load_texture_from_memory(cast([]u8)BACKFACE_DATA);    assert(ok);
-    icon_opacity_texture,     ok = load_texture_from_memory(cast([]u8)OPACITY_DATA);     assert(ok);
-    icon_clipping_texture,    ok = load_texture_from_memory(cast([]u8)CLIPPING_DATA);    assert(ok);
-    icon_normals_texture,     ok = load_texture_from_memory(cast([]u8)NORMALS_DATA);     assert(ok);
-    icon_thickness_texture,   ok = load_texture_from_memory(cast([]u8)THICKNESS_DATA);   assert(ok);
-    icon_radius_texture,      ok = load_texture_from_memory(cast([]u8)RADIUS_DATA);      assert(ok);
-    icon_indices_texture,     ok = load_texture_from_memory(cast([]u8)INDICES_DATA);     assert(ok);
-    icon_coordinates_texture, ok = load_texture_from_memory(cast([]u8)COORDINATES_DATA); assert(ok);
-    icon_annotations_texture, ok = load_texture_from_memory(cast([]u8)ANNOTATIONS_DATA); assert(ok);
+    icon_prizm_icon_texture[0],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_BLUE_DATA);        assert(ok);
+    icon_prizm_icon_texture[1],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_GREEN_DATA);       assert(ok);
+    icon_prizm_icon_texture[2],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_RED_DATA);         assert(ok);
+    icon_prizm_icon_texture[3],   ok = load_texture_from_memory_gpu(cast([]u8)ICON_BLACK_DATA);       assert(ok);
+    icon_window_close_texture,    ok = load_texture_from_memory_gpu(cast([]u8)ICON_CLOSE_DATA);       assert(ok);
+    icon_window_maximize_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_MAXIMIZE_DATA);    assert(ok);
+    icon_window_minimize_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_MINIMIZE_DATA);    assert(ok);
+    icon_window_restore_texture,  ok = load_texture_from_memory_gpu(cast([]u8)ICON_RESTORE_DATA);     assert(ok);
+    icon_backface_texture,    ok = load_texture_from_memory_gpu(cast([]u8)ICON_BACKFACE_DATA);    assert(ok);
+    icon_opacity_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_OPACITY_DATA);     assert(ok);
+    icon_clipping_texture,    ok = load_texture_from_memory_gpu(cast([]u8)ICON_CLIPPING_DATA);    assert(ok);
+    icon_normals_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_NORMALS_DATA);     assert(ok);
+    icon_thickness_texture,   ok = load_texture_from_memory_gpu(cast([]u8)ICON_THICKNESS_DATA);   assert(ok);
+    icon_radius_texture,      ok = load_texture_from_memory_gpu(cast([]u8)ICON_RADIUS_DATA);      assert(ok);
+    icon_indices_texture,     ok = load_texture_from_memory_gpu(cast([]u8)ICON_INDICES_DATA);     assert(ok);
+    icon_coordinates_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_COORDINATES_DATA); assert(ok);
+    icon_annotations_texture, ok = load_texture_from_memory_gpu(cast([]u8)ICON_ANNOTATIONS_DATA); assert(ok);
 }
 
 show_menu_bar_ui :: () {
@@ -61,7 +59,7 @@ show_menu_bar_ui :: () {
 
     {
         icon_size := ImGui.ImVec2.{xx ImGui.GetWindowSize().y, xx ImGui.GetWindowSize().y};
-        ImGui.Image(cast(ImGui.ImTextureID)icon_prizm_icon_texture[prizm_icon_color_index].gl_handle, icon_size);
+        if icon_prizm_icon_texture[prizm_icon_color_index].gpu_handle  ImGui.Image(imgui_tex_ref(icon_prizm_icon_texture[prizm_icon_color_index]), icon_size);
         click_cycle_prizm_color_index();
         if ImGui.IsItemHovered(.DelayNormal) {
             show_tooltip(tprint("Prizm %", changelog[0].name));
@@ -344,10 +342,11 @@ show_menu_bar_ui :: () {
 
             // Invisible dummy button to figure out where to start putting the minimize, maximize/restore, quit buttons
             button_width := -ImGui.GetCursorScreenPos().x;
-            ImGui.ImageButton(cast(ImGui.ImTextureID)icon_window_maximize_texture.gl_handle, icon_size, tint_col=TRANSPARENT);
+            if icon_window_maximize_texture.gpu_handle  ImGui.ImageButton("##MeasureButton", imgui_tex_ref(icon_window_maximize_texture), icon_size, tint_col=TRANSPARENT);
             button_width +=  ImGui.GetCursorScreenPos().x;
-            start_x := ImGui.GetWindowSize().x - 3. * button_width + ImGui.GetStyle().ItemSpacing.x;
+            start_x := ImGui.GetWindowSize().x - 3. * button_width;
             ImGui.SetCursorScreenPos(.{start_x, ImGui.GetCursorScreenPos().y});
+            ImGui.Dummy(.{0, 0}); // Required by imgui 1.92: extend boundary after SetCursorScreenPos
 
             app.window_draggable_rect_max = .{start_x, ImGui.GetWindowSize().y};
             // ImGui.ImDrawList.AddRect(fg_draw_list, app.window_draggable_rect_min, app.window_draggable_rect_max, ImGui.GetColorU32(RED)); // Debug
@@ -358,16 +357,16 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, ImGui.GetStyle().Colors[ImGui.Col.HeaderActive]);
             defer ImGui.PopStyleColor(2);
 
-            if ImGui.ImageButton("##MinimizeButton", cast(ImGui.ImTextureID)icon_window_minimize_texture.gl_handle, icon_size, tint_col=BLACK) {
+            if icon_window_minimize_texture.gpu_handle && ImGui.ImageButton("##MinimizeButton", imgui_tex_ref(icon_window_minimize_texture), icon_size, tint_col=BLACK) {
                 SDL_MinimizeWindow(app.window);
             }
 
             if app.window_maximized {
-                if ImGui.ImageButton("##RestoreButton", cast(ImGui.ImTextureID)icon_window_restore_texture.gl_handle, icon_size, tint_col=BLACK) {
+                if icon_window_restore_texture.gpu_handle && ImGui.ImageButton("##RestoreButton", imgui_tex_ref(icon_window_restore_texture), icon_size, tint_col=BLACK) {
                     SDL_RestoreWindow(app.window);
                 }
             } else {
-                if ImGui.ImageButton("##MaximizeButton", cast(ImGui.ImTextureID)icon_window_maximize_texture.gl_handle, icon_size, tint_col=BLACK) {
+                if icon_window_maximize_texture.gpu_handle && ImGui.ImageButton("##MaximizeButton", imgui_tex_ref(icon_window_maximize_texture), icon_size, tint_col=BLACK) {
                     SDL_MaximizeWindow(app.window);
                 }
             }
@@ -378,7 +377,7 @@ show_menu_bar_ui :: () {
             ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, RED);
             defer ImGui.PopStyleColor(2);
 
-            if ImGui.ImageButton("##QuitButton", cast(ImGui.ImTextureID)icon_window_close_texture.gl_handle, icon_size, tint_col=BLACK) {
+            if icon_window_close_texture.gpu_handle && ImGui.ImageButton("##QuitButton", imgui_tex_ref(icon_window_close_texture), icon_size, tint_col=BLACK) {
                 quit_application();
             }
         }
@@ -540,8 +539,7 @@ show_pending_directories_ui :: () {
                 specs.count = sort_specs.SpecsCount;
                 for spec : specs { // @CompilerBug Should using work on a for loop?
                     // @Cleanup Use a enum id here, ImGui has support for it
-                    direction := spec.SortDirection_;
-                    if spec.SortDirection_ == ImGui.SortDirection.Ascending {
+                    if sort_direction_of(spec) == ImGui.SortDirection.Ascending {
                         if spec.ColumnIndex == {
                             case 0; quick_sort(dir.loadable_files, (a,b) => (compare_strings(a.fully_pathed_filename, b.fully_pathed_filename)));
                             case 1; quick_sort(dir.loadable_files, (a,b) => (compare_apollo_times(a.modtime, b.modtime)));
@@ -718,6 +716,10 @@ icon_coordinates_texture : Texture;
 icon_annotations_texture : Texture;
 
 #scope_file
+
+sort_direction_of :: (spec : ImGui.TableColumnSortSpecs) -> ImGui.SortDirection {
+    return spec.SortDirection_;
+}
 
 ACTION_BUTTON_SIZE :: ImGui.ImVec2.{30, 30};
 
@@ -1023,7 +1025,7 @@ show_item_list_entry :: (entity : *Entity, entity_index : int, hack_pad_last_col
             //    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 
             // Use the default Selectable widget
-            if ImGui.Selectable(label, *entity.is_selected, flags=ImGui.SelectableFlags.SpanAllColumns | .AllowItemOverlap) {
+            if ImGui.Selectable(label, *entity.is_selected, flags=ImGui.SelectableFlags.SpanAllColumns | .AllowOverlap) {
                 if io_mouse_right_down() {
                     entity.is_selected = !entity.is_selected; // @Hack to undo the selection change we get with RMB, but I'm not sure why this was even happening..!
                 } else if !io().KeyCtrl {
@@ -1109,7 +1111,11 @@ show_preferences :: () {
             set_prizm_theme(app.theme.theme);
         }
 
-        ImGui.DragFloat("UI Scale", *io().FontGlobalScale, .001, format="%.3f");
+        // "UI Scale" sets the base pixel size of the main (NORMAL) font; this is turned into a global
+        // font scale (see prizm.jai) so every font scales together. imgui 1.92's dynamic atlas
+        // rasterises on demand, so sizes step when they cross a whole pixel rather than scaling
+        // continuously. @TODO :SmoothFontSizing once the 4 fixed Font_Size bakes are replaced.
+        ImGui.DragFloat("UI Scale", *app.ui_font_size_px, .1, 6.0, 72.0, format="%.0f px");
 
         {
             combo_box("Background", *app.background_style, type_info(app.Background_Style));
@@ -1154,36 +1160,6 @@ DONE, Labelling_Mode.RAY_CAST));
     //if ImGui.BeginMenu("Camera") {
     //    defer ImGui.EndMenu();
     //}
-
-    if app.settings.feature_flags.use_deferred_renderer && ImGui.BeginMenu("Rendering") {
-        defer ImGui.EndMenu();
-
-        ImGui.PushItemWidth(item_width);
-        defer ImGui.PopItemWidth();
-
-        {
-            TOOLTIPS : [#run get_enum_count(Shader_Ssao.Ssao_Kernel_Kind)]string : .[
-                "Disable SSAO. For untextured models SSAO improves clarity.",
-                "Darkens concave/'inner' edges and lightens convex edges (default).",
-                "Darkens concave/'inner' edges, convex edges/flat planes unmodified.",
-            ];
-            combo_box("SSAO Kernel", *app.render_info.shader_ssao.kernel_kind, type_info(Shader_Ssao.Ssao_Kernel_Kind), TOOLTIPS);
-        }
-
-        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
-            ImGui.BeginDisabled();
-        }
-
-        ImGui.DragFloat("SSAO bias", *app.render_info.shader_ssao.bias, .001, 0., .2, format="%.3f");
-        ImGui.DragFloat("SSAO kernel radius", *app.render_info.shader_ssao.kernel_radius, .01, 0., 5., format="%.2f");
-        ImGui.DragInt("SSAO sample count", *app.render_info.shader_ssao.samples_count, 1, 1, Shader_Ssao.SAMPLES_MAX);
-
-        if (app.render_info.shader_ssao.kernel_kind == .DISABLED) {
-            ImGui.EndDisabled();
-        }
-
-        combo_box("Show Channel", *app.render_info.blit_channel, type_info(Blit_Channel));
-    }
 
     if ImGui.BeginMenu("Labelling") {
         defer ImGui.EndMenu();
@@ -1838,7 +1814,7 @@ ScopedChildBorderTheme :: (color : ImGui.ImVec4, size : float) -> ImGui.ImVec4, 
 
 ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
 
-    assert(texture.gl_handle != 0);
+    if !texture.gpu_handle  return;
 
     // To avoid having to #poke_name the operator==, which was causing intermittent failure to compile @CompilerBug
     // Note that using #poke_name was kinda ugly because it wasn't clear what operator== is being poked? maybe need to use procedure_of_call instead?
@@ -1890,7 +1866,7 @@ ActionButton :: (texture : Texture, action_set : *Action_Set) #expand {
     ImGui.PushStyleColor(xx ImGui.Col.ButtonHovered, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.ButtonActive, TRANSPARENT);
     ImGui.PushStyleColor(xx ImGui.Col.Text, BLACK);
-    if ImGui.ImageButton(imgui_label("##Action", *action_set), cast(ImGui.ImTextureID)texture.gl_handle, ACTION_BUTTON_SIZE, tint_col=tint) {
+    if ImGui.ImageButton(imgui_label("##Action", *action_set), imgui_tex_ref(texture), ACTION_BUTTON_SIZE, tint_col=tint) {
         if states.count > 0 {
             action_set.proc();
         }
@@ -2112,7 +2088,7 @@ show_help_about_content :: () {
     if ImGui.TreeNodeEx("Credits and Licenses", .SpanAvailWidth | .Framed) {
         defer ImGui.TreePop();
 
-        sdl_version : SDL_version = sdl_get_version();
+        sdl_version : SDL_Version_Info = sdl_get_version();
 
         // BoxSection();
         // ImGui.TableNextColumn();
@@ -2552,7 +2528,7 @@ display_annotations :: (entity : *Entity, entity_index : int) {
                         specs.count = sort_specs.SpecsCount;
                         for spec : specs { // @CompilerBug Should using work on a for loop?
                             // @Cleanup Use a enum id here, ImGui has support for it
-                            if spec.SortDirection_ == ImGui.SortDirection.Ascending {
+                            if sort_direction_of(spec) == ImGui.SortDirection.Ascending {
                                 if spec.ColumnIndex == {
                                     case 1; quick_sort(annotations, (a,b) => (compare_annotation_ids(a,b)));
                                     case 3; quick_sort(annotations, (a,b) => (compare_annotation_values(a, b)));
@@ -3119,7 +3095,7 @@ show_clipping_ui :: (using display_info : *Display_Info, aabb : AxisBox3) {
                     ImGui.TableSetColumnIndex(2);
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     ImGui.DragFloat3(imgui_label("##normal", *p.normal.component), *p.normal.component, .05, format="%.3f");
-                    if almost_equal(length(*p.normal), 0.) p.normal = fallback_normal;
+                    if almost_equal(length(p.normal), 0.) p.normal = fallback_normal;
                     range := Vector2.{p.min, p.max};
                     ImGui.SetNextItemWidth(-FLOAT32_MIN);
                     if ImGui.DragFloat2(imgui_label("##range", *p.min), *range.component, .05, format="%.3f") {
@@ -3219,11 +3195,11 @@ attr_anno_table_flags :: ImGui.TableFlags
 
 POSITIVE_INF :: 0h7F800000;
 
-sdl_get_version :: () -> SDL_version {
-    wm_info: SDL_SysWMinfo;
-    SDL_VERSION(*wm_info.version);
-    SDL_GetWindowWMInfo(app.window, *wm_info);
-    return wm_info.version;
+SDL_Version_Info :: struct { major: s32; minor: s32; patch: s32; }
+
+sdl_get_version :: () -> SDL_Version_Info {
+    v := SDL_GetVersion();
+    return .{major = v / 1000000, minor = (v / 1000) % 1000, patch = v % 1000};
 }
 
 click_cycle_prizm_color_index :: () {

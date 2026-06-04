@@ -17,8 +17,6 @@ get_plugin :: () -> *Metaprogram_Plugin {
 
     p.log_help         = log_help;
 
-    p.handle_one_option = handle_one_option;
-
     BUFFER_SIZE :: 4096;
     buffer: [BUFFER_SIZE] u8;
     s := get_working_directory();  // @Cleanup: Just make this take a [] u8.
@@ -26,7 +24,6 @@ get_plugin :: () -> *Metaprogram_Plugin {
     for 0..s.count-1
         if s[it] == #char "\\" { s[it] = #char "/"; }
 
-    p.prepend_zone_node = compiler_get_nodes(PREPEND_ZONE_CODE);
     return p;
 }
 
@@ -88,15 +85,15 @@ message :: (p: *Metaprogram_Plugin, message: *Message) {
 
         for h.notes {
             if it.text == "NoProfile" {
-                log("[Tracy] Skipping \"%\" due to NoProfile note.\n", h.name);
-                continue;
+                //log("[Tracy] Skipping \"%\" due to NoProfile note.\n", h.name);
+                continue tc;
             }
         }
 
         new_statements : [..] *Code_Node;
 
         array_reserve(*new_statements, body.block.statements.count + 1);
-        array_add(*new_statements, plugin.prepend_zone_node);
+        array_add(*new_statements, compiler_get_nodes(PREPEND_ZONE_CODE));  // fresh node per procedure so #procedure_name(#this) resolves correctly
         array_add(*new_statements, ..body.block.statements);
 
         body.block.statements = new_statements;
@@ -128,7 +125,7 @@ __Tracy :: #import "tracy"(IMPORT_MODE=.CLIENT);
 #add_context _Tracy :: __Tracy;
 DONE
 
-PREPEND_ZONE_CODE :: #code Context._Tracy.ZoneScoped();
+PREPEND_ZONE_CODE :: #code context._Tracy.ZoneScoped();
 
 #scope_module
 #import "Basic";
@@ -136,7 +133,7 @@ PREPEND_ZONE_CODE :: #code Context._Tracy.ZoneScoped();
 #import "File";
 #import "String";
 
-MINIMUM_SIZE_DEFAULT :: 30;
+MINIMUM_SIZE_DEFAULT :: 100;
 
 My_Plugin :: struct {
     #as using base: Metaprogram_Plugin;
@@ -157,8 +154,4 @@ My_Plugin :: struct {
     min_size := MINIMUM_SIZE_DEFAULT;
     instrument_modules := false;
 
-    //
-    // The user should not mess with these:
-    //
-    prepend_zone_node:   *Code_Node;
 }

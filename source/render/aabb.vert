@@ -1,74 +1,50 @@
-#version 330 core
+#version 450
+// Generates 24 LINELIST vertices (12 edges × 2) from gl_VertexIndex.
+// No vertex buffer — corner positions are computed from the AABB min/max uniforms.
 
-uniform mat4 world_from_model;
-uniform mat4 view_from_world;
-uniform mat4 clip_from_view;
+layout(set = 1, binding = 0) uniform AABB_UBO {
+    mat4 clip_from_view;
+    mat4 view_from_world;
+    mat4 world_from_model;
+    vec4 aabb_min;   // xyz = min point
+    vec4 aabb_max;   // xyz = max point
+    vec4 color;
+};
 
-uniform vec3 min;
-uniform vec3 max;
+layout(location = 0) out vec4 frag_color;
 
 void main() {
+    vec3 mn = aabb_min.xyz;
+    vec3 mx = aabb_max.xyz;
 
-    //    +z
-    //     4 -------- 6
-    //     |\         |\
-    //     | \        | \
-    //     |  5 -------- 7
-    //     |  |       |  |
-    //     0--|------ 2+y|
-    //      \ |        \ |
-    //       \|         \|
-    //        1--------- 3
-    //        +x
+    // 8 corners labelled 0-7 as in the original aabb.vert
+    vec4 v[8];
+    v[0] = vec4(mn.x, mn.y, mn.z, 1.0);
+    v[1] = vec4(mx.x, mn.y, mn.z, 1.0);
+    v[2] = vec4(mn.x, mx.y, mn.z, 1.0);
+    v[3] = vec4(mx.x, mx.y, mn.z, 1.0);
+    v[4] = vec4(mn.x, mn.y, mx.z, 1.0);
+    v[5] = vec4(mx.x, mn.y, mx.z, 1.0);
+    v[6] = vec4(mn.x, mx.y, mx.z, 1.0);
+    v[7] = vec4(mx.x, mx.y, mx.z, 1.0);
 
-    vec4 v0 = vec4(min.x, min.y, min.z, 1.f);
-    vec4 v1 = vec4(max.x, min.y, min.z, 1.f);
-    vec4 v2 = vec4(min.x, max.y, min.z, 1.f);
-    vec4 v3 = vec4(max.x, max.y, min.z, 1.f);
-    vec4 v4 = vec4(min.x, min.y, max.z, 1.f);
-    vec4 v5 = vec4(max.x, min.y, max.z, 1.f);
-    vec4 v6 = vec4(min.x, max.y, max.z, 1.f);
-    vec4 v7 = vec4(max.x, max.y, max.z, 1.f);
-
+    // 12 edges × 2 endpoints = 24 vertex indices
     vec4 p;
-    switch(gl_VertexID) {
-        case 0: p = v0; break;
-        case 1: p = v1; break;
-
-        case 2: p = v1; break;
-        case 3: p = v3; break;
-
-        case 4: p = v3; break;
-        case 5: p = v2; break;
-
-        case 6: p = v2; break;
-        case 7: p = v0; break;
-
-        case 8: p = v0; break;
-        case 9: p = v4; break;
-
-        case 10: p = v1; break;
-        case 11: p = v5; break;
-
-        case 12: p = v3; break;
-        case 13: p = v7; break;
-
-        case 14: p = v2; break;
-        case 15: p = v6; break;
-
-        case 16: p = v4; break;
-        case 17: p = v5; break;
-
-        case 18: p = v5; break;
-        case 19: p = v7; break;
-
-        case 20: p = v7; break;
-        case 21: p = v6; break;
-
-        case 22: p = v6; break;
-        case 23: p = v4; break;
+    switch (gl_VertexIndex) {
+        case  0: p = v[0]; break; case  1: p = v[1]; break;
+        case  2: p = v[1]; break; case  3: p = v[3]; break;
+        case  4: p = v[3]; break; case  5: p = v[2]; break;
+        case  6: p = v[2]; break; case  7: p = v[0]; break;
+        case  8: p = v[0]; break; case  9: p = v[4]; break;
+        case 10: p = v[1]; break; case 11: p = v[5]; break;
+        case 12: p = v[3]; break; case 13: p = v[7]; break;
+        case 14: p = v[2]; break; case 15: p = v[6]; break;
+        case 16: p = v[4]; break; case 17: p = v[5]; break;
+        case 18: p = v[5]; break; case 19: p = v[7]; break;
+        case 20: p = v[7]; break; case 21: p = v[6]; break;
+        case 22: p = v[6]; break; default: p = v[4]; break;
     }
 
-    mat4 view_from_model = clip_from_view * view_from_world * world_from_model;
-    gl_Position = view_from_model * p;
+    gl_Position = clip_from_view * view_from_world * world_from_model * p;
+    frag_color  = color;
 }

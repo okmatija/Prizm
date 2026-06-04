@@ -1,4 +1,7 @@
 #load "app.jai";
+#if USE_TRACY {
+    #load "tracy_frame_image.jai";
+}
 
 main :: () {
 
@@ -13,12 +16,14 @@ main :: () {
     // Gets the version info, used by print_usage_and_maybe_exit
     init_changelog();
 
-    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
+    sdl_window_flags : SDL_WindowFlags = SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS;
+    always_on_top := false;
 
     // Must come before SDL_CreateWindow since it changes sdl_window_flags
     {
         args := get_command_line_arguments();
         defer array_free(args);
+        screenshot_check_args(args);  // parse --screenshot before other args
         for 1..args.count-1 {
             arg : string = to_lower_copy(args[it],, temp);
 
@@ -28,6 +33,7 @@ main :: () {
                     print_usage_and_maybe_exit();
                 } else if arg == "--alwaysontop" {
                     sdl_window_flags |= SDL_WINDOW_ALWAYS_ON_TOP;
+                    always_on_top = true;
                 } else if arg == "--blue" {
                     prizm_icon_color_index = 0;
                 } else if arg == "--green" {
@@ -36,6 +42,8 @@ main :: () {
                     prizm_icon_color_index = 2;
                 } else if arg == "--black" {
                     prizm_icon_color_index = 3;
+                } else if starts_with(arg, "--screenshot") {
+                    // handled by screenshot_check_args above
                 } else {
                     error := tprint("Unrecognized program argument '%' at position %\n", args[it], it);
                     print_usage_and_maybe_exit(error);
@@ -47,7 +55,6 @@ main :: () {
     SDL_Init(SDL_INIT_VIDEO);
 
     app.window = SDL_CreateWindow(OUTPUT_EXE_NAME.data,
-                                  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   app.INITIAL_WINDOW_SIZE.width, app.INITIAL_WINDOW_SIZE.height,
                                   sdl_window_flags);
 
@@ -58,40 +65,36 @@ main :: () {
         return;
     }
 
+    if always_on_top  SDL_SetWindowAlwaysOnTop(app.window, true);
+    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
+
 
     // Load console history from file
     console_load_history();
 
-    // @FIXME If I don't explicitly set attributes here gl_get_version() returns a different result
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, cast(s32)(ifx DEBUG_OPENGL then 4 else 3));
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
-
-    gl_context := SDL_GL_CreateContext(app.window); // alias for *void
-    if !gl_context {
-        print("Could not create OpenGL context: %\n", to_string(SDL_GetError()));
+    app.gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, DEBUG_OPENGL, null);
+    if !app.gpu_device {
+        print("Could not create GPU device: %\n", to_string(SDL_GetError()));
         return;
     }
 
-    gl_load(*gl, SDL_GL_GetProcAddress);
-
-    if DEBUG_OPENGL {
-        gl_version_major, gl_version_minor = gl_get_version();
-        print("Using OpenGL %.%\n", gl_version_major, gl_version_minor);
-        // @Note DEBUG_OPENGL enables RenderDoc annotations
-        log_error("DEBUG_OPENGL enabled!");
-        // gl_enable_debug_output(true);
-        // glEnable(GL_DEBUG_OUTPUT); // @FIXME above enables GL_DEBUG_OUTPUT_SYNCHRONOUS, but without this line debug output doesn't work
+    if !SDL_ClaimWindowForGPUDevice(app.gpu_device, app.window) {
+        print("Could not claim window for GPU device: %\n", to_string(SDL_GetError()));
+        return;
     }
+
+    SDL_SetGPUSwapchainParameters(app.gpu_device, app.window, .SDR, .VSYNC);
 
     TRIAD_AXIS_LENGTH :: 1;
     app.triad = make_axes_triad(TRIAD_AXIS_LENGTH);
 
-    init_rendering();
+    init_rendering_gpu();
+    init_icons_gpu();
+    init_screenshot();
+    #if USE_TRACY  init_tracy_frame_image();
     init_camera();
     init_commands();
     init_keymap();
-    init_icons();
 
     // Setup file watcher
     file_events_to_watch : File_Change_Event;
@@ -114,9 +117,15 @@ main :: () {
     assert(imgui_context != null, "must call create context");
     ImGui.SetCurrentContext(imgui_context);
 
-    // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL(app.window, gl_context);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    // Setup Platform/Renderer backends (SDL_GPU)
+    ImplSDL3_InitForSDLGPU(app.window);
+    gpu_init_info := ImplSDLGPU3_InitInfo.{
+        Device            = app.gpu_device,
+        ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(app.gpu_device, app.window),
+        MSAASamples       = .SDL_GPU_SAMPLECOUNT_1,
+    };
+    ImplSDLGPU3_Init(*gpu_init_info);
+    SDL_StartTextInput(app.window);
 
     // Disable writing the .ini and .log files
     io().IniFilename = null;
@@ -129,17 +138,11 @@ main :: () {
     // const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
     imgui_init_fonts();
-
     set_prizm_theme(.LIGHT); // @Refactor this so that we just need to change the theme enum to change the theme
-
     load_from_command_line();
 
     // Main loop
     while !app.closing_application {
-
-        #if USE_TRACY {
-            context._Tracy.FrameMark();
-        }
 
         // Cache the state we need this frame and reset it for the next frame
         g_this_frame_state = g_next_frame_state; // This should be read-only for this frame
@@ -149,20 +152,30 @@ main :: () {
 
         handle_events();
 
-        update_camera();
+        // Skip rendering when minimized
+        if SDL_GetWindowFlags(app.window) & SDL_WINDOW_MINIMIZED {
+            sleep_milliseconds(16);
+            reset_temporary_storage();
+            continue;
+        }
 
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImplSDLGPU3_NewFrame();
+        ImplSDL3_NewFrame();
         ImGui.NewFrame();
-        ImGui.PushFont(app.font_set.normal);
+
+        // update_camera reads io().MouseWheel and io().WantCaptureMouse, both of which are
+        // populated by ImGui.NewFrame() from the event queue -- must run after NewFrame().
+        update_camera();
+        // "UI Scale": app.ui_font_size_px is the desired base size of the main (NORMAL) font. Turn it
+        // into a global font scale so every font -- main UI, 3D labels, demo overlay -- scales
+        // together, matching the pre-1.92 io.FontGlobalScale behaviour. Each font is then pushed at
+        // its own LegacySize and this factor is applied on top (final_px = LegacySize * FontScaleMain).
+        ImGui.GetStyle().FontScaleMain = app.ui_font_size_px / cast(float) Font_Size.NORMAL;
+        push_font(app.font_set.normal);
 
         // The selection should only be visible if the Select tool is visible in the UI.  We do this so that the keybinds that add stuff to the geometry selection can be used to add items to the item selection when not in selection mode
         app.select_tool.entity.display_info.is_visible = false;
-
-        glViewport(0, 0, xx io().DisplaySize.x, xx io().DisplaySize.y);
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
         // @FIXME: move to after glClear etc so that we can do immediate mode viz in these functions?
         show_menu_bar_ui();
@@ -185,28 +198,83 @@ main :: () {
         do_geometry_selection_mode();
         do_item_selection_mode();
 
-        if app.settings.feature_flags.use_deferred_renderer {
-            // deferred rendering (WIP)
-            render_entities_gbuffer();
-        } else {
-            // forward rendering
-            render_background();
-            render_selections();
-            render_entities();
-        }
-
-        render_text();
-        render_axes_triad();
-        render_demo_mode();
+        render_text();      // builds ImGui label windows (no GL calls now)
+        render_demo_mode(); // builds ImGui demo-mode overlay
 
         ImGui.PopFont();
-        {
-            DebugScopeGLGroup("ImGui Rendering");
-            ImGui.Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui.GetDrawData());
-        }
+        ImGui.Render();
 
-        SDL_GL_SwapWindow(app.window);
+        {
+            #if USE_TRACY  context._Tracy.ZoneScoped("gpu_submit", color=0xC04020);
+            draw_data := ImGui.GetDrawData();
+
+            // Screenshot: render offscreen, save, and exit.
+            if screenshot_maybe_capture(draw_data)  continue;
+
+            cmd := SDL_AcquireGPUCommandBuffer(app.gpu_device);
+
+            swapchain_tex : *SDL_GPUTexture;
+            SDL_AcquireGPUSwapchainTexture(cmd, app.window, *swapchain_tex, null, null);
+
+            if swapchain_tex {
+                render_target : *SDL_GPUTexture = swapchain_tex;
+                #if USE_TRACY  render_target = tracy_ensure_offscreen(cast(u32) app.window_size.width, cast(u32) app.window_size.height);
+
+                upload_entity_buffers_gpu(cmd);              // copy passes -- before render pass
+                ImplSDLGPU3_PrepareDrawData(draw_data, cmd); // must be before BeginRenderPass
+
+                // Determine the background clear color (used when solid-color mode is set)
+                bg := app.background_solid_color;
+                bg_clear := SDL_FColor.{r=bg.x, g=bg.y, b=bg.z, a=1};
+
+                // Pass A: background + all geometry (depth cleared)
+                color_a := SDL_GPUColorTargetInfo.{
+                    texture     = render_target,
+                    clear_color = bg_clear,
+                    load_op     = .CLEAR,
+                    store_op    = .STORE,
+                };
+                depth_a := SDL_GPUDepthStencilTargetInfo.{
+                    texture     = depth_texture,
+                    load_op     = .CLEAR,
+                    store_op    = .DONT_CARE,
+                    clear_depth = 1.0,
+                    cycle       = true,
+                };
+                pass_a := SDL_BeginGPURenderPass(cmd, *color_a, 1, *depth_a);
+                render_background(pass_a, cmd);
+                render_selections_gpu(pass_a, cmd);
+                render_entities_gpu(pass_a, cmd);
+                SDL_EndGPURenderPass(pass_a);
+
+                // Pass B: axes triad + ImGui (depth cleared, colour preserved)
+                color_b := SDL_GPUColorTargetInfo.{
+                    texture  = render_target,
+                    load_op  = .LOAD,
+                    store_op = .STORE,
+                };
+                depth_b := SDL_GPUDepthStencilTargetInfo.{
+                    texture     = depth_texture,
+                    load_op     = .CLEAR,
+                    store_op    = .DONT_CARE,
+                    clear_depth = 1.0,
+                    cycle       = true,
+                };
+                pass_b := SDL_BeginGPURenderPass(cmd, *color_b, 1, *depth_b);
+                render_axes_triad_gpu(pass_b, cmd);
+                ImplSDLGPU3_RenderDrawData(draw_data, cmd, pass_b);
+                SDL_EndGPURenderPass(pass_b);
+
+                #if USE_TRACY  tracy_blit_and_enqueue_download(cmd, swapchain_tex);
+            }
+
+            SDL_SubmitGPUCommandBuffer(cmd);
+
+            #if USE_TRACY {
+                if swapchain_tex  tracy_emit_frame_image();
+                context._Tracy.FrameMark();
+            }
+        }
 
         reset_temporary_storage();
         app.debug_frame = false;
@@ -214,13 +282,15 @@ main :: () {
     }
 
     // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    SDL_WaitForGPUIdle(app.gpu_device);
+    #if USE_TRACY  deinit_tracy_frame_image();
+    deinit_rendering_gpu();
+    ImplSDL3_Shutdown();
+    ImplSDLGPU3_Shutdown();
     ImGui.DestroyContext();
 
-    // We could release gl handles here, but we delete context anyway
-
-    SDL_GL_DeleteContext(gl_context);
+    SDL_ReleaseWindowFromGPUDevice(app.gpu_device, app.window);
+    SDL_DestroyGPUDevice(app.gpu_device);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
 
@@ -263,9 +333,8 @@ load_from_command_line :: () {
     args := get_command_line_arguments();
     defer array_reset(*args); // get_command_line_arguments() creates a new array so we release it here. The strings themselves are not copies, however!
     for 1..args.count-1 {
-        if starts_with(args[it], "--") {
-            continue; // Skip program argument
-        }
+        if it == g_screenshot_skip_index  continue; // skip screenshot output filename
+        if starts_with(args[it], "--")    continue; // skip flag arguments
         handle_load_string(args[it]);
     }
     fit_scene_on_screen();
@@ -291,50 +360,43 @@ handle_events :: () {
 
     event: SDL_Event;
     while SDL_PollEvent(*event) {
-        ImGui_ImplSDL2_ProcessEvent(*event);
+        ImplSDL3_ProcessEvent(*event);
 
-        if event.type == {
-            case SDL_QUIT;
+        if cast(SDL_EventType) event.type == {
+            case SDL_EventType.QUIT;
 
                 app.closing_application = true;
 
-            case SDL_WINDOWEVENT;
+            case SDL_EventType.WINDOW_RESIZED;
 
-                //print("window event: %\n", event.window.event);
+                width_scale  := cast(float) event.window.data1 / app.window_size.width;
+                height_scale := cast(float) event.window.data2 / app.window_size.height;
 
-                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
+                camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
+                camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
+                app.camera.right  -= camera_delta_rl;
+                app.camera.left   += camera_delta_rl;
+                app.camera.top    -= camera_delta_tb;
+                app.camera.bottom += camera_delta_tb;
 
-                    width_scale  := cast(float) event.window.data1 / app.window_size.width;
-                    height_scale := cast(float) event.window.data2 / app.window_size.height;
+                app.window_size.width  = event.window.data1;
+                app.window_size.height = event.window.data2;
+                app.window_maximized = false;
+                init_depth_texture(); // recreate to match new window size
 
-                    camera_delta_rl   := (1. -  width_scale) * (app.camera.right - app.camera.left) / 2;
-                    camera_delta_tb   := (1. - height_scale) * (app.camera.top   - app.camera.bottom) / 2;
-                    app.camera.right  -= camera_delta_rl;
-                    app.camera.left   += camera_delta_rl;
-                    app.camera.top    -= camera_delta_tb;
-                    app.camera.bottom += camera_delta_tb;
+            case SDL_EventType.WINDOW_MAXIMIZED;
 
-                    app.window_size.width  = event.window.data1;
-                    app.window_size.height = event.window.data2;
-                }
+                app.window_maximized = true;
 
-                if event.window.event == SDL_WINDOWEVENT_MAXIMIZED {
-                    app.window_maximized = true;
-                }
+            case SDL_EventType.WINDOW_FOCUS_GAINED;
 
-                if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
-                    app.window_maximized = false;
-                }
+                SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
 
-                if event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED {
-                    SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
-                }
+            case SDL_EventType.WINDOW_FOCUS_LOST;
 
-                if event.window.event == SDL_WINDOWEVENT_FOCUS_LOST {
-                    SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
-                }
+                SDL_SetWindowOpacity(app.window, app.window_unfocussed_opacity);
 
-            case SDL_MOUSEWHEEL;
+            case SDL_EventType.MOUSE_WHEEL;
 
                 using app.demo_mode;
                 if enabled {
@@ -347,18 +409,18 @@ handle_events :: () {
                     }
                 }
 
-            case SDL_KEYDOWN;
+            case SDL_EventType.KEY_DOWN;
 
                 if app.demo_mode.enabled {
-                    array_add_if_unique(*app.demo_mode.keys_down, event.key.keysym.sym);
+                    array_add_if_unique(*app.demo_mode.keys_down, event.key.key);
                 }
 
                 for app.keymap_keydown.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_keydown);
+                    maybe_run_binding(event.key.key, it, app.keymap_keydown);
                 }
 
                 // @Cleanup Make this a proper function!
-                if event.key.keysym.sym == .SDLK_ESCAPE {
+                if event.key.key == SDLK_ESCAPE {
                     app.console.show_ui = false;
 
                     // :WindowOpacityControl
@@ -367,24 +429,24 @@ handle_events :: () {
                     SDL_SetWindowOpacity(app.window, app.window_focussed_opacity);
                 }
 
-            case SDL_KEYUP;
+            case SDL_EventType.KEY_UP;
 
                 if app.demo_mode.enabled {
-                    array_ordered_remove_by_value(*app.demo_mode.keys_down, event.key.keysym.sym);
+                    array_ordered_remove_by_value(*app.demo_mode.keys_down, event.key.key);
                 }
 
                 for app.keymap.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap);
+                    maybe_run_binding(event.key.key, it, app.keymap);
                 }
 
                 for app.keymap_actions.mappings {
-                    maybe_run_binding(event.key.keysym.sym, it, app.keymap_actions);
+                    maybe_run_binding(event.key.key, it, app.keymap_actions);
                 }
 
-            case SDL_DROPFILE;
+            case SDL_EventType.DROP_FILE;
 
-                // @Leak event.drop.file should be free'd using SDL_free
-                drop_file : string = to_string(event.drop.file);
+                // @Leak event.drop.data should be free'd using SDL_free
+                drop_file : string = to_string(event.drop.data);
                 dropped, success := canonically_formatted_path_string(drop_file,, temp);
                 if !success {
                     log_warning("Failed to read file path '%', maybe it doesn't exist?", drop_file);
@@ -577,15 +639,12 @@ handle_directory :: (path : string) {
 // Get the platform specific window handle from SDL
 get_window_type :: (window : *SDL_Window) -> Window_Type {
     assert(window != null);
-    sdl_wm_info : SDL_SysWMinfo;
-    SDL_VERSION(*sdl_wm_info.version);
-    SDL_GetWindowWMInfo(app.window, *sdl_wm_info);
-    // print_vars(sdl_wm_info);
+    props := SDL_GetWindowProperties(window);
+    window_type : Window_Type;
     #if OS == .WINDOWS {
-        #import "Windows";
-        window_type := sdl_wm_info.info.win.window;
+        window_type = cast(Window_Type) SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER.data, null);
     } else #if OS == .LINUX {
-        window_type := sdl_wm_info.info.x11.window;
+        window_type = cast(Window_Type) SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER.data, 0);
     }
     return window_type;
 }
@@ -649,18 +708,36 @@ window_hit_test :: (window : *SDL_Window, point : *SDL_Point, data : *void) -> S
 
         return .SDL_HITTEST_NORMAL;
     }
-}
+} @NoProfile
 
 imgui_init_fonts :: () {
     // TODO Option to pass font and size on the command line?
-    FONT, FONT_OK ::   #run read_entire_file("data/Inconsolata-SemiBold.ttf"); #assert(FONT_OK);
+    FONT,         FONT_OK         :: #run read_entire_file("data/Inconsolata-SemiBold.ttf");              #assert(FONT_OK);
+    FA_SOLID,     FA_SOLID_OK     :: #run read_entire_file("modules/font_awesome/fa-solid-900.otf");    #assert(FA_SOLID_OK);
+    FA_REGULAR,   FA_REGULAR_OK   :: #run read_entire_file("modules/font_awesome/fa-regular-400.otf"); #assert(FA_REGULAR_OK);
     //FONT2, FONT2_OK :: #run read_entire_file("data/Inconsolata.otf"); #assert(FONT2_OK);
 
     font_config : ImGui.ImFontConfig;
     ImGui.ImFontConfig.Constructor(*font_config);
     font_config.FontDataOwnedByAtlas = false;
+
+    // Solid: merged into each main font size so icons are available inline with no push/pop.
+    fa_solid_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*fa_solid_config);
+    fa_solid_config.FontDataOwnedByAtlas = false;
+    fa_solid_config.MergeMode            = true;
+    fa_solid_config.PixelSnapH           = true;
+
+    // Regular: standalone font per size; push/pop to use outline icons.
+    fa_regular_config : ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*fa_regular_config);
+    fa_regular_config.FontDataOwnedByAtlas = false;
+    fa_regular_config.PixelSnapH           = true;
+
     for enum_values_as_s64(Font_Size) {
         app.font_set.fonts[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FONT.data, FONT.count, cast(float)it, *font_config);
+        ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FA_SOLID.data, FA_SOLID.count, cast(float)it, *fa_solid_config, FONT_AWESOME_GLYPH_RANGES.data);
+        app.font_set.fa_regular[it_index] = ImGui.ImFontAtlas.AddFontFromMemoryTTF(ImGui.GetIO().Fonts, FA_REGULAR.data, FA_REGULAR.count, cast(float)it, *fa_regular_config, FONT_AWESOME_GLYPH_RANGES.data);
     }
 }
 
@@ -673,13 +750,13 @@ c_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
     push_context (cast(*#Context)userdata).* {
         return alloc(cast(s64)sz);
     }
-}
+} @NoProfile
 
 c_free :: (ptr: *void, userdata: *void) -> void #c_call {
     push_context (cast(*#Context)userdata).* {
         free(ptr);
     }
-}
+} @NoProfile
 
 ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
     #if set_default_allocators {

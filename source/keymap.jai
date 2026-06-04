@@ -456,8 +456,7 @@ toggle_fullscreen :: () {
         SDL_RestoreWindow(app.window);
     }
 } else {
-    flags : u32 = ifx app.window_size.fullscreen then cast(u32) 0 else xx SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP;
-    ok := SDL_SetWindowFullscreen(app.window, flags); // @Robustness handle error
+    SDL_SetWindowFullscreen(app.window, !app.window_size.fullscreen); // @Robustness handle error
 }
 }
 

@@ -1,706 +1,32 @@
-// Things that needs updating when the geometry changes
+// Per-entity CPU-side state -- bounding geometry used by pick/fit; GPU buffers below.
 Render_Info :: struct {
-    is_dirty := true; // @Think Maybe this should be an enum saying what buffers need updating
+    is_dirty := true;
 
-    // For rendering obj v-directive data
-    // @Cleanup Remove the positions_vbo. It doubles the memory requirement and adds complexity. We can just add points for unreferenced vertices. When we do this we should also move VertexLabelTheme into ElementLabelTheme
-    positions_vbo : GLuint;
-    positions_vao : GLuint;
-
-    // For rendering obj p-directive data
-    points_vbo : GLuint;
-    points_vao : GLuint;
-    points_normals_vao : GLuint;
-
-    // For rendering obj l-directive data
-    segments_vbo : GLuint;
-    segments_vao : GLuint;
-    segments_normals_vao : GLuint;
-
-    // For rendering obj f-directive data
-    triangles_vbo : GLuint;
-    triangles_vao : GLuint;
-    triangles_edges_vao : GLuint;
-    triangles_normals_vao : GLuint;
-
-    // Important: These are in the entity's model space (a.k.a., entity.mesh model space) 
-    // @Cleanup Use a Box_Sphere here
-    // @Cleanup Consider moving this into the mesh
+    // Bounding geometry in entity model space -- used by fit_scene_on_screen and picking.
     bounding_sphere : Sphere;
-    bounding_aabb : AxisBox3;
+    bounding_aabb   : AxisBox3;
 }
 
-
+// Computes bounding sphere and AABB from the mesh; called by fit_scene_on_screen via
+// entity_raw_world_bounding_sphere. GPU buffer upload is handled by maybe_update_render_info_gpu.
 maybe_update_render_info :: (info : *Render_Info, mesh : *Simple_Mesh) {
-    if mesh.positions.count == 0 {
-        // Nothing to do in this case @Think is this correct??
-        return;
-    }
-
+    if mesh.positions.count == 0  return;
     assert(mesh.positions.count == mesh.colors.count);
 
     if info.is_dirty {
         defer info.is_dirty = false;
-
-        // @Cleanup consider doing something like this, or putting a explicit type alias within Simple_Mesh e.g., Point :: u32 rather than hard coding the types her
-        // point_type : Type = get_type(type_info(mesh.points).element_type);
-
-        // Note: We do _not_ apply the mesh.world_from_model transform here, that is
-        // stored separately to the raw position data so it can be changed efficiently
-        // i.e., bounding geometry is defined in the mesh model space
-        info.bounding_sphere = ifx mesh.positions.count then bounding_sphere_ritter(mesh.positions) else .{};
-        info.bounding_aabb = make_axis_box3(..mesh.positions);
-
-        if mesh.triangles.count {
-            // Vertex Buffer will be filled with triangle soup data so that we can represent hard normals etc. For example:
-            //
-            //  f 1//1 2//2 3//3
-            //  f 1//4 2//5 4//6
-            //
-            // Note we also use glDrawArrays rather than glDrawElements. A glDrawElements call on triangle (1,2,3) and (1,2,4) would draw normals 1,2,3 and 6 but not 4 and 5
-
-            normals : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
-            assert(normals != null);
-
-            NP := 3 * size_of(Vector3) * mesh.triangles.count;
-            NN := size_of(Matrix3) * normals.values.count;
-
-            {
-                if !info.triangles_vbo glGenBuffers(1, *info.triangles_vbo);
-
-                triangle_colors : [..]Vector3 = temp_array(Vector3);
-                array_reserve(*triangle_colors, 3 * mesh.triangles.count);
-
-                triangle_positions : [..]Vector3 = temp_array(Vector3);
-                array_reserve(*triangle_positions, 3 * mesh.triangles.count);
-
-                for :ModelTriangleIterator mesh {
-                    array_add(*triangle_positions, it.a);
-                    array_add(*triangle_positions, it.b);
-                    array_add(*triangle_positions, it.c);
-
-                    vids := mesh_triangle_tuple(mesh, it_index);
-                    array_add(*triangle_colors, mesh.colors[vids.i]);
-                    array_add(*triangle_colors, mesh.colors[vids.j]);
-                    array_add(*triangle_colors, mesh.colors[vids.k]);
-                }
-
-                // print("mesh.colors = %\n", mesh.colors);
-                // print("triangle_colors = %\n", triangle_colors);
-
-                if mesh.triangles.count && (normals.values.count == 0) {
-                    // log("Computing and assigning triangle normals to vertices\n");
-                    // @Think Maybe this should happen in a tool so that the user is not confused when they look at normals created automatically on an item whose obj had no normals
-                    success, failure_reason := compute_vertex_normals_from_triangles(mesh, normals);
-                    if !success {
-                        log_warning("Failed to assign per-triangle normals. Reason: \"%\"", failure_reason);
-                    }
-                }
-
-                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-                glBufferData(GL_ARRAY_BUFFER, 2*NP + NN, null, GL_STATIC_DRAW);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, triangle_positions.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP+NN, NP, triangle_colors.data);
-            }
-
-            {
-                if !info.triangles_vao glGenVertexArrays(1, *info.triangles_vao);
-
-                glBindVertexArray(info.triangles_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_NORMAL);
-                glEnableVertexAttribArray(ATTRIB_COLOR);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP));
-                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP+NN));
-            }
-
-            {
-                if !info.triangles_edges_vao glGenVertexArrays(1, *info.triangles_edges_vao);
-
-                glBindVertexArray(info.triangles_edges_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-            }
-
-            {
-                if !info.triangles_normals_vao glGenVertexArrays(1, *info.triangles_normals_vao);
-
-                glBindVertexArray(info.triangles_normals_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.triangles_vbo);
-
-                NP := 3 * size_of(Vector3) * mesh.triangles.count;
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_NORMAL);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
-            }
-        }
-
-        if mesh.segments.count {
-
-            normals : *Simple_Mesh_Segment_Normals = find_or_add_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
-            assert(normals != null);
-
-            NP := 2 * size_of(Vector3) * mesh.segments.count;
-            NN := size_of(Matrix3x2) * normals.values.count;
-
-            {
-                if !info.segments_vbo glGenBuffers(1, *info.segments_vbo);
-
-                segment_colors : [..]Vector3 = temp_array(Vector3);
-                array_reserve(*segment_colors, 2 * mesh.segments.count);
-
-                segment_positions : [..]Vector3 = temp_array(Vector3);
-                array_reserve(*segment_positions, 2 * mesh.segments.count);
-
-                for :ModelSegmentIterator mesh {
-                    array_add(*segment_positions, it.start);
-                    array_add(*segment_positions, it.end);
-
-                    vids := mesh_segment_tuple(mesh, it_index);
-                    array_add(*segment_colors, mesh.colors[vids.i]);
-                    array_add(*segment_colors, mesh.colors[vids.j]);
-                }
-
-                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-                glBufferData(GL_ARRAY_BUFFER, 2*NP, null, GL_STATIC_DRAW);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, segment_positions.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP+NN, NP, segment_colors.data);
-            }
-
-            {
-                if !info.segments_vao glGenVertexArrays(1, *info.segments_vao);
-
-                glBindVertexArray(info.segments_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_COLOR);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP+NN);
-            }
-
-            {
-                if !info.segments_normals_vao glGenVertexArrays(1, *info.segments_normals_vao);
-
-                glBindVertexArray(info.segments_normals_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.segments_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_NORMAL);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
-            }
-        }
-
-        if mesh.points.count {
-
-            normals : *Simple_Mesh_Point_Normals = find_or_add_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
-            assert(normals != null);
-
-            NP := size_of(Vector3) * mesh.points.count;
-            NN := size_of(Vector3) * normals.values.count;
-
-            {
-                if !info.points_vbo glGenBuffers(1, *info.points_vbo);
-
-                point_colors : [..]Vector3 = temp_array(Vector3);
-                array_reserve(*point_colors, mesh.points.count);
-
-                point_positions : [..]Vector3 = temp_array(Vector3);
-                array_reserve(*point_positions, mesh.points.count);
-
-                for :ModelPointIterator mesh {
-                    array_add(*point_positions, it);
-
-                    array_add(*point_colors, mesh.colors[mesh.points[it_index]]);
-                }
-
-                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-                glBufferData(GL_ARRAY_BUFFER, 2*NP + NN, null, GL_STATIC_DRAW);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, point_positions.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP, NN, normals.values.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP+NN, NP, point_colors.data);
-            }
-
-            {
-                if !info.points_vao glGenVertexArrays(1, *info.points_vao);
-
-                glBindVertexArray(info.points_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_COLOR);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)(NP+NN));
-            }
-
-            {
-                if !info.points_normals_vao glGenVertexArrays(1, *info.points_normals_vao);
-
-                glBindVertexArray(info.points_normals_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.points_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_NORMAL);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
-            }
-        }
-
-        if mesh.positions.count {
-
-            NP := size_of(Vector3) * mesh.positions.count;
-            assert(NP == (size_of(Vector3) * mesh.colors.count));
-
-            {
-                if !info.positions_vbo glGenBuffers(1, *info.positions_vbo);
-
-                glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
-
-                glBufferData(GL_ARRAY_BUFFER, 2*NP, null, GL_STATIC_DRAW);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, NP, mesh.positions.data);
-                glBufferSubData(GL_ARRAY_BUFFER, NP, NP, mesh.colors.data);
-            }
-
-            {
-                if !info.positions_vao glGenVertexArrays(1, *info.positions_vao);
-
-                glBindVertexArray(info.positions_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, info.positions_vbo);
-
-                glEnableVertexAttribArray(ATTRIB_POSITION);
-                glEnableVertexAttribArray(ATTRIB_COLOR);
-                glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)0);
-                glVertexAttribPointer(ATTRIB_COLOR, 3, GL_FLOAT, false, size_of(Vector3), cast(*void)NP);
-            }
-        }
-
-    } // end if info.is_dirty
-}
-
-
-
-
-
-// @Cleanup consolidate this
-// @Incomplete handle wave?
-render_mesh_triangle_normals :: (entity : Entity) {
-
-    if !entity.mesh.triangles.count return;
-    if !entity.display_info.triangle_style.normal_style.visible return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_triangle_normal_vectors, entity);
-
-    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
-    glBindVertexArray(entity.render_info.triangles_normals_vao);
-    glDrawArrays(GL_TRIANGLES, 0, xx (3 * entity.mesh.triangles.count));
-}
-
-// @Incomplete handle wave?
-render_mesh_segment_normals :: (entity : Entity) {
-
-    // @CompilerBug Add a return here and observe a compilation failure with message:
-    // Error: Unable to open output file "C:/Users/matija.kecman/Dropbox/Prizm/.build/Prizm_1_w3.obj" for LLVM code generation: The process cannot access the file because it is being used by another process.
-
-    if !entity.mesh.segments.count return;
-    if !entity.display_info.segment_style.normal_style.visible return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_segment_normal_vectors, entity);
-
-    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
-    glBindVertexArray(entity.render_info.segments_normals_vao);
-    glDrawArrays(GL_LINES, 0, xx (2 * entity.mesh.segments.count));
-}
-
-// @Incomplete handle wave?
-render_mesh_point_normals :: (entity : Entity) {
-
-    if !entity.mesh.points.count return;
-    if !entity.display_info.point_style.normal_style.visible return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_point_normal_vectors, entity);
-
-    glLineWidth(2); // 1, 2, 3... See also glEnable(GL_LINE_SMOOTH);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
-    glBindVertexArray(entity.render_info.points_normals_vao);
-    glDrawArrays(GL_POINTS, 0, xx entity.mesh.points.count);
-}
-
-render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4) {
-
-    app.render_info.shader_aabb.use_shader(*app.render_info.shader_aabb, aabb_model, world_from_model);
-
-    glDrawArrays(GL_LINES, 0, 24);
-}
-
-render_mesh_positions :: (entity : Entity) {
-    using entity.display_info;
-
-    if !entity.mesh.positions.count return;
-    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
-
-    use_shader(*app.render_info.shader_points_lines, entity);
-
-    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)vertex_style.size;
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "point_size", used_point_size);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", vertex_style.color.component);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", vertex_style.color_mode);
-
-    // @Cleanup refactor to set all the state before issuing the draw calls
-    last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data); // @Cleanup @Speed @TODOOO Remove this its very slow
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    glEnable(GL_PROGRAM_POINT_SIZE); // This is needed so we can assign to gl_PointSize in the shader
-
-    glBindVertexArray(entity.render_info.positions_vao);
-    glDrawArrays(GL_POINTS, 0, xx entity.mesh.positions.count);
-}
-
-render_mesh_points :: (entity : Entity) {
-    using entity.display_info;
-
-    if !entity.mesh.points.count return;
-    if !point_style.visible && !clip_radius_mode_show_wireframe return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_points_lines, entity);
-
-    used_point_size : float = ifx clip_radius_mode_show_wireframe then 2. else cast(float)point_style.vertex_style.size;
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "point_size", used_point_size);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", point_style.vertex_style.color.component);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", point_style.vertex_style.color_mode);
-
-    last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    glEnable(GL_PROGRAM_POINT_SIZE); // This is needed so we can assign to gl_PointSize in the shader
-
-    glBindVertexArray(entity.render_info.points_vao);
-    glDrawArrays(GL_POINTS, 0, xx entity.mesh.points.count);
-}
-
-render_mesh_segments :: (entity : Entity) {
-    using entity.display_info;
-
-    if !entity.mesh.segments.count return;
-    if !segment_style.visible && !clip_radius_mode return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_points_lines, entity);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", segment_style.color.component);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color_mode", segment_style.color_mode);
-
-    used_segments_width := ifx clip_radius_mode then 1. else segment_style.width; // ifx ensures that the min width is chosen for clip_radius_mode
-    if (used_segments_width > 0) {
-        // See also glEnable(GL_LINE_SMOOTH);
-        glLineWidth(xx used_segments_width);
-    }
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // @Cleanup doesnt this affect a GL_LINES call?
-
-    glBindVertexArray(entity.render_info.segments_vao);
-    glDrawArrays(GL_LINES, 0, xx (2 * entity.mesh.segments.count));
-}
-
-
-// :NiceTriangleEdgesRendering
-// We render triangle edges are rendered by rendering the triangle data twice using different polygon modes:
-// 1. With mode GL_FILL to achieve smooth/with anti-aliased edges within the triangle face (supports floating point edges_width)
-// 2. With mode GL_LINE to ensure that degenerate triangles with no area are visible when edges are rendered (requires integral edges_width)
-// In order not to spoil the smoothness of the edges within a triangle face we ensure a smaller width is used in the GL_LINE call
-MIN_EDGES_WIDTH_GL_LINE :: 1.;
-MIN_EDGES_WIDTH_GL_FILL :: 1.2;
-
-// Render the triangles using GL_LINE polygon mode so that degenerate triangles are visible when triangle edges are visible
-// TODOO Maybe note the degenerate triangles when we parse the obj file and store them so we don't render all edges here... rendering all the edges with lines is ugly (it would be less ugly if we used quads strips to render lines).
-render_mesh_triangles_as_lines :: (entity : Entity) {
-    using entity.display_info;
-
-    if !entity.mesh.triangles.count return;
-    if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_points_lines, entity);
-    set_shader_uniform_value(*app.render_info.shader_points_lines, "color", triangle_style.edge_style.color.component);
-
-    used_edges_width := max(triangle_style.edge_style.width - 1, MIN_EDGES_WIDTH_GL_LINE); // See :NiceTriangleEdgesRendering
-    used_edges_width = ifx clip_radius_mode_show_wireframe then MIN_EDGES_WIDTH_GL_LINE else used_edges_width;
-    glLineWidth(xx used_edges_width); // See also glEnable(GL_LINE_SMOOTH);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    glBindVertexArray(entity.render_info.triangles_edges_vao);
-    glDrawArrays(GL_TRIANGLES, 0, xx (3 * entity.mesh.triangles.count));
-}
-
-render_mesh_triangles :: (entity : Entity) {
-
-    using entity.display_info;
- 
-    if !entity.mesh.triangles.count return;
-    if !triangle_style.visible return;
-
-    maybe_update_render_info(*entity.render_info, *entity.mesh);
-
-    use_shader(*app.render_info.shader_triangles, entity);
-
-    // @Volatile :ClipRadiusModeEdgeWidth
-    app.render_info.shader_triangles.set_shader_clip_radius_uniforms(app.render_info.shader_triangles, entity);
-
-    // @Cleanup Remove this
-    last_polygon_mode: [2]GLuint;
-    glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
-
-    // @Cleanup Extract this
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glBindVertexArray(entity.render_info.triangles_vao);
-    glDrawArrays(GL_TRIANGLES, 0, xx (3 * entity.mesh.triangles.count));
-}
-
-// @TODOOOO @Speedddd We should order operations to minimize OpenGL state changes ie we should
-// set shaders and then loop over all items, currently for each item we set a bunch of different
-// shaders
-render_entities :: () {
-
-    ScopeGlState();
-
-    for :VisibleOpaque      app.entities render_entity_geometry(it, it_index);
-    for :VisibleTransparent app.entities render_entity_geometry(it, it_index);
-
-    // :RenderingSelectionAABB Here we also render the AABB for a selection of entities, which is a bit of a hack
-    if app.template_display_info.aabb_visible {
-        render_aabb(app.template_aabb_world, Matrix4_Identity);
-    }
-
-    glClear(GL_DEPTH_BUFFER_BIT); // Render the text labels and flash hovered item over everything else
-
-    for :VisibleHovered     app.entities render_entity_geometry(it, it_index);
-}
-
-render_entities_gbuffer :: () {
-
-    DebugScopeGLGroup("render_entities_gbuffer");
-
-    //glViewport(0, 0, xx app.window_size.width, xx app.window_size.height);
-
-    {
-        use_geometry_pass();
-
-        glDepthMask(GL_FALSE);
-        render_background();
-        glDepthMask(GL_TRUE);
-
-        for :VisibleOpaque app.entities {
-            maybe_update_render_info(*it.render_info, *it.mesh);
-
-            if !it.mesh.triangles.count continue;
-            if !it.display_info.triangle_style.visible continue;
-            use_shader(*app.render_info.shader_geometry, it);
-            glBindVertexArray(it.render_info.triangles_vao);
-            glDrawArrays(GL_TRIANGLES, 0, xx (3 * it.mesh.triangles.count));
-
-            // @Cleanuppp We should be able to share this with forward rendering, but I want to profile first...!
-            // render_mesh_triangles(entity);
-            // render_mesh_triangles_as_lines(entity);
-            // render_mesh_triangle_normals(entity); // Probably we want to pass clip_radius_mode here too?
-            // render_mesh_segments(entity);
-            // render_mesh_segment_normals(entity); // Probably we want to pass clip_radius_mode here too?
-            // render_mesh_points(entity);
-            // render_mesh_point_normals(entity); // Probably we want to pass clip_radius_mode here too?
-            // render_mesh_positions(entity);
-
-        }
-    }
-
-    {
-        use_ssao_pass();
-        use_shader(*app.render_info.shader_ssao);
-
-        glBindVertexArray(app.render_info.quad_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);  
-    }
-
-
-    {
-        use_ssao_blur_pass();
-        use_shader(*app.render_info.shader_ssao_blur);
-
-        glBindVertexArray(app.render_info.quad_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);  
-    }
-
-    {
-        use_lighting_pass();
-        use_shader(*app.render_info.shader_lighting);
-
-        glBindVertexArray(app.render_info.quad_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);  
-    }
-
-    {
-        DebugScopeGLGroup("Render to Screen Pass");
-
-        blit_texture();
+        info.bounding_sphere = bounding_sphere_ritter(mesh.positions);
+        info.bounding_aabb   = make_axis_box3(..mesh.positions);
     }
 }
 
-
-
-render_selections :: () {
-    if !app.select_tool.entity.display_info.is_visible {
-        return;
-    }
-
-    ScopeGlState();
-
-    // @Cleanup Remove this, can it even be triggered???
-    if app.select_tool.entity.is_hovered {
-        glClear(GL_DEPTH_BUFFER_BIT);
-    }
-
-    app.select_tool.entity.display_info.clip_radius_mode = false; // @Incomplete Support this for the selection item when its the 0-th item?
-    app.select_tool.entity.display_info.clip_radius_mode_show_wireframe = false; // @Incomplete Support this for the selection item when its the 0-th item?
-
-    // @Cleanuppp We can call maybe_update_render_info once, here.
-
-    render_mesh_positions(app.select_tool.entity);
-    render_mesh_points(app.select_tool.entity);
-    render_mesh_point_normals(app.select_tool.entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_segments(app.select_tool.entity);
-    render_mesh_segment_normals(app.select_tool.entity);
-    render_mesh_triangles_as_lines(app.select_tool.entity);
-    render_mesh_triangles(app.select_tool.entity);
-    render_mesh_triangle_normals(app.select_tool.entity);
-
-    // entity := *app.select_tool.entity;
-    // mesh := *app.select_tool.entity.mesh;
-    // projection_from_model := make_projection_from_world(app.camera) * mesh.world_from_model;
-    //
-    // // We intentionally always all the text for selections since there usually aren't lots
-    // // of overlapping ones and its annoying not to see everything. We also don't consider
-    // // the clipping sphere (there is no way to set it right now, anyway) since this is also
-    // // annoying in the case of selections
-    //
-    // // Disabled text rendering while selecting, that can be done after caching the selection
-    // vertex_theme := entity.display_info.vertex_label_theme;
-    // for mesh.positions {
-    //     text := get_point_text(it, it_index, vertex_theme);
-    //
-    //     // @CompilerBug When I move this to a better place I got an undeclared identifier error for Tuple2i.
-    //     to_imgui_position :: (position_screen : Tuple2i) -> ImGui.ImVec2 {
-    //         return .{cast(float) position_screen.x, cast(float)app.window_size.height - cast(float) position_screen.y};
-    //     }
-    //
-    //     window_position : ImGui.ImVec2 = to_imgui_position(to_screen_position(it, projection_from_model));
-    //
-    //     font, color := get_label_font(entity, .VERTEX);
-    //     ImGui.PushFont(font);
-    //     window_size := ImGui.CalcTextSize(text);
-    //     LabelWindow(window_position, window_size);
-    //     ImGui.TextColored(vertex_theme.label_color, "%", text);
-    //     ImGui.PopFont();
-    // }
-}
-
-
-render_background :: () {
-
-    ScopeGlState();
-
-    if #complete app.background_style == {
-        case .SOLID_COLOR;
-
-            using app.background_solid_color;
-            glClearColor(x, y, z, w);
-
-        case .CUSTOM_SHADER;
-
-            glDisable(GL_DEPTH_TEST);
-            defer glEnable(GL_DEPTH_TEST);
-
-            use_shader(*app.render_info.shader_background);
-
-            glBindVertexArray(app.render_info.shader_background.vao);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            /* TODOOO This line triggers, will it go away if we use GL_TRIANGLES? But why??
-
-OGL: type = performance; source = API; id = 131218; severity = medium
-OGL: message = Program/shader state performance warning: Fragment shader in program 19 is being recompiled based on GL state.
-
-            */
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
-}
-
-
-#scope_file
-
+// Entity visibility iterators.
 entity_in_clip_radius_mode :: (entity_index : int) -> bool {
     return mouse_set_clip_radius() && app.clipping_sphere_mode_entity_index >= 0 &&
     (
         ( app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.entities[entity_index].is_selected) ||
         (!app.entities[app.clipping_sphere_mode_entity_index].is_selected && app.clipping_sphere_mode_entity_index == entity_index)
     );
-}
-
-
-
-
-set_model_view_projection_uniforms :: (program : GLuint, world_from_model : Matrix4 = Matrix4_Identity) {
-    {
-        loc := glGetUniformLocation(program, "world_from_model");
-        glUniformMatrix4fv(loc, 1, true, *world_from_model._11);
-    }
-
-    {
-        loc := glGetUniformLocation(program, "view_from_world");
-        view_from_world := make_look_at_matrix(app.camera);
-        glUniformMatrix4fv(loc, 1, true, *view_from_world._11);
-    }
-
-    {
-        loc := glGetUniformLocation(program, "clip_from_view");
-        clip_from_view := make_orthographic_projection_matrix(app.camera);
-        glUniformMatrix4fv(loc, 1, true, *clip_from_view._11);
-    }
 }
 
 not_visible_opaque ::      #code !(is_visible(it) && !it.is_hovered && it.display_info.triangle_style.color.w == 1.);
@@ -711,27 +37,1193 @@ VisibleOpaque ::      #bake_arguments EntitiesIterator(entity_filter=not_visible
 VisibleTransparent :: #bake_arguments EntitiesIterator(entity_filter=not_visible_transparent);
 VisibleHovered ::     #bake_arguments EntitiesIterator(entity_filter=not_visible_hovered);
 
-render_entity_geometry :: (entity : *Entity, entity_index : int) {
+// Minimum wireframe widths carried over from the GL renderer.
+MIN_EDGES_WIDTH_GL_FILL :: 1.2;
+MIN_EDGES_WIDTH_GL_LINE :: 1.0;
 
-    entity.display_info.clip_radius_mode = entity_in_clip_radius_mode(entity_index);
-    entity.display_info.clip_radius_mode_show_wireframe = mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
+// SDL3 GPU renderer -- replaces the OpenGL render system.
+// init_rendering_gpu() is called once at startup; render_entities_gpu() each frame.
 
-    render_mesh_triangles(entity);
-    render_mesh_triangles_as_lines(entity);
-    render_mesh_triangle_normals(entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_segments(entity);
-    render_mesh_segment_normals(entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_points(entity);
-    render_mesh_point_normals(entity); // Probably we want to pass clip_radius_mode here too?
-    render_mesh_positions(entity);
+//
+// ---- GPU buffer handle per entity (stored alongside the legacy Render_Info) ----
+//
 
-    if entity.display_info.aabb_visible {
-        render_aabb(entity.render_info.bounding_aabb, entity.mesh.world_from_model);
+Render_Info_GPU :: struct {
+    is_dirty := true; // set when geometry changes; cleared after GPU upload
+
+    // One SDL_GPUBuffer per geometry type.
+    // Triangles buffer layout (non-interleaved, all arrays have NVT = 3*tri_count verts):
+    //   [positions: NVT*12][smooth_normals: NVT*12][face_normals: NVT*12][barycentrics: NVT*12][colors: NVT*12]
+    // Points buffer layout (NVP = point_count):
+    //   [positions: NVP*12][colors: NVP*12]
+    // Segments buffer layout (NVS = 2*seg_count):
+    //   [positions: NVS*12][colors: NVS*12]
+    // Positions buffer (unreferenced vertices, NVV = mesh.positions.count):
+    //   [positions: NVV*12][colors: NVV*12]
+
+    triangles_buf : *SDL_GPUBuffer;
+    triangles_NVT : u32;          // vertex count for triangles (= 3 * tri_count)
+
+    segments_buf  : *SDL_GPUBuffer;
+    segments_NVS  : u32;          // = 2 * seg_count
+
+    points_buf    : *SDL_GPUBuffer;
+    points_NVP    : u32;          // = point_count
+
+    positions_buf : *SDL_GPUBuffer;
+    positions_NVV : u32;          // = position count
+
+    // Normal vector LINELIST buffers (base_pos: vec3, normal: vec3) * 2 per normal.
+    // Endpoint flag is derived from gl_VertexIndex % 2 in the shader.
+    tri_normals_buf : *SDL_GPUBuffer; // 6 verts per triangle (3 normals * 2)
+    tri_normals_NV  : u32;
+    seg_normals_buf : *SDL_GPUBuffer; // 4 verts per segment  (2 normals * 2)
+    seg_normals_NV  : u32;
+    pt_normals_buf  : *SDL_GPUBuffer; // 2 verts per point    (1 normal  * 2)
+    pt_normals_NV   : u32;
+}
+
+//
+// ---- UBO structs (must match std140 layout in the shaders exactly) ----
+//
+
+Transform_UBO :: struct {
+    clip_from_view   : Matrix4;
+    view_from_world  : Matrix4;
+    world_from_model : Matrix4;
+}
+#assert(size_of(Transform_UBO) == 192);
+
+Clip_UBO :: struct {
+    clip_sphere           : [4]float; // xyz=center, w=radius
+    clip_sphere_prev      : [4]float; // xyz=center, w=radius
+    clip_flags            : [4]u32;   // x=sphere_active, y=clip_radius_mode
+    range_normal          : [3][4]float; // xyz=normal, w=0
+    range_min_max         : [3][4]float; // x=min, y=max, z=active_f
+}
+#assert(size_of(Clip_UBO) == 144);
+
+Triangle_Style_UBO :: struct {
+    color                : [4]float; // rgba
+    edges_color          : [4]float; // rgba
+    backface_color_wave  : [4]float; // xyz=backface_rgb, w=wave
+    look_dir_edges_width : [4]float; // xyz=look_dir, w=edges_width
+    style_flags          : [4]u32;   // x=frontface_mode, y=backface_mode, z=flat_shading, w=backface_visible
+}
+#assert(size_of(Triangle_Style_UBO) == 80);
+
+PL_Style_UBO :: struct {
+    color       : [4]float; // rgba
+    style_flags : [4]u32;   // x=color_mode, y=clip_mode
+    wave_pad    : [4]float; // x=wave
+}
+#assert(size_of(PL_Style_UBO) == 48);
+
+AABB_UBO :: struct {
+    clip_from_view   : Matrix4; 
+    view_from_world  : Matrix4; 
+    world_from_model : Matrix4; 
+    aabb_min         : [4]float;
+    aabb_max         : [4]float;
+    color            : [4]float;
+}
+#assert(size_of(AABB_UBO) == 240);
+
+Background_UBO :: struct {
+    resolution_time : [4]float; // xyz=resolution, w=iTime
+}
+#assert(size_of(Background_UBO) == 16);
+
+Normals_Vert_UBO :: struct {
+    clip_from_view   : Matrix4; 
+    view_from_world  : Matrix4; 
+    world_from_model : Matrix4; 
+    normal_scale     : float;   
+    do_normalize     : u32;     
+    _pad0            : float;   
+    _pad1            : float;   
+}
+#assert(size_of(Normals_Vert_UBO) == 208);
+
+Sized_Prim_Vert_UBO :: struct {
+    clip_from_view   : Matrix4; 
+    view_from_world  : Matrix4; 
+    world_from_model : Matrix4; 
+    prim_size_px     : float;    // 4  -- line width or point size in pixels
+    viewport_w       : float;   
+    viewport_h       : float;   
+    _pad             : float;   
+}
+#assert(size_of(Sized_Prim_Vert_UBO) == 208);
+
+Normals_Frag_UBO :: struct {
+    color        : [4]float;
+    clip_sphere  : [4]float;
+    clip_flags   : [4]u32;  
+    range_normal : [3][4]float;
+    range_min_max: [3][4]float;
+}
+#assert(size_of(Normals_Frag_UBO) == 144);
+
+//
+// ---- Pipeline inventory ----
+//
+
+Render_State_GPU :: struct {
+    pso_triangles      : *SDL_GPUGraphicsPipeline; // FILL, depth on/write on, alpha blend
+    pso_triangles_line : *SDL_GPUGraphicsPipeline; // LINE fill, depth on, no blend
+    pso_background     : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, no depth, no blend
+    pso_aabb           : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, no blend
+    pso_normals        : *SDL_GPUGraphicsPipeline; // LINELIST, depth on, alpha blend
+    pso_thick_lines    : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, instance drawing, alpha blend
+    pso_sized_points   : *SDL_GPUGraphicsPipeline; // TRIANGLELIST, instance drawing, alpha blend
+    unit_quad_line_buf : *SDL_GPUBuffer; // 6-vertex unit quad for thick lines: (t, side)
+    unit_quad_pt_buf   : *SDL_GPUBuffer; // 6-vertex unit square for sized points: (x, y)
+}
+
+g_render : Render_State_GPU;
+
+// Compiled SPIR-V (embedded at build time)
+VERT_TRI,  _V1 :: #run read_entire_file("shaders/triangles.vert.spv");     #assert(_V1);
+FRAG_TRI,  _V2 :: #run read_entire_file("shaders/triangles.frag.spv");     #assert(_V2);
+VERT_PL,   _V3 :: #run read_entire_file("shaders/points_lines.vert.spv");  #assert(_V3);
+FRAG_PL,   _V4 :: #run read_entire_file("shaders/points_lines.frag.spv");  #assert(_V4);
+VERT_BG,   _V5 :: #run read_entire_file("shaders/background.vert.spv");    #assert(_V5);
+FRAG_BG,   _V6 :: #run read_entire_file("shaders/background.frag.spv");    #assert(_V6);
+VERT_AABB, _V7 :: #run read_entire_file("shaders/aabb.vert.spv");          #assert(_V7);
+FRAG_AABB, _V8 :: #run read_entire_file("shaders/aabb.frag.spv");          #assert(_V8);
+VERT_NRM,  _V9 :: #run read_entire_file("shaders/normals.vert.spv");       #assert(_V9);
+FRAG_NRM,  _VA :: #run read_entire_file("shaders/normals.frag.spv");       #assert(_VA);
+VERT_TL,   _VB :: #run read_entire_file("shaders/thick_lines.vert.spv");   #assert(_VB);
+VERT_SP,   _VC :: #run read_entire_file("shaders/sized_points.vert.spv");  #assert(_VC);
+
+//
+// ---- Helpers ----
+//
+
+make_gpu_shader :: (device : *SDL_GPUDevice, spv : string, stage : SDL_GPUShaderStage, num_uniform_buffers : u32) -> *SDL_GPUShader {
+    info := SDL_GPUShaderCreateInfo.{
+        code_size           = cast(u64) spv.count,
+        code                = spv.data,
+        entrypoint          = "main",
+        format              = SDL_GPU_SHADERFORMAT_SPIRV,
+        stage               = stage,
+        num_uniform_buffers = num_uniform_buffers,
+    };
+    s := SDL_CreateGPUShader(device, *info);
+    assert(s != null, "SDL_CreateGPUShader failed: %", to_string(SDL_GetError()));
+    return s;
+}
+
+make_pipeline :: (
+    device          : *SDL_GPUDevice,
+    vert            : *SDL_GPUShader,
+    frag            : *SDL_GPUShader,
+    swapchain_fmt   : SDL_GPUTextureFormat,
+    primitive_type  : SDL_GPUPrimitiveType,
+    fill_mode       : SDL_GPUFillMode,
+    blend           : bool,
+    vertex_buf_descs: []SDL_GPUVertexBufferDescription,
+    vertex_attrs    : []SDL_GPUVertexAttribute,
+) -> *SDL_GPUGraphicsPipeline {
+
+    color_desc := SDL_GPUColorTargetDescription.{
+        format = swapchain_fmt,
+        blend_state = ifx blend then SDL_GPUColorTargetBlendState.{
+            src_color_blendfactor  = .SRC_ALPHA,
+            dst_color_blendfactor  = .ONE_MINUS_SRC_ALPHA,
+            color_blend_op         = .ADD,
+            src_alpha_blendfactor  = .ONE,
+            dst_alpha_blendfactor  = .ONE_MINUS_SRC_ALPHA,
+            alpha_blend_op         = .ADD,
+            enable_blend           = true,
+        } else .{},
+    };
+
+    info := SDL_GPUGraphicsPipelineCreateInfo.{
+        vertex_shader   = vert,
+        fragment_shader = frag,
+        primitive_type  = primitive_type,
+        rasterizer_state = .{ fill_mode = fill_mode, cull_mode = .NONE },
+        depth_stencil_state = .{
+            compare_op                = .LESS_OR_EQUAL,
+            enable_depth_test         = true,
+            enable_depth_write        = true,
+        },
+        vertex_input_state = .{
+            vertex_buffer_descriptions = vertex_buf_descs.data,
+            num_vertex_buffers         = cast(u32) vertex_buf_descs.count,
+            vertex_attributes          = vertex_attrs.data,
+            num_vertex_attributes      = cast(u32) vertex_attrs.count,
+        },
+        target_info = .{
+            color_target_descriptions = *color_desc,
+            num_color_targets         = 1,
+            depth_stencil_format      = depth_format,
+            has_depth_stencil_target  = true,
+        },
+    };
+    pso := SDL_CreateGPUGraphicsPipeline(device, *info);
+    assert(pso != null, "SDL_CreateGPUGraphicsPipeline failed: %", to_string(SDL_GetError()));
+    return pso;
+}
+
+//
+// ---- Init / shutdown ----
+//
+
+depth_texture : *SDL_GPUTexture; // owned by this module; recreated on resize
+
+init_depth_texture :: () {
+    if depth_texture {
+        SDL_ReleaseGPUTexture(app.gpu_device, depth_texture);
+        depth_texture = null;
+    }
+    supported := SDL_GPUTextureSupportsFormat(app.gpu_device, .D32_FLOAT, .SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET);
+    if !supported {
+        print("[sdlgpu] D32_FLOAT depth not supported, trying D16_UNORM\n");
+    }
+    fmt : SDL_GPUTextureFormat = ifx supported then .D32_FLOAT else .D16_UNORM;
+
+    info := SDL_GPUTextureCreateInfo.{
+        type                = .SDL_GPU_TEXTURETYPE_2D,
+        format              = fmt,
+        usage               = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+        width               = cast(u32) app.window_size.width,
+        height              = cast(u32) app.window_size.height,
+        layer_count_or_depth = 1,
+        num_levels          = 1,
+        sample_count        = .SDL_GPU_SAMPLECOUNT_1,
+    };
+    depth_texture = SDL_CreateGPUTexture(app.gpu_device, *info);
+    assert(depth_texture != null, "Failed to create depth texture: %", to_string(SDL_GetError()));
+
+    depth_format = fmt; // store for pipeline creation
+}
+
+depth_format : SDL_GPUTextureFormat;
+
+init_rendering_gpu :: () {
+    gpu := app.gpu_device;
+    fmt := SDL_GetGPUSwapchainTextureFormat(gpu, app.window);
+
+    init_depth_texture(); // sets depth_format; must run before make_pipeline
+
+    // ---- Triangle vertex layout (5 separate bindings, one per attribute array) ----
+    tri_buf_descs := SDL_GPUVertexBufferDescription.[
+        .{slot=0, pitch=12, input_rate=.VERTEX},
+        .{slot=1, pitch=12, input_rate=.VERTEX},
+        .{slot=2, pitch=12, input_rate=.VERTEX},
+        .{slot=3, pitch=12, input_rate=.VERTEX},
+        .{slot=4, pitch=12, input_rate=.VERTEX},
+    ];
+    tri_attrs := SDL_GPUVertexAttribute.[
+        .{location=0, buffer_slot=0, format=.FLOAT3, offset=0}, // position
+        .{location=1, buffer_slot=1, format=.FLOAT3, offset=0}, // smooth_normal
+        .{location=2, buffer_slot=2, format=.FLOAT3, offset=0}, // face_normal
+        .{location=3, buffer_slot=3, format=.FLOAT3, offset=0}, // barycentric
+        .{location=4, buffer_slot=4, format=.FLOAT3, offset=0}, // color
+    ];
+
+    // ---- Points/lines vertex layout (2 bindings: position, color) ----
+    pl_buf_descs := SDL_GPUVertexBufferDescription.[
+        .{slot=0, pitch=12, input_rate=.VERTEX},
+        .{slot=1, pitch=12, input_rate=.VERTEX},
+    ];
+    pl_attrs := SDL_GPUVertexAttribute.[
+        .{location=0, buffer_slot=0, format=.FLOAT3, offset=0}, // position
+        .{location=1, buffer_slot=1, format=.FLOAT3, offset=0}, // color
+    ];
+
+    vert_tri := make_gpu_shader(gpu, VERT_TRI, .VERTEX,   1);
+    frag_tri := make_gpu_shader(gpu, FRAG_TRI, .FRAGMENT, 2);
+
+    g_render.pso_triangles = make_pipeline(
+        gpu, vert_tri, frag_tri, fmt, .TRIANGLELIST, .FILL, blend=true, tri_buf_descs, tri_attrs);
+    g_render.pso_triangles_line = make_pipeline(
+        gpu, vert_tri, frag_tri, fmt, .TRIANGLELIST, .LINE, blend=false, tri_buf_descs, tri_attrs);
+
+    SDL_ReleaseGPUShader(gpu, vert_tri);
+    SDL_ReleaseGPUShader(gpu, frag_tri);
+
+    // ---- Background: no vertex buffers, no depth ----
+    {
+        vert := make_gpu_shader(gpu, VERT_BG, .VERTEX,   0);
+        frag := make_gpu_shader(gpu, FRAG_BG, .FRAGMENT, 1);
+        empty_buf_descs : []SDL_GPUVertexBufferDescription;
+        empty_attrs     : []SDL_GPUVertexAttribute;
+        color_desc := SDL_GPUColorTargetDescription.{ format = fmt };
+        info := SDL_GPUGraphicsPipelineCreateInfo.{
+            vertex_shader   = vert,
+            fragment_shader = frag,
+            primitive_type  = .TRIANGLELIST,
+            rasterizer_state = .{ fill_mode = .FILL, cull_mode = .NONE },
+            target_info = .{
+                color_target_descriptions = *color_desc,
+                num_color_targets         = 1,
+                depth_stencil_format      = depth_format,
+                has_depth_stencil_target  = true, // pass uses depth target, but no depth test here
+            },
+        };
+        g_render.pso_background = SDL_CreateGPUGraphicsPipeline(gpu, *info);
+        assert(g_render.pso_background != null, "background pipeline failed: %", to_string(SDL_GetError()));
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- AABB: no vertex buffers, vertex UBO only ----
+    {
+        vert := make_gpu_shader(gpu, VERT_AABB, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, FRAG_AABB, .FRAGMENT, 0);
+        empty_buf_descs : []SDL_GPUVertexBufferDescription;
+        empty_attrs     : []SDL_GPUVertexAttribute;
+        g_render.pso_aabb = make_pipeline(gpu, vert, frag, fmt, .LINELIST, .FILL, blend=false, empty_buf_descs, empty_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Normals: (base_pos, normal) vertex layout, 2 vertex buffers ----
+    {
+        nrm_buf_descs := SDL_GPUVertexBufferDescription.[
+            .{slot=0, pitch=12, input_rate=.VERTEX}, // in_base
+            .{slot=1, pitch=12, input_rate=.VERTEX}, // in_normal
+        ];
+        nrm_attrs := SDL_GPUVertexAttribute.[
+            .{location=0, buffer_slot=0, format=.FLOAT3, offset=0},
+            .{location=1, buffer_slot=1, format=.FLOAT3, offset=0},
+        ];
+        vert := make_gpu_shader(gpu, VERT_NRM, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, FRAG_NRM, .FRAGMENT, 1);
+        g_render.pso_normals = make_pipeline(gpu, vert, frag, fmt, .LINELIST, .FILL, blend=true, nrm_buf_descs, nrm_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Thick lines: (t,side) VERTEX + (A,B,colorA,colorB) INSTANCE ----
+    {
+        tl_buf_descs := SDL_GPUVertexBufferDescription.[
+            .{slot=0, pitch=8,  input_rate=.VERTEX},   // (t, side)
+            .{slot=1, pitch=24, input_rate=.INSTANCE}, // in_pos_a (12) + in_pos_b (12)
+            .{slot=2, pitch=24, input_rate=.INSTANCE}, // in_color_a (12) + in_color_b (12)
+        ];
+        tl_attrs := SDL_GPUVertexAttribute.[
+            .{location=0, buffer_slot=0, format=.FLOAT2, offset=0},  // corner (t,side)
+            .{location=1, buffer_slot=1, format=.FLOAT3, offset=0},  // in_pos_a
+            .{location=2, buffer_slot=1, format=.FLOAT3, offset=12}, // in_pos_b
+            .{location=3, buffer_slot=2, format=.FLOAT3, offset=0},  // in_color_a
+            .{location=4, buffer_slot=2, format=.FLOAT3, offset=12}, // in_color_b
+        ];
+        vert := make_gpu_shader(gpu, VERT_TL, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, FRAG_PL, .FRAGMENT, 2); // reuse points/lines frag
+        g_render.pso_thick_lines = make_pipeline(gpu, vert, frag, fmt, .TRIANGLELIST, .FILL, blend=true, tl_buf_descs, tl_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Sized points: (x,y) VERTEX + (center,color) INSTANCE ----
+    {
+        sp_buf_descs := SDL_GPUVertexBufferDescription.[
+            .{slot=0, pitch=8,  input_rate=.VERTEX},   // corner (x,y)
+            .{slot=1, pitch=12, input_rate=.INSTANCE}, // in_center
+            .{slot=2, pitch=12, input_rate=.INSTANCE}, // in_color
+        ];
+        sp_attrs := SDL_GPUVertexAttribute.[
+            .{location=0, buffer_slot=0, format=.FLOAT2, offset=0}, // corner
+            .{location=1, buffer_slot=1, format=.FLOAT3, offset=0}, // in_center
+            .{location=2, buffer_slot=2, format=.FLOAT3, offset=0}, // in_color
+        ];
+        vert := make_gpu_shader(gpu, VERT_SP, .VERTEX,   1);
+        frag := make_gpu_shader(gpu, FRAG_PL, .FRAGMENT, 2);
+        g_render.pso_sized_points = make_pipeline(gpu, vert, frag, fmt, .TRIANGLELIST, .FILL, blend=true, sp_buf_descs, sp_attrs);
+        SDL_ReleaseGPUShader(gpu, vert);
+        SDL_ReleaseGPUShader(gpu, frag);
+    }
+
+    // ---- Static unit-quad buffers uploaded once ----
+    {
+        // Thick-line quad: (t, side) -- 6 vertices
+        LINE_QUAD : [12]float : .[
+            0, -1,  0, +1,  1, +1,   // tri 1
+            0, -1,  1, +1,  1, -1,   // tri 2
+        ];
+        cmd := SDL_AcquireGPUCommandBuffer(gpu);
+        g_render.unit_quad_line_buf = upload_to_gpu_buffer(cmd, LINE_QUAD.data, size_of(type_of(LINE_QUAD)));
+
+        // Sized-point quad: (x, y) corner -- 6 vertices
+        PT_QUAD : [12]float : .[
+            -1, -1,  +1, -1,  +1, +1,  // tri 1
+            -1, -1,  +1, +1,  -1, +1,  // tri 2
+        ];
+        g_render.unit_quad_pt_buf = upload_to_gpu_buffer(cmd, PT_QUAD.data, size_of(type_of(PT_QUAD)));
+        SDL_SubmitGPUCommandBuffer(cmd);
     }
 }
 
-// @Cleanup replace this with: postion_loc = glGetAttribLocation()
-ATTRIB_POSITION  :: 0;
-ATTRIB_NORMAL    :: 1;
-// ATTRIB_TEXCOORDS :: 2;
-ATTRIB_COLOR     :: 3;
+deinit_rendering_gpu :: () {
+    gpu := app.gpu_device;
+    if g_render.pso_triangles       SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_triangles);
+    if g_render.pso_triangles_line  SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_triangles_line);
+    if g_render.pso_background      SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_background);
+    if g_render.pso_aabb            SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_aabb);
+    if g_render.pso_normals         SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_normals);
+    if g_render.pso_thick_lines     SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_thick_lines);
+    if g_render.pso_sized_points    SDL_ReleaseGPUGraphicsPipeline(gpu, g_render.pso_sized_points);
+    if g_render.unit_quad_line_buf  SDL_ReleaseGPUBuffer(gpu, g_render.unit_quad_line_buf);
+    if g_render.unit_quad_pt_buf    SDL_ReleaseGPUBuffer(gpu, g_render.unit_quad_pt_buf);
+    if depth_texture                SDL_ReleaseGPUTexture(gpu, depth_texture);
+}
+
+//
+// ---- Buffer upload helpers ----
+//
+
+upload_to_gpu_buffer :: (cmd : *SDL_GPUCommandBuffer, data : *void, byte_count : u32) -> *SDL_GPUBuffer {
+    if byte_count == 0 return null;
+
+    gpu := app.gpu_device;
+
+    tbuf_info := SDL_GPUTransferBufferCreateInfo.{ usage = .UPLOAD, size = byte_count };
+    tbuf := SDL_CreateGPUTransferBuffer(gpu, *tbuf_info);
+    assert(tbuf != null);
+
+    ptr := SDL_MapGPUTransferBuffer(gpu, tbuf, false);
+    if ptr == null {
+        print("[sdlgpu] SDL_MapGPUTransferBuffer returned null: %\n", to_string(SDL_GetError()));
+        SDL_ReleaseGPUTransferBuffer(gpu, tbuf);
+        return null;
+    }
+    memcpy(ptr, data, byte_count);
+    SDL_UnmapGPUTransferBuffer(gpu, tbuf);
+
+    gbuf_info := SDL_GPUBufferCreateInfo.{ usage = SDL_GPU_BUFFERUSAGE_VERTEX, size = byte_count };
+    gbuf := SDL_CreateGPUBuffer(gpu, *gbuf_info);
+    assert(gbuf != null);
+
+    copy_pass := SDL_BeginGPUCopyPass(cmd);
+    if copy_pass == null {
+        print("[sdlgpu] SDL_BeginGPUCopyPass returned null: %\n", to_string(SDL_GetError()));
+        SDL_ReleaseGPUBuffer(gpu, gbuf);
+        SDL_ReleaseGPUTransferBuffer(gpu, tbuf);
+        return null;
+    }
+    src := SDL_GPUTransferBufferLocation.{ transfer_buffer = tbuf, offset = 0 };
+    dst := SDL_GPUBufferRegion.{ buffer = gbuf, offset = 0, size = byte_count };
+    SDL_UploadToGPUBuffer(copy_pass, *src, *dst, false);
+    SDL_EndGPUCopyPass(copy_pass);
+
+    SDL_ReleaseGPUTransferBuffer(gpu, tbuf);
+    return gbuf;
+}
+
+//
+// ---- Vertex data builders ----
+//
+
+// Standard barycentric coords cycling per triangle vertex
+BARY : [3]Vector3 : .[ .{1,0,0}, .{0,1,0}, .{0,0,1} ];
+
+maybe_update_render_info_gpu :: (gpu_info : *Render_Info_GPU, render_info : *Render_Info, mesh : *Simple_Mesh, cmd : *SDL_GPUCommandBuffer) {
+    if mesh.positions.count == 0 return;
+    if !gpu_info.is_dirty return;
+    defer gpu_info.is_dirty = false;
+
+    // Bounding geometry (shared with ray-casting code)
+    render_info.bounding_sphere = bounding_sphere_ritter(mesh.positions);
+    render_info.bounding_aabb   = make_axis_box3(..mesh.positions);
+
+    gpu := app.gpu_device;
+
+    // ---- Triangles ----
+    if mesh.triangles.count {
+        #if USE_TRACY  context._Tracy.ZoneScoped("mesh_triangles", color=0x2060C0);
+        N := 3 * mesh.triangles.count; // vertices in soup
+
+        normals_attr : *Simple_Mesh_Triangle_Normals = find_or_add_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+        assert(normals_attr != null);
+        if normals_attr.values.count == 0 {
+            compute_vertex_normals_from_triangles(mesh, normals_attr);
+        }
+
+        // Build CPU arrays
+        positions   : [..]Vector3 = temp_array(Vector3); array_reserve(*positions,   N);
+        smooth_norms: [..]Vector3 = temp_array(Vector3); array_reserve(*smooth_norms, N);
+        face_norms  : [..]Vector3 = temp_array(Vector3); array_reserve(*face_norms,   N);
+        barycentrics: [..]Vector3 = temp_array(Vector3); array_reserve(*barycentrics, N);
+        colors      : [..]Vector3 = temp_array(Vector3); array_reserve(*colors,       N);
+
+        for :ModelTriangleIterator mesh {
+            vids := mesh_triangle_tuple(mesh, it_index);
+
+            array_add(*positions, it.a);
+            array_add(*positions, it.b);
+            array_add(*positions, it.c);
+
+            // Smooth normals: stored as 3 vec3s per triangle in normals_attr.values (Matrix3 layout)
+            // Each Matrix3 stores 3 rows, each row is one vertex normal.
+            if it_index < normals_attr.values.count {
+                nm := normals_attr.values[it_index];
+                array_add(*smooth_norms, .{nm._11, nm._12, nm._13});
+                array_add(*smooth_norms, .{nm._21, nm._22, nm._23});
+                array_add(*smooth_norms, .{nm._31, nm._32, nm._33});
+            } else {
+                face := normalize(cross(it.b - it.a, it.c - it.a));
+                array_add(*smooth_norms, face);
+                array_add(*smooth_norms, face);
+                array_add(*smooth_norms, face);
+            }
+
+            // Face normal: cross product of world-space vertices (flat shading)
+            face_n := normalize(cross(it.b - it.a, it.c - it.a));
+            array_add(*face_norms, face_n);
+            array_add(*face_norms, face_n);
+            array_add(*face_norms, face_n);
+
+            array_add(*barycentrics, BARY[0]);
+            array_add(*barycentrics, BARY[1]);
+            array_add(*barycentrics, BARY[2]);
+
+            array_add(*colors, mesh.colors[vids.i]);
+            array_add(*colors, mesh.colors[vids.j]);
+            array_add(*colors, mesh.colors[vids.k]);
+        }
+
+        // Pack into one flat buffer [positions | smooth_n | face_n | bary | colors]
+        NP := cast(u32)(N * size_of(Vector3));
+        total := 5 * NP;
+        flat_buf : *void = alloc(cast(s64) total,, temp);
+        base := cast(*u8) flat_buf;
+        memcpy(base + 0*NP, positions.data,    NP);
+        memcpy(base + 1*NP, smooth_norms.data, NP);
+        memcpy(base + 2*NP, face_norms.data,   NP);
+        memcpy(base + 3*NP, barycentrics.data, NP);
+        memcpy(base + 4*NP, colors.data,       NP);
+
+        if gpu_info.triangles_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.triangles_buf);
+        gpu_info.triangles_buf = upload_to_gpu_buffer(cmd, flat_buf, total);
+        gpu_info.triangles_NVT = cast(u32) N;
+    }
+
+    // ---- Segments ----
+    if mesh.segments.count {
+        #if USE_TRACY  context._Tracy.ZoneScoped("mesh_segments", color=0x20A060);
+        N := 2 * mesh.segments.count;
+        NP := cast(u32)(N * size_of(Vector3));
+
+        seg_pos   : [..]Vector3 = temp_array(Vector3); array_reserve(*seg_pos,   N);
+        seg_color : [..]Vector3 = temp_array(Vector3); array_reserve(*seg_color, N);
+
+        for :ModelSegmentIterator mesh {
+            vids := mesh_segment_tuple(mesh, it_index);
+            array_add(*seg_pos,   it.start);
+            array_add(*seg_pos,   it.end);
+            array_add(*seg_color, mesh.colors[vids.i]);
+            array_add(*seg_color, mesh.colors[vids.j]);
+        }
+
+        flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+        base := cast(*u8) flat_buf;
+        memcpy(base,    seg_pos.data,   NP);
+        memcpy(base+NP, seg_color.data, NP);
+
+        if gpu_info.segments_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.segments_buf);
+        gpu_info.segments_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+        gpu_info.segments_NVS = cast(u32) N;
+    }
+
+    // ---- Points ----
+    if mesh.points.count {
+        #if USE_TRACY  context._Tracy.ZoneScoped("mesh_points", color=0xA06020);
+        N  := mesh.points.count;
+        NP := cast(u32)(N * size_of(Vector3));
+
+        pt_pos   : [..]Vector3 = temp_array(Vector3); array_reserve(*pt_pos,   N);
+        pt_color : [..]Vector3 = temp_array(Vector3); array_reserve(*pt_color, N);
+
+        for :ModelPointIterator mesh {
+            array_add(*pt_pos,   it);
+            array_add(*pt_color, mesh.colors[mesh.points[it_index]]);
+        }
+
+        flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+        base := cast(*u8) flat_buf;
+        memcpy(base,    pt_pos.data,   NP);
+        memcpy(base+NP, pt_color.data, NP);
+
+        if gpu_info.points_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.points_buf);
+        gpu_info.points_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+        gpu_info.points_NVP = cast(u32) N;
+    }
+
+    // ---- Triangle normal vectors (6 verts per triangle: 3 normals * 2 endpoints) ----
+    if mesh.triangles.count {
+        normals_attr : *Simple_Mesh_Triangle_Normals = find_mesh_attribute(mesh, TRIANGLE_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Triangle_Normals);
+        if normals_attr && normals_attr.values.count == mesh.triangles.count {
+            N  := 6 * mesh.triangles.count;
+            NP := cast(u32)(N * size_of(Vector3));
+
+            bases   : [..]Vector3 = temp_array(Vector3); array_reserve(*bases,   N);
+            normals : [..]Vector3 = temp_array(Vector3); array_reserve(*normals, N);
+
+            for tri_index : 0..mesh.triangles.count-1 {
+                vids := mesh_triangle_tuple(mesh, tri_index);
+                a := mesh.positions[vids.i];
+                b := mesh.positions[vids.j];
+                c := mesh.positions[vids.k];
+                nm := normals_attr.values[tri_index];
+                nv := Vector3.[.{nm._11, nm._12, nm._13}, .{nm._21, nm._22, nm._23}, .{nm._31, nm._32, nm._33}];
+                pts := Vector3.[a, b, c];
+                for i : 0..2 {
+                    array_add(*bases,   pts[i]);
+                    array_add(*bases,   pts[i]);
+                    array_add(*normals, nv[i]);
+                    array_add(*normals, nv[i]);
+                }
+            }
+
+            flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+            base := cast(*u8) flat_buf;
+            memcpy(base,    bases.data,   NP);
+            memcpy(base+NP, normals.data, NP);
+
+            if gpu_info.tri_normals_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.tri_normals_buf);
+            gpu_info.tri_normals_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+            gpu_info.tri_normals_NV  = cast(u32) N;
+        }
+    }
+
+    // ---- Segment normal vectors (4 verts per segment: 2 endpoints * 2) ----
+    if mesh.segments.count {
+        seg_nrm : *Simple_Mesh_Segment_Normals = find_mesh_attribute(mesh, SEGMENT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Segment_Normals);
+        if seg_nrm && seg_nrm.values.count == mesh.segments.count {
+            N  := 4 * mesh.segments.count;
+            NP := cast(u32)(N * size_of(Vector3));
+
+            bases   : [..]Vector3 = temp_array(Vector3); array_reserve(*bases,   N);
+            normals : [..]Vector3 = temp_array(Vector3); array_reserve(*normals, N);
+
+            for seg_index : 0..mesh.segments.count-1 {
+                vids := mesh_segment_tuple(mesh, seg_index);
+                pts := Vector3.[mesh.positions[vids.i], mesh.positions[vids.j]];
+                nm  := seg_nrm.values[seg_index];
+                nv  := Vector3.[.{nm._11, nm._12, nm._13}, .{nm._21, nm._22, nm._23}];
+                for i : 0..1 {
+                    array_add(*bases,   pts[i]);
+                    array_add(*bases,   pts[i]);
+                    array_add(*normals, nv[i]);
+                    array_add(*normals, nv[i]);
+                }
+            }
+
+            flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+            base := cast(*u8) flat_buf;
+            memcpy(base,    bases.data,   NP);
+            memcpy(base+NP, normals.data, NP);
+
+            if gpu_info.seg_normals_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.seg_normals_buf);
+            gpu_info.seg_normals_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+            gpu_info.seg_normals_NV  = cast(u32) N;
+        }
+    }
+
+    // ---- Point normal vectors (2 verts per point) ----
+    if mesh.points.count {
+        pt_nrm : *Simple_Mesh_Point_Normals = find_mesh_attribute(mesh, POINT_NORMALS_ATTRIBUTE_NAME, Simple_Mesh_Point_Normals);
+        if pt_nrm && pt_nrm.values.count == mesh.points.count {
+            N  := 2 * mesh.points.count;
+            NP := cast(u32)(N * size_of(Vector3));
+
+            bases   : [..]Vector3 = temp_array(Vector3); array_reserve(*bases,   N);
+            normals : [..]Vector3 = temp_array(Vector3); array_reserve(*normals, N);
+
+            for :ModelPointIterator mesh {
+                n := pt_nrm.values[it_index];
+                array_add(*bases,   it); array_add(*bases,   it);
+                array_add(*normals, n);  array_add(*normals, n);
+            }
+
+            flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+            base := cast(*u8) flat_buf;
+            memcpy(base,    bases.data,   NP);
+            memcpy(base+NP, normals.data, NP);
+
+            if gpu_info.pt_normals_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.pt_normals_buf);
+            gpu_info.pt_normals_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+            gpu_info.pt_normals_NV  = cast(u32) N;
+        }
+    }
+
+    // ---- Unreferenced vertex positions ----
+    if mesh.positions.count {
+        N  := mesh.positions.count;
+        NP := cast(u32)(N * size_of(Vector3));
+
+        flat_buf : *void = alloc(cast(s64)(2*NP),, temp);
+        base := cast(*u8) flat_buf;
+        memcpy(base,    mesh.positions.data, NP);
+        memcpy(base+NP, mesh.colors.data,    NP);
+
+        if gpu_info.positions_buf  SDL_ReleaseGPUBuffer(gpu, gpu_info.positions_buf);
+        gpu_info.positions_buf = upload_to_gpu_buffer(cmd, flat_buf, 2*NP);
+        gpu_info.positions_NVV = cast(u32) N;
+    }
+}
+
+//
+// ---- UBO fill helpers ----
+//
+
+fill_transform_ubo :: (world_from_model : Matrix4) -> Transform_UBO {
+    ubo : Transform_UBO;
+    // Flip top/bottom and use [0,1] depth range to match Vulkan NDC (Y-down, Z [0,1])
+    cam := app.camera;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(cam.left, cam.right, cam.bottom, cam.top, cam.near, cam.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
+    return ubo;
+}
+
+fill_clip_ubo :: (using di : Display_Info) -> Clip_UBO {
+    ubo : Clip_UBO;
+    ubo.clip_sphere      = .[clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z, clip_sphere.radius];
+    ubo.clip_sphere_prev = .[clip_sphere_prev.center.x, clip_sphere_prev.center.y, clip_sphere_prev.center.z, clip_sphere_prev.radius];
+    ubo.clip_flags       = .[cast(u32) clip_sphere.is_active, cast(u32) clip_radius_mode, 0, 0];
+    for i : 0..2 {
+        r := clip_ranges[i];
+        ubo.range_normal[i]  = .[r.normal.x, r.normal.y, r.normal.z, 0];
+        ubo.range_min_max[i] = .[r.min, r.max, cast(float) cast(u32) r.is_active, 0];
+    }
+    return ubo;
+}
+
+fill_triangle_style_ubo :: (using di : Display_Info) -> Triangle_Style_UBO {
+    ubo : Triangle_Style_UBO;
+    wave := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    look := normalize(current_look_direction());
+
+    used_edges_width := triangle_style.edge_style.width;
+    used_edges_visible := triangle_style.edge_style.visible;
+    if clip_radius_mode_show_wireframe {
+        used_edges_width   = MIN_EDGES_WIDTH_GL_FILL;
+        used_edges_visible = true;
+    }
+    effective_edges_width := ifx used_edges_visible then max(used_edges_width, MIN_EDGES_WIDTH_GL_FILL) else 0.;
+    if clip_radius_mode {
+        effective_edges_width = max(triangle_style.edge_style.width, MIN_EDGES_WIDTH_GL_FILL);
+        if clip_radius_mode_show_wireframe  effective_edges_width = MIN_EDGES_WIDTH_GL_FILL;
+        if !triangle_style.edge_style.visible && !clip_radius_mode_show_wireframe  effective_edges_width = 0.;
+    }
+
+    ubo.color                = .[triangle_style.color.x, triangle_style.color.y, triangle_style.color.z, triangle_style.color.w];
+    ubo.edges_color          = .[triangle_style.edge_style.color.x, triangle_style.edge_style.color.y, triangle_style.edge_style.color.z, triangle_style.edge_style.color.w];
+    ubo.backface_color_wave  = .[triangle_style.backface_style.color.x, triangle_style.backface_style.color.y, triangle_style.backface_style.color.z, wave];
+    ubo.look_dir_edges_width = .[look.x, look.y, look.z, effective_edges_width];
+    ubo.style_flags          = .[
+        cast(u32) triangle_style.color_mode,
+        cast(u32) triangle_style.backface_style.color_mode,
+        cast(u32) triangle_style.flat_shading,
+        cast(u32) triangle_style.backface_style.visible,
+    ];
+    return ubo;
+}
+
+fill_pl_style_ubo :: (color : Vector4, color_mode : Color_Mode, clip_mode : Clip_Mode, wave : float) -> PL_Style_UBO {
+    ubo : PL_Style_UBO;
+    ubo.color       = .[color.x, color.y, color.z, color.w];
+    ubo.style_flags = .[cast(u32) color_mode, cast(u32) clip_mode, 0, 0];
+    ubo.wave_pad    = .[wave, 0, 0, 0];
+    return ubo;
+}
+
+//
+// ---- Per-entity render functions ----
+//
+
+render_mesh_triangles :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.triangles.count return;
+    if !triangle_style.visible return;
+    if !entity.render_info_gpu.triangles_buf return;
+
+    NVT := entity.render_info_gpu.triangles_NVT;
+    NP  := NVT * size_of(Vector3);
+
+    transform := fill_transform_ubo(entity.mesh.world_from_model);
+    clip      := fill_clip_ubo(entity.display_info);
+    style     := fill_triangle_style_ubo(entity.display_info);
+
+    // Filled triangles with Blinn-Phong + wireframe
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_triangles);
+    {
+        bindings := SDL_GPUBufferBinding.[
+            .{buffer=entity.render_info_gpu.triangles_buf, offset=0},       // slot 0: positions
+            .{buffer=entity.render_info_gpu.triangles_buf, offset=1*cast(u32)NP}, // slot 1: smooth_normal
+            .{buffer=entity.render_info_gpu.triangles_buf, offset=2*cast(u32)NP}, // slot 2: face_normal
+            .{buffer=entity.render_info_gpu.triangles_buf, offset=3*cast(u32)NP}, // slot 3: barycentric
+            .{buffer=entity.render_info_gpu.triangles_buf, offset=4*cast(u32)NP}, // slot 4: color
+        ];
+        SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 5);
+    }
+    SDL_PushGPUVertexUniformData(cmd, 0, *transform, size_of(Transform_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip,  size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style, size_of(Triangle_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, NVT, 1, 0, 0);
+
+    // Degenerate triangle edges (LINE fill mode) -- shows collapsed triangles
+    if triangle_style.edge_style.visible || clip_radius_mode_show_wireframe {
+        edge_style := fill_triangle_style_ubo(entity.display_info);
+        // edges_width=0 in LINE mode suppresses the solid-wireframe overlay (it's pure GL_LINE here)
+        edge_style.look_dir_edges_width[3] = 0.;
+        edge_style.color = edge_style.edges_color;
+
+        SDL_BindGPUGraphicsPipeline(pass, g_render.pso_triangles_line);
+        {
+            bindings := SDL_GPUBufferBinding.[
+                .{buffer=entity.render_info_gpu.triangles_buf, offset=0},
+                .{buffer=entity.render_info_gpu.triangles_buf, offset=1*cast(u32)NP},
+                .{buffer=entity.render_info_gpu.triangles_buf, offset=2*cast(u32)NP},
+                .{buffer=entity.render_info_gpu.triangles_buf, offset=3*cast(u32)NP},
+                .{buffer=entity.render_info_gpu.triangles_buf, offset=4*cast(u32)NP},
+            ];
+            SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 5);
+        }
+        SDL_PushGPUVertexUniformData(cmd, 0, *transform, size_of(Transform_UBO));
+        SDL_PushGPUFragmentUniformData(cmd, 0, *clip,       size_of(Clip_UBO));
+        SDL_PushGPUFragmentUniformData(cmd, 1, *edge_style, size_of(Triangle_Style_UBO));
+        SDL_DrawGPUPrimitives(pass, NVT, 1, 0, 0);
+    }
+}
+
+//
+// ---- Top-level render calls ----
+// Split into two phases: upload (copy passes, before render pass) and draw (inside render pass).
+//
+
+// ---- Normal vector render helpers ----
+
+fill_normals_vert_ubo :: (world_from_model : Matrix4, ns : Normal_Style) -> Normals_Vert_UBO {
+    ubo : Normals_Vert_UBO;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.bottom, app.camera.top, app.camera.near, app.camera.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
+    ubo.normal_scale     = ns.scale;
+    ubo.do_normalize     = cast(u32) ns.normalized;
+    return ubo;
+}
+
+fill_normals_frag_ubo :: (ns : Normal_Style, clip_sphere : Clip_Sphere, clip_ranges : [3]Clip_Range) -> Normals_Frag_UBO {
+    ubo : Normals_Frag_UBO;
+    ubo.color       = .[ns.color.x, ns.color.y, ns.color.z, ns.color.w];
+    ubo.clip_sphere = .[clip_sphere.center.x, clip_sphere.center.y, clip_sphere.center.z, clip_sphere.radius];
+    ubo.clip_flags  = .[cast(u32) clip_sphere.is_active, 0, 0, 0];
+    for i : 0..2 {
+        r := clip_ranges[i];
+        ubo.range_normal[i]  = .[r.normal.x, r.normal.y, r.normal.z, 0];
+        ubo.range_min_max[i] = .[r.min, r.max, cast(float) cast(u32) r.is_active, 0];
+    }
+    return ubo;
+}
+
+bind_normals_buffers :: (pass : *SDL_GPURenderPass, buf : *SDL_GPUBuffer, NP : u32) {
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=buf, offset=0},   // slot 0: base positions
+        .{buffer=buf, offset=NP},  // slot 1: normals
+    ];
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 2);
+}
+
+render_mesh_triangle_normals :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.triangles.count return;
+    if !triangle_style.normal_style.visible return;
+    if !entity.render_info_gpu.tri_normals_buf return;
+
+    NV := entity.render_info_gpu.tri_normals_NV;
+    NP := NV * cast(u32) size_of(Vector3);
+    vert_ubo := fill_normals_vert_ubo(entity.mesh.world_from_model, triangle_style.normal_style);
+    frag_ubo := fill_normals_frag_ubo(triangle_style.normal_style, clip_sphere, clip_ranges);
+
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_normals);
+    bind_normals_buffers(pass, entity.render_info_gpu.tri_normals_buf, NP);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Normals_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *frag_ubo, size_of(Normals_Frag_UBO));
+    SDL_DrawGPUPrimitives(pass, NV, 1, 0, 0);
+}
+
+render_mesh_segment_normals :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.segments.count return;
+    if !segment_style.normal_style.visible return;
+    if !entity.render_info_gpu.seg_normals_buf return;
+
+    NV := entity.render_info_gpu.seg_normals_NV;
+    NP := NV * cast(u32) size_of(Vector3);
+    vert_ubo := fill_normals_vert_ubo(entity.mesh.world_from_model, segment_style.normal_style);
+    frag_ubo := fill_normals_frag_ubo(segment_style.normal_style, clip_sphere, clip_ranges);
+
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_normals);
+    bind_normals_buffers(pass, entity.render_info_gpu.seg_normals_buf, NP);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Normals_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *frag_ubo, size_of(Normals_Frag_UBO));
+    SDL_DrawGPUPrimitives(pass, NV, 1, 0, 0);
+}
+
+render_mesh_point_normals :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.points.count return;
+    if !point_style.normal_style.visible return;
+    if !entity.render_info_gpu.pt_normals_buf return;
+
+    NV := entity.render_info_gpu.pt_normals_NV;
+    NP := NV * cast(u32) size_of(Vector3);
+    vert_ubo := fill_normals_vert_ubo(entity.mesh.world_from_model, point_style.normal_style);
+    frag_ubo := fill_normals_frag_ubo(point_style.normal_style, clip_sphere, clip_ranges);
+
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_normals);
+    bind_normals_buffers(pass, entity.render_info_gpu.pt_normals_buf, NP);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Normals_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *frag_ubo, size_of(Normals_Frag_UBO));
+    SDL_DrawGPUPrimitives(pass, NV, 1, 0, 0);
+}
+
+// ---- AABB render ----
+
+render_aabb :: (aabb_model : AxisBox3, world_from_model : Matrix4, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    ubo : AABB_UBO;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.bottom, app.camera.top, app.camera.near, app.camera.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
+    ubo.aabb_min = .[aabb_model.min_point.x, aabb_model.min_point.y, aabb_model.min_point.z, 0];
+    ubo.aabb_max = .[aabb_model.max_point.x, aabb_model.max_point.y, aabb_model.max_point.z, 0];
+    ubo.color    = .[BLUE.x, BLUE.y, BLUE.z, BLUE.w];
+
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_aabb);
+    SDL_PushGPUVertexUniformData(cmd, 0, *ubo, size_of(AABB_UBO));
+    SDL_DrawGPUPrimitives(pass, 24, 1, 0, 0);
+}
+
+// ---- Background render ----
+
+render_background :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    if app.background_style == .SOLID_COLOR {
+        // Solid colour is handled by the render-pass clear colour -- nothing extra to draw.
+        return;
+    }
+
+    iTime := cast(float) SDL_GetTicks() / 1000.0;
+    ubo := Background_UBO.{ resolution_time = .[
+        cast(float) app.window_size.width,
+        cast(float) app.window_size.height,
+        1.0,
+        iTime,
+    ]};
+
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_background);
+    SDL_PushGPUFragmentUniformData(cmd, 0, *ubo, size_of(Background_UBO));
+    SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+}
+
+// ---- Axes triad render ----
+
+render_axes_triad_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    if !app.triad.visible return;
+
+    old_camera := app.camera;
+    defer app.camera = old_camera;
+
+    using *app.camera;
+    w := cast(float) app.window_size.width;
+    h := cast(float) app.window_size.height;
+    s : float = 80.;
+
+    near, far   = -s, s;
+    bottom, top = 0., h;
+    left, right = 0., w;
+    unit_look := normalize(current_look_direction());
+    look_position = Vector3.{};
+    eye_position  = look_position - unit_look;
+
+    offset_vs := Vector3.{s, s, 0.} + Vector3.{w - 2*s - WINDOW_BORDER_UI_OFFSET.x, WINDOW_BORDER_UI_OFFSET.y, 0};
+    valid, world_from_view := inverse(make_look_at_matrix(app.camera));
+    if !valid vlog_warning("render_axes_triad_gpu: could not invert look-at matrix");
+    offset_ws := (world_from_view * Vector4.{xyz=offset_vs}).xyz;
+
+    scale := make_scale_matrix4(.8 * Vector3.{s, s, s});
+    shift := make_translation_matrix4(offset_ws);
+    xform := shift * scale;
+
+    app.triad.origin.mesh.world_from_model = xform;
+    app.triad.x_axis.mesh.world_from_model = xform;
+    app.triad.y_axis.mesh.world_from_model = xform;
+    app.triad.z_axis.mesh.world_from_model = xform;
+
+    render_mesh_triangles(*app.triad.origin, pass, cmd);
+    render_mesh_triangles(*app.triad.x_axis, pass, cmd);
+    render_mesh_triangles(*app.triad.y_axis, pass, cmd);
+    render_mesh_triangles(*app.triad.z_axis, pass, cmd);
+}
+
+// ---- Top-level render calls ----
+// Split into two phases: upload (copy passes, before render pass) and draw (inside render pass).
+
+// Phase A: upload all dirty entity buffers via copy passes.
+// Must be called BEFORE SDL_BeginGPURenderPass.
+upload_entity_buffers_gpu :: (cmd : *SDL_GPUCommandBuffer) {
+    for app.entities {
+        maybe_update_render_info_gpu(*it.render_info_gpu, *it.render_info, *it.mesh, cmd);
+    }
+    // Selection entity
+    {
+        e := *app.select_tool.entity;
+        maybe_update_render_info_gpu(*e.render_info_gpu, *e.render_info, *e.mesh, cmd);
+    }
+    // Axes triad entities (not in app.entities)
+    if app.triad.visible {
+        maybe_update_render_info_gpu(*app.triad.origin.render_info_gpu, *app.triad.origin.render_info, *app.triad.origin.mesh, cmd);
+        maybe_update_render_info_gpu(*app.triad.x_axis.render_info_gpu, *app.triad.x_axis.render_info, *app.triad.x_axis.mesh, cmd);
+        maybe_update_render_info_gpu(*app.triad.y_axis.render_info_gpu, *app.triad.y_axis.render_info, *app.triad.y_axis.mesh, cmd);
+        maybe_update_render_info_gpu(*app.triad.z_axis.render_info_gpu, *app.triad.z_axis.render_info, *app.triad.z_axis.mesh, cmd);
+    }
+}
+
+// ---- Thick-line and sized-point render helpers (Phase 5) ----
+
+fill_sized_prim_vert_ubo :: (world_from_model : Matrix4, size_px : float) -> Sized_Prim_Vert_UBO {
+    ubo : Sized_Prim_Vert_UBO;
+    ubo.clip_from_view   = transpose(orthographic_projection_matrix(app.camera.left, app.camera.right, app.camera.bottom, app.camera.top, app.camera.near, app.camera.far, depth_range_01=true));
+    ubo.view_from_world  = transpose(make_look_at_matrix(app.camera));
+    ubo.world_from_model = transpose(world_from_model);
+    ubo.prim_size_px     = size_px;
+    ubo.viewport_w       = cast(float) app.window_size.width;
+    ubo.viewport_h       = cast(float) app.window_size.height;
+    return ubo;
+}
+
+render_mesh_segments_thick :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.segments.count return;
+    if !segment_style.visible && !clip_radius_mode return;
+    if !entity.render_info_gpu.segments_buf return;
+
+    wave         := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    used_clip    := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+    seg_count    := entity.mesh.segments.count;
+    NVS          := entity.render_info_gpu.segments_NVS;           // = 2 * seg_count
+    NP_bytes     := NVS * cast(u32) size_of(Vector3);              // byte size of positions half
+    width        := ifx clip_radius_mode then 1. else segment_style.width;
+
+    vert_ubo := fill_sized_prim_vert_ubo(entity.mesh.world_from_model, width);
+    clip_ubo := fill_clip_ubo(entity.display_info);
+    style    := fill_pl_style_ubo(segment_style.color, segment_style.color_mode, used_clip, wave);
+
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=g_render.unit_quad_line_buf,           offset=0},        // slot 0: (t,side)
+        .{buffer=entity.render_info_gpu.segments_buf,   offset=0},        // slot 1: positions A+B (stride=24)
+        .{buffer=entity.render_info_gpu.segments_buf,   offset=NP_bytes}, // slot 2: colors A+B (stride=24)
+    ];
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_thick_lines);
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 3);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Sized_Prim_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip_ubo, size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style,    size_of(PL_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, 6, cast(u32) seg_count, 0, 0);
+}
+
+render_mesh_points_sized :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.points.count return;
+    if !point_style.visible && !clip_radius_mode_show_wireframe return;
+    if !entity.render_info_gpu.points_buf return;
+
+    wave         := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    used_clip    := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+    pt_count     := entity.mesh.points.count;
+    NP_bytes     := entity.render_info_gpu.points_NVP * cast(u32) size_of(Vector3);
+    size_px      := cast(float) (ifx clip_radius_mode_show_wireframe then 2 else point_style.vertex_style.size);
+
+    vert_ubo := fill_sized_prim_vert_ubo(entity.mesh.world_from_model, size_px);
+    clip_ubo := fill_clip_ubo(entity.display_info);
+    style    := fill_pl_style_ubo(point_style.vertex_style.color, point_style.vertex_style.color_mode, used_clip, wave);
+
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=g_render.unit_quad_pt_buf,           offset=0},        // slot 0: corner (x,y)
+        .{buffer=entity.render_info_gpu.points_buf,   offset=0},        // slot 1: centers
+        .{buffer=entity.render_info_gpu.points_buf,   offset=NP_bytes}, // slot 2: colors
+    ];
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_sized_points);
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 3);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Sized_Prim_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip_ubo, size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style,    size_of(PL_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, 6, cast(u32) pt_count, 0, 0);
+}
+
+render_mesh_positions_sized :: (entity : *Entity, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    using entity.display_info;
+    if !entity.mesh.positions.count return;
+    if !vertex_style.visible && !clip_radius_mode_show_wireframe return;
+    if !entity.render_info_gpu.positions_buf return;
+
+    wave         := ifx flash_wave_dt == 0 then -1. else cos(5 * flash_wave_dt);
+    used_clip    := ifx clip_radius_mode then Clip_Mode.BLACKEN else Clip_Mode.HIDDEN;
+    pos_count    := entity.mesh.positions.count;
+    NP_bytes     := entity.render_info_gpu.positions_NVV * cast(u32) size_of(Vector3);
+    size_px      := cast(float) (ifx clip_radius_mode_show_wireframe then 2 else vertex_style.size);
+
+    vert_ubo := fill_sized_prim_vert_ubo(entity.mesh.world_from_model, size_px);
+    clip_ubo := fill_clip_ubo(entity.display_info);
+    style    := fill_pl_style_ubo(vertex_style.color, vertex_style.color_mode, used_clip, wave);
+
+    bindings := SDL_GPUBufferBinding.[
+        .{buffer=g_render.unit_quad_pt_buf,             offset=0},
+        .{buffer=entity.render_info_gpu.positions_buf,  offset=0},
+        .{buffer=entity.render_info_gpu.positions_buf,  offset=NP_bytes},
+    ];
+    SDL_BindGPUGraphicsPipeline(pass, g_render.pso_sized_points);
+    SDL_BindGPUVertexBuffers(pass, 0, bindings.data, 3);
+    SDL_PushGPUVertexUniformData(cmd, 0, *vert_ubo, size_of(Sized_Prim_Vert_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 0, *clip_ubo, size_of(Clip_UBO));
+    SDL_PushGPUFragmentUniformData(cmd, 1, *style,    size_of(PL_Style_UBO));
+    SDL_DrawGPUPrimitives(pass, 6, cast(u32) pos_count, 0, 0);
+}
+
+// Phase B: draw calls inside a render pass.  No copy passes here.
+render_entity :: (entity : *Entity, entity_index : int, pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    entity.display_info.clip_radius_mode                = entity_in_clip_radius_mode(entity_index);
+    entity.display_info.clip_radius_mode_show_wireframe = mouse_set_clip_radius() && array_find(app.clipping_sphere_mode_last_entity_index_set, entity_index);
+
+    render_mesh_triangles       (entity, pass, cmd);
+    render_mesh_triangle_normals(entity, pass, cmd);
+    render_mesh_segments_thick  (entity, pass, cmd);
+    render_mesh_segment_normals (entity, pass, cmd);
+    render_mesh_points_sized    (entity, pass, cmd);
+    render_mesh_point_normals   (entity, pass, cmd);
+    render_mesh_positions_sized (entity, pass, cmd);
+    if entity.display_info.aabb_visible {
+        render_aabb(entity.render_info.bounding_aabb, entity.mesh.world_from_model, pass, cmd);
+    }
+}
+
+render_entities_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    for :VisibleOpaque      app.entities  render_entity(it, it_index, pass, cmd);
+    for :VisibleTransparent app.entities  render_entity(it, it_index, pass, cmd);
+    if app.template_display_info.aabb_visible {
+        render_aabb(app.template_aabb_world, Matrix4_Identity, pass, cmd);
+    }
+    for :VisibleHovered     app.entities  render_entity(it, it_index, pass, cmd);
+}
+
+render_selections_gpu :: (pass : *SDL_GPURenderPass, cmd : *SDL_GPUCommandBuffer) {
+    entity := *app.select_tool.entity;
+    if !entity.display_info.is_visible return;
+
+    entity.display_info.clip_radius_mode                = false;
+    entity.display_info.clip_radius_mode_show_wireframe = false;
+
+    render_mesh_positions_sized (entity, pass, cmd);
+    render_mesh_points_sized    (entity, pass, cmd);
+    render_mesh_point_normals   (entity, pass, cmd);
+    render_mesh_segments_thick  (entity, pass, cmd);
+    render_mesh_segment_normals (entity, pass, cmd);
+    render_mesh_triangles       (entity, pass, cmd);
+    render_mesh_triangle_normals(entity, pass, cmd);
+}

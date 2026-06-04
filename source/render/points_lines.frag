@@ -1,84 +1,61 @@
-#version 330 core
+#version 450
 
-struct Clip_Range {
-    vec3 normal;
-    bool is_active;
-    float min;
-    float max;
+// Color modes — must match Color_Mode in display_info.jai
+const uint COLOR_PICKED = 0;
+const uint COLOR_VERTEX = 1;
+
+// Clip modes — must match Clip_Mode in display_info.jai
+const uint CLIP_HIDDEN  = 0;
+const uint CLIP_BLACKEN = 1;
+const uint CLIP_DARKEN  = 2;
+
+layout(set = 3, binding = 0) uniform Clip_UBO {
+    vec4  clip_sphere;      // xyz=center, w=radius
+    vec4  clip_sphere_prev; // unused here
+    uvec4 clip_flags;       // x=sphere_active, y=clip_radius_mode (unused for lines)
+    vec4  range_normal[3];
+    vec4  range_min_max[3]; // x=min, y=max, z=active_as_float
 };
 
-struct Clip_Sphere {
-    vec3 center;
-    float radius;
-    bool is_active;
+layout(set = 3, binding = 1) uniform PL_Style_UBO {
+    vec4  color;        // rgba
+    uvec4 style_flags;  // x=color_mode, y=clip_mode
+    vec4  wave_pad;     // x=wave
 };
 
-uniform float wave; // time varying value in range [-1,1]
-uniform vec4 color; // rgba
-uniform Clip_Range clip_range[3];
-uniform Clip_Sphere clip_sphere;
+layout(location = 0) in vec3 frag_position_ws;
+layout(location = 1) in vec3 frag_color;
 
-const int Clip_Mode_HIDDEN =  0;
-const int Clip_Mode_BLACKEN = 1;
-const int Clip_Mode_DARKEN =  2;
-uniform int clip_mode = Clip_Mode_HIDDEN;
-
-const int Color_Mode_SINGLE = 0;
-const int Color_Mode_VERTEX = 1;
-uniform int color_mode = Color_Mode_SINGLE;
-
-in vec3 fragment_position_ws;
-in vec3 fragment_color;
-
-out vec4 out_color;
+layout(location = 0) out vec4 out_color;
 
 void main() {
-    vec4 used_color = color;
+    float wave      = wave_pad.x;
+    uint  color_mode = style_flags.x;
+    uint  clip_mode  = style_flags.y;
+    bool  sphere_active = clip_flags.x != 0u;
 
-    if (color_mode == Color_Mode_VERTEX) {
-        used_color = vec4(fragment_color, 1);
-    }
+    vec4 used_color = (color_mode == COLOR_VERTEX) ? vec4(frag_color, 1.0) : color;
 
+    // ---- clip ranges ----
     for (int i = 0; i < 3; ++i) {
-        if (clip_range[i].is_active) {
-            float dist = dot(clip_range[i].normal, fragment_position_ws);
-            float min = clip_range[i].min;
-            float max = clip_range[i].max;
-            if (dist <= min || dist >= max) {
-                switch (clip_mode) {
-                    case Clip_Mode_HIDDEN: {
-                        discard;
-                    } break;
-                    case Clip_Mode_BLACKEN: {
-                        used_color = vec4(0, 0, 0, 1);
-                    } break;
-                    case Clip_Mode_DARKEN: {
-                        // @Incomplete
-                    } break;
-                }
+        if (range_min_max[i].z > 0.5) {
+            float d = dot(range_normal[i].xyz, frag_position_ws);
+            if (d <= range_min_max[i].x || d >= range_min_max[i].y) {
+                if      (clip_mode == CLIP_HIDDEN)  discard;
+                else if (clip_mode == CLIP_BLACKEN) { used_color = vec4(0.0, 0.0, 0.0, 1.0); break; }
             }
         }
     }
 
-    if (clip_sphere.is_active) {
-        float dist = distance(clip_sphere.center, fragment_position_ws);
-        if (dist > clip_sphere.radius) {
-            switch (clip_mode) {
-                case Clip_Mode_HIDDEN: {
-                    discard;
-                } break;
-                case Clip_Mode_BLACKEN: {
-                    used_color = vec4(0, 0, 0, 1);
-                } break;
-                case Clip_Mode_DARKEN: {
-                    // @Incomplete
-                } break;
-            }
+    // ---- clip sphere ----
+    if (sphere_active) {
+        float dist = distance(clip_sphere.xyz, frag_position_ws);
+        if (dist > clip_sphere.w) {
+            if      (clip_mode == CLIP_HIDDEN)  discard;
+            else if (clip_mode == CLIP_BLACKEN) used_color = vec4(0.0, 0.0, 0.0, 1.0);
         }
     }
 
-    out_color = mix(used_color, vec4(1.f), wave * .5f + .5f);
-
-    // Respect blending of input color
+    out_color   = mix(used_color, vec4(1.0), wave * 0.5 + 0.5);
     out_color.w = used_color.w;
 }

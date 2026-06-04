@@ -6,6 +6,7 @@ app : App;
 // @Cleanup Remove the thing not associated with the application logic directly, make these file scoped globals?
 App :: struct {
     window : *SDL_Window = null;
+    gpu_device : *SDL_GPUDevice = null;
     window_type : Window_Type;
     window_maximized := false;
     window_draggable_rect_min : ImGui.ImVec2;
@@ -14,6 +15,12 @@ App :: struct {
     window_unfocussed_opacity : float = 1.;
 
     font_set : Font_Set;
+
+    // Base size, in pixels, of the main UI font. Driven by the "UI Scale" slider in preferences.
+    // Defaults to Font_Size.NORMAL (so the default global scale is 1). Each frame this is converted
+    // to a global font scale (style.FontScaleMain = ui_font_size_px / Font_Size.NORMAL) so all fonts
+    // scale together; see prizm.jai. Rounded to a whole pixel when the dynamic atlas bakes.
+    ui_font_size_px : float = cast(float) Font_Size.NORMAL;
 
     theme : Prizm_Theme;
 
@@ -57,8 +64,6 @@ App :: struct {
 
     background_style := Background_Style.CUSTOM_SHADER;
     background_solid_color := Vector4.{230./255, 230./255, 230./256, 1.};
-
-    render_info : App_Render_Info;
 
     show_ui := true;
     show_fps := false;
@@ -150,31 +155,6 @@ Window_Size :: struct {
     fullscreen := false;
 }
 
-App_Render_Info :: struct {
-    shader_aabb : Shader_AABB;
-    shader_background : Shader_Background;
-
-    shader_triangles : Shader_Triangles; // For triangle and solid wireframe rendering (triangle edges rendered on triangle faces)
-    shader_points_lines : Shader_Points_Lines;
-    shader_point_normal_vectors : Shader_Point_Normal_Vectors;
-    shader_segment_normal_vectors : Shader_Segment_Normal_Vectors;
-    shader_triangle_normal_vectors : Shader_Triangle_Normal_Vectors;
-
-    quad_vao : GLuint;
-
-    blit_program : GLuint; // Used to blit framebuffer textures to the screen
-    blit_channel : Blit_Channel = .DEFAULT_LIT;
-
-    geometry_pass : Geometry_Pass;
-    ssao_pass : Ssao_Pass;
-    ssao_blur_pass : Ssao_Blur_Pass;
-    lighting_pass : Lighting_Pass;
-
-    shader_geometry : Shader_Geometry;
-    shader_ssao : Shader_Ssao;
-    shader_ssao_blur : Shader_Ssao_Blur;
-    shader_lighting : Shader_Lighting;
-}
 
 // @Incomplete Deduplicate file watcher directories on linux
 
@@ -422,23 +402,21 @@ get_font :: (font_size : Font_Size) -> *ImGui.ImFont {
 #import "Reflection";
 #import "Math";
 #import "Window_Type";
-#import "GL";
 #import "Print_Vars";
 #import "Deep_Copy";
 Debug :: #import "Debug";
 #import "Hash";
 #import "Hash_Table";
-#import "freetype255";
+#import "freetype";
 #import "System";
 #import "stb_image";
-#import "SDL";
+#import "SDL3";
 ImGui :: #import "ImGui";
-#load "imgui_impl_sdl.jai"; // SDL platform backend
-#load "imgui_impl_opengl3.jai"; // OpenGL renderer backend
 
-// Extra SDL bindings
-SDL_SetWindowOpacity :: (window: *SDL_Window, opacity: float) -> s32 #foreign SDL2;
-SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #foreign SDL2;
+// Type aliases so sdl3_gpu3.jai resolves ImGui types without the ImGui:: prefix.
+ImDrawData    :: ImGui.ImDrawData;
+ImTextureData :: ImGui.ImTextureData;
+#load "../modules/ImGui/backends/sdl3_gpu3.jai"; // SDL_GPU platform + renderer backends
 
 
 #if OS == .WINDOWS {
@@ -472,6 +450,7 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "display_info.jai";
 #load "ui.jai";
 #load "ui_utils.jai";
+#load "font_awesome.jai";
 #load "shapes.jai";
 #load "keymap.jai";
 #load "target_items.jai";
@@ -483,19 +462,11 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "demo_mode.jai";
 #load "updates.jai";
 
-#load "render/shader.jai";
-#load "render/shader_aabb.jai";
-#load "render/shader_background.jai";
-#load "render/shader_triangles.jai";
-#load "render/shader_points_lines.jai";
-#load "render/shader_normal_vectors.jai";
-#load "render/shader_geometry.jai";
-#load "render/shader_ssao.jai";
-#load "render/shader_lighting.jai";
-#load "render/render.jai";
+
 #load "render/render_utils.jai";
+#load "render/render.jai";
+#load "screenshot.jai";
 #load "render/render_text.jai";
-#load "render/render_pass.jai";
 #load "render/texture.jai";
 
 #load "console/console.jai";
@@ -521,5 +492,4 @@ SDL_GetWindowOpacity :: (window: *SDL_Window, out_opacity: *float) -> s32 #forei
 #load "kernel/GTE_Mathematics_IntrSphere3Sphere3.jai";
 
 #import "Compiler";
-#run compiler_set_type_info_flags(GL_Procedures, .NO_SIZE_COMPLAINT);
 #run compiler_set_type_info_flags(ImGui, .NO_SIZE_COMPLAINT);

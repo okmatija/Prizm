@@ -72,21 +72,20 @@ Tuple3i :: Tuple2(int);
 Tuple2 :: struct (T : Type) {
     x, y : T;
 
-#place x;
-    component : [2] T = ---;
+#overlay (x) component : [2] T;
 
-#place x; i : T = ---;
-#place y; j : T = ---;
+#overlay (x) i : T;
+#overlay (y) j : T;
 }
 
 Tuple3 :: struct (T : Type) {
     x, y, z : T;
 
-#place x; component : [3] T = ---;
+#overlay (x) component : [3] T;
 
-#place x; i : T = ---;
-#place y; j : T = ---;
-#place z; k : T = ---;
+#overlay (x) i : T;
+#overlay (y) j : T;
+#overlay (z) k : T;
 }
 
 // @Cleanup: Replace these make_* functions with struct literals with non-const elements

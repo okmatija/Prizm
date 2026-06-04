@@ -21,8 +21,7 @@ Vector3_Update :: struct {
     y : bool = false;
     z : bool = false;
 
-#place x;
-    component: [3]bool = ---;
+#overlay (x) component: [3]bool;
 }
 
 get_update :: (old : Vector3, new : Vector3) -> Vector3_Update {
@@ -51,8 +50,7 @@ Vector4_Update :: struct {
     z : bool = false;
     w : bool = false;
 
-#place x;
-    component: [4]bool = ---;
+#overlay (x) component: [4]bool;
 }
 
 get_update :: (old : Vector4, new : Vector4) -> Vector4_Update {

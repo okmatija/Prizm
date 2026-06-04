@@ -1,0 +1,10 @@
+.build/
+*.pdb
+*.rdi
+*.exe
+*.dSYM
+
+*.DS_Store
+
+tests/test
+tests/*dylib

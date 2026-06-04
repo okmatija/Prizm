@@ -67,7 +67,7 @@ See also https://gabormakesgames.com/transforms.html and
     * TODO Use the new features in modules/Keymap where Keymap_Set can be used to change the Keymap depending on the program mode (see jai/CHANGELOG.txt)
 DONE};
 
-PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "WIP", #string DONE
+PRIZM_VERSION_0_12_0 :: Version.{"0.12.0", "(WIP)", #string DONE
     1. Fix important bugs and release!!
     2. Then move on to implementing Depth Peeling!
 
@@ -813,7 +813,7 @@ DONE
 
 init_changelog :: () {
     //array_add(*changelog, PRIZM_VERSION_BACKLOGGED);
-    //array_add(*changelog, PRIZM_VERSION_0_12_0);
+    array_add(*changelog, PRIZM_VERSION_0_12_0);
     //array_add(*changelog, PRIZM_VERSION_0_11_1);
     array_add(*changelog, PRIZM_VERSION_0_11_0);
     array_add(*changelog, PRIZM_VERSION_0_10_1);

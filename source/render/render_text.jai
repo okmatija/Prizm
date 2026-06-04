@@ -1,6 +1,5 @@
 render_text :: () {
-    // Render the text labels and flash hovered item over everything else
-    glClear(GL_DEPTH_BUFFER_BIT);
+    // Labels are ImGui windows rendered after all geometry; no depth-clear needed with SDL GPU.
 
     // @Incomplete Add option to render points in world coordinates? Model is probably mostly useful for 2D shapes
 
@@ -58,13 +57,7 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
         return;
     }
 
-    glEnable(GL_BLEND);
-    defer glDisable(GL_BLEND);
     // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
-    // glDisable(GL_CULL_FACE);
-    // defer glEnable(GL_CULL_FACE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     labels : [..]Label_Info = temp_array(Element_Type=Label_Info);
 
@@ -210,13 +203,7 @@ render_entity_text_ray_cast :: ($entity_filter : Code) {
 }
 
 render_entity_text_spotlight :: ($entity_filter : Code) {
-    glEnable(GL_BLEND);
-    defer glDisable(GL_BLEND);
     // Culling is unhelpful for polygon meshes @Cleanup make this a property on the mesh
-    // glDisable(GL_CULL_FACE);
-    // defer glEnable(GL_CULL_FACE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     projection_from_world : Matrix4 = make_projection_from_world(app.camera);
 
@@ -509,7 +496,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
     }
 
     label_table : Table(Tuple2i, [..]Label_Info, hash_Tuple2i, compare_Tuple2i);
-    init(*label_table, label_infos.count);
+    table_resize(*label_table, label_infos.count);
     defer deinit(*label_table);
 
     for label_info : label_infos {
@@ -530,7 +517,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
         text_size : ImGui.ImVec2;
         for overlapping_labels {
             font, color := get_label_font(entity, it.kind);
-            ImGui.PushFont(font);
+            push_font(font);
             defer ImGui.PopFont();
             size := ImGui.CalcTextSize(it.label);
             text_size.x = max(text_size.x, size.x);
@@ -543,7 +530,7 @@ draw_label_infos :: (entity : Entity, label_infos : []Label_Info) {
 
         for overlapping_labels {
             font, color := get_label_font(entity, it.kind);
-            ImGui.PushFont(font);
+            push_font(font);
             ImGui.TextColored(color, "%", it.label);
             ImGui.PopFont();
         }

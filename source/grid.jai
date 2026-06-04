@@ -29,9 +29,9 @@ Frame :: struct {
     y_axis : Vector3 = .{0, 1, 0};
     z_axis : Vector3 = .{0, 0, 1};
 
-    #place x_axis; u_axis : Vector3 = ---;
-    #place y_axis; v_axis : Vector3 = ---;
-    #place z_axis; w_axis : Vector3 = ---;
+    #overlay (x_axis) u_axis : Vector3;
+    #overlay (y_axis) v_axis : Vector3;
+    #overlay (z_axis) w_axis : Vector3;
 }
 
 WORLD_FRAME :: Frame.{};

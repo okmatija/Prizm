@@ -78,7 +78,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                 } else {
                     entity_base := found.*;
                     entity := entity_base;
-                    entity.render_info.is_dirty = true; // Redundant
+                    entity.render_info.is_dirty = true; entity.render_info_gpu.is_dirty = true; // Redundant
                     entity.display_info.segment_style.visible = true;
                     entity.display_info.segment_style.width = 2;
 
@@ -123,7 +123,7 @@ debug_spatial_index :: (id : int, jumbo_item : int = 0) {
                     defer deinit(*other);
 
                     merge(*entity.mesh, other);
-                    entity.render_info.is_dirty = true; // Redundant
+                    entity.render_info.is_dirty = true; entity.render_info_gpu.is_dirty = true; // Redundant
                 }
             }
 
